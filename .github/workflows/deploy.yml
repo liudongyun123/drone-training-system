@@ -1,0 +1,45 @@
+name: Deploy to CloudBase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Deploy to CloudBase
+        uses: TencentCloudBase/action@v2
+        with:
+          secret-id: ${{ secrets.CLOUDBASE_SECRET_ID }}
+          secret-key: ${{ secrets.CLOUDBASE_SECRET_KEY }}
+          env-id: ${{ secrets.CLOUDBASE_ENV_ID }}
+          upload-path: './dist'
+          static-website: true
+
+      - name: Deployment Summary
+        run: |
+          echo "✅ 部署完成！"
+          echo "🌐 访问地址: https://${{ secrets.CLOUDBASE_ENV_ID }}-${{ secrets.CLOUDBASE_APP_ID }}.tcloudbaseapp.com/"
