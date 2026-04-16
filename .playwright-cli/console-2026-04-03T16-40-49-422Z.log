@@ -1,0 +1,15 @@
+[     487ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[     489ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[     489ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[     510ms] [LOG] ✅ 用户已登录: undefined @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[     926ms] [LOG] ✅ 匿名登录成功 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[    1297ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/favicon.ico:0
+[    5375ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[    5375ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[    5375ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[    5378ms] [LOG] ✅ 用户已登录: undefined @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[    5517ms] [LOG] ✅ 匿名登录成功 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[   21562ms] [LOG] ✅ 使用缓存的会话 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[   21562ms] [LOG] 查询集合: courses, 参数: {page: 1, pageSize: 100} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-C6ASClun-v20260408-0020-adminService-fix.js:0
+[   21671ms] [LOG] 集合 courses 总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-C6ASClun-v20260408-0020-adminService-fix.js:0
+[   21751ms] [LOG] 查询到 4 条数据 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-C6ASClun-v20260408-0020-adminService-fix.js:0

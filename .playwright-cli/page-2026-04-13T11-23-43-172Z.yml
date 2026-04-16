@@ -1,0 +1,69 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - link "无人机培训" [ref=e8]:
+        - /url: /
+        - img [ref=e9]
+        - generic [ref=e12]: 无人机培训
+      - generic [ref=e13]:
+        - link "课程" [ref=e14] [cursor=pointer]:
+          - /url: /courses
+          - img [ref=e15]
+          - generic [ref=e17]: 课程
+        - link "开班信息" [ref=e18] [cursor=pointer]:
+          - /url: /registration
+          - img [ref=e19]
+          - generic [ref=e21]: 开班信息
+        - link "教师团队" [ref=e22] [cursor=pointer]:
+          - /url: /teachers
+          - img [ref=e23]
+          - generic [ref=e28]: 教师团队
+        - link "题库与考试" [ref=e29] [cursor=pointer]:
+          - /url: /exam-center
+          - img [ref=e30]
+          - generic [ref=e33]: 题库与考试
+        - button "U" [ref=e35] [cursor=pointer]:
+          - generic [ref=e36]: U
+  - generic [ref=e708]:
+    - img [ref=e709]
+    - generic [ref=e711]: 加载中...
+  - contentinfo [ref=e42]:
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - heading "无人机培训中心" [level=3] [ref=e46]
+          - paragraph [ref=e47]: 专业无人机驾驶培训机构，中国航空运输协会认证。
+          - paragraph [ref=e49]: "电话: 400-888-8888"
+        - generic [ref=e50]:
+          - heading "快速链接" [level=4] [ref=e51]
+          - list [ref=e52]:
+            - listitem [ref=e53]:
+              - link "课程中心" [ref=e54]:
+                - /url: /courses
+            - listitem [ref=e55]:
+              - link "题库练习" [ref=e56]:
+                - /url: /exam-center
+            - listitem [ref=e57]:
+              - link "证书查询" [ref=e58]:
+                - /url: /certificates
+            - listitem [ref=e59]:
+              - link "教官团队" [ref=e60]:
+                - /url: /teachers
+        - generic [ref=e61]:
+          - heading "联系我们" [level=4] [ref=e62]
+          - list [ref=e63]:
+            - listitem [ref=e64]: "邮箱: info@drone-train.com"
+            - listitem [ref=e65]: "地址: 北京市朝阳区航空路88号"
+        - generic [ref=e66]:
+          - heading "学习资源" [level=4] [ref=e67]
+          - list [ref=e68]:
+            - listitem [ref=e69]:
+              - link "公告通知" [ref=e70]:
+                - /url: /notices
+            - listitem [ref=e71]:
+              - link "学习路径" [ref=e72]:
+                - /url: /learning-paths
+            - listitem [ref=e73]:
+              - link "题库练习" [ref=e74]:
+                - /url: /exam-center
+      - paragraph [ref=e76]: © 2024 无人机培训中心 版权所有 | 京ICP备XXXXXXXX号

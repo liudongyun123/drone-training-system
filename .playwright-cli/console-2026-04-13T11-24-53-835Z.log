@@ -1,0 +1,9 @@
+[     311ms] [LOG] [paginatedQuery] 查询集合: courses, 参数: {page: 1, pageSize: 100} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     312ms] [LOG] [paginatedQuery] 查询集合: teacher_profiles, 参数: {page: 1, pageSize: 100} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     373ms] [LOG] [paginatedQuery] 集合 courses 符合条件总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     381ms] [LOG] [paginatedQuery] 集合 teacher_profiles 符合条件总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     417ms] [LOG] [paginatedQuery] 查询到 4 条数据: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     494ms] [LOG] 班级数据: [] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminClasses-oz6pKsFC-v1776078829070.js:0
+[     845ms] [LOG] [paginatedQuery] 查询到 4 条数据: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     845ms] [LOG] coursesResult: {list: Array, total: 4, page: 1, pageSize: 100} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminClasses-oz6pKsFC-v1776078829070.js:0
+[     845ms] [LOG] coursesResult.list: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminClasses-oz6pKsFC-v1776078829070.js:0

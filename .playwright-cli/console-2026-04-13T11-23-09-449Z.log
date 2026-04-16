@@ -1,0 +1,5 @@
+[     444ms] [LOG] [ExamCenter] 开始加载数据, userId: anonymous @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/ExamCenter-7tsrAJoE-v1776078829070.js:0
+[     591ms] [LOG] [ExamCenter] 考试列表加载成功: 2 条 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/ExamCenter-7tsrAJoE-v1776078829070.js:0
+[     731ms] [LOG] [questionBankService] 获取题库列表: 5 条 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/examService-6MAAUyyM-v1776078829070.js:1
+[     731ms] [LOG] [ExamCenter] 题库列表加载成功: 5 条 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/ExamCenter-7tsrAJoE-v1776078829070.js:0
+[     888ms] [LOG] [ExamCenter] 考试记录加载成功: 0 条 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/ExamCenter-7tsrAJoE-v1776078829070.js:0

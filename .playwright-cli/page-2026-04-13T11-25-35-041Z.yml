@@ -1,0 +1,177 @@
+- generic [ref=e1975]:
+  - complementary [ref=e1976]:
+    - link "管理后台 无人机培训系统" [ref=e1978]:
+      - /url: /admin
+      - img [ref=e1980]
+      - generic [ref=e1983]:
+        - heading "管理后台" [level=1] [ref=e1984]
+        - paragraph [ref=e1985]: 无人机培训系统
+    - navigation [ref=e1986]:
+      - generic [ref=e1987]:
+        - generic [ref=e1988]:
+          - img [ref=e1989]
+          - generic [ref=e1994]: 概览
+        - link "仪表盘" [ref=e1996]:
+          - /url: /admin
+          - img [ref=e1997]
+          - generic [ref=e2003]: 仪表盘
+      - generic [ref=e2004]:
+        - generic [ref=e2005]:
+          - img [ref=e2006]
+          - generic [ref=e2010]: 线下培训
+        - generic [ref=e2011]:
+          - link "班级管理 线下班级/报名/分班" [ref=e2012]:
+            - /url: /admin/classes
+            - img [ref=e2013]
+            - generic [ref=e2018]:
+              - generic [ref=e2019]: 班级管理
+              - generic [ref=e2020]: 线下班级/报名/分班
+          - link "排课出勤 课表/出勤记录" [ref=e2021]:
+            - /url: /admin/class-schedules
+            - img [ref=e2022]
+            - generic [ref=e2024]:
+              - generic [ref=e2025]: 排课出勤
+              - generic [ref=e2026]: 课表/出勤记录
+          - link "报名审核 审核/分班/调课" [ref=e2027]:
+            - /url: /admin/registrations
+            - img [ref=e2028]
+            - generic [ref=e2031]:
+              - generic [ref=e2032]: 报名审核
+              - generic [ref=e2033]: 审核/分班/调课
+      - generic [ref=e2034]:
+        - generic [ref=e2035]:
+          - img [ref=e2036]
+          - generic [ref=e2039]: 线上课程
+        - generic [ref=e2040]:
+          - link "课程管理" [ref=e2041]:
+            - /url: /admin/courses
+            - img [ref=e2042]
+            - generic [ref=e2045]: 课程管理
+          - link "课程分类" [ref=e2046]:
+            - /url: /admin/categories
+            - img [ref=e2047]
+            - generic [ref=e2053]: 课程分类
+          - link "成员管理 用户/学员" [ref=e2054]:
+            - /url: /admin/members
+            - img [ref=e2055]
+            - generic [ref=e2059]:
+              - generic [ref=e2060]: 成员管理
+              - generic [ref=e2061]: 用户/学员
+          - link "权限管理 视频权限/班级成员" [ref=e2062]:
+            - /url: /admin/permissions
+            - img [ref=e2063]
+            - generic [ref=e2065]:
+              - generic [ref=e2066]: 权限管理
+              - generic [ref=e2067]: 视频权限/班级成员
+          - link "评论管理" [ref=e2068]:
+            - /url: /admin/comments
+            - img [ref=e2069]
+            - generic [ref=e2072]: 评论管理
+      - generic [ref=e2073]:
+        - generic [ref=e2074]:
+          - img [ref=e2075]
+          - generic [ref=e2078]: 教师管理
+        - link "教师管理" [ref=e2080]:
+          - /url: /admin/teachers
+          - img [ref=e2081]
+          - generic [ref=e2085]: 教师管理
+      - generic [ref=e2086]:
+        - generic [ref=e2087]:
+          - img [ref=e2088]
+          - generic [ref=e2092]: 练习考试
+        - generic [ref=e2093]:
+          - link "题库管理 内部练习" [ref=e2094]:
+            - /url: /admin/exams
+            - img [ref=e2096]
+            - generic [ref=e2099]:
+              - generic [ref=e2100]: 题库管理
+              - generic [ref=e2101]: 内部练习
+          - link "练习记录" [ref=e2103]:
+            - /url: /admin/practice-records
+            - img [ref=e2104]
+            - generic [ref=e2109]: 练习记录
+      - generic [ref=e2110]:
+        - generic [ref=e2111]:
+          - img [ref=e2112]
+          - generic [ref=e2115]: 证书管理
+        - link "证书管理" [ref=e2117]:
+          - /url: /admin/certificates
+          - img [ref=e2118]
+          - generic [ref=e2122]: 证书管理
+      - generic [ref=e2123]:
+        - generic [ref=e2124]:
+          - img [ref=e2125]
+          - generic [ref=e2127]: 财务订单
+        - link "订单财务" [ref=e2129]:
+          - /url: /admin/orders
+          - img [ref=e2130]
+          - generic [ref=e2134]: 订单财务
+      - generic [ref=e2135]:
+        - generic [ref=e2136]:
+          - img [ref=e2137]
+          - generic [ref=e2140]: 运营配置
+        - generic [ref=e2141]:
+          - link "首页配置 轮播图/公告/推荐班级" [ref=e2142]:
+            - /url: /admin/page-config
+            - img [ref=e2143]
+            - generic [ref=e2147]:
+              - generic [ref=e2148]: 首页配置
+              - generic [ref=e2149]: 轮播图/公告/推荐班级
+          - link "消息管理 系统通知/用户消息" [ref=e2150]:
+            - /url: /admin/messages
+            - img [ref=e2151]
+            - generic [ref=e2154]:
+              - generic [ref=e2155]: 消息管理
+              - generic [ref=e2156]: 系统通知/用户消息
+          - link "营销工具 优惠券/活动" [ref=e2157]:
+            - /url: /admin/marketing
+            - img [ref=e2158]
+            - generic [ref=e2161]:
+              - generic [ref=e2162]: 营销工具
+              - generic [ref=e2163]: 优惠券/活动
+      - generic [ref=e2164]:
+        - generic [ref=e2165]:
+          - img [ref=e2166]
+          - generic [ref=e2168]: 系统管理
+        - generic [ref=e2169]:
+          - link "系统日志" [ref=e2170]:
+            - /url: /admin/logs
+            - img [ref=e2171]
+            - generic [ref=e2175]: 系统日志
+          - link "系统设置 登录方式" [ref=e2176]:
+            - /url: /admin/auth-config
+            - img [ref=e2177]
+            - generic [ref=e2180]:
+              - generic [ref=e2181]: 系统设置
+              - generic [ref=e2182]: 登录方式
+          - link "账号管理 管理员/教师账号" [ref=e2183]:
+            - /url: /admin/user-roles
+            - img [ref=e2184]
+            - generic [ref=e2189]:
+              - generic [ref=e2190]: 账号管理
+              - generic [ref=e2191]: 管理员/教师账号
+    - link "返回前台" [ref=e2193]:
+      - /url: /
+      - img [ref=e2194]
+      - generic [ref=e2197]: 返回前台
+  - main [ref=e2198]:
+    - generic [ref=e2200]:
+      - navigation [ref=e2202]:
+        - link "首页" [ref=e2204]:
+          - /url: /admin
+        - generic [ref=e2205]:
+          - img [ref=e2206]
+          - link "教师管理" [ref=e2408]:
+            - /url: /admin/teachers
+      - generic [ref=e2209]:
+        - generic [ref=e2210]:
+          - img [ref=e2211]
+          - textbox "搜索..." [ref=e2214]
+        - button [ref=e2216] [cursor=pointer]:
+          - img [ref=e2217]
+        - button "系 系统管理员" [ref=e2221] [cursor=pointer]:
+          - generic [ref=e2222]: 系
+          - generic [ref=e2223]: 系统管理员
+    - generic [ref=e2410]:
+      - img [ref=e2411]
+      - generic [ref=e2413]: 加载中...

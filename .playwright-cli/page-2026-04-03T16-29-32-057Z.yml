@@ -1,0 +1,66 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - link "无人机培训" [ref=e8] [cursor=pointer]:
+        - /url: "#/"
+        - img [ref=e9]
+        - generic [ref=e12]: 无人机培训
+      - generic [ref=e13]:
+        - link "课程" [ref=e14] [cursor=pointer]:
+          - /url: "#/courses"
+          - img [ref=e15]
+          - text: 课程
+        - link "教师团队" [ref=e17] [cursor=pointer]:
+          - /url: "#/teachers"
+          - img [ref=e18]
+          - text: 教师团队
+        - link "题库与考试" [ref=e23] [cursor=pointer]:
+          - /url: "#/exam-center"
+          - img [ref=e24]
+          - text: 题库与考试
+        - link "登录" [ref=e27] [cursor=pointer]:
+          - /url: "#/login"
+        - link "管理后台" [ref=e28] [cursor=pointer]:
+          - /url: "#/admin"
+          - img [ref=e29]
+          - text: 管理后台
+  - generic [ref=e33]:
+    - img [ref=e34]
+    - generic [ref=e36]: 加载中...
+  - contentinfo [ref=e37]:
+    - generic [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - heading "无人机培训系统" [level=3] [ref=e41]
+          - paragraph [ref=e42]: 专业的无人机操作培训机构，提供从入门到精通的完整课程体系。
+        - generic [ref=e43]:
+          - heading "课程分类" [level=4] [ref=e44]
+          - list [ref=e45]:
+            - listitem [ref=e46]:
+              - link "CAAC执照培训" [ref=e47] [cursor=pointer]:
+                - /url: "#/courses"
+            - listitem [ref=e48]:
+              - link "AOPA认证课程" [ref=e49] [cursor=pointer]:
+                - /url: "#/courses"
+            - listitem [ref=e50]:
+              - link "技能提升课程" [ref=e51] [cursor=pointer]:
+                - /url: "#/courses"
+        - generic [ref=e52]:
+          - heading "帮助中心" [level=4] [ref=e53]
+          - list [ref=e54]:
+            - listitem [ref=e55]:
+              - link "常见问题" [ref=e56] [cursor=pointer]:
+                - /url: "#/help"
+            - listitem [ref=e57]:
+              - link "联系我们" [ref=e58] [cursor=pointer]:
+                - /url: "#/contact"
+            - listitem [ref=e59]:
+              - link "关于我们" [ref=e60] [cursor=pointer]:
+                - /url: "#/about"
+        - generic [ref=e61]:
+          - heading "联系方式" [level=4] [ref=e62]
+          - list [ref=e63]:
+            - listitem [ref=e64]: "电话: 400-xxx-xxxx"
+            - listitem [ref=e65]: "邮箱: contact@example.com"
+            - listitem [ref=e66]: "地址: 北京市xxx区xxx路xxx号"
+      - paragraph [ref=e68]: © 2026 无人机培训系统. All rights reserved.

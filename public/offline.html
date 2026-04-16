@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>离线模式 - 无人机培训</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #333;
+      font-size: 24px;
+      margin-bottom: 15px;
+    }
+    p {
+      color: #666;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      border-radius: 30px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+    .tips {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    .tips h3 {
+      color: #333;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .tips ul {
+      text-align: left;
+      color: #666;
+      font-size: 13px;
+      padding-left: 20px;
+    }
+    .tips li {
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>您已离线</h1>
+    <p>网络连接已断开，部分功能可能无法使用。请检查网络连接后重试。</p>
+    <button class="btn" onclick="window.location.reload()">重新连接</button>
+    
+    <div class="tips">
+      <h3>离线时可使用：</h3>
+      <ul>
+        <li>已缓存的课程内容</li>
+        <li>已下载的学习资料</li>
+        <li>本地练习题库</li>
+        <li>学习进度记录</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{
+  "version": "2.0",
+  "envId": "rcwljy-5ghmq2ex26764978",
+  "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
+  "framework": {
+    "name": "cloudbase-react-template",
+    "plugins": {
+      "client": {
+        "use": "@cloudbase/framework-plugin-website",
+        "inputs": {
+          "outputPath": "dist",
+          "buildCommand": "npm run build",
+          "cloudPath": "/",
+          "websiteConfig": {
+            "index": "index.html",
+            "error": "index.html"
+          }
+        }
+      },
+      "functions": {
+        "use": "@cloudbase/framework-plugin-function",
+        "inputs": {
+          "functions": [
+            {
+              "name": "admin",
+              "timeout": 15,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "triggers": [
+                {
+                  "name": "http-trigger",
+                  "type": "http"
+                }
+              ]
+            },
+            {
+              "name": "diagnose",
+              "timeout": 15,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "triggers": [
+                {
+                  "name": "http-trigger",
+                  "type": "http"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

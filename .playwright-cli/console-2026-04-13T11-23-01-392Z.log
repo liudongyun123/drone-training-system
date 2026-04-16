@@ -1,0 +1,3 @@
+[     432ms] [LOG] [paginatedQuery] 查询集合: teacher_profiles, 参数: {page: 1, pageSize: 50} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     572ms] [LOG] [paginatedQuery] 集合 teacher_profiles 符合条件总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[    1017ms] [LOG] [paginatedQuery] 查询到 4 条数据: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0

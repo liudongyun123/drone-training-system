@@ -1,0 +1,25 @@
+- generic [ref=e5]:
+  - generic [ref=e6]:
+    - img [ref=e8]
+    - heading "管理后台登录" [level=1] [ref=e10]
+    - paragraph [ref=e11]: 请使用管理员账号登录系统
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - text: 用户名
+        - generic [ref=e15]: "*"
+      - generic [ref=e16]:
+        - textbox "用户名" [active] [ref=e17]
+        - group:
+          - generic: 用户名 *
+    - generic [ref=e18]:
+      - generic:
+        - text: 密码
+        - generic: "*"
+      - generic [ref=e19]:
+        - textbox "密码" [ref=e20]
+        - button [ref=e22] [cursor=pointer]:
+          - img [ref=e23]
+        - group:
+          - generic: 密码 *
+    - button "登录" [ref=e25] [cursor=pointer]

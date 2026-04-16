@@ -1,0 +1,10 @@
+[    1272ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:853
+[    1274ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:853
+[    1274ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:853
+[    1292ms] [LOG] ✅ 用户已登录: undefined @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:860
+[    1334ms] [LOG] 🚀 生产环境启动 2026-04-11T08:02:47.968Z @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1116
+[    1806ms] [LOG] ✅ 匿名登录成功 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:860
+[   11752ms] [LOG] ✅ 使用缓存的会话 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:860
+[   11753ms] [LOG] 查询集合: courses, 参数: {page: 1, pageSize: 100} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1140
+[   11885ms] [LOG] 集合 courses 符合条件总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1140
+[   11944ms] [LOG] 查询到 4 条数据 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1140

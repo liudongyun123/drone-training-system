@@ -1,0 +1,263 @@
+- generic [ref=e397]:
+  - complementary [ref=e398]:
+    - link "管理后台 无人机培训系统" [ref=e400] [cursor=pointer]:
+      - /url: "#/admin"
+      - img [ref=e402]
+      - generic [ref=e405]:
+        - heading "管理后台" [level=1] [ref=e406]
+        - paragraph [ref=e407]: 无人机培训系统
+    - navigation [ref=e408]:
+      - link "概览" [ref=e409] [cursor=pointer]:
+        - /url: "#/admin"
+        - img [ref=e411]
+        - generic [ref=e416]: 概览
+      - link "课程管理" [ref=e418] [cursor=pointer]:
+        - /url: "#/admin/courses"
+        - img [ref=e419]
+        - generic [ref=e421]: 课程管理
+      - link "课程分类" [ref=e422] [cursor=pointer]:
+        - /url: "#/admin/categories"
+        - img [ref=e423]
+        - generic [ref=e428]: 课程分类
+      - link "学员管理" [ref=e429] [cursor=pointer]:
+        - /url: "#/admin/students"
+        - img [ref=e430]
+        - generic [ref=e435]: 学员管理
+      - link "教师管理" [ref=e436] [cursor=pointer]:
+        - /url: "#/admin/teachers"
+        - img [ref=e437]
+        - generic [ref=e440]: 教师管理
+      - link "排课出勤" [ref=e441] [cursor=pointer]:
+        - /url: "#/admin/schedules"
+        - img [ref=e442]
+        - generic [ref=e444]: 排课出勤
+      - link "订单财务" [ref=e445] [cursor=pointer]:
+        - /url: "#/admin/orders"
+        - img [ref=e446]
+        - generic [ref=e449]: 订单财务
+      - link "考试题库" [ref=e450] [cursor=pointer]:
+        - /url: "#/admin/exams"
+        - img [ref=e451]
+        - generic [ref=e454]: 考试题库
+      - link "内容配置" [ref=e455] [cursor=pointer]:
+        - /url: "#/admin/page-config"
+        - img [ref=e456]
+        - generic [ref=e459]: 内容配置
+      - link "证书管理" [ref=e460] [cursor=pointer]:
+        - /url: "#/admin/certificates"
+        - img [ref=e461]
+        - generic [ref=e464]: 证书管理
+      - link "营销工具" [ref=e465] [cursor=pointer]:
+        - /url: "#/admin/marketing"
+        - img [ref=e466]
+        - generic [ref=e470]: 营销工具
+      - link "系统设置" [ref=e471] [cursor=pointer]:
+        - /url: "#/admin/auth-config"
+        - img [ref=e472]
+        - generic [ref=e474]: 系统设置
+    - link "返回前台" [ref=e476] [cursor=pointer]:
+      - /url: "#/"
+      - img [ref=e477]
+      - generic [ref=e480]: 返回前台
+  - main [ref=e481]:
+    - generic [ref=e483]:
+      - navigation [ref=e485]:
+        - link "首页" [ref=e487] [cursor=pointer]:
+          - /url: "#/admin"
+        - generic [ref=e749]:
+          - img [ref=e750]
+          - link "课程管理" [ref=e752] [cursor=pointer]:
+            - /url: "#/admin/courses"
+      - generic [ref=e488]:
+        - generic [ref=e489]:
+          - img [ref=e490]
+          - textbox "搜索..." [ref=e493]
+        - button [ref=e495] [cursor=pointer]:
+          - img [ref=e496]
+        - button "系 系统管理员" [ref=e501] [cursor=pointer]:
+          - generic [ref=e502]: 系
+          - generic [ref=e503]: 系统管理员
+    - generic [ref=e504]:
+      - generic [ref=e759]:
+        - list [ref=e761]:
+          - listitem [ref=e762]:
+            - link "管理后台" [ref=e763] [cursor=pointer]:
+              - /url: /admin
+          - listitem [ref=e764]: 课程管理
+        - heading "课程管理" [level=1] [ref=e765]
+        - generic [ref=e768]:
+          - generic [ref=e770]:
+            - textbox "搜索..." [ref=e771]
+            - button [ref=e772] [cursor=pointer]:
+              - img [ref=e773]
+          - button "新增" [ref=e777] [cursor=pointer]:
+            - img [ref=e778]
+            - text: 新增
+        - table [ref=e781]:
+          - rowgroup [ref=e782]:
+            - row "封面 课程名称 分类 授课教师 价格 状态 销量 创建时间 操作" [ref=e783]:
+              - columnheader "封面" [ref=e784]
+              - columnheader "课程名称" [ref=e785]
+              - columnheader "分类" [ref=e786]
+              - columnheader "授课教师" [ref=e787]
+              - columnheader "价格" [ref=e788]
+              - columnheader "状态" [ref=e789]
+              - columnheader "销量" [ref=e790]
+              - columnheader "创建时间" [ref=e791]
+              - columnheader "操作" [ref=e792]
+          - rowgroup [ref=e793]:
+            - row "CAAC无人机驾驶员执照培训 进阶提升 李娜 ¥5999 已发布 12 2025/3/1" [ref=e794]:
+              - cell [ref=e795]
+              - cell "CAAC无人机驾驶员执照培训" [ref=e797]
+              - cell "进阶提升" [ref=e798]
+              - cell "李娜" [ref=e799]:
+                - generic [ref=e800]:
+                  - img [ref=e801]
+                  - generic [ref=e804]: 李娜
+              - cell "¥5999" [ref=e805]
+              - cell "已发布" [ref=e806]:
+                - generic [ref=e807]: 已发布
+              - cell "12" [ref=e808]
+              - cell "2025/3/1" [ref=e809]
+              - cell [ref=e810]:
+                - generic [ref=e812]:
+                  - button "管理章节" [ref=e813] [cursor=pointer]:
+                    - img [ref=e814]
+                  - button [active] [ref=e815] [cursor=pointer]:
+                    - img [ref=e816]
+                  - button [ref=e820] [cursor=pointer]:
+                    - img [ref=e821]
+            - row "AOPA无人机驾驶员认证课程 认证课程 李娜 ¥3999 已发布 8 2025/3/5" [ref=e824]:
+              - cell [ref=e825]
+              - cell "AOPA无人机驾驶员认证课程" [ref=e827]
+              - cell "认证课程" [ref=e828]
+              - cell "李娜" [ref=e829]:
+                - generic [ref=e830]:
+                  - img [ref=e831]
+                  - generic [ref=e834]: 李娜
+              - cell "¥3999" [ref=e835]
+              - cell "已发布" [ref=e836]:
+                - generic [ref=e837]: 已发布
+              - cell "8" [ref=e838]
+              - cell "2025/3/5" [ref=e839]
+              - cell [ref=e840]:
+                - generic [ref=e842]:
+                  - button "管理章节" [ref=e843] [cursor=pointer]:
+                    - img [ref=e844]
+                  - button [ref=e845] [cursor=pointer]:
+                    - img [ref=e846]
+                  - button [ref=e850] [cursor=pointer]:
+                    - img [ref=e851]
+            - row "无人机航拍技术专业课程 技能培训 王强 ¥2999 已发布 15 2025/3/10" [ref=e854]:
+              - cell [ref=e855]
+              - cell "无人机航拍技术专业课程" [ref=e857]
+              - cell "技能培训" [ref=e858]
+              - cell "王强" [ref=e859]:
+                - generic [ref=e860]:
+                  - img [ref=e861]
+                  - generic [ref=e864]: 王强
+              - cell "¥2999" [ref=e865]
+              - cell "已发布" [ref=e866]:
+                - generic [ref=e867]: 已发布
+              - cell "15" [ref=e868]
+              - cell "2025/3/10" [ref=e869]
+              - cell [ref=e870]:
+                - generic [ref=e872]:
+                  - button "管理章节" [ref=e873] [cursor=pointer]:
+                    - img [ref=e874]
+                  - button [ref=e875] [cursor=pointer]:
+                    - img [ref=e876]
+                  - button [ref=e880] [cursor=pointer]:
+                    - img [ref=e881]
+            - row "植保无人机操作与维护 专业应用 张伟 ¥1999 已发布 6 2025/3/15" [ref=e884]:
+              - cell [ref=e885]
+              - cell "植保无人机操作与维护" [ref=e887]
+              - cell "专业应用" [ref=e888]
+              - cell "张伟" [ref=e889]:
+                - generic [ref=e890]:
+                  - img [ref=e891]
+                  - generic [ref=e894]: 张伟
+              - cell "¥1999" [ref=e895]
+              - cell "已发布" [ref=e896]:
+                - generic [ref=e897]: 已发布
+              - cell "6" [ref=e898]
+              - cell "2025/3/15" [ref=e899]
+              - cell [ref=e900]:
+                - generic [ref=e902]:
+                  - button "管理章节" [ref=e903] [cursor=pointer]:
+                    - img [ref=e904]
+                  - button [ref=e905] [cursor=pointer]:
+                    - img [ref=e906]
+                  - button [ref=e910] [cursor=pointer]:
+                    - img [ref=e911]
+      - generic [ref=e915]:
+        - generic [ref=e916]:
+          - heading "编辑课程" [level=2] [ref=e917]
+          - button [ref=e918] [cursor=pointer]:
+            - img [ref=e919]
+        - generic [ref=e922]:
+          - generic [ref=e923]:
+            - generic [ref=e924]:
+              - generic [ref=e926]: 课程标题 *
+              - textbox "请输入课程标题" [ref=e927]: CAAC无人机驾驶员执照培训
+            - generic [ref=e928]:
+              - generic [ref=e930]: 课程描述
+              - textbox "请输入课程描述" [ref=e931]: 全面系统的CAAC无人机驾驶员执照培训课程，涵盖理论知识和实操技能，帮助学员顺利通过CAAC考试获得执照。
+            - generic [ref=e932]:
+              - generic [ref=e934]: 分类 *
+              - combobox [ref=e935] [cursor=pointer]:
+                - option "基础入门" [selected]
+                - option "专业认证"
+                - option "行业应用"
+            - generic [ref=e936]:
+              - generic [ref=e938]: 难度等级
+              - combobox [ref=e939] [cursor=pointer]:
+                - option "初级" [selected]
+                - option "中级"
+                - option "高级"
+            - generic [ref=e940]:
+              - generic [ref=e942]: 现价 (¥) *
+              - spinbutton [ref=e943]: "5999"
+            - generic [ref=e944]:
+              - generic [ref=e946]: 原价 (¥)
+              - spinbutton [ref=e947]: "6999"
+            - generic [ref=e948]:
+              - generic [ref=e950]: 课程时长 (分钟)
+              - spinbutton [ref=e951]: "40"
+            - generic [ref=e952]:
+              - generic [ref=e954]: 最大学员数
+              - spinbutton [ref=e955]: "50"
+            - generic [ref=e956]:
+              - generic [ref=e958]: 封面图片
+              - generic [ref=e959]:
+                - img "封面预览" [ref=e961]
+                - generic [ref=e962]:
+                  - paragraph [ref=e963]: 外部图片链接
+                  - paragraph [ref=e964]: https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800
+                - button [ref=e965] [cursor=pointer]:
+                  - img [ref=e966]
+            - generic [ref=e970]:
+              - generic [ref=e972]: 授课教师 *
+              - combobox [ref=e973] [cursor=pointer]:
+                - option "请选择授课教师"
+                - option "赵敏 (航拍技巧, 后期剪辑)"
+                - option "张伟"
+                - option "李娜" [selected]
+                - option "王强"
+            - generic [ref=e974]:
+              - generic [ref=e976]: 状态
+              - generic [ref=e977]:
+                - generic [ref=e978] [cursor=pointer]:
+                  - radio "草稿" [ref=e979]
+                  - generic [ref=e980]: 草稿
+                - generic [ref=e981] [cursor=pointer]:
+                  - radio "已发布" [checked] [ref=e982]
+                  - generic [ref=e983]: 已发布
+                - generic [ref=e984] [cursor=pointer]:
+                  - radio "已归档" [ref=e985]
+                  - generic [ref=e986]: 已归档
+          - generic [ref=e987]:
+            - button "取消" [ref=e988] [cursor=pointer]
+            - button "保存修改" [ref=e989] [cursor=pointer]:
+              - img [ref=e990]
+              - text: 保存修改

@@ -1,0 +1,82 @@
+- generic [ref=e34]:
+  - complementary [ref=e35]:
+    - link "管理后台 无人机培训系统" [ref=e37] [cursor=pointer]:
+      - /url: "#/admin"
+      - img [ref=e39]
+      - generic [ref=e42]:
+        - heading "管理后台" [level=1] [ref=e43]
+        - paragraph [ref=e44]: 无人机培训系统
+    - navigation [ref=e45]:
+      - link "概览" [ref=e46] [cursor=pointer]:
+        - /url: "#/admin"
+        - img [ref=e48]
+        - generic [ref=e53]: 概览
+      - link "课程管理" [ref=e55] [cursor=pointer]:
+        - /url: "#/admin/courses"
+        - img [ref=e56]
+        - generic [ref=e58]: 课程管理
+      - link "课程分类" [ref=e59] [cursor=pointer]:
+        - /url: "#/admin/categories"
+        - img [ref=e60]
+        - generic [ref=e65]: 课程分类
+      - link "学员管理" [ref=e66] [cursor=pointer]:
+        - /url: "#/admin/students"
+        - img [ref=e67]
+        - generic [ref=e72]: 学员管理
+      - link "教师管理" [ref=e73] [cursor=pointer]:
+        - /url: "#/admin/teachers"
+        - img [ref=e74]
+        - generic [ref=e77]: 教师管理
+      - link "排课出勤" [ref=e78] [cursor=pointer]:
+        - /url: "#/admin/schedules"
+        - img [ref=e79]
+        - generic [ref=e81]: 排课出勤
+      - link "订单财务" [ref=e82] [cursor=pointer]:
+        - /url: "#/admin/orders"
+        - img [ref=e83]
+        - generic [ref=e86]: 订单财务
+      - link "考试题库" [ref=e87] [cursor=pointer]:
+        - /url: "#/admin/exams"
+        - img [ref=e88]
+        - generic [ref=e91]: 考试题库
+      - link "内容配置" [ref=e92] [cursor=pointer]:
+        - /url: "#/admin/page-config"
+        - img [ref=e93]
+        - generic [ref=e96]: 内容配置
+      - link "证书管理" [ref=e97] [cursor=pointer]:
+        - /url: "#/admin/certificates"
+        - img [ref=e98]
+        - generic [ref=e101]: 证书管理
+      - link "营销工具" [ref=e102] [cursor=pointer]:
+        - /url: "#/admin/marketing"
+        - img [ref=e103]
+        - generic [ref=e107]: 营销工具
+      - link "系统设置" [ref=e108] [cursor=pointer]:
+        - /url: "#/admin/auth-config"
+        - img [ref=e109]
+        - generic [ref=e111]: 系统设置
+    - link "返回前台" [ref=e113] [cursor=pointer]:
+      - /url: "#/"
+      - img [ref=e114]
+      - generic [ref=e117]: 返回前台
+  - main [ref=e118]:
+    - generic [ref=e120]:
+      - navigation [ref=e122]:
+        - link "首页" [ref=e124] [cursor=pointer]:
+          - /url: "#/admin"
+        - generic [ref=e386]:
+          - img [ref=e387]
+          - link "内容配置" [ref=e389] [cursor=pointer]:
+            - /url: "#/admin/page-config"
+      - generic [ref=e125]:
+        - generic [ref=e126]:
+          - img [ref=e127]
+          - textbox "搜索..." [ref=e130]
+        - button [ref=e132] [cursor=pointer]:
+          - img [ref=e133]
+        - button "系 系统管理员" [ref=e138] [cursor=pointer]:
+          - generic [ref=e139]: 系
+          - generic [ref=e140]: 系统管理员
+    - generic [ref=e391]:
+      - img [ref=e392]
+      - generic [ref=e394]: 加载中...

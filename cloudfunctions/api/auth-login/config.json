@@ -1,0 +1,15 @@
+{
+  "name": "auth-login",
+  "timeout": 60,
+  "runtime": "Nodejs16.13",
+  "dependencies": {
+    "@cloudbase/node-sdk": "~2",
+    "jsonwebtoken": "~9"
+  },
+  "envVariables": [
+    {
+      "key": "JWT_SECRET",
+      "value": "your-jwt-secret-key-change-this-in-production"
+    }
+  ]
+}

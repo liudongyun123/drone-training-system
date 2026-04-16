@@ -1,0 +1,23 @@
+[     372ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/#/admin/page-config:0
+[     971ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/favicon.ico:0
+[   19373ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:853
+[   19375ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:853
+[   19375ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:853
+[   19392ms] [LOG] ✅ 用户已登录: undefined @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:860
+[   19461ms] [LOG] 🚀 生产环境启动 2026-04-11T08:07:58.065Z @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1116
+[   19796ms] [LOG] ✅ ensureAuthenticated: 匿名登录成功 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:860
+[   19966ms] [LOG] ✅ 匿名登录成功 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:860
+[   19979ms] [LOG] 热门课程ID列表: [course_001, course_002, course_003, course_004] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[   19979ms] [LOG] 所有课程: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[   19980ms] [LOG] 匹配到的热门课程: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[   19980ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: banners, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   19981ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: banners, query: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   20156ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: b0a5891e-49a0-4000-85e6-4626538c56e7} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   20840ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: d295e551-31ad-49cc-a3ba-dc49031221b9} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   20841ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredClasses, docId: home-featured-classes} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   21000ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 892b4d48-5f6d-47ad-b0da-5b811950a472} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   21000ms] [LOG] [首页] 使用配置的班级ID: [c25002a969d86c5403a4c6cb13d2fd82, 2d12bec269d8b22c03b6a5802c58ab69] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[   21182ms] [LOG] [首页] 匹配到的配置班级: [Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[   21183ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredLearningPaths, docId: home-featured-paths} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   21332ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 30018590-3f48-4932-8916-0cdb504e9a83} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   21332ms] [LOG] [首页] 学习路径ID列表: [path-beginner, path-advanced, path-intermediate, d3a457a269d9fa6203d5ddb53d673597] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123

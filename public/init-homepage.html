@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>初始化系统数据</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 30px; color: #38bdf8; }
+    h2 { color: #94a3b8; font-size: 16px; margin-bottom: 15px; }
+    .log { background: #1e293b; border-radius: 8px; padding: 15px; margin-bottom: 20px; height: 450px; overflow-y: auto; font-family: monospace; font-size: 13px; }
+    .log-item { margin-bottom: 6px; padding: 3px 0; }
+    .log-info { color: #38bdf8; }
+    .log-success { color: #4ade80; }
+    .log-error { color: #f87171; }
+    .log-warning { color: #fbbf24; }
+    .btn { display: block; width: 100%; padding: 15px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.2s; margin-bottom: 10px; }
+    .btn:hover { background: #2563eb; }
+    .btn:disabled { background: #475569; cursor: not-allowed; }
+    .btn-secondary { background: #64748b; }
+    .btn-secondary:hover { background: #475569; }
+    .progress { margin-top: 10px; background: #334155; height: 8px; border-radius: 4px; overflow: hidden; }
+    .progress-bar { height: 100%; background: #3b82f6; transition: width 0.3s; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+    .stat-card { background: #1e293b; border-radius: 8px; padding: 15px; text-align: center; }
+    .stat-value { font-size: 28px; font-weight: bold; color: #38bdf8; }
+    .stat-label { font-size: 12px; color: #94a3b8; margin-top: 5px; }
+    .warning { background: #fbbf241a; border: 1px solid #fbbf24; border-radius: 8px; padding: 15px; margin-bottom: 20px; color: #fbbf24; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>初始化系统数据</h1>
+    
+    <div id="warning" class="warning" style="display: none;">
+      检测到数据缺失，请点击下方按钮创建测试数据
+    </div>
+    
+    <div class="stats">
+      <div class="stat-card">
+        <div id="classCount" class="stat-value">0</div>
+        <div class="stat-label">班级数量</div>
+      </div>
+      <div class="stat-card">
+        <div id="featuredCount" class="stat-value">0</div>
+        <div class="stat-label">首页配置</div>
+      </div>
+      <div class="stat-card">
+        <div id="status" class="stat-value">-</div>
+        <div class="stat-label">状态</div>
+      </div>
+    </div>
+    
+    <div id="log" class="log"></div>
+    
+    <button id="generateBtn" class="btn btn-secondary">先生成测试数据</button>
+    <button id="initBtn" class="btn" disabled>初始化首页配置</button>
+    <div class="progress"><div id="progressBar" class="progress-bar" style="width: 0%"></div></div>
+  </div>
+
+  <script src="https://imgcache.qq.com/qcloud/tcbjs/1.4.1/tcb.js"></script>
+  <script>
+    const CLOUD_FUNCTION_URL = 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com/admin';
+    
+    let hasData = false;
+    
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const item = document.createElement('div');
+      item.className = `log-item log-${type}`;
+      item.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.appendChild(item);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function updateProgress(percent) {
+      document.getElementById('progressBar').style.width = percent + '%';
+    }
+    
+    function updateStats(classes, featured) {
+      document.getElementById('classCount').textContent = classes;
+      document.getElementById('featuredCount').textContent = featured;
+    }
+    
+    async function callFunction(data) {
+      const response = await fetch(CLOUD_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      return await response.json();
+    }
+    
+    // 生成测试数据
+    async function generateTestData() {
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = true;
+      btn.textContent = '生成中...';
+      
+      log('开始生成测试数据...', 'info');
+      
+      try {
+        const result = await callFunction({
+          action: 'generateTestData'
+        });
+        
+        if (result.code === 0) {
+          log('测试数据生成成功！', 'success');
+          log(`详情: ${JSON.stringify(result.data)}`, 'info');
+          hasData = true;
+          document.getElementById('initBtn').disabled = false;
+          document.getElementById('status').textContent = '就绪';
+          document.getElementById('status').style.color = '#4ade80';
+        } else {
+          log(`生成失败: ${result.message}`, 'error');
+          if (result.error) log(`错误详情: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        log(`生成失败: ${error.message}`, 'error');
+      }
+      
+      btn.disabled = false;
+      btn.textContent = '先生成测试数据';
+    }
+    
+    // 初始化首页配置
+    async function initHomepage() {
+      const btn = document.getElementById('initBtn');
+      btn.disabled = true;
+      btn.textContent = '初始化中...';
+      
+      log('开始初始化首页配置...', 'info');
+      
+      try {
+        // 1. 获取现有班级
+        log('获取班级列表...', 'info');
+        const classesResult = await callFunction({
+          action: 'list',
+          collection: 'classes',
+          query: {},
+          options: { limit: 10 }
+        });
+        
+        log(`班级查询结果: code=${classesResult.code}, data=${classesResult.data?.length || 0}`, 'info');
+        
+        if (classesResult.code !== 0 || !classesResult.data || classesResult.data.length === 0) {
+          log('未找到班级数据，请先生成测试数据', 'warning');
+          document.getElementById('warning').style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = '初始化首页配置';
+          return;
+        }
+        
+        const classIds = classesResult.data.map(c => c._id);
+        log(`找到 ${classIds.length} 个班级: ${classIds.join(', ')}`, 'success');
+        updateProgress(30);
+        
+        // 2. 添加 featuredClasses
+        log('初始化 featuredClasses...', 'info');
+        const featuredResult = await callFunction({
+          action: 'add',
+          collection: 'featuredClasses',
+          data: { 
+            _id: 'home-featured-classes',
+            classIds: classIds, 
+            description: '首页展示班级配置' 
+          }
+        });
+        
+        log(`featuredClasses 结果: code=${featuredResult.code}`, 'info');
+        
+        if (featuredResult.code === 0) {
+          log('featuredClasses 初始化成功', 'success');
+        } else {
+          // 可能已存在，尝试更新
+          log('featuredClasses 可能已存在，尝试更新...', 'warning');
+          const updateResult = await callFunction({
+            action: 'update',
+            collection: 'featuredClasses',
+            docId: 'home-featured-classes',
+            data: { classIds: classIds }
+          });
+          log(`更新结果: code=${updateResult.code}`, 'info');
+        }
+        
+        updateProgress(60);
+        
+        // 3. 添加 featuredLearningPaths
+        log('初始化 featuredLearningPaths...', 'info');
+        const pathsResult = await callFunction({
+          action: 'add',
+          collection: 'featuredLearningPaths',
+          data: { 
+            _id: 'home-featured-paths',
+            pathIds: [], 
+            description: '首页学习路径配置' 
+          }
+        });
+        
+        if (pathsResult.code === 0) {
+          log('featuredLearningPaths 初始化成功', 'success');
+        } else {
+          log('featuredLearningPaths 可能已存在，尝试更新...', 'warning');
+        }
+        
+        updateProgress(100);
+        log('初始化完成！', 'success');
+        log('请刷新首页查看效果', 'info');
+        
+        document.getElementById('status').textContent = '完成';
+        document.getElementById('status').style.color = '#4ade80';
+        btn.textContent = '初始化成功';
+        btn.style.background = '#10b981';
+        
+      } catch (error) {
+        log(`初始化失败: ${error.message}`, 'error');
+        btn.disabled = false;
+        btn.textContent = '初始化首页配置';
+      }
+    }
+    
+    // 检查当前状态
+    async function checkStatus() {
+      log('检查系统状态...', 'info');
+      
+      try {
+        // 检查班级数量
+        const classesResult = await callFunction({
+          action: 'count',
+          collection: 'classes',
+          query: {}
+        });
+        
+        const classCount = classesResult.data || 0;
+        log(`班级数量: ${classCount}`, 'info');
+        
+        // 检查首页配置
+        const featuredResult = await callFunction({
+          action: 'list',
+          collection: 'featuredClasses',
+          query: {}
+        });
+        
+        const featuredCount = featuredResult.data?.length || 0;
+        log(`首页配置数量: ${featuredCount}`, 'info');
+        
+        updateStats(classCount, featuredCount);
+        
+        if (classCount > 0) {
+          hasData = true;
+          document.getElementById('initBtn').disabled = false;
+          document.getElementById('status').textContent = '就绪';
+          document.getElementById('status').style.color = '#4ade80';
+        } else {
+          document.getElementById('warning').style.display = 'block';
+          document.getElementById('status').textContent = '待初始化';
+          document.getElementById('status').style.color = '#fbbf24';
+        }
+        
+      } catch (error) {
+        log(`检查失败: ${error.message}`, 'error');
+        document.getElementById('status').textContent = '错误';
+        document.getElementById('status').style.color = '#f87171';
+      }
+    }
+    
+    document.getElementById('generateBtn').addEventListener('click', generateTestData);
+    document.getElementById('initBtn').addEventListener('click', initHomepage);
+    
+    // 页面加载时检查状态
+    window.addEventListener('load', checkStatus);
+  </script>
+</body>
+</html>

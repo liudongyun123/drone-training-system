@@ -1,0 +1,9 @@
+{
+  "name": "class",
+  "version": "1.0.0",
+  "description": "班级管理云函数 - 处理班级CRUD、排课、调课等业务",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

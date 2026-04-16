@@ -1,0 +1,55 @@
+[     681ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:873
+[     683ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:873
+[     683ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:873
+[     703ms] [LOG] [Auth] 未找到缓存手机号，尝试通过 openid 查询: undefined @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:880
+[     703ms] [ERROR] [Auth] 查询手机号失败: Error: 查询参数对象值不能均为undefined
+    at e.where (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:868:45187)
+    at http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:881:12132
+    at Generator.next (<anonymous>)
+    at i (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:1:791) @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:880
+[     703ms] [LOG] ✅ 用户已登录: undefined , phone: 未绑定 @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:880
+[     791ms] [LOG] 🚀 生产环境启动 2026-04-13T06:46:44.785Z @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:1136
+[     967ms] [ERROR] Access to XMLHttpRequest at 'https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978' from origin 'http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/messages:0
+[     968ms] [ERROR] 获取课程列表失败: Error: network request error
+    at e.<anonymous> (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:79251)
+    at d (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:73444)
+    at Object.next (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72727)
+    at c (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72305) @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:1094
+[     968ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978:0
+[     969ms] [ERROR] Access to XMLHttpRequest at 'https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978' from origin 'http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/messages:0
+[     969ms] [ERROR] 查询集合 notices 异常: Error: network request error
+    at e.<anonymous> (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:79251)
+    at d (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:73444)
+    at Object.next (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72727)
+    at c (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72305) @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:882
+[     969ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978:0
+[     969ms] [ERROR] Access to XMLHttpRequest at 'https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978' from origin 'http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/messages:0
+[     969ms] [ERROR] 加载页面配置失败: Error: network request error
+    at e.<anonymous> (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:79251)
+    at d (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:73444)
+    at Object.next (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72727)
+    at c (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72305) @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:882
+[     969ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978:0
+[     969ms] [ERROR] Access to XMLHttpRequest at 'https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978' from origin 'http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/messages:0
+[     969ms] [ERROR] 查询集合 notices 异常: Error: network request error
+    at e.<anonymous> (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:79251)
+    at d (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:73444)
+    at Object.next (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72727)
+    at c (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72305) @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:882
+[     970ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978:0
+[     970ms] [ERROR] Access to XMLHttpRequest at 'https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978' from origin 'http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/messages:0
+[     970ms] [ERROR] 加载数据失败: Error: network request error
+    at e.<anonymous> (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:79251)
+    at d (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:73444)
+    at Object.next (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72727)
+    at c (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72305) @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:1143
+[     970ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978:0
+[    1157ms] [LOG] ✅ 匿名登录成功 @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:880
+[    1207ms] [LOG] ✅ ensureAuthenticated: 匿名登录成功 @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:880
+[    1246ms] [ERROR] Access to XMLHttpRequest at 'https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978' from origin 'http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/messages:0
+[    1246ms] [ERROR] 获取热门课程失败: Error: network request error
+    at e.<anonymous> (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:79251)
+    at d (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:73444)
+    at Object.next (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72727)
+    at c (http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:749:72305) @ http://3b3fc9368a2848a4be763f6abd6945c2.codebuddy.cloudstudio.run/assets/app-v1776062593845.js:1143
+[    1246ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://rcwljy-5ghmq2ex26764978.ap-shanghai.tcb-api.tencentcloudapi.com/web?env=rcwljy-5ghmq2ex26764978:0

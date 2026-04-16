@@ -1,0 +1,10 @@
+[       7ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: ce9d9b6b-a0f6-4b77-b95e-49e764a96ce6} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[       7ms] [LOG] [首页] 使用配置的班级ID: [c25002a969d86c5403a4c6cb13d2fd82, 2d12bec269d8b22c03b6a5802c58ab69] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[     196ms] [LOG] [首页] 匹配到的配置班级: [Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[     197ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredLearningPaths, docId: home-featured-paths} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[     340ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: b60fcf00-8ede-42ec-ab5d-b6a95447f042} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[     341ms] [LOG] [首页] 学习路径ID列表: [path-beginner, path-advanced, path-intermediate, d3a457a269d9fa6203d5ddb53d673597] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[   16495ms] [LOG] ✅ 使用缓存的会话 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:860
+[   16495ms] [LOG] 查询集合: courses, 参数: {page: 1, pageSize: 100} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1140
+[   16558ms] [LOG] 集合 courses 符合条件总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1140
+[   16639ms] [LOG] 查询到 4 条数据 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1140

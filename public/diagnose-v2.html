@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统诊断中心 v2</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      color: #e2e8f0;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    h1 { 
+      text-align: center; 
+      padding: 30px 0;
+      font-size: 2rem;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card {
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    .card h2 {
+      font-size: 1.2rem;
+      margin-bottom: 16px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h2::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(180deg, #60a5fa, #a78bfa);
+      border-radius: 2px;
+    }
+    
+    /* 状态卡片 */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #60a5fa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-label { color: #94a3b8; margin-top: 4px; font-size: 0.875rem; }
+    
+    /* 健康状态 */
+    .health-status {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .health-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      background: rgba(51, 65, 85, 0.5);
+      border-radius: 8px;
+    }
+    .health-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    .health-dot.green { background: #34d399; box-shadow: 0 0 10px #34d399; }
+    .health-dot.red { background: #f87171; box-shadow: 0 0 10px #f87171; }
+    .health-dot.yellow { background: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* 按钮 */
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white;
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+    .btn-success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+    .btn-success:hover { background: linear-gradient(135deg, #059669, #047857); }
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+    }
+    .btn-danger:hover { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+    }
+    .btn-warning:hover { background: linear-gradient(135deg, #d97706, #b45309); }
+    .btn-secondary {
+      background: rgba(148, 163, 184, 0.2);
+      color: #e2e8f0;
+    }
+    .btn-secondary:hover { background: rgba(148, 163, 184, 0.3); }
+    
+    /* 数据表格 */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    .data-table th,
+    .data-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    .data-table th {
+      background: rgba(51, 65, 85, 0.5);
+      color: #94a3b8;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+    .data-table tr:hover { background: rgba(51, 65, 85, 0.3); }
+    .data-table td { font-size: 0.875rem; }
+    
+    /* 标签 */
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .tag-course { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
+    .tag-class { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
+    .tag-active { background: rgba(52, 211, 153, 0.2); color: #34d399; }
+    .tag-inactive { background: rgba(248, 113, 113, 0.2); color: #f87171; }
+    
+    /* 输出区域 */
+    .output-area {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.8rem;
+      max-height: 300px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .output-area .error { color: #f87171; }
+    .output-area .success { color: #34d399; }
+    .output-area .info { color: #60a5fa; }
+    
+    /* API 列表 */
+    .api-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+    }
+    .api-item {
+      background: rgba(51, 65, 85, 0.5);
+      border-radius: 8px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .api-item:hover {
+      background: rgba(59, 130, 246, 0.2);
+      transform: translateX(4px);
+    }
+    .api-item code {
+      color: #60a5fa;
+      font-size: 0.875rem;
+    }
+    .api-item span {
+      color: #94a3b8;
+      font-size: 0.75rem;
+      margin-top: 4px;
+      display: block;
+    }
+    
+    /* 加载动画 */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Tab 切换 */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      padding-bottom: 12px;
+    }
+    .tab {
+      padding: 10px 20px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      color: #94a3b8;
+      transition: all 0.2s;
+    }
+    .tab:hover { color: #e2e8f0; background: rgba(148, 163, 184, 0.1); }
+    .tab.active { 
+      color: white; 
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    /* 权限检查表单 */
+    .form-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .form-group {
+      flex: 1;
+      min-width: 150px;
+    }
+    .form-group label {
+      display: block;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      margin-bottom: 6px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.5);
+      color: #e2e8f0;
+      font-size: 0.875rem;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+    }
+    
+    /* 收藏 */
+    .favorites {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    .favorites h4 {
+      color: #94a3b8;
+      font-size: 0.75rem;
+      margin-bottom: 8px;
+    }
+    .favorite-btn {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      margin: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 系统诊断中心 v2</h1>
+    
+    <!-- 健康状态 -->
+    <div class="card">
+      <h2>系统健康状态</h2>
+      <div class="health-status" id="healthStatus">
+        <div class="health-item">
+          <div class="loading"></div>
+          <span>加载中...</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 统计概览 -->
+    <div class="card">
+      <h2>数据统计</h2>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="loading"></div></div>
+      </div>
+    </div>
+    
+    <!-- Tab 切换 -->
+    <div class="card">
+      <div class="tabs">
+        <div class="tab active" data-tab="quick">快速操作</div>
+        <div class="tab" data-tab="collections">集合管理</div>
+        <div class="tab" data-tab="permissions">权限管理</div>
+        <div class="tab" data-tab="api">API 文档</div>
+        <div class="tab" data-tab="output">输出日志</div>
+      </div>
+      
+      <!-- 快速操作 -->
+      <div class="tab-content active" id="tab-quick">
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="doAction('stats')">📊 刷新统计</button>
+          <button class="btn btn-success" onclick="doAction('health')">💚 健康检查</button>
+          <button class="btn btn-success" onclick="doAction('seed', {count: 5})">🌱 生成种子数据</button>
+          <button class="btn btn-secondary" onclick="doAction('permissions:list')">🔐 查看权限</button>
+          <button class="btn btn-secondary" onclick="doAction('members:list')">👥 查看成员</button>
+        </div>
+        
+        <div class="favorites">
+          <h4>快捷收藏：</h4>
+          <button class="btn btn-warning favorite-btn" onclick="doAction('permissions:check', {userId: 'user_1', targetId: 'course_1', type: 'course'})">权限检查</button>
+          <button class="btn btn-warning favorite-btn" onclick="doAction('list', {collection: 'teachers', limit: 5})">教师列表</button>
+          <button class="btn btn-warning favorite-btn" onclick="doAction('list', {collection: 'courses', limit: 5})">课程列表</button>
+          <button class="btn btn-warning favorite-btn" onclick="doAction('env')">环境信息</button>
+        </div>
+      </div>
+      
+      <!-- 集合管理 -->
+      <div class="tab-content" id="tab-collections">
+        <div class="form-row">
+          <div class="form-group">
+            <label>集合名称</label>
+            <select id="collectionSelect" onchange="loadCollection()">
+              <option value="">-- 选择集合 --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>条数限制</label>
+            <input type="number" id="limitInput" value="10" min="1" max="100">
+          </div>
+          <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
+            <button class="btn btn-primary" onclick="loadCollection()">查询</button>
+            <button class="btn btn-success" onclick="doAction('list', {collection: document.getElementById('collectionSelect').value, limit: parseInt(document.getElementById('limitInput').value)})">刷新</button>
+          </div>
+        </div>
+        <div id="collectionData"></div>
+      </div>
+      
+      <!-- 权限管理 -->
+      <div class="tab-content" id="tab-permissions">
+        <h3 style="color: #94a3b8; margin-bottom: 16px;">权限检查</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>用户 ID</label>
+            <input type="text" id="permUserId" placeholder="user_1">
+          </div>
+          <div class="form-group">
+            <label>资源 ID</label>
+            <input type="text" id="permTargetId" placeholder="course_1">
+          </div>
+          <div class="form-group">
+            <label>类型</label>
+            <select id="permType">
+              <option value="course">课程</option>
+              <option value="class">班级</option>
+            </select>
+          </div>
+          <div class="form-group" style="display: flex; align-items: flex-end;">
+            <button class="btn btn-primary" onclick="checkPermission()">检查权限</button>
+          </div>
+        </div>
+        <div id="permissionResult"></div>
+        
+        <h3 style="color: #94a3b8; margin: 24px 0 16px;">权限列表</h3>
+        <button class="btn btn-secondary" onclick="doAction('permissions:list')">刷新权限</button>
+        <div id="permissionsList"></div>
+      </div>
+      
+      <!-- API 文档 -->
+      <div class="tab-content" id="tab-api">
+        <div class="api-list" id="apiList"></div>
+      </div>
+      
+      <!-- 输出日志 -->
+      <div class="tab-content" id="tab-output">
+        <div class="btn-group">
+          <button class="btn btn-secondary" onclick="clearOutput()">清空日志</button>
+          <button class="btn btn-secondary" onclick="copyOutput()">复制日志</button>
+        </div>
+        <div class="output-area" id="output"></div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const API_BASE = 'https://rcwljy-5ghmq2ex26764978-1318564729.ap-shanghai.app.tcloudbase.com/diagnose';
+    let logs = [];
+    
+    // 初始化
+    async function init() {
+      log('🚀 初始化诊断中心...', 'info');
+      await Promise.all([
+        loadHealth(),
+        loadStats(),
+        loadCollections()
+      ]);
+      await loadApiDocs();
+      log('✅ 初始化完成', 'success');
+    }
+    
+    // 日志记录
+    function log(msg, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const logEntry = `[${time}] ${msg}`;
+      logs.push({ time, msg, type });
+      
+      const output = document.getElementById('output');
+      const line = document.createElement('div');
+      line.className = type;
+      line.textContent = logEntry;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    }
+    
+    function clearOutput() {
+      logs = [];
+      document.getElementById('output').innerHTML = '';
+      log('日志已清空', 'info');
+    }
+    
+    function copyOutput() {
+      const text = logs.map(l => `[${l.time}] ${l.msg}`).join('\n');
+      navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板'));
+    }
+    
+    // API 调用
+    async function doAction(action, params = {}) {
+      log(`执行操作: ${action}`, 'info');
+      const queryParams = new URLSearchParams({ action, ...params });
+      const url = `${API_BASE}?${queryParams}`;
+      
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (data.code === 0) {
+          log(`✅ ${action} 成功`, 'success');
+          if (data.data) {
+            console.log(data.data);
+          }
+          // 刷新相关数据
+          if (['stats', 'seed'].includes(action)) loadStats();
+          if (['permissions:list', 'permissions:create', 'permissions:delete'].includes(action)) loadPermissions();
+          if (['members:list', 'members:add', 'members:remove'].includes(action)) loadMembers();
+        } else {
+          log(`❌ ${data.message || data.error}`, 'error');
+        }
+        return data;
+      } catch (e) {
+        log(`❌ 请求失败: ${e.message}`, 'error');
+        return null;
+      }
+    }
+    
+    // 健康检查
+    async function loadHealth() {
+      try {
+        const res = await fetch(`${API_BASE}?action=health`);
+        const data = await res.json();
+        
+        const status = document.getElementById('healthStatus');
+        if (data.code === 0 && data.data) {
+          const { timestamp, environment, database, collections } = data.data;
+          status.innerHTML = `
+            <div class="health-item">
+              <div class="health-dot ${database.status === 'connected' ? 'green' : 'red'}"></div>
+              <span>数据库: ${database.status}</span>
+            </div>
+            <div class="health-item">
+              <div class="health-dot green"></div>
+              <span>环境: ${environment.envId}</span>
+            </div>
+            <div class="health-item">
+              <div class="health-dot green"></div>
+              <span>区域: ${environment.region}</span>
+            </div>
+            <div class="health-item">
+              <span>时间: ${new Date(timestamp).toLocaleString()}</span>
+            </div>
+          `;
+        }
+      } catch (e) {
+        log('健康检查失败: ' + e.message, 'error');
+      }
+    }
+    
+    // 统计数据
+    async function loadStats() {
+      try {
+        const res = await fetch(`${API_BASE}?action=stats`);
+        const data = await res.json();
+        
+        const grid = document.getElementById('statsGrid');
+        if (data.code === 0 && data.data) {
+          const items = Object.entries(data.data)
+            .filter(([k]) => !k.startsWith('_'))
+            .map(([name, count]) => `
+              <div class="stat-card" onclick="loadCollectionByName('${name}')">
+                <div class="stat-value">${count}</div>
+                <div class="stat-label">${getCollectionLabel(name)}</div>
+              </div>
+            `).join('');
+          grid.innerHTML = items;
+        }
+      } catch (e) {
+        log('加载统计失败: ' + e.message, 'error');
+      }
+    }
+    
+    // 集合列表
+    async function loadCollections() {
+      try {
+        const res = await fetch(`${API_BASE}?action=collections`);
+        const data = await res.json();
+        
+        const select = document.getElementById('collectionSelect');
+        if (data.code === 0 && data.data) {
+          data.data.forEach(col => {
+            const opt = document.createElement('option');
+            opt.value = col.name;
+            opt.textContent = `${col.name} (${col.description})`;
+            select.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        log('加载集合列表失败: ' + e.message, 'error');
+      }
+    }
+    
+    function loadCollection() {
+      const name = document.getElementById('collectionSelect').value;
+      const limit = document.getElementById('limitInput').value;
+      if (name) {
+        doAction('list', { collection: name, limit: parseInt(limit) });
+      }
+    }
+    
+    function loadCollectionByName(name) {
+      document.getElementById('collectionSelect').value = name;
+      document.querySelector('[data-tab="collections"]').click();
+      loadCollection();
+    }
+    
+    // 权限管理
+    async function loadPermissions() {
+      const res = await fetch(`${API_BASE}?action=permissions:list`);
+      const data = await res.json();
+      
+      const list = document.getElementById('permissionsList');
+      if (data.code === 0 && data.data) {
+        if (data.data.length === 0) {
+          list.innerHTML = '<p style="color: #94a3b8;">暂无权限记录</p>';
+        } else {
+          list.innerHTML = `
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>用户</th>
+                  <th>类型</th>
+                  <th>资源</th>
+                  <th>级别</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.data.map(p => `
+                  <tr>
+                    <td><code>${p._id.substring(0, 8)}...</code></td>
+                    <td>${p.userId}</td>
+                    <td><span class="tag tag-${p.type}">${p.type}</span></td>
+                    <td>${p.targetId}</td>
+                    <td>${p.level}</td>
+                    <td>
+                      <button class="btn btn-danger" onclick="deletePermission('${p._id}')">删除</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+        }
+      }
+    }
+    
+    async function checkPermission() {
+      const userId = document.getElementById('permUserId').value;
+      const targetId = document.getElementById('permTargetId').value;
+      const type = document.getElementById('permType').value;
+      
+      const res = await doAction('permissions:check', { userId, targetId, type });
+      const resultDiv = document.getElementById('permissionResult');
+      
+      if (res && res.hasPermission !== undefined) {
+        resultDiv.innerHTML = res.hasPermission 
+          ? `<div style="padding: 16px; background: rgba(52, 211, 153, 0.1); border-radius: 8px; color: #34d399;">
+              ✅ 用户 <strong>${userId}</strong> 有权限访问 <strong>${type}:${targetId}</strong>
+              <br>权限级别: ${res.permission.level}
+            </div>`
+          : `<div style="padding: 16px; background: rgba(248, 113, 113, 0.1); border-radius: 8px; color: #f87171;">
+              ❌ 用户 <strong>${userId}</strong> 无权限访问 <strong>${type}:${targetId}</strong>
+            </div>`;
+      }
+    }
+    
+    async function deletePermission(id) {
+      if (confirm('确定删除此权限?')) {
+        await doAction('permissions:delete', { id });
+      }
+    }
+    
+    // 成员管理
+    async function loadMembers() {
+      const res = await fetch(`${API_BASE}?action=members:list`);
+      const data = await res.json();
+      console.log('Members:', data);
+    }
+    
+    // API 文档
+    async function loadApiDocs() {
+      const res = await fetch(`${API_BASE}?action=help`);
+      const data = await res.json();
+      
+      const list = document.getElementById('apiList');
+      if (data.code === 0 && data.actions) {
+        list.innerHTML = Object.entries(data.actions).map(([name, desc]) => `
+          <div class="api-item" onclick="doAction('${name}')">
+            <code>${name}</code>
+            <span>${desc}</span>
+          </div>
+        `).join('');
+      }
+    }
+    
+    // 工具函数
+    function getCollectionLabel(name) {
+      const labels = {
+        teachers: '教师',
+        courses: '课程',
+        students: '学员',
+        schedules: '排课',
+        attendance: '出勤',
+        course_permissions: '权限',
+        class_members: '成员',
+        exams: '考试',
+        questions: '题目',
+        question_banks: '题库',
+        orders: '订单',
+        banners: '轮播图',
+        pages: '页面',
+        classes: '班级'
+      };
+      return labels[name] || name;
+    }
+    
+    // Tab 切换
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        
+        // 加载数据
+        if (tab.dataset.tab === 'permissions') loadPermissions();
+        if (tab.dataset.tab === 'collections') loadCollections();
+      });
+    });
+    
+    // 启动
+    init();
+  </script>
+</body>
+</html>

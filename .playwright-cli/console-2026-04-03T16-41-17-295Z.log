@@ -1,0 +1,3 @@
+[     363ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: banners, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-Cq99VT6_-v20260408-0020-adminService-fix.js:0
+[     364ms] [LOG] ✅ ensureAuthenticated: 用户已登录 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[     519ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 0798fd39-a55f-438b-9f35-e138035c4bc9} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-Cq99VT6_-v20260408-0020-adminService-fix.js:0

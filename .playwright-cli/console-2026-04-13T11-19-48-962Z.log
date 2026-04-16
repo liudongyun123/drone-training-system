@@ -1,0 +1,24 @@
+[     304ms] [INFO] Successfully preconnected to https://fonts.googleapis.com/ @ :0
+[     304ms] [INFO] Successfully preconnected to https://fonts.gstatic.com/ @ :0
+[     373ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:1
+[     373ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:1
+[     373ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:1
+[     381ms] [LOG] [Auth] 未找到缓存手机号，尝试通过 openid 查询: idAwBJ0WK8P-vUVIk3tR7Q @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[     419ms] [LOG] 🚀 Drone Training System Started 2026-04-13T11:19:49.380Z @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:39
+[     420ms] [LOG] ✅ 用户已登录 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[     637ms] [LOG] [Auth] 通过 openid 未查询到手机号 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[     637ms] [LOG] ✅ 用户已登录: idAwBJ0WK8P-vUVIk3tR7Q , phone: 未绑定 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[     684ms] [LOG] [CategoryService] 开始获取分类... @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[     684ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: categories, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     685ms] [LOG] [CourseListPage] 加载课程, 参数: {page: 1, pageSize: 12, searchKeyword: , category: , level: } @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CourseListPage-NioBDFpt-v1776078829070.js:0
+[     685ms] [LOG] [paginatedQuery] 查询集合: courses, 参数: {page: 1, pageSize: 12, status: published} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     685ms] [LOG] [paginatedQuery] 应用过滤条件: {status: published} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     742ms] [LOG] [paginatedQuery] 集合 courses 符合条件总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     808ms] [LOG] [paginatedQuery] 查询到 4 条数据: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     809ms] [LOG] [CourseListPage] 课程查询结果: {list: Array, total: 4, page: 1, pageSize: 12} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CourseListPage-NioBDFpt-v1776078829070.js:0
+[     906ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 1489dd9b-7263-437d-b928-e5fb29b4c105} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     906ms] [LOG] [CategoryService] 云函数返回结果: {code: 0, message: 查询成功, data: Array, total: 6, page: 1} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[     906ms] [LOG] [CategoryService] res.data 类型: object true @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[     906ms] [LOG] [CategoryService] 获取到分类数量: 6 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[     906ms] [LOG] [CategoryService] 分类数据: [Object, Object, Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[   35049ms] [LOG] [CourseDetail] 点击课时: {courseId: course_001, lessonId: b3c6c3d569c12d9c014a5af058362594, lessonTitle: 1, isFree: true, hasVideoAccess: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CourseDetailPage-9pBy7-Mq-v1776078829070.js:0

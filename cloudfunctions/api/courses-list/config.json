@@ -1,0 +1,8 @@
+{
+  "name": "courses-list",
+  "timeout": 30,
+  "runtime": "Nodejs16.13",
+  "dependencies": {
+    "@cloudbase/node-sdk": "~2"
+  }
+}

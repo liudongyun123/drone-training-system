@@ -1,0 +1,17 @@
+[     336ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/#/admin/page-config?nocache=2:0
+[     930ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/favicon.ico:0
+[   11014ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:853
+[   11019ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:853
+[   11019ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:853
+[   11044ms] [LOG] ✅ 用户已登录: undefined @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:860
+[   11089ms] [LOG] 🚀 生产环境启动 2026-04-11T09:41:19.708Z @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1116
+[   11416ms] [LOG] ✅ ensureAuthenticated: 匿名登录成功 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:860
+[   11580ms] [LOG] ✅ 匿名登录成功 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:860
+[   11589ms] [LOG] 热门课程ID列表: [course_001, course_002, course_003, course_004] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[   11589ms] [LOG] 所有课程: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[   11589ms] [LOG] 匹配到的热门课程: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1123
+[   11590ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: banners, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   11591ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: banners, query: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   11810ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 4d9bd63d-353f-4035-86be-c2b7895614a3} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   12419ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 9ebb1710-355f-4d35-a17e-0b6e8c8c5464} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[   12419ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredClasses, docId: home-featured-classes} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074

@@ -1,0 +1,2 @@
+[     555ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: certificates, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     804ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: b44d0f50-928d-4671-a8bb-9dbe4c53801e} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10

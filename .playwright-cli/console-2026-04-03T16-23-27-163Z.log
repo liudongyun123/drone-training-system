@@ -1,0 +1,45 @@
+[     371ms] [LOG] 查询集合: courses, 参数: {page: 1, pageSize: 10} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-BtTiiRyZ-v20260407-0020-fix.js:0
+[     374ms] [LOG] 查询集合: teacher_profiles, 参数: {page: 1, pageSize: 100} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-BtTiiRyZ-v20260407-0020-fix.js:0
+[     375ms] [ERROR] 加载分类列表异常: ReferenceError: adminService is not defined
+    at Pe (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-Df9pEdcB-v20260407-0020-fix.js:6:4814)
+    at https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-Df9pEdcB-v20260407-0020-fix.js:6:5195
+    at vh (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-DPN_nPME-v20260407-0020-fix.js:49:93094)
+    at QA (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-DPN_nPME-v20260407-0020-fix.js:49:108383)
+    at po (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-DPN_nPME-v20260407-0020-fix.js:49:108267)
+    at QA (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-DPN_nPME-v20260407-0020-fix.js:49:108993)
+    at po (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-DPN_nPME-v20260407-0020-fix.js:49:108267)
+    at QA (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-DPN_nPME-v20260407-0020-fix.js:49:108850)
+    at po (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-DPN_nPME-v20260407-0020-fix.js:49:108267)
+    at QA (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-DPN_nPME-v20260407-0020-fix.js:49:108363) @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-Df9pEdcB-v20260407-0020-fix.js:5
+[     441ms] [LOG] 集合 courses 总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-BtTiiRyZ-v20260407-0020-fix.js:0
+[     498ms] [LOG] 查询到 4 条数据 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-BtTiiRyZ-v20260407-0020-fix.js:0
+[     525ms] [LOG] 集合 teacher_profiles 总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-BtTiiRyZ-v20260407-0020-fix.js:0
+[     589ms] [LOG] 查询到 4 条数据 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-BtTiiRyZ-v20260407-0020-fix.js:0
+[   28454ms] [LOG] 编辑课程原始数据: {
+  "_id": "course_001",
+  "category": "进阶提升",
+  "coverImage": "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800",
+  "createdAt": "2025-03-01T08:00:00.000Z",
+  "description": "全面系统的CAAC无人机驾驶员执照培训课程，涵盖理论知识和实操技能，帮助学员顺利通过CAAC考试获得执照。",
+  "duration": 40,
+  "instructor": "李娜",
+  "lessons": 20,
+  "level": "intermediate",
+  "maxStudents": 50,
+  "originalPrice": 6999,
+  "price": 5999,
+  "rating": 4.8,
+  "reviewCount": 25,
+  "salesCount": 12,
+  "status": "published",
+  "tags": [
+    "CAAC",
+    "执照",
+    "培训"
+  ],
+  "teacherId": "teacher_002",
+  "teacherName": "李娜",
+  "title": "CAAC无人机驾驶员执照培训",
+  "updatedAt": "2026-04-03T16:07:04.898Z"
+} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-Df9pEdcB-v20260407-0020-fix.js:5
+[   28454ms] [LOG] 编辑课程设置 teacherId: teacher_002 instructor: 李娜 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-Df9pEdcB-v20260407-0020-fix.js:5

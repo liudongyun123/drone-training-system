@@ -1,0 +1,20 @@
+[     315ms] [LOG] [CouponService] 开始获取优惠券列表 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/groupBuyService-BiXOQaEd-v1776078829070.js:1
+[     315ms] [LOG] [CouponDB] 开始查询集合: coupons @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     316ms] [LOG] [CouponDB] collection对象: r @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     317ms] [LOG] [GroupBuyDB] 开始查询集合: groupBuyActivities @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/groupBuyService-BiXOQaEd-v1776078829070.js:1
+[     317ms] [LOG] [CouponDB] 开始查询集合: coupons @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     317ms] [LOG] [CouponDB] collection对象: r @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     317ms] [LOG] [GroupBuyDB] 开始查询集合: groupBuyActivities @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/groupBuyService-BiXOQaEd-v1776078829070.js:1
+[     514ms] [LOG] [GroupBuyDB] 查询原始结果: {code: DATABASE_COLLECTION_NOT_EXIST, message: [ResourceNotFound] Db or Table not exist: groupBuy…et/error-code/basic/DATABASE_COLLECTION_NOT_EXIST, requestId: 6303cc460c05b} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/groupBuyService-BiXOQaEd-v1776078829070.js:1
+[     514ms] [LOG] [GroupBuyDB] 处理后数据: {code: DATABASE_COLLECTION_NOT_EXIST, message: [ResourceNotFound] Db or Table not exist: groupBuy…et/error-code/basic/DATABASE_COLLECTION_NOT_EXIST, requestId: 6303cc460c05b} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/groupBuyService-BiXOQaEd-v1776078829070.js:1
+[     532ms] [LOG] [CouponDB] 查询原始结果类型: object @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     532ms] [LOG] [CouponDB] 查询原始结果: {data: Array, requestId: 5ce0f259be37b8} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     532ms] [LOG] [CouponDB] 最终 coupons 数组: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     533ms] [LOG] [CouponDB] coupons 长度: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     536ms] [LOG] [CouponDB] 查询原始结果类型: object @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     536ms] [LOG] [CouponDB] 查询原始结果: {data: Array, requestId: 6c349556dbfd6} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     537ms] [LOG] [CouponDB] 最终 coupons 数组: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     537ms] [LOG] [CouponDB] coupons 长度: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/coupon-BzkI85Vw-v1776078829070.js:0
+[     537ms] [LOG] [CouponService] 数据库返回: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/groupBuyService-BiXOQaEd-v1776078829070.js:1
+[     537ms] [LOG] [GroupBuyDB] 查询原始结果: {code: DATABASE_COLLECTION_NOT_EXIST, message: [ResourceNotFound] Db or Table not exist: groupBuy…et/error-code/basic/DATABASE_COLLECTION_NOT_EXIST, requestId: 9a5ae32a0622b} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/groupBuyService-BiXOQaEd-v1776078829070.js:1
+[     537ms] [LOG] [GroupBuyDB] 处理后数据: {code: DATABASE_COLLECTION_NOT_EXIST, message: [ResourceNotFound] Db or Table not exist: groupBuy…et/error-code/basic/DATABASE_COLLECTION_NOT_EXIST, requestId: 9a5ae32a0622b} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/groupBuyService-BiXOQaEd-v1776078829070.js:1

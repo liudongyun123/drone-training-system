@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教师保存功能调试</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+    }
+    .section h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    .log-container {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #007bff;
+    }
+    .log-error {
+      border-left-color: #dc3545;
+      color: #dc3545;
+    }
+    .log-success {
+      border-left-color: #28a745;
+      color: #28a745;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    #clearLogs {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <button id="clearLogs" class="btn-danger" onclick="clearLogs()">清空日志</button>
+  
+  <h1>教师保存功能调试页面</h1>
+  
+  <!-- 测试1: SDK 初始化 -->
+  <div class="section">
+    <h3>测试 1: SDK 初始化</h3>
+    <button class="btn-primary" onclick="testSDKInit()">测试 SDK 初始化</button>
+    <button class="btn-primary" onclick="testAuth()">测试匿名登录</button>
+    <div id="sdk-result"></div>
+  </div>
+  
+  <!-- 测试2: 查询测试 -->
+  <div class="section">
+    <h3>测试 2: 查询教师数据</h3>
+    <button class="btn-primary" onclick="testQuery()">查询教师列表</button>
+    <button class="btn-primary" onclick="testQueryOne()">查询第一条记录</button>
+    <div id="query-result"></div>
+  </div>
+  
+  <!-- 测试3: 保存测试 -->
+  <div class="section">
+    <h3>测试 3: 保存教师数据</h3>
+    <form id="teacherForm">
+      <div class="form-group">
+        <label>姓名：</label>
+        <input type="text" id="name" value="测试教师" required>
+      </div>
+      <div class="form-group">
+        <label>手机号：</label>
+        <input type="text" id="phone" value="13800138000">
+      </div>
+      <div class="form-group">
+        <label>邮箱：</label>
+        <input type="email" id="email" value="test@example.com">
+      </div>
+      <div class="form-group">
+        <label>简介：</label>
+        <textarea id="bio" rows="3">这是一位测试教师</textarea>
+      </div>
+      <button type="button" class="btn-success" onclick="testCreate()">创建教师</button>
+      <button type="button" class="btn-success" onclick="testCreateMinimal()">最小化创建</button>
+    </form>
+  </div>
+  
+  <!-- 日志输出 -->
+  <div class="section">
+    <h3>日志输出</h3>
+    <div id="log" class="log-container"></div>
+  </div>
+  
+  <!-- CloudBase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@1.7.1/dist/cloudbase.full.js"></script>
+  
+  <script>
+    // 等待 SDK 加载完成
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof tcb === 'undefined') {
+        log('❌ CloudBase SDK 加载失败', 'error');
+        log('请检查网络连接或 CDN 可用性', 'error');
+      } else {
+        log('✅ CloudBase SDK 加载成功', 'success');
+      }
+    });
+    
+    let app = null;
+    let db = null;
+    let auth = null;
+    let initSuccess = false;
+    
+    // 日志函数
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : ''}`;
+      const timestamp = new Date().toLocaleTimeString();
+      entry.textContent = `[${timestamp}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function clearLogs() {
+      document.getElementById('log').innerHTML = '';
+    }
+    
+    // 测试1: SDK 初始化
+    async function testSDKInit() {
+      try {
+        log('开始初始化 SDK...');
+        
+        // 检查 SDK 是否加载
+        if (typeof tcb === 'undefined') {
+          throw new Error('CloudBase SDK 未加载，请刷新页面重试');
+        }
+        
+        const envId = 'rcwljy-5ghmq2ex26764978';
+        log(`环境 ID: ${envId}`);
+        
+        app = tcb.init({
+          env: envId
+        });
+        
+        log('✅ SDK 初始化成功', 'success');
+        log(`app 类型: ${typeof app}`);
+        log(`app 对象: ${app ? '存在' : '不存在'}`);
+        
+        // 初始化数据库
+        db = app.database();
+        log('✅ 数据库初始化成功', 'success');
+        log(`db 类型: ${typeof db}`);
+        
+        // 初始化认证
+        auth = app.auth();
+        log('✅ 认证模块初始化成功', 'success');
+        log(`auth 类型: ${typeof auth}`);
+        
+        // 标记初始化成功
+        initSuccess = true;
+        
+        document.getElementById('sdk-result').innerHTML = '<p style="color: green;">SDK 初始化成功</p>';
+      } catch (error) {
+        log(`❌ SDK 初始化失败: ${error.message}`, 'error');
+        document.getElementById('sdk-result').innerHTML = `<p style="color: red;">SDK 初始化失败: ${error.message}</p>`;
+      }
+    }
+    
+    // 测试匿名登录
+    async function testAuth() {
+      try {
+        log('开始匿名登录...');
+        
+        if (!initSuccess) {
+          throw new Error('SDK 未初始化，请先运行"测试 SDK 初始化"');
+        }
+        
+        if (!auth) {
+          throw new Error('auth 未初始化，请先运行 SDK 初始化');
+        }
+        
+        const { data } = await auth.signInAnonymously();
+        log('✅ 匿名登录成功', 'success');
+        log(`会话 ID: ${data?.session?.id}`);
+        log(`用户 ID: ${data?.session?.uid}`);
+        
+        document.getElementById('sdk-result').innerHTML += '<p style="color: green;">匿名登录成功</p>';
+      } catch (error) {
+        log(`❌ 匿名登录失败: ${error.message}`, 'error');
+        document.getElementById('sdk-result').innerHTML += `<p style="color: red;">匿名登录失败: ${error.message}</p>`;
+      }
+    }
+    
+    // 测试查询
+    async function testQuery() {
+      try {
+        log('开始查询教师列表...');
+        
+        if (!initSuccess) {
+          throw new Error('SDK 未初始化，请先运行"测试 SDK 初始化"');
+        }
+        
+        if (!db) {
+          throw new Error('db 未初始化，请先运行 SDK 初始化');
+        }
+        
+        // 先登录
+        await ensureAuth();
+        
+        const result = await db.collection('teacher_profiles').limit(10).get();
+        log(`✅ 查询成功，共 ${result.data.length} 条记录`, 'success');
+        
+        if (result.data.length > 0) {
+          log('第一条记录:', 'info');
+          log(JSON.stringify(result.data[0], null, 2), 'info');
+        }
+        
+        document.getElementById('query-result').innerHTML = `<p style="color: green;">查询成功，共 ${result.data.length} 条记录</p>`;
+      } catch (error) {
+        log(`❌ 查询失败: ${error.message}`, 'error');
+        document.getElementById('query-result').innerHTML = `<p style="color: red;">查询失败: ${error.message}</p>`;
+      }
+    }
+    
+    // 测试查询第一条
+    async function testQueryOne() {
+      try {
+        log('开始查询第一条记录...');
+        
+        if (!initSuccess) {
+          throw new Error('SDK 未初始化，请先运行"测试 SDK 初始化"');
+        }
+        
+        if (!db) {
+          throw new Error('db 未初始化，请先运行 SDK 初始化');
+        }
+        
+        await ensureAuth();
+        
+        const result = await db.collection('teacher_profiles').limit(1).get();
+        log(`✅ 查询成功，共 ${result.data.length} 条记录`, 'success');
+        
+        if (result.data.length > 0) {
+          const teacher = result.data[0];
+          log('教师详情:', 'info');
+          log(`姓名: ${teacher.name}`, 'info');
+          log(`手机: ${teacher.phone}`, 'info');
+          log(`邮箱: ${teacher.email}`, 'info');
+          log(`ID: ${teacher._id}`, 'info');
+          
+          document.getElementById('query-result').innerHTML = `
+            <p style="color: green;">查询成功</p>
+            <p>姓名: ${teacher.name}</p>
+            <p>手机: ${teacher.phone}</p>
+            <p>邮箱: ${teacher.email}</p>
+            <p>ID: ${teacher._id}</p>
+          `;
+        } else {
+          log('数据库中没有教师数据', 'info');
+          document.getElementById('query-result').innerHTML = '<p>数据库中没有教师数据</p>';
+        }
+      } catch (error) {
+        log(`❌ 查询失败: ${error.message}`, 'error');
+        document.getElementById('query-result').innerHTML = `<p style="color: red;">查询失败: ${error.message}</p>`;
+      }
+    }
+    
+    // 确保已登录
+    async function ensureAuth() {
+      try {
+        const { data } = await auth.getSession();
+        if (data.session) {
+          log('✅ 用户已登录', 'success');
+          return data.session;
+        }
+      } catch (error) {
+        log('ℹ️ 未找到登录会话，尝试匿名登录...', 'info');
+      }
+      
+      try {
+        const { data } = await auth.signInAnonymously();
+        log('✅ 匿名登录成功', 'success');
+        return data.session;
+      } catch (error) {
+        log(`❌ 匿名登录失败: ${error.message}`, 'error');
+        throw error;
+      }
+    }
+    
+    // 测试创建（完整数据）
+    async function testCreate() {
+      try {
+        log('开始创建教师...');
+        
+        if (!initSuccess) {
+          throw new Error('SDK 未初始化，请先运行"测试 SDK 初始化"');
+        }
+        
+        if (!db) {
+          throw new Error('db 未初始化，请先运行 SDK 初始化');
+        }
+        
+        // 确保已登录
+        await ensureAuth();
+        
+        const name = document.getElementById('name').value;
+        const phone = document.getElementById('phone').value;
+        const email = document.getElementById('email').value;
+        const bio = document.getElementById('bio').value;
+        
+        const teacherData = {
+          name: name,
+          phone: phone,
+          email: email,
+          introduction: bio,
+          specialty: ['飞行培训', '安全操作'],
+          certification: ['无人机驾驶员证书'],
+          status: 'active',
+          rating: 0,
+          totalTeachingHours: 0,
+          teachingExperience: 0,
+          gender: 'unknown',
+          userId: `teacher_${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        log('准备添加数据:', 'info');
+        log(JSON.stringify(teacherData, null, 2), 'info');
+        
+        const result = await db.collection('teacher_profiles').add(teacherData);
+        log('✅ 创建成功', 'success');
+        log(`新教师 ID: ${result.id}`, 'success');
+        
+        alert(`创建成功！教师 ID: ${result.id}`);
+      } catch (error) {
+        log(`❌ 创建失败: ${error.message}`, 'error');
+        log(`错误详情: ${JSON.stringify(error, null, 2)}`, 'error');
+        alert(`创建失败: ${error.message}`);
+      }
+    }
+    
+    // 测试创建（最小化数据）
+    async function testCreateMinimal() {
+      try {
+        log('开始创建教师（最小化数据）...');
+        
+        if (!initSuccess) {
+          throw new Error('SDK 未初始化，请先运行"测试 SDK 初始化"');
+        }
+        
+        if (!db) {
+          throw new Error('db 未初始化，请先运行 SDK 初始化');
+        }
+        
+        await ensureAuth();
+        
+        const teacherData = {
+          name: `测试教师_${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        log('准备添加数据:', 'info');
+        log(JSON.stringify(teacherData, null, 2), 'info');
+        
+        const result = await db.collection('teacher_profiles').add(teacherData);
+        log('✅ 创建成功', 'success');
+        log(`新教师 ID: ${result.id}`, 'success');
+        
+        alert(`创建成功！教师 ID: ${result.id}`);
+      } catch (error) {
+        log(`❌ 创建失败: ${error.message}`, 'error');
+        log(`错误详情: ${JSON.stringify(error, null, 2)}`, 'error');
+        alert(`创建失败: ${error.message}`);
+      }
+    }
+  </script>
+</body>
+</html>

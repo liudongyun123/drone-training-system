@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>无人机培训 - 移动端预览 v2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #FF8C00;
+      --secondary: #00D4AA;
+      --accent: #00A8E8;
+      --bg-primary: #0A0E14;
+      --bg-secondary: #1A1F29;
+      --bg-tertiary: #252B38;
+      --text-primary: #FFFFFF;
+      --text-secondary: #A0AEC0;
+      --text-muted: #64748B;
+      --success: #00D4AA;
+      --warning: #FFB800;
+      --error: #FF4757;
+    }
+
+    body {
+      font-family: 'Source Sans 3', 'Noto Sans SC', sans-serif;
+      background: #0d1117;
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .phone-frame {
+      width: 375px;
+      height: 812px;
+      background: var(--bg-primary);
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 
+        0 0 0 12px #1a1a1a,
+        0 0 0 14px #333,
+        0 25px 50px rgba(0,0,0,0.5);
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 30px;
+      background: #000;
+      border-radius: 0 0 20px 20px;
+      z-index: 100;
+    }
+
+    .screen {
+      height: 100%;
+      overflow-y: auto;
+      padding-top: 50px;
+      scroll-behavior: smooth;
+    }
+
+    .screen::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 16px;
+      background: linear-gradient(180deg, var(--bg-primary) 0%, transparent 100%);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-left h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-left p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 12px;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+      font-size: 18px;
+      position: relative;
+    }
+
+    .icon-btn .badge {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 8px;
+      height: 8px;
+      background: var(--error);
+      border-radius: 50%;
+    }
+
+    /* Banner Carousel */
+    .banner-section {
+      padding: 0 16px;
+      margin-bottom: 20px;
+    }
+
+    .banner-carousel {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      height: 180px;
+    }
+
+    .banner-slide {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #1a2a3a 0%, #0d1821 100%);
+      position: relative;
+    }
+
+    .banner-slide::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800') center/cover;
+      opacity: 0.4;
+    }
+
+    .banner-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,140,0,0.3) 0%, rgba(10,14,20,0.8) 100%);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .banner-tag {
+      display: inline-flex;
+      background: var(--primary);
+      color: #000;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .banner-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .banner-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .banner-price {
+      display: inline-flex;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primary);
+      border: 1px solid rgba(255,140,0,0.3);
+    }
+
+    .banner-dots {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+    }
+
+    .banner-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+    }
+
+    .banner-dot.active {
+      width: 20px;
+      border-radius: 3px;
+      background: var(--primary);
+    }
+
+    /* Stats Card */
+    .stats-card {
+      margin: 0 16px 20px;
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .stats-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .stats-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 1px;
+    }
+
+    .stats-badge {
+      background: rgba(0,212,170,0.2);
+      color: var(--success);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,212,170,0.3);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      text-align: center;
+    }
+
+    .stats-item .value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .stats-item .label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .stats-progress {
+      margin-top: 16px;
+      height: 4px;
+      background: var(--bg-primary);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .stats-progress-fill {
+      width: 65%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--secondary) 0%, var(--accent) 100%);
+      border-radius: 2px;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 0 16px;
+      margin-bottom: 24px;
+    }
+
+    .quick-action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .quick-action-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .quick-action span {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* Categories */
+    .categories {
+      padding: 0 16px;
+      margin-bottom: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .section-more {
+      font-size: 13px;
+      color: var(--primary);
+    }
+
+    .category-list {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .category-list::-webkit-scrollbar {
+      display: none;
+    }
+
+    .category-tag {
+      flex-shrink: 0;
+      padding: 10px 18px;
+      background: var(--bg-secondary);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .category-tag.active {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      border-color: var(--primary);
+    }
+
+    .category-tag .name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    .category-tag.active .name {
+      color: #000;
+    }
+
+    .category-tag .count {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .category-tag.active .count {
+      color: rgba(0,0,0,0.6);
+    }
+
+    /* Course Cards */
+    .course-list {
+      padding: 0 16px;
+      margin-bottom: 100px;
+    }
+
+    .course-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .course-card {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .course-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .course-cover {
+      height: 140px;
+      background: linear-gradient(135deg, #1a2a3a 0%, #0d1821 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .course-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .course-cover::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.6) 100%);
+    }
+
+    .course-free-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: var(--secondary);
+      color: #000;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      z-index: 1;
+    }
+
+    .course-play-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 48px;
+      height: 48px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    .course-play-btn::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 14px solid #fff;
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      margin-left: 4px;
+    }
+
+    .course-info {
+      padding: 14px;
+    }
+
+    .course-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .course-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .course-rating {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .course-rating .star {
+      color: var(--warning);
+    }
+
+    .course-rating span {
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .course-rating small {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .course-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .course-price {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .course-price.free {
+      color: var(--secondary);
+      font-size: 14px;
+    }
+
+    .course-level {
+      background: var(--bg-tertiary);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* Bottom Tab Bar */
+    .tab-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      background: rgba(26,31,41,0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      padding-top: 10px;
+      padding-bottom: 20px;
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+
+    .tab-item.active {
+      color: var(--primary);
+    }
+
+    .tab-item .icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tab-item .icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .tab-item span {
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .tab-item.home .icon {
+      position: relative;
+    }
+
+    .tab-item.home.active .icon::after {
+      content: '';
+      position: absolute;
+      top: -8px;
+      width: 4px;
+      height: 4px;
+      background: var(--primary);
+      border-radius: 50%;
+    }
+
+    /* Demo Controls */
+    .demo-controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .demo-btn {
+      padding: 12px 20px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--warning) 100%);
+      color: #000;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255,140,0,0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .demo-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255,140,0,0.5);
+    }
+
+    .demo-info {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(10px);
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .demo-info span {
+      color: var(--primary);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-info">
+    📱 移动端预览 - <span>Retro-Futuristic</span> 航空仪表盘风格
+  </div>
+
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="screen">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <p>欢迎来到</p>
+          <h1>无人机培训</h1>
+        </div>
+        <div class="header-right">
+          <button class="icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+          </button>
+          <button class="icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="badge"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Banner Carousel -->
+      <section class="banner-section">
+        <div class="banner-carousel">
+          <div class="banner-slide">
+            <div class="banner-overlay">
+              <span class="banner-tag">精选课程</span>
+              <h2 class="banner-title">CAAC无人机驾驶员执照培训</h2>
+              <p class="banner-subtitle">1,234 人学习 · 进阶课程</p>
+              <span class="banner-price">¥5,999</span>
+            </div>
+          </div>
+          <div class="banner-dots">
+            <span class="banner-dot active"></span>
+            <span class="banner-dot"></span>
+            <span class="banner-dot"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats Card -->
+      <div class="stats-card">
+        <div class="stats-header">
+          <span class="stats-title">今日学习</span>
+          <span class="stats-badge">🔄 连续 7 天</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stats-item">
+            <span class="value">2.5h</span>
+            <span class="label">学习时长</span>
+          </div>
+          <div class="stats-item">
+            <span class="value">3</span>
+            <span class="label">我的课程</span>
+          </div>
+          <div class="stats-item">
+            <span class="value">7</span>
+            <span class="label">连续天数</span>
+          </div>
+        </div>
+        <div class="stats-progress">
+          <div class="stats-progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <div class="quick-action">
+          <div class="quick-action-icon" style="background: rgba(255,140,0,0.2);">
+            📚
+          </div>
+          <span>全部课程</span>
+        </div>
+        <div class="quick-action">
+          <div class="quick-action-icon" style="background: rgba(0,212,170,0.2);">
+            📖
+          </div>
+          <span>继续学习</span>
+        </div>
+        <div class="quick-action">
+          <div class="quick-action-icon" style="background: rgba(0,168,232,0.2);">
+            📝
+          </div>
+          <span>我的考试</span>
+        </div>
+        <div class="quick-action">
+          <div class="quick-action-icon" style="background: rgba(255,184,0,0.2);">
+            🏆
+          </div>
+          <span>我的证书</span>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <section class="categories">
+        <div class="section-header">
+          <h3 class="section-title">课程分类</h3>
+        </div>
+        <div class="category-list">
+          <div class="category-tag active">
+            <span class="name">全部</span>
+            <span class="count">12</span>
+          </div>
+          <div class="category-tag">
+            <span class="name">执照培训</span>
+            <span class="count">5</span>
+          </div>
+          <div class="category-tag">
+            <span class="name">技能培训</span>
+            <span class="count">4</span>
+          </div>
+          <div class="category-tag">
+            <span class="name">行业应用</span>
+            <span class="count">3</span>
+          </div>
+          <div class="category-tag">
+            <span class="name">认证课程</span>
+            <span class="count">6</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Hot Courses -->
+      <section class="course-list">
+        <div class="section-header">
+          <h3 class="section-title">热门课程</h3>
+          <span class="section-more">查看全部 →</span>
+        </div>
+        <div class="course-grid">
+          <!-- Course 1 -->
+          <div class="course-card">
+            <div class="course-cover">
+              <img src="https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800" alt="课程封面">
+              <span class="course-free-tag">热门</span>
+              <div class="course-play-btn"></div>
+            </div>
+            <div class="course-info">
+              <h4 class="course-title">CAAC无人机驾驶员执照培训 - 理论+实操</h4>
+              <div class="course-meta">
+                <div class="course-rating">
+                  <span class="star">⭐</span>
+                  <span>4.8</span>
+                  <small>(256人)</small>
+                </div>
+                <span style="font-size: 12px; color: var(--text-muted);">1,234人学习</span>
+              </div>
+              <div class="course-footer">
+                <span class="course-price">¥5,999</span>
+                <span class="course-level">执照培训</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course 2 -->
+          <div class="course-card">
+            <div class="course-cover">
+              <img src="https://images.unsplash.com/photo-1579829366248-204fe8413f31?w=800" alt="课程封面">
+              <div class="course-play-btn"></div>
+            </div>
+            <div class="course-info">
+              <h4 class="course-title">无人机航拍技术专业课程 - 从入门到精通</h4>
+              <div class="course-meta">
+                <div class="course-rating">
+                  <span class="star">⭐</span>
+                  <span>4.9</span>
+                  <small>(189人)</small>
+                </div>
+                <span style="font-size: 12px; color: var(--text-muted);">856人学习</span>
+              </div>
+              <div class="course-footer">
+                <span class="course-price">¥2,999</span>
+                <span class="course-level">技能培训</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course 3 -->
+          <div class="course-card">
+            <div class="course-cover">
+              <img src="https://images.unsplash.com/photo-1506947411487-a56738267384?w=800" alt="课程封面">
+              <span class="course-free-tag" style="background: var(--success);">免费</span>
+              <div class="course-play-btn"></div>
+            </div>
+            <div class="course-info">
+              <h4 class="course-title">AOPA无人机驾驶员认证课程 - 入门必修</h4>
+              <div class="course-meta">
+                <div class="course-rating">
+                  <span class="star">⭐</span>
+                  <span>4.7</span>
+                  <small>(98人)</small>
+                </div>
+                <span style="font-size: 12px; color: var(--text-muted);">432人学习</span>
+              </div>
+              <div class="course-footer">
+                <span class="course-price free">免费</span>
+                <span class="course-level">认证课程</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course 4 -->
+          <div class="course-card">
+            <div class="course-cover">
+              <img src="https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=800" alt="课程封面">
+              <div class="course-play-btn"></div>
+            </div>
+            <div class="course-info">
+              <h4 class="course-title">无人机农业植保技术培训 - 行业应用专家</h4>
+              <div class="course-meta">
+                <div class="course-rating">
+                  <span class="star">⭐</span>
+                  <span>4.6</span>
+                  <small>(67人)</small>
+                </div>
+                <span style="font-size: 12px; color: var(--text-muted);">234人学习</span>
+              </div>
+              <div class="course-footer">
+                <span class="course-price">¥3,999</span>
+                <span class="course-level">行业应用</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom Tab Bar -->
+      <nav class="tab-bar">
+        <div class="tab-item home active">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+            </svg>
+          </div>
+          <span>首页</span>
+        </div>
+        <div class="tab-item">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          </div>
+          <span>课程</span>
+        </div>
+        <div class="tab-item">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          </div>
+          <span>考试</span>
+        </div>
+        <div class="tab-item">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <span>我的</span>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <div class="demo-controls">
+    <button class="demo-btn" onclick="toggleTheme()">🎨 切换主题</button>
+    <button class="demo-btn" onclick="window.open('https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/', '_blank')">🌐 访问PC站</button>
+  </div>
+
+  <script>
+    // Banner auto-scroll simulation
+    let currentBanner = 0;
+    const dots = document.querySelectorAll('.banner-dot');
+    
+    setInterval(() => {
+      dots[currentBanner].classList.remove('active');
+      currentBanner = (currentBanner + 1) % dots.length;
+      dots[currentBanner].classList.add('active');
+    }, 4000);
+
+    // Toggle theme
+    let darkMode = true;
+    function toggleTheme() {
+      darkMode = !darkMode;
+      document.body.style.background = darkMode ? '#0d1117' : '#f0f2f5';
+      const phone = document.querySelector('.phone-frame');
+      if (darkMode) {
+        phone.style.background = 'var(--bg-primary)';
+      } else {
+        phone.style.background = '#ffffff';
+      }
+    }
+
+    // Course card interaction
+    document.querySelectorAll('.course-card').forEach(card => {
+      card.addEventListener('click', () => {
+        alert('跳转到课程详情页');
+      });
+    });
+
+    // Tab bar interaction
+    document.querySelectorAll('.tab-item').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

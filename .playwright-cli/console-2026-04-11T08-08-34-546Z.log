@@ -1,0 +1,20 @@
+[      68ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: banners, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[      68ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: banners, query: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[      69ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredCourses, docId: home-featured} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[      69ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredClasses, docId: home-featured-classes} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[      70ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredLearningPaths, docId: home-featured-paths} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[      71ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: learning_paths, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[     203ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 1e89a007-9d5b-4a3a-bd8e-a711158d7b6c} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[     203ms] [LOG] [热门课程] 加载结果: {success: true, data: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[     208ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: ff7bec6f-184f-4e23-9227-147459b7bdb7} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[     211ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 01c4bcde-f3c5-4eef-b990-5759dd89ec3b} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[     220ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 6bb4dfb5-a72b-4d6a-9ccb-21b23af30a7f} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[     349ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 4526a3c3-6f5b-4bef-9a62-1934713d9a8b} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[     816ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: ac0f3c13-4590-481c-8f24-86ffa579ff33} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[     816ms] [LOG] [轮播图] 加载结果: {success: true, data: Array(3), total: 3} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[     816ms] [LOG] [轮播图] 映射 banner: {原始: Object, 映射后ID: banner_001} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[     816ms] [LOG] [轮播图] 映射 banner: {原始: Object, 映射后ID: banner_003} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[     816ms] [LOG] [轮播图] 映射 banner: {原始: Object, 映射后ID: f6fcfb9c69cff35102cd29a71748a7ec} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[     816ms] [LOG] [轮播图] 设置后 banners: [Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[   10987ms] [LOG] [DEBUG] openBannerDialog 被调用 {banner: undefined, bannerDialogOpen: false} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[   10987ms] [LOG] [DEBUG] bannerDialogOpen 设置为 true @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170

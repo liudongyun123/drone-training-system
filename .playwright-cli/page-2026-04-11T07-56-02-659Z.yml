@@ -1,0 +1,242 @@
+- generic [ref=e29]:
+  - complementary [ref=e30]:
+    - link "管理后台 无人机培训系统" [ref=e32] [cursor=pointer]:
+      - /url: /admin
+      - img [ref=e34]
+      - generic [ref=e37]:
+        - heading "管理后台" [level=1] [ref=e38]
+        - paragraph [ref=e39]: 无人机培训系统
+    - navigation [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - img [ref=e43]
+          - generic [ref=e48]: 概览
+        - link "仪表盘" [ref=e50] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e52]
+          - generic [ref=e58]: 仪表盘
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - img [ref=e62]
+          - generic [ref=e66]: 线下培训
+        - generic [ref=e67]:
+          - link "班级管理 线下班级/报名/分班" [ref=e68] [cursor=pointer]:
+            - /url: /admin/classes
+            - img [ref=e69]
+            - generic [ref=e74]:
+              - generic [ref=e75]: 班级管理
+              - generic [ref=e76]: 线下班级/报名/分班
+          - link "排课出勤 课表/出勤记录" [ref=e77] [cursor=pointer]:
+            - /url: /admin/class-schedules
+            - img [ref=e78]
+            - generic [ref=e80]:
+              - generic [ref=e81]: 排课出勤
+              - generic [ref=e82]: 课表/出勤记录
+          - link "报名审核 审核/分班/调课" [ref=e83] [cursor=pointer]:
+            - /url: /admin/registrations
+            - img [ref=e84]
+            - generic [ref=e87]:
+              - generic [ref=e88]: 报名审核
+              - generic [ref=e89]: 审核/分班/调课
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - img [ref=e92]
+          - generic [ref=e95]: 线上课程
+        - generic [ref=e96]:
+          - link "课程管理" [ref=e97] [cursor=pointer]:
+            - /url: /admin/courses
+            - img [ref=e98]
+            - generic [ref=e101]: 课程管理
+          - link "课程分类" [ref=e102] [cursor=pointer]:
+            - /url: /admin/categories
+            - img [ref=e103]
+            - generic [ref=e109]: 课程分类
+          - link "成员管理 用户/学员" [ref=e110] [cursor=pointer]:
+            - /url: /admin/members
+            - img [ref=e111]
+            - generic [ref=e115]:
+              - generic [ref=e116]: 成员管理
+              - generic [ref=e117]: 用户/学员
+          - link "评论管理" [ref=e118] [cursor=pointer]:
+            - /url: /admin/comments
+            - img [ref=e119]
+            - generic [ref=e122]: 评论管理
+      - generic [ref=e123]:
+        - generic [ref=e124]:
+          - img [ref=e125]
+          - generic [ref=e129]: 练习考试
+        - generic [ref=e130]:
+          - link "题库管理 内部练习" [active] [ref=e131] [cursor=pointer]:
+            - /url: /admin/exams
+            - img [ref=e132]
+            - generic [ref=e135]:
+              - generic [ref=e136]: 题库管理
+              - generic [ref=e137]: 内部练习
+          - link "练习记录" [ref=e138] [cursor=pointer]:
+            - /url: /admin/practice-records
+            - img [ref=e139]
+            - generic [ref=e144]: 练习记录
+      - generic [ref=e145]:
+        - generic [ref=e146]:
+          - img [ref=e147]
+          - generic [ref=e150]: 证书管理
+        - link "证书管理" [ref=e152] [cursor=pointer]:
+          - /url: /admin/certificates
+          - img [ref=e153]
+          - generic [ref=e157]: 证书管理
+      - generic [ref=e158]:
+        - generic [ref=e159]:
+          - img [ref=e160]
+          - generic [ref=e162]: 财务订单
+        - link "订单财务" [ref=e164] [cursor=pointer]:
+          - /url: /admin/orders
+          - img [ref=e165]
+          - generic [ref=e169]: 订单财务
+      - generic [ref=e170]:
+        - generic [ref=e171]:
+          - img [ref=e172]
+          - generic [ref=e175]: 运营配置
+        - generic [ref=e176]:
+          - link "内容配置 轮播图/公告/首页" [ref=e177] [cursor=pointer]:
+            - /url: /admin/page-config
+            - img [ref=e178]
+            - generic [ref=e182]:
+              - generic [ref=e183]: 内容配置
+              - generic [ref=e184]: 轮播图/公告/首页
+          - link "营销工具 优惠券/活动" [ref=e185] [cursor=pointer]:
+            - /url: /admin/marketing
+            - img [ref=e186]
+            - generic [ref=e189]:
+              - generic [ref=e190]: 营销工具
+              - generic [ref=e191]: 优惠券/活动
+          - link "教师管理" [ref=e192] [cursor=pointer]:
+            - /url: /admin/teachers
+            - img [ref=e193]
+            - generic [ref=e197]: 教师管理
+      - generic [ref=e198]:
+        - generic [ref=e199]:
+          - img [ref=e200]
+          - generic [ref=e202]: 系统管理
+        - generic [ref=e203]:
+          - link "角色权限" [ref=e204] [cursor=pointer]:
+            - /url: /admin/roles
+            - img [ref=e205]
+            - generic [ref=e208]: 角色权限
+          - link "系统日志" [ref=e209] [cursor=pointer]:
+            - /url: /admin/logs
+            - img [ref=e210]
+            - generic [ref=e214]: 系统日志
+          - link "系统设置" [ref=e215] [cursor=pointer]:
+            - /url: /admin/auth-config
+            - img [ref=e216]
+            - generic [ref=e220]: 系统设置
+          - link "数据修复" [ref=e221] [cursor=pointer]:
+            - /url: /admin/data-fix
+            - img [ref=e222]
+            - generic [ref=e225]: 数据修复
+    - link "返回前台" [ref=e227] [cursor=pointer]:
+      - /url: /
+      - img [ref=e228]
+      - generic [ref=e231]: 返回前台
+  - main [ref=e232]:
+    - generic [ref=e234]:
+      - navigation [ref=e236]:
+        - link "首页" [ref=e238] [cursor=pointer]:
+          - /url: /admin
+        - generic [ref=e483]:
+          - img [ref=e484]
+          - link "题库管理" [ref=e486] [cursor=pointer]:
+            - /url: /admin/exams
+      - generic [ref=e239]:
+        - generic [ref=e240]:
+          - img [ref=e241]
+          - textbox "搜索..." [ref=e244]
+        - button [ref=e246] [cursor=pointer]:
+          - img [ref=e247]
+        - button "系 系统管理员" [ref=e252] [cursor=pointer]:
+          - generic [ref=e253]: 系
+          - generic [ref=e254]: 系统管理员
+    - generic [ref=e488]:
+      - navigation [ref=e489]:
+        - list [ref=e490]:
+          - listitem [ref=e491]:
+            - link "管理后台" [ref=e492] [cursor=pointer]:
+              - /url: /admin
+          - listitem [ref=e493]: /
+          - listitem [ref=e494]: 考试和题库管理
+      - generic [ref=e495]:
+        - heading "考试和题库管理" [level=1] [ref=e496]
+        - paragraph [ref=e497]: 管理试卷、从题库抽选题目、题库维护
+      - generic [ref=e500]:
+        - button "试卷管理" [ref=e501] [cursor=pointer]:
+          - img [ref=e502]
+          - text: 试卷管理
+        - button "题库管理" [ref=e505] [cursor=pointer]:
+          - img [ref=e506]
+          - text: 题库管理
+        - button "题目管理" [ref=e510] [cursor=pointer]:
+          - img [ref=e511]
+          - text: 题目管理
+      - generic [ref=e513]:
+        - generic [ref=e515]:
+          - generic [ref=e517]:
+            - img [ref=e518]
+            - textbox "搜索试卷标题..." [ref=e521]
+          - combobox [ref=e522]:
+            - option "全部状态" [selected]
+            - option "草稿"
+            - option "已发布"
+          - button "创建试卷" [ref=e523] [cursor=pointer]:
+            - img [ref=e524]
+            - text: 创建试卷
+        - table [ref=e526]:
+          - rowgroup [ref=e527]:
+            - row "试卷信息 考试设置 题目统计 状态 操作" [ref=e528]:
+              - columnheader "试卷信息" [ref=e529]
+              - columnheader "考试设置" [ref=e530]
+              - columnheader "题目统计" [ref=e531]
+              - columnheader "状态" [ref=e532]
+              - columnheader "操作" [ref=e533]
+          - rowgroup [ref=e534]:
+            - 'row "CAAC执照模拟考试 - 第1套 无人机基础操作 时长: 120 分钟 及格: 80 分 考试次数: 3 次 总题数: 0 题 总分: 100 分 已发布" [ref=e535]':
+              - cell "CAAC执照模拟考试 - 第1套 无人机基础操作" [ref=e536]:
+                - generic [ref=e537]:
+                  - paragraph [ref=e538]: CAAC执照模拟考试 - 第1套
+                  - paragraph [ref=e539]: 无人机基础操作
+              - 'cell "时长: 120 分钟 及格: 80 分 考试次数: 3 次" [ref=e540]':
+                - generic [ref=e541]:
+                  - paragraph [ref=e542]: "时长: 120 分钟"
+                  - paragraph [ref=e543]: "及格: 80 分"
+                  - paragraph [ref=e544]: "考试次数: 3 次"
+              - 'cell "总题数: 0 题 总分: 100 分" [ref=e545]':
+                - generic [ref=e546]:
+                  - paragraph [ref=e547]: "总题数: 0 题"
+                  - paragraph [ref=e548]: "总分: 100 分"
+              - cell "已发布" [ref=e549]
+              - cell [ref=e550]:
+                - generic [ref=e551]:
+                  - button "编辑" [ref=e552] [cursor=pointer]:
+                    - img [ref=e553]
+                  - button "删除" [ref=e556] [cursor=pointer]:
+                    - img [ref=e557]
+            - 'row "AOPA认证考试 - 理论部分 时长: 90 分钟 及格: 75 分 考试次数: 3 次 总题数: 80 题 总分: 100 分 已发布" [ref=e560]':
+              - cell "AOPA认证考试 - 理论部分" [ref=e561]:
+                - generic [ref=e562]:
+                  - paragraph [ref=e563]: AOPA认证考试 - 理论部分
+                  - paragraph
+              - 'cell "时长: 90 分钟 及格: 75 分 考试次数: 3 次" [ref=e564]':
+                - generic [ref=e565]:
+                  - paragraph [ref=e566]: "时长: 90 分钟"
+                  - paragraph [ref=e567]: "及格: 75 分"
+                  - paragraph [ref=e568]: "考试次数: 3 次"
+              - 'cell "总题数: 80 题 总分: 100 分" [ref=e569]':
+                - generic [ref=e570]:
+                  - paragraph [ref=e571]: "总题数: 80 题"
+                  - paragraph [ref=e572]: "总分: 100 分"
+              - cell "已发布" [ref=e573]
+              - cell [ref=e574]:
+                - generic [ref=e575]:
+                  - button "编辑" [ref=e576] [cursor=pointer]:
+                    - img [ref=e577]
+                  - button "删除" [ref=e580] [cursor=pointer]:
+                    - img [ref=e581]

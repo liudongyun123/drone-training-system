@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>课程订单诊断工具</title>
+  <script src="https://static.cloudbase.net/cloudbase-js-sdk/2.26.3/cloudbase.full.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #1890ff;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+    .section h3 {
+      color: #555;
+      margin-bottom: 10px;
+    }
+    button {
+      background: #1890ff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover { background: #40a9ff; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    button.danger { background: #ff4d4f; }
+    button.danger:hover { background: #ff7875; }
+    button.success { background: #52c41a; }
+    button.success:hover { background: #73d13d; }
+    .result {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .success { background: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }
+    .error { background: #fff2f0; border: 1px solid #ffccc7; color: #ff4d4f; }
+    .info { background: #e6f7ff; border: 1px solid #91d5ff; color: #1890ff; }
+    .log {
+      max-height: 300px;
+      overflow-y: auto;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .log-entry { margin: 2px 0; padding: 2px 0; }
+    .log-time { color: #858585; }
+    .log-info { color: #4fc1ff; }
+    .log-success { color: #4ec9b0; }
+    .log-error { color: #f44747; }
+    .log-warn { color: #dcdcaa; }
+    .user-info {
+      background: #fffbe6;
+      border: 1px solid #ffe58f;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 10px 0;
+    }
+    .user-info-item { margin: 5px 0; }
+    .label { color: #8c8c8c; }
+    .value { color: #262626; font-weight: 500; }
+    .order-item {
+      background: white;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      padding: 12px;
+      margin: 8px 0;
+    }
+    .order-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .status-paid { background: #52c41a; color: white; }
+    .status-pending { background: #faad14; color: white; }
+    .status-other { background: #8c8c8c; color: white; }
+    .course-tag {
+      display: inline-block;
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin: 2px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 课程订单诊断工具</h1>
+    <p style="color: #666; margin-bottom: 20px;">诊断已购课程显示问题，帮助定位订单和用户关联问题</p>
+    
+    <div class="section">
+      <h3>1. 当前用户状态</h3>
+      <button onclick="checkUserStatus()">🔍 检查用户状态</button>
+      <button onclick="forceAnonymousLogin()" class="success">🔑 强制匿名登录</button>
+      <div id="user-status"></div>
+    </div>
+
+    <div class="section">
+      <h3>2. 订单查询</h3>
+      <button onclick="queryAllOrders()">📋 查询所有订单</button>
+      <button onclick="queryMyOrders()" class="success">👤 查询我的订单</button>
+      <div id="orders-result"></div>
+    </div>
+
+    <div class="section">
+      <h3>3. 课程查询</h3>
+      <button onclick="queryCourses()">📚 查询所有课程</button>
+      <button onclick="queryPurchasedCourses()" class="success">✅ 查询已购课程</button>
+      <div id="courses-result"></div>
+    </div>
+
+    <div class="section">
+      <h3>4. 快速修复</h3>
+      <p style="color: #666; margin-bottom: 10px;">如果发现订单状态异常，可以尝试以下操作：</p>
+      <button onclick="fixPendingOrders()" class="danger">⚠️ 将所有待支付订单改为已支付</button>
+      <button onclick="generateTestOrder()" class="success">➕ 创建测试订单</button>
+    </div>
+
+    <div class="section">
+      <h3>📋 运行日志</h3>
+      <div id="log" class="log"></div>
+      <button onclick="clearLog()" style="margin-top:10px;">清空日志</button>
+    </div>
+  </div>
+
+  <script>
+    const envId = 'rcwljy-5ghmq2ex26764978';
+    let app = null;
+    let currentUser = null;
+
+    function log(message, type = 'info') {
+      const logEl = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const className = type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : type === 'warn' ? 'log-warn' : 'log-info';
+      logEl.innerHTML += `<div class="log-entry"><span class="log-time">[${time}]</span> <span class="${className}">${message}</span></div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+
+    function showUserStatus(data, type = 'info') {
+      const el = document.getElementById('user-status');
+      el.innerHTML = data;
+      el.className = `result ${type}`;
+      el.style.display = 'block';
+    }
+
+    function showOrders(data, type = 'info') {
+      const el = document.getElementById('orders-result');
+      el.innerHTML = data;
+      el.className = `result ${type}`;
+      el.style.display = 'block';
+    }
+
+    function showCourses(data, type = 'info') {
+      const el = document.getElementById('courses-result');
+      el.innerHTML = data;
+      el.className = `result ${type}`;
+      el.style.display = 'block';
+    }
+
+    async function initApp() {
+      if (!app) {
+        app = cloudbase.init({ env: envId });
+        log('SDK 初始化成功', 'success');
+      }
+      return app;
+    }
+
+    async function checkUserStatus() {
+      log('开始检查用户状态...');
+      try {
+        await initApp();
+        const auth = app.auth();
+        const user = await auth.getCurrentUser();
+        
+        if (user) {
+          currentUser = user;
+          log(`用户已登录: ${user.uid}`, 'success');
+          
+          let html = '<div class="user-info">';
+          html += `<div class="user-info-item"><span class="label">用户ID (uid):</span> <span class="value">${user.uid || '无'}</span></div>`;
+          html += `<div class="user-info-item"><span class="label">昵称:</span> <span class="value">${user.nickName || '无'}</span></div>`;
+          html += `<div class="user-info-item"><span class="label">邮箱:</span> <span class="value">${user.email || '无'}</span></div>`;
+          html += `<div class="user-info-item"><span class="label">_openid:</span> <span class="value">${user._openid || '无'}</span></div>`;
+          html += '</div>';
+          
+          showUserStatus(html, 'success');
+        } else {
+          log('用户未登录', 'warn');
+          showUserStatus('⚠️ 用户未登录，请先登录', 'info');
+        }
+      } catch (err) {
+        log('检查用户状态失败: ' + err.message, 'error');
+        showUserStatus('❌ 检查失败: ' + err.message, 'error');
+      }
+    }
+
+    async function forceAnonymousLogin() {
+      log('开始强制匿名登录...');
+      try {
+        await initApp();
+        const auth = app.auth();
+        
+        // 确保登出
+        try {
+          await auth.signOut();
+        } catch (e) {
+          // 忽略
+        }
+        
+        // 匿名登录
+        const result = await auth.signInAnonymously();
+        currentUser = result.user;
+        log('匿名登录成功: ' + result.user.uid, 'success');
+        
+        // 重新检查用户状态
+        await checkUserStatus();
+      } catch (err) {
+        log('匿名登录失败: ' + err.message, 'error');
+        showUserStatus('❌ 登录失败: ' + err.message, 'error');
+      }
+    }
+
+    async function queryAllOrders() {
+      log('开始查询所有订单...');
+      try {
+        await initApp();
+        const db = app.database();
+        const result = await db.collection('orders').limit(50).orderBy('createdAt', 'desc').get();
+        
+        if (!result.data || result.data.length === 0) {
+          log('没有找到任何订单', 'warn');
+          showOrders('📭 没有找到任何订单', 'info');
+          return;
+        }
+        
+        log(`找到 ${result.data.length} 个订单`, 'success');
+        
+        let html = `<strong>共 ${result.data.length} 个订单:</strong>\n\n`;
+        result.data.forEach((order, idx) => {
+          const statusClass = order.status === 'paid' || order.status === 'completed' ? 'status-paid' : 
+                             order.status === 'pending' ? 'status-pending' : 'status-other';
+          const statusText = order.status === 'paid' ? '已支付' : 
+                            order.status === 'completed' ? '已完成' : 
+                            order.status === 'pending' ? '待支付' : order.status;
+          
+          html += `<div class="order-item">`;
+          html += `<div><strong>订单号:</strong> ${order.orderNo || order._id}</div>`;
+          html += `<div><strong>用户ID:</strong> ${order.userId || '无'}</div>`;
+          html += `<div><strong>_openid:</strong> ${order._openid || '无'}</div>`;
+          html += `<div><strong>金额:</strong> ¥${order.amount || 0}</div>`;
+          html += `<div><strong>状态:</strong> <span class="order-status ${statusClass}">${statusText}</span></div>`;
+          html += `<div><strong>课程:</strong>`;
+          
+          // 课程信息
+          if (order.items && order.items.length > 0) {
+            order.items.forEach(item => {
+              html += `<span class="course-tag">${item.title || item.courseId}</span>`;
+            });
+          } else if (order.courseName) {
+            html += `<span class="course-tag">${order.courseName}</span>`;
+          } else {
+            html += `<span class="course-tag">无课程信息</span>`;
+          }
+          html += `</div>`;
+          html += `<div><strong>创建时间:</strong> ${order.createdAt || '无'}</div>`;
+          html += `</div>`;
+        });
+        
+        showOrders(html, 'success');
+      } catch (err) {
+        log('查询订单失败: ' + err.message, 'error');
+        showOrders('❌ 查询失败: ' + err.message, 'error');
+      }
+    }
+
+    async function queryMyOrders() {
+      log('开始查询我的订单...');
+      try {
+        await initApp();
+        
+        // 确保登录
+        const auth = app.auth();
+        const user = await auth.getCurrentUser();
+        if (!user) {
+          log('用户未登录，先进行匿名登录', 'warn');
+          await auth.signInAnonymously();
+        }
+        
+        const db = app.database();
+        const uid = user?.uid;
+        const openid = user?._openid || uid;
+        
+        log(`当前用户: uid=${uid}, openid=${openid}`, 'info');
+        
+        // 查询匹配当前用户的订单
+        const result = await db.collection('orders').where(
+          db.command.or(
+            { userId: uid },
+            { userId: openid },
+            { _openid: uid },
+            { _openid: openid }
+          )
+        ).limit(50).orderBy('createdAt', 'desc').get();
+        
+        if (!result.data || result.data.length === 0) {
+          log('没有找到您的订单', 'warn');
+          showOrders('📭 没有找到您的订单\n\n可能原因：\n1. 您还没有购买过课程\n2. 订单状态不是已支付', 'info');
+          return;
+        }
+        
+        log(`找到 ${result.data.length} 个我的订单`, 'success');
+        
+        let html = `<strong>您的订单 (${result.data.length} 个):</strong>\n\n`;
+        result.data.forEach((order, idx) => {
+          const statusClass = order.status === 'paid' || order.status === 'completed' ? 'status-paid' : 
+                             order.status === 'pending' ? 'status-pending' : 'status-other';
+          const statusText = order.status === 'paid' ? '已支付' : 
+                            order.status === 'completed' ? '已完成' : 
+                            order.status === 'pending' ? '待支付' : order.status;
+          
+          html += `<div class="order-item">`;
+          html += `<div><strong>订单号:</strong> ${order.orderNo || order._id}</div>`;
+          html += `<div><strong>金额:</strong> ¥${order.amount || 0}</div>`;
+          html += `<div><strong>状态:</strong> <span class="order-status ${statusClass}">${statusText}</span></div>`;
+          html += `<div><strong>课程:</strong>`;
+          
+          if (order.items && order.items.length > 0) {
+            order.items.forEach(item => {
+              html += `<span class="course-tag">${item.title || item.courseId}</span>`;
+            });
+          } else if (order.courseName) {
+            html += `<span class="course-tag">${order.courseName}</span>`;
+          } else {
+            html += `<span class="course-tag">无课程信息</span>`;
+          }
+          html += `</div>`;
+          html += `<div><strong>创建时间:</strong> ${order.createdAt || '无'}</div>`;
+          html += `</div>`;
+        });
+        
+        showOrders(html, 'success');
+      } catch (err) {
+        log('查询我的订单失败: ' + err.message, 'error');
+        showOrders('❌ 查询失败: ' + err.message, 'error');
+      }
+    }
+
+    async function queryCourses() {
+      log('开始查询课程...');
+      try {
+        await initApp();
+        const db = app.database();
+        const result = await db.collection('courses').limit(20).get();
+        
+        if (!result.data || result.data.length === 0) {
+          log('没有找到任何课程', 'warn');
+          showCourses('📭 没有找到任何课程', 'info');
+          return;
+        }
+        
+        log(`找到 ${result.data.length} 个课程`, 'success');
+        
+        let html = `<strong>共 ${result.data.length} 个课程:</strong>\n\n`;
+        result.data.forEach((course, idx) => {
+          html += `<div class="order-item">`;
+          html += `<div><strong>课程ID:</strong> ${course._id}</div>`;
+          html += `<div><strong>标题:</strong> ${course.title || '无标题'}</div>`;
+          html += `<div><strong>价格:</strong> ¥${course.price || 0}</div>`;
+          html += `<div><strong>状态:</strong> ${course.status || 'draft'}</div>`;
+          html += `</div>`;
+        });
+        
+        showCourses(html, 'success');
+      } catch (err) {
+        log('查询课程失败: ' + err.message, 'error');
+        showCourses('❌ 查询失败: ' + err.message, 'error');
+      }
+    }
+
+    async function queryPurchasedCourses() {
+      log('开始查询已购课程...');
+      try {
+        await initApp();
+        
+        // 确保登录
+        const auth = app.auth();
+        let user = await auth.getCurrentUser();
+        if (!user) {
+          await auth.signInAnonymously();
+          user = await auth.getCurrentUser();
+        }
+        
+        const uid = user?.uid;
+        const openid = user?._openid || uid;
+        
+        const db = app.database();
+        
+        // 查询已支付订单
+        const orders = await db.collection('orders').where(
+          db.command.and(
+            db.command.or(
+              { userId: uid },
+              { userId: openid },
+              { _openid: uid },
+              { _openid: openid }
+            ),
+            { status: db.command.in(['paid', 'completed', 'paid_offline']) }
+          )
+        ).get();
+        
+        if (!orders.data || orders.data.length === 0) {
+          log('没有找到已购课程（没有已支付订单）', 'warn');
+          showCourses('📭 没有找到已购课程\n\n原因：没有找到已支付的订单\n\n请检查：\n1. 是否已成功购买课程\n2. 订单是否已支付\n3. 订单用户ID是否与当前登录用户匹配', 'info');
+          return;
+        }
+        
+        log(`找到 ${orders.data.length} 个已支付订单`, 'success');
+        
+        // 收集课程ID
+        const courseIds = [];
+        const courseNames = [];
+        orders.data.forEach(order => {
+          if (order.items && order.items.length > 0) {
+            order.items.forEach(item => {
+              if (item.courseId) courseIds.push(item.courseId);
+              if (item.title) courseNames.push(item.title);
+            });
+          }
+          if (order.courseId) courseIds.push(order.courseId);
+          if (order.courseName) courseNames.push(order.courseName);
+        });
+        
+        log(`已购课程IDs: ${courseIds.join(', ') || '无'}`, 'info');
+        log(`已购课程名称: ${courseNames.join(', ') || '无'}`, 'info');
+        
+        // 查询课程详情
+        let html = `<strong>已购课程分析:</strong>\n\n`;
+        html += `<div class="user-info">`;
+        html += `<div class="user-info-item"><span class="label">已支付订单数:</span> <span class="value">${orders.data.length}</span></div>`;
+        html += `<div class="user-info-item"><span class="label">课程ID列表:</span> <span class="value">${courseIds.length > 0 ? courseIds.join(', ') : '无'}</span></div>`;
+        html += `<div class="user-info-item"><span class="label">课程名称:</span> <span class="value">${courseNames.length > 0 ? courseNames.join(', ') : '无'}</span></div>`;
+        html += `</div>`;
+        
+        // 尝试查询课程详情
+        if (courseIds.length > 0) {
+          const courses = await db.collection('courses').where({
+            _id: db.command.in(courseIds)
+          }).get();
+          
+          if (courses.data && courses.data.length > 0) {
+            html += `\n<strong>课程详情:</strong>\n\n`;
+            courses.data.forEach(course => {
+              html += `<div class="order-item">`;
+              html += `<div><strong>课程ID:</strong> ${course._id}</div>`;
+              html += `<div><strong>标题:</strong> ${course.title || '无标题'}</div>`;
+              html += `</div>`;
+            });
+          } else {
+            html += `\n⚠️ 警告: 订单中的课程ID在 courses 集合中没有找到对应记录!\n`;
+            html += `这可能是课程已下架或数据不一致导致。\n`;
+          }
+        }
+        
+        showCourses(html, courses.data && courses.data.length > 0 ? 'success' : 'warn');
+      } catch (err) {
+        log('查询已购课程失败: ' + err.message, 'error');
+        showCourses('❌ 查询失败: ' + err.message, 'error');
+      }
+    }
+
+    async function fixPendingOrders() {
+      if (!confirm('⚠️ 确定要将所有待支付订单改为已支付吗？\n这主要用于测试目的。')) {
+        return;
+      }
+      
+      log('开始修复待支付订单...', 'warn');
+      try {
+        await initApp();
+        
+        const auth = app.auth();
+        let user = await auth.getCurrentUser();
+        if (!user) {
+          await auth.signInAnonymously();
+          user = await auth.getCurrentUser();
+        }
+        
+        const db = app.database();
+        
+        // 查询所有待支付订单
+        const pendingOrders = await db.collection('orders').where({
+          status: 'pending'
+        }).get();
+        
+        if (!pendingOrders.data || pendingOrders.data.length === 0) {
+          log('没有待支付订单', 'info');
+          alert('没有待支付订单');
+          return;
+        }
+        
+        log(`找到 ${pendingOrders.data.length} 个待支付订单`, 'info');
+        
+        let fixed = 0;
+        for (const order of pendingOrders.data) {
+          try {
+            await db.collection('orders').doc(order._id).update({
+              status: 'paid',
+              paidAt: new Date().toISOString(),
+              paymentMethod: 'test'
+            });
+            fixed++;
+            log(`订单 ${order.orderNo || order._id} 已更新为已支付`, 'success');
+          } catch (e) {
+            log(`更新订单 ${order.orderNo || order._id} 失败: ${e.message}`, 'error');
+          }
+        }
+        
+        alert(`✅ 成功修复 ${fixed} 个订单`);
+        log(`修复完成: ${fixed}/${pendingOrders.data.length}`, 'success');
+        
+        // 刷新查询
+        await queryMyOrders();
+      } catch (err) {
+        log('修复失败: ' + err.message, 'error');
+        alert('修复失败: ' + err.message);
+      }
+    }
+
+    async function generateTestOrder() {
+      log('开始创建测试订单...', 'warn');
+      try {
+        await initApp();
+        
+        const auth = app.auth();
+        let user = await auth.getCurrentUser();
+        if (!user) {
+          await auth.signInAnonymously();
+          user = await auth.getCurrentUser();
+        }
+        
+        const db = app.database();
+        
+        // 查询一个课程
+        const courses = await db.collection('courses').limit(1).get();
+        const course = courses.data && courses.data[0];
+        
+        if (!course) {
+          log('没有课程可以购买，创建无课程订单', 'warn');
+        }
+        
+        const orderNo = 'ORD' + Date.now() + Math.random().toString(36).slice(2, 8).toUpperCase();
+        
+        const orderData = {
+          orderNo,
+          userId: user.uid,
+          _openid: user._openid || user.uid,
+          items: course ? [{
+            courseId: course._id,
+            title: course.title,
+            price: course.price || 0
+          }] : [],
+          courseId: course?._id,
+          courseName: course?.title,
+          amount: course?.price || 99,
+          discountAmount: 0,
+          finalAmount: course?.price || 99,
+          status: 'paid', // 直接创建为已支付状态
+          paymentMethod: 'test',
+          paidAt: new Date().toISOString(),
+          createdAt: new Date().toISOString()
+        };
+        
+        const result = await db.collection('orders').add(orderData);
+        
+        if (result.id) {
+          log(`测试订单创建成功: ${orderNo}`, 'success');
+          alert(`✅ 测试订单创建成功!\n订单号: ${orderNo}\n课程: ${course?.title || '无'}\n金额: ¥${course?.price || 99}`);
+        } else {
+          throw new Error('创建失败');
+        }
+        
+        // 刷新查询
+        await queryMyOrders();
+        await queryPurchasedCourses();
+      } catch (err) {
+        log('创建测试订单失败: ' + err.message, 'error');
+        alert('创建失败: ' + err.message);
+      }
+    }
+
+    // 页面加载时自动初始化
+    window.onload = async () => {
+      log('诊断工具已加载');
+      log('环境ID: ' + envId);
+      await initApp();
+      await checkUserStatus();
+    };
+  </script>
+</body>
+</html>

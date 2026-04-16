@@ -1,0 +1,23 @@
+[     295ms] [INFO] Successfully preconnected to https://fonts.googleapis.com/ @ :0
+[     295ms] [INFO] Successfully preconnected to https://fonts.gstatic.com/ @ :0
+[     335ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:1
+[     336ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:1
+[     336ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:1
+[     340ms] [LOG] [Auth] 未找到缓存手机号，尝试通过 openid 查询: r-qojABT8eDcoxslPd3LdA @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[     370ms] [LOG] 🚀 Drone Training System Started 2026-04-13T11:22:34.431Z @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:39
+[     371ms] [LOG] ✅ 用户已登录 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[     443ms] [LOG] [CategoryService] 开始获取分类... @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[     443ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: categories, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     444ms] [LOG] [CourseListPage] 加载课程, 参数: {page: 1, pageSize: 12, searchKeyword: , category: , level: } @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CourseListPage-NioBDFpt-v1776078829070.js:0
+[     444ms] [LOG] [paginatedQuery] 查询集合: courses, 参数: {page: 1, pageSize: 12, status: published} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     444ms] [LOG] [paginatedQuery] 应用过滤条件: {status: published} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     629ms] [LOG] [paginatedQuery] 集合 courses 符合条件总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     659ms] [LOG] [Auth] 通过 openid 未查询到手机号 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[     659ms] [LOG] ✅ 用户已登录: r-qojABT8eDcoxslPd3LdA , phone: 未绑定 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[     659ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 74fd3a10-6d80-46a0-b4a3-e2ca25f7cca6} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     659ms] [LOG] [CategoryService] 云函数返回结果: {code: 0, message: 查询成功, data: Array, total: 6, page: 1} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[     659ms] [LOG] [CategoryService] res.data 类型: object true @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[     659ms] [LOG] [CategoryService] 获取到分类数量: 6 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[     659ms] [LOG] [CategoryService] 分类数据: [Object, Object, Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[     984ms] [LOG] [paginatedQuery] 查询到 4 条数据: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     984ms] [LOG] [CourseListPage] 课程查询结果: {list: Array, total: 4, page: 1, pageSize: 12} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CourseListPage-NioBDFpt-v1776078829070.js:0

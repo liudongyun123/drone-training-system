@@ -1,0 +1,75 @@
+{
+  "version": 2,
+  "sessions": {
+    "496a90f0f7b5442a8ee1110ba795c125": [
+      {
+        "expertId": "CodeReviewExpert",
+        "name": "Kim",
+        "profession": "代码审查专家",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/CodeReviewExpert/CodeReviewExpert.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/CodeReviewExpert/CodeReviewExpert_zh.md",
+        "usedAt": 1775009849141,
+        "industryId": "02-Engineering"
+      },
+      {
+        "expertId": "UserExperienceResearcher",
+        "name": "Zoe",
+        "profession": "用户体验研究员",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/01-Design/UserExperienceResearcher/UserExperienceResearcher.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/01-Design/UserExperienceResearcher/UserExperienceResearcher_zh.md",
+        "usedAt": 1775009745172,
+        "industryId": "01-Design"
+      },
+      {
+        "expertId": "DatabaseOptimizationExpert",
+        "name": "Mia",
+        "profession": "数据库优化专家",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/DatabaseOptimizationExpert/DatabaseOptimizationExpert.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/DatabaseOptimizationExpert/DatabaseOptimizationExpert_zh.md",
+        "usedAt": 1774950104931,
+        "industryId": "all"
+      }
+    ],
+    "f8f41c423e82457cb09dd48d2418ab69": [
+      {
+        "expertId": "MobileApplicationDeveloper",
+        "name": "Tina",
+        "profession": "移动应用开发工程师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/MobileApplicationDeveloper/MobileApplicationDeveloper.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/MobileApplicationDeveloper/MobileApplicationDeveloper_zh.md",
+        "usedAt": 1775120895679,
+        "industryId": "02-Engineering"
+      }
+    ],
+    "ff32d79cae4d42668eeeb4c1742828a2": [
+      {
+        "expertId": "SeniorDeveloper",
+        "name": "Will",
+        "profession": "高级开发工程师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/SeniorDeveloper/SeniorDeveloper.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/SeniorDeveloper/SeniorDeveloper_zh.md",
+        "usedAt": 1775401760858,
+        "industryId": "02-Engineering"
+      },
+      {
+        "expertId": "BackendArchitect",
+        "name": "Joy",
+        "profession": "后端架构师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/BackendArchitect/BackendArchitect.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/BackendArchitect/BackendArchitect_zh.md",
+        "usedAt": 1775396192573,
+        "industryId": "all"
+      },
+      {
+        "expertId": "IncidentResponseCommander",
+        "name": "Sara",
+        "profession": "事故响应指挥官",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/IncidentResponseCommander/IncidentResponseCommander.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/IncidentResponseCommander/IncidentResponseCommander_zh.md",
+        "usedAt": 1775394883510,
+        "industryId": "02-Engineering"
+      }
+    ]
+  },
+  "lastUpdated": 1775530198048
+}

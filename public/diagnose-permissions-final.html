@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>权限诊断工具 - 通过云函数</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #fff;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { 
+      text-align: center; 
+      margin-bottom: 30px;
+      font-size: 2em;
+      background: linear-gradient(90deg, #00d4ff, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .card h2 {
+      font-size: 1.2em;
+      margin-bottom: 16px;
+      color: #00d4ff;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-item {
+      background: rgba(0,212,255,0.1);
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .stat-value { font-size: 2em; font-weight: bold; color: #00d4ff; }
+    .stat-label { color: #888; font-size: 0.9em; margin-top: 4px; }
+    .btn-group { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    .btn-primary { background: linear-gradient(135deg, #00d4ff, #7c3aed); color: #fff; }
+    .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,212,255,0.3); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .log {
+      background: #0a0a0f;
+      border-radius: 8px;
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .log-entry { margin-bottom: 4px; }
+    .log-success { color: #10b981; }
+    .log-error { color: #ef4444; }
+    .log-warning { color: #f59e0b; }
+    .log-info { color: #60a5fa; }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+    .data-table th, .data-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .data-table th { color: #00d4ff; font-weight: 500; }
+    .data-table tr:hover { background: rgba(255,255,255,0.05); }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .badge-course { background: rgba(0,212,255,0.2); color: #00d4ff; }
+    .badge-class { background: rgba(124,58,237,0.2); color: #a78bfa; }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #00d4ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 20px;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .status-success { color: #10b981; }
+    .status-error { color: #ef4444; }
+    .status-loading { color: #f59e0b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>权限诊断工具</h1>
+    
+    <!-- 统计卡片 -->
+    <div class="card">
+      <h2>数据统计</h2>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-item">
+          <div class="stat-value" id="permCount">-</div>
+          <div class="stat-label">权限记录</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="classCount">-</div>
+          <div class="stat-label">班级成员</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="courseCount">-</div>
+          <div class="stat-label">课程</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="studentCount">-</div>
+          <div class="stat-label">学生</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="refreshStats()">刷新统计</button>
+    </div>
+    
+    <!-- 操作按钮 -->
+    <div class="card">
+      <h2>快速操作</h2>
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="generatePermissions(10)">生成10条权限</button>
+        <button class="btn btn-secondary" onclick="generatePermissions(50)">生成50条权限</button>
+        <button class="btn btn-primary" onclick="loadPermissions()">查看权限列表</button>
+        <button class="btn btn-danger" onclick="clearAllPermissions()">清空权限数据</button>
+      </div>
+    </div>
+    
+    <!-- 日志 -->
+    <div class="card">
+      <h2>操作日志</h2>
+      <div class="log" id="logContainer">
+        <div class="log-entry log-info">等待初始化...</div>
+      </div>
+    </div>
+    
+    <!-- 权限列表 -->
+    <div class="card" id="permListCard" style="display:none;">
+      <h2>权限列表 <span id="permTotal"></span></h2>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="permTable">
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>目标ID</th>
+              <th>用户ID</th>
+              <th>授权时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="permTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <div class="status-bar">
+    <span id="statusText">就绪</span>
+    <span>环境: rcwljy-5ghmq2ex26764978</span>
+  </div>
+
+  <script>
+    const FUNCTION_NAME = 'diagnose';
+    
+    function log(msg, type = 'info') {
+      const container = document.getElementById('logContainer');
+      const time = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${time}] ${msg}`;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+      console.log(`[${type.toUpperCase()}]`, msg);
+    }
+    
+    function setStatus(msg, type = 'success') {
+      const statusText = document.getElementById('statusText');
+      statusText.textContent = msg;
+      statusText.className = `status-${type}`;
+    }
+    
+    async function callFunction(action, params = {}) {
+      setStatus('正在调用云函数...', 'loading');
+      log(`调用云函数: ${FUNCTION_NAME}, action: ${action}`, 'info');
+      
+      try {
+        // 使用 MCP 工具通过前端代理
+        // 这里我们直接使用 fetch 调用云函数 HTTP 端点
+        const url = `https://service-rcwljy-5ghmq2ex26764978-1318564729.sh.guangzhou.tcloudbase.com/${FUNCTION_NAME}`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, ...params })
+        });
+        
+        const data = await response.json();
+        log(`响应: ${JSON.stringify(data).substring(0, 200)}`, 'info');
+        return data;
+      } catch (e) {
+        // 如果 HTTP 调用失败，尝试使用 TCB SDK
+        log(`HTTP 调用失败: ${e.message}，尝试使用 diagnose 函数`, 'warning');
+        try {
+          // 通过 admin 云函数代理
+          const adminUrl = `https://service-rcwljy-5ghmq2ex26764978-1318564729.sh.guangzhou.tcloudbase.com/admin`;
+          const response = await fetch(adminUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, ...params })
+          });
+          const data = await response.json();
+          log(`admin 函数响应: ${JSON.stringify(data).substring(0, 200)}`, 'info');
+          return data;
+        } catch (e2) {
+          log(`云函数调用失败: ${e2.message}`, 'error');
+          throw e2;
+        }
+      }
+    }
+    
+    async function refreshStats() {
+      log('刷新统计数据...');
+      setStatus('正在刷新...', 'loading');
+      
+      try {
+        const result = await callFunction('stats');
+        
+        if (result.code === 0 && result.data) {
+          const stats = result.data;
+          document.getElementById('permCount').textContent = stats.course_permissions || 0;
+          document.getElementById('classCount').textContent = stats.class_members || 0;
+          document.getElementById('courseCount').textContent = stats.courses || 0;
+          document.getElementById('studentCount').textContent = stats.students || 0;
+          
+          log(`统计: 权限${stats.course_permissions || 0}条, 班级成员${stats.class_members || 0}条`, 'success');
+          setStatus('统计刷新成功', 'success');
+        } else {
+          log(`获取统计失败: ${result.message || '未知错误'}`, 'error');
+          setStatus('获取统计失败', 'error');
+        }
+      } catch (e) {
+        log(`刷新统计失败: ${e.message}`, 'error');
+        setStatus('刷新失败', 'error');
+      }
+    }
+    
+    async function generatePermissions(count) {
+      if (!confirm(`确定要生成 ${count} 条权限测试数据吗？`)) return;
+      
+      log(`开始生成 ${count} 条权限数据...`);
+      setStatus('正在生成...', 'loading');
+      
+      try {
+        const result = await callFunction('generate:permissions', { count });
+        
+        if (result.code === 0 && result.results) {
+          const { created, failed } = result.results;
+          if (failed === 0) {
+            log(`成功生成 ${created} 条权限数据`, 'success');
+          } else {
+            log(`生成完成: 成功 ${created} 条, 失败 ${failed} 条`, 'warning');
+          }
+          setStatus(`生成完成`, 'success');
+          await refreshStats();
+        } else {
+          log(`生成失败: ${result.message || '未知错误'}`, 'error');
+          setStatus('生成失败', 'error');
+        }
+      } catch (e) {
+        log(`生成失败: ${e.message}`, 'error');
+        setStatus('生成失败', 'error');
+      }
+    }
+    
+    async function loadPermissions() {
+      log('加载权限列表...');
+      setStatus('正在加载...', 'loading');
+      
+      try {
+        const result = await callFunction('permissions:list');
+        
+        if (result.code === 0) {
+          const perms = result.data || [];
+          document.getElementById('permTotal').textContent = `(${perms.length} 条)`;
+          
+          const tbody = document.getElementById('permTableBody');
+          tbody.innerHTML = '';
+          
+          if (perms.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;">暂无数据</td></tr>';
+          } else {
+            perms.forEach((perm, i) => {
+              const tr = document.createElement('tr');
+              const typeClass = perm.type === 'course' ? 'badge-course' : 'badge-class';
+              const typeLabel = perm.type === 'course' ? '课程' : '班级';
+              const date = perm.grantedAt ? new Date(perm.grantedAt).toLocaleString() : '-';
+              
+              tr.innerHTML = `
+                <td><span class="badge ${typeClass}">${typeLabel}</span></td>
+                <td>${perm.targetId || '-'}</td>
+                <td>${perm.userId || '-'}</td>
+                <td>${date}</td>
+                <td><button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="deletePermission('${perm._id || perm.id}')">删除</button></td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+          
+          document.getElementById('permListCard').style.display = 'block';
+          log(`加载了 ${perms.length} 条权限记录`, 'success');
+          setStatus('加载完成', 'success');
+        } else {
+          log(`加载失败: ${result.message || '未知错误'}`, 'error');
+          setStatus('加载失败', 'error');
+        }
+      } catch (e) {
+        log(`加载失败: ${e.message}`, 'error');
+        setStatus('加载失败', 'error');
+      }
+    }
+    
+    async function deletePermission(id) {
+      if (!confirm('确定要删除这条权限记录吗？')) return;
+      
+      log(`删除权限: ${id}`);
+      setStatus('正在删除...', 'loading');
+      
+      try {
+        const result = await callFunction('permissions:delete', { id });
+        
+        if (result.code === 0) {
+          log('删除成功', 'success');
+          setStatus('删除成功', 'success');
+          await loadPermissions();
+          await refreshStats();
+        } else {
+          log(`删除失败: ${result.message || '未知错误'}`, 'error');
+          setStatus('删除失败', 'error');
+        }
+      } catch (e) {
+        log(`删除失败: ${e.message}`, 'error');
+        setStatus('删除失败', 'error');
+      }
+    }
+    
+    async function clearAllPermissions() {
+      if (!confirm('确定要清空所有权限数据吗？此操作不可恢复！')) return;
+      if (!confirm('再次确认：清空后所有权限数据将被删除！')) return;
+      
+      log('开始清空权限数据...');
+      setStatus('正在清空...', 'loading');
+      
+      try {
+        // 先加载所有权限
+        const listResult = await callFunction('permissions:list');
+        const perms = listResult.data || [];
+        
+        if (perms.length === 0) {
+          log('没有权限数据需要清空', 'warning');
+          setStatus('无需清空', 'success');
+          return;
+        }
+        
+        log(`找到 ${perms.length} 条权限记录，开始删除...`);
+        
+        let deleted = 0;
+        let failed = 0;
+        
+        for (const perm of perms) {
+          const id = perm._id || perm.id;
+          try {
+            await callFunction('permissions:delete', { id });
+            deleted++;
+          } catch (e) {
+            failed++;
+            log(`删除 ${id} 失败: ${e.message}`, 'error');
+          }
+        }
+        
+        log(`清空完成: 成功删除 ${deleted} 条, 失败 ${failed} 条`, failed > 0 ? 'warning' : 'success');
+        setStatus(`清空完成`, failed > 0 ? 'warning' : 'success');
+        
+        await loadPermissions();
+        await refreshStats();
+      } catch (e) {
+        log(`清空失败: ${e.message}`, 'error');
+        setStatus('清空失败', 'error');
+      }
+    }
+    
+    // 初始化
+    log('权限诊断工具已就绪');
+    log('通过云函数 diagnose 访问数据库');
+    setStatus('就绪，等待操作', 'success');
+    
+    // 页面加载后自动刷新统计
+    setTimeout(() => {
+      refreshStats();
+    }, 500);
+  </script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - link "无人机培训" [ref=e8]:
+        - /url: /
+        - img [ref=e9]
+        - generic [ref=e12]: 无人机培训
+      - generic [ref=e13]:
+        - link "课程" [ref=e14] [cursor=pointer]:
+          - /url: /courses
+          - img [ref=e15]
+          - generic [ref=e17]: 课程
+        - link "开班信息" [ref=e18] [cursor=pointer]:
+          - /url: /registration
+          - img [ref=e19]
+          - generic [ref=e21]: 开班信息
+        - link "教师团队" [ref=e22] [cursor=pointer]:
+          - /url: /teachers
+          - img [ref=e23]
+          - generic [ref=e28]: 教师团队
+        - link "题库与考试" [ref=e29] [cursor=pointer]:
+          - /url: /exam-center
+          - img [ref=e30]
+          - generic [ref=e33]: 题库与考试
+        - button "U" [ref=e35] [cursor=pointer]:
+          - generic [ref=e36]: U
+  - generic [ref=e164]:
+    - button "返回" [ref=e165] [cursor=pointer]:
+      - img [ref=e166]
+      - text: 返回
+    - generic [ref=e169]:
+      - list [ref=e171]:
+        - listitem [ref=e172]:
+          - link "首页" [ref=e173] [cursor=pointer]:
+            - /url: /
+        - listitem [ref=e174]:
+          - link "课程" [ref=e175] [cursor=pointer]:
+            - /url: /courses
+        - listitem [ref=e176]: CAAC无人机驾驶员执照培训
+      - generic [ref=e177]:
+        - generic [ref=e178]:
+          - generic [ref=e179]:
+            - img "CAAC无人机驾驶员执照培训" [ref=e180]
+            - button [ref=e182] [cursor=pointer]:
+              - img [ref=e183]
+            - generic [ref=e188]: 线上课程
+          - heading "CAAC无人机驾驶员执照培训" [level=1] [ref=e189]
+          - paragraph [ref=e190]: 全面系统的CAAC无人机驾驶员执照培训课程，涵盖理论知识和实操技能，帮助学员顺利通过CAAC考试获得执照。
+          - generic [ref=e191]:
+            - generic [ref=e192]: CAAC
+            - generic [ref=e193]: 执照
+            - generic [ref=e194]: 培训
+          - generic [ref=e195]:
+            - generic [ref=e196]:
+              - img [ref=e198]
+              - generic [ref=e201]: 课程时长
+              - generic [ref=e202]: 40h
+            - generic [ref=e203]:
+              - img [ref=e205]
+              - generic [ref=e207]: 课时数
+              - generic [ref=e208]: "20"
+            - generic [ref=e209]:
+              - img [ref=e211]
+              - generic [ref=e216]: 学习人数
+              - generic [ref=e217]: "12"
+            - generic [ref=e218]:
+              - img [ref=e220]
+              - generic [ref=e222]: 评分
+              - generic [ref=e223]: "4.8"
+              - generic [ref=e224]: 25 条评价
+          - generic [ref=e225]: 课程目录
+          - generic [ref=e227]:
+            - generic [ref=e228] [cursor=pointer]:
+              - generic [ref=e229]: "1"
+              - generic [ref=e230]:
+                - heading "1" [level=4] [ref=e231]
+                - paragraph [ref=e232]: "1"
+              - generic [ref=e233]: 免费试看
+              - text: "0"
+            - generic [ref=e234]:
+              - generic [ref=e235]: "2"
+              - generic [ref=e236]:
+                - heading "1" [level=4] [ref=e237]
+                - paragraph [ref=e238]: "1"
+              - generic [ref=e239]: 购买后观看
+              - text: "0"
+            - generic [ref=e240] [cursor=pointer]:
+              - generic [ref=e241]: "3"
+              - generic [ref=e242]:
+                - heading "1" [level=4] [ref=e243]
+                - paragraph [ref=e244]: "123"
+              - generic [ref=e245]: 免费试看
+              - text: "0"
+            - generic [ref=e246] [cursor=pointer]:
+              - generic [ref=e247]: "4"
+              - generic [ref=e248]:
+                - heading "2" [level=4] [ref=e249]
+                - paragraph [ref=e250]: "111"
+              - generic [ref=e251]: 免费试看
+              - text: "0"
+        - generic [ref=e254]:
+          - heading "购买课程" [level=2] [ref=e255]
+          - generic [ref=e256]: ¥0
+          - generic [ref=e257]:
+            - generic [ref=e258]: ¥1
+            - generic [ref=e259]: 省 ¥1
+          - generic [ref=e260]:
+            - button "立即购买" [ref=e261] [cursor=pointer]
+            - button "加入购物车" [ref=e262] [cursor=pointer]:
+              - img [ref=e263]
+              - text: 加入购物车
+          - generic [ref=e268]:
+            - generic [ref=e269]:
+              - img [ref=e270]
+              - generic [ref=e273]: 永久观看
+            - generic [ref=e274]:
+              - img [ref=e275]
+              - generic [ref=e278]: 支持手机、电脑、平板
+            - generic [ref=e279]:
+              - img [ref=e280]
+              - generic [ref=e283]: 学习完成后获得证书
+            - generic [ref=e284]:
+              - img [ref=e285]
+              - generic [ref=e288]: 7天无理由退款
+          - generic [ref=e290]:
+            - generic [ref=e293]: 李
+            - generic [ref=e294]:
+              - generic [ref=e295]: 李娜
+              - generic [ref=e296]: 资深培训师
+  - contentinfo [ref=e42]:
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - heading "无人机培训中心" [level=3] [ref=e46]
+          - paragraph [ref=e47]: 专业无人机驾驶培训机构，中国航空运输协会认证。
+          - paragraph [ref=e49]: "电话: 400-888-8888"
+        - generic [ref=e50]:
+          - heading "快速链接" [level=4] [ref=e51]
+          - list [ref=e52]:
+            - listitem [ref=e53]:
+              - link "课程中心" [ref=e54]:
+                - /url: /courses
+            - listitem [ref=e55]:
+              - link "题库练习" [ref=e56]:
+                - /url: /exam-center
+            - listitem [ref=e57]:
+              - link "证书查询" [ref=e58]:
+                - /url: /certificates
+            - listitem [ref=e59]:
+              - link "教官团队" [ref=e60]:
+                - /url: /teachers
+        - generic [ref=e61]:
+          - heading "联系我们" [level=4] [ref=e62]
+          - list [ref=e63]:
+            - listitem [ref=e64]: "邮箱: info@drone-train.com"
+            - listitem [ref=e65]: "地址: 北京市朝阳区航空路88号"
+        - generic [ref=e66]:
+          - heading "学习资源" [level=4] [ref=e67]
+          - list [ref=e68]:
+            - listitem [ref=e69]:
+              - link "公告通知" [ref=e70]:
+                - /url: /notices
+            - listitem [ref=e71]:
+              - link "学习路径" [ref=e72]:
+                - /url: /learning-paths
+            - listitem [ref=e73]:
+              - link "题库练习" [ref=e74]:
+                - /url: /exam-center
+      - paragraph [ref=e76]: © 2024 无人机培训中心 版权所有 | 京ICP备XXXXXXXX号

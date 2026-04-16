@@ -1,0 +1,3 @@
+#!/bin/bash
+export NODE_PATH=/opt/node16/lib/node_modules:$NODE_PATH
+node index.js

@@ -1,0 +1,177 @@
+- generic [ref=e850]:
+  - complementary [ref=e851]:
+    - link "管理后台 无人机培训系统" [ref=e853]:
+      - /url: /admin
+      - img [ref=e855]
+      - generic [ref=e858]:
+        - heading "管理后台" [level=1] [ref=e859]
+        - paragraph [ref=e860]: 无人机培训系统
+    - navigation [ref=e861]:
+      - generic [ref=e862]:
+        - generic [ref=e863]:
+          - img [ref=e864]
+          - generic [ref=e869]: 概览
+        - link "仪表盘" [ref=e871]:
+          - /url: /admin
+          - img [ref=e873]
+          - generic [ref=e879]: 仪表盘
+      - generic [ref=e881]:
+        - generic [ref=e882]:
+          - img [ref=e883]
+          - generic [ref=e887]: 线下培训
+        - generic [ref=e888]:
+          - link "班级管理 线下班级/报名/分班" [ref=e889]:
+            - /url: /admin/classes
+            - img [ref=e890]
+            - generic [ref=e895]:
+              - generic [ref=e896]: 班级管理
+              - generic [ref=e897]: 线下班级/报名/分班
+          - link "排课出勤 课表/出勤记录" [ref=e898]:
+            - /url: /admin/class-schedules
+            - img [ref=e899]
+            - generic [ref=e901]:
+              - generic [ref=e902]: 排课出勤
+              - generic [ref=e903]: 课表/出勤记录
+          - link "报名审核 审核/分班/调课" [ref=e904]:
+            - /url: /admin/registrations
+            - img [ref=e905]
+            - generic [ref=e908]:
+              - generic [ref=e909]: 报名审核
+              - generic [ref=e910]: 审核/分班/调课
+      - generic [ref=e911]:
+        - generic [ref=e912]:
+          - img [ref=e913]
+          - generic [ref=e916]: 线上课程
+        - generic [ref=e917]:
+          - link "课程管理" [ref=e918]:
+            - /url: /admin/courses
+            - img [ref=e919]
+            - generic [ref=e922]: 课程管理
+          - link "课程分类" [ref=e923]:
+            - /url: /admin/categories
+            - img [ref=e924]
+            - generic [ref=e930]: 课程分类
+          - link "成员管理 用户/学员" [ref=e931]:
+            - /url: /admin/members
+            - img [ref=e932]
+            - generic [ref=e936]:
+              - generic [ref=e937]: 成员管理
+              - generic [ref=e938]: 用户/学员
+          - link "权限管理 视频权限/班级成员" [ref=e939]:
+            - /url: /admin/permissions
+            - img [ref=e940]
+            - generic [ref=e942]:
+              - generic [ref=e943]: 权限管理
+              - generic [ref=e944]: 视频权限/班级成员
+          - link "评论管理" [ref=e945]:
+            - /url: /admin/comments
+            - img [ref=e946]
+            - generic [ref=e949]: 评论管理
+      - generic [ref=e950]:
+        - generic [ref=e951]:
+          - img [ref=e952]
+          - generic [ref=e955]: 教师管理
+        - link "教师管理" [ref=e957]:
+          - /url: /admin/teachers
+          - img [ref=e958]
+          - generic [ref=e962]: 教师管理
+      - generic [ref=e963]:
+        - generic [ref=e964]:
+          - img [ref=e965]
+          - generic [ref=e969]: 练习考试
+        - generic [ref=e970]:
+          - link "题库管理 内部练习" [ref=e971]:
+            - /url: /admin/exams
+            - img [ref=e972]
+            - generic [ref=e975]:
+              - generic [ref=e976]: 题库管理
+              - generic [ref=e977]: 内部练习
+          - link "练习记录" [ref=e978]:
+            - /url: /admin/practice-records
+            - img [ref=e979]
+            - generic [ref=e984]: 练习记录
+      - generic [ref=e985]:
+        - generic [ref=e986]:
+          - img [ref=e987]
+          - generic [ref=e990]: 证书管理
+        - link "证书管理" [ref=e992]:
+          - /url: /admin/certificates
+          - img [ref=e993]
+          - generic [ref=e997]: 证书管理
+      - generic [ref=e998]:
+        - generic [ref=e999]:
+          - img [ref=e1000]
+          - generic [ref=e1002]: 财务订单
+        - link "订单财务" [ref=e1004]:
+          - /url: /admin/orders
+          - img [ref=e1005]
+          - generic [ref=e1009]: 订单财务
+      - generic [ref=e1010]:
+        - generic [ref=e1011]:
+          - img [ref=e1012]
+          - generic [ref=e1015]: 运营配置
+        - generic [ref=e1016]:
+          - link "首页配置 轮播图/公告/推荐班级" [ref=e1017]:
+            - /url: /admin/page-config
+            - img [ref=e1018]
+            - generic [ref=e1022]:
+              - generic [ref=e1023]: 首页配置
+              - generic [ref=e1024]: 轮播图/公告/推荐班级
+          - link "消息管理 系统通知/用户消息" [ref=e1025]:
+            - /url: /admin/messages
+            - img [ref=e1026]
+            - generic [ref=e1029]:
+              - generic [ref=e1030]: 消息管理
+              - generic [ref=e1031]: 系统通知/用户消息
+          - link "营销工具 优惠券/活动" [ref=e1032]:
+            - /url: /admin/marketing
+            - img [ref=e1033]
+            - generic [ref=e1036]:
+              - generic [ref=e1037]: 营销工具
+              - generic [ref=e1038]: 优惠券/活动
+      - generic [ref=e1039]:
+        - generic [ref=e1040]:
+          - img [ref=e1041]
+          - generic [ref=e1043]: 系统管理
+        - generic [ref=e1044]:
+          - link "系统日志" [ref=e1045]:
+            - /url: /admin/logs
+            - img [ref=e1046]
+            - generic [ref=e1050]: 系统日志
+          - link "系统设置 登录方式" [ref=e1051]:
+            - /url: /admin/auth-config
+            - img [ref=e1052]
+            - generic [ref=e1055]:
+              - generic [ref=e1056]: 系统设置
+              - generic [ref=e1057]: 登录方式
+          - link "账号管理 管理员/教师账号" [ref=e1058]:
+            - /url: /admin/user-roles
+            - img [ref=e1059]
+            - generic [ref=e1064]:
+              - generic [ref=e1065]: 账号管理
+              - generic [ref=e1066]: 管理员/教师账号
+    - link "返回前台" [ref=e1068]:
+      - /url: /
+      - img [ref=e1069]
+      - generic [ref=e1072]: 返回前台
+  - main [ref=e1073]:
+    - generic [ref=e1075]:
+      - navigation [ref=e1077]:
+        - link "首页" [ref=e1079]:
+          - /url: /admin
+        - generic [ref=e1360]:
+          - img [ref=e1361]
+          - link "班级管理" [ref=e1916]:
+            - /url: /admin/classes
+      - generic [ref=e1080]:
+        - generic [ref=e1081]:
+          - img [ref=e1082]
+          - textbox "搜索..." [ref=e1085]
+        - button [ref=e1087] [cursor=pointer]:
+          - img [ref=e1088]
+        - button "系 系统管理员" [ref=e1093] [cursor=pointer]:
+          - generic [ref=e1094]: 系
+          - generic [ref=e1095]: 系统管理员
+    - generic [ref=e1963]:
+      - img [ref=e1964]
+      - generic [ref=e1966]: 加载中...

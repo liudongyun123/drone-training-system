@@ -1,0 +1,46 @@
+[     749ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:873
+[     752ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:873
+[     752ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:873
+[     768ms] [LOG] [Auth] 未找到缓存手机号，尝试通过 openid 查询: undefined @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:880
+[     768ms] [ERROR] [Auth] 查询手机号失败: Error: 查询参数对象值不能均为undefined
+    at e.where (http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:868:45187)
+    at http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:881:12132
+    at Generator.next (<anonymous>)
+    at i (http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1:791) @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:880
+[     768ms] [LOG] ✅ 用户已登录: undefined , phone: 未绑定 @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:880
+[     867ms] [LOG] 🚀 生产环境启动 2026-04-13T07:02:15.620Z @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1136
+[    1357ms] [LOG] ✅ 匿名登录成功 @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:880
+[    1358ms] [LOG] ✅ ensureAuthenticated: 匿名登录成功 @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:880
+[    1403ms] [LOG] 热门课程ID列表: [course_001, course_002, course_003, course_004] @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    1403ms] [LOG] 所有课程: [Object, Object, Object, Object] @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    1403ms] [LOG] 匹配到的热门课程: [Object, Object, Object, Object] @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    1403ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: banners, query: Object, options: Object} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:882
+[    1404ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: banners, query: Object} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:882
+[    1663ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: bfc5a9bb-ad03-40d2-92c2-d22c3b93b58a} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:882
+[    2166ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 965b3372-1027-4197-ad2b-3f79631097b6} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:882
+[    2167ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredClasses, docId: home-featured-classes} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:882
+[    2314ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: b89003e4-2680-4a81-81c5-1307f4b86d1a} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:882
+[    2314ms] [LOG] [首页] 使用配置的班级ID: [c25002a969d86c5403a4c6cb13d2fd82, 2d12bec269d8b22c03b6a5802c58ab69] @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2481ms] [LOG] [首页] 匹配到的配置班级: [Object, Object] @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2482ms] [LOG] [CategoryService] 开始获取分类... @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2482ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: categories, query: Object, options: Object} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:882
+[    2666ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 6f82e027-0d6f-4027-86f2-ad31f836be3f} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:882
+[    2666ms] [LOG] [CategoryService] 云函数返回结果: {code: 0, message: 查询成功, data: Array(6), total: 6, page: 1} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2666ms] [LOG] [CategoryService] res.data 类型: object true @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2666ms] [LOG] [CategoryService] 获取到分类数量: 6 @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2666ms] [LOG] [CategoryService] 分类数据: [Object, Object, Object, Object, Object, Object] @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2666ms] [LOG] [首页] 分类映射: {1fa8f55169cfc37d02ca9b05331e1ccf: 植保无人机, 1fa8f55169cfc37d02ca9b0849594d66: 航拍无人机, 1fa8f55169cfc37d02ca9b076436ae33: 安防无人机, 1fa8f55169cfc37d02ca9b0909722479: 物流无人机, c25002a969db08b903ea93007fbfd8dc: 应急无人机} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2667ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredLearningPaths, docId: home-featured-paths} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:882
+[    2859ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 1ce50450-e49a-492c-abe8-ef26892037e5} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:882
+[    2859ms] [LOG] [首页] 学习路径ID列表: [path-beginner, path-advanced, path-intermediate, 4d75389069db2c7302492c972a9d1038, 33956e3d69db2d4503e79e19599f727b] 数量: 5 @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2913ms] [LOG] [CloudLearningPathService.getAllPaths] 数据库返回数据: {count: 5, firstItem: Object} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1192
+[    2914ms] [LOG] [CloudLearningPathService.getAllPaths] 处理单条数据: {_id: path-beginner, categoryId: 1fa8f55169cfc37d02ca9b0849594d66, categoryIds: Array(1)} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1192
+[    2914ms] [LOG] [CloudLearningPathService.getAllPaths] 处理单条数据: {_id: path-intermediate, categoryId: undefined, categoryIds: Array(1)} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1192
+[    2914ms] [LOG] [CloudLearningPathService.getAllPaths] 处理单条数据: {_id: path-advanced, categoryId: undefined, categoryIds: Array(1)} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1192
+[    2914ms] [LOG] [CloudLearningPathService.getAllPaths] 处理单条数据: {_id: 4d75389069db2c7302492c972a9d1038, categoryId: undefined, categoryIds: Array(1)} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1192
+[    2914ms] [LOG] [CloudLearningPathService.getAllPaths] 处理单条数据: {_id: 33956e3d69db2d4503e79e19599f727b, categoryId: undefined, categoryIds: Array(1)} @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1192
+[    2914ms] [LOG] [首页] 所有学习路径: 5 条 @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2914ms] [LOG] [首页] 最终使用的学习路径: 5 条 @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2914ms] [LOG] [首页] 检查是否需要随机选择: allLoadedPaths.length = 5 @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2914ms] [LOG] [首页] 日期种子: 20260413 @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143
+[    2914ms] [LOG] [首页] 随机选择3条: [安防无人机, 电力巡检无人机, 航拍无人机] @ http://6889b6bcbdfa4a70a1399ae04c85667e.codebuddy.cloudstudio.run/assets/app-v1776063165432.js:1143

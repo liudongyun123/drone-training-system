@@ -1,0 +1,161 @@
+- generic [ref=e285]:
+  - complementary [ref=e286]:
+    - link "管理后台 无人机培训系统" [ref=e288] [cursor=pointer]:
+      - /url: /admin
+      - img [ref=e290]
+      - generic [ref=e293]:
+        - heading "管理后台" [level=1] [ref=e294]
+        - paragraph [ref=e295]: 无人机培训系统
+    - navigation [ref=e296]:
+      - generic [ref=e297]:
+        - generic [ref=e298]:
+          - img [ref=e299]
+          - generic [ref=e304]: 概览
+        - link "仪表盘" [ref=e306] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e308]
+          - generic [ref=e314]: 仪表盘
+      - generic [ref=e316]:
+        - generic [ref=e317]:
+          - img [ref=e318]
+          - generic [ref=e322]: 线下培训
+        - generic [ref=e323]:
+          - link "班级管理 线下班级/报名/分班" [ref=e324] [cursor=pointer]:
+            - /url: /admin/classes
+            - img [ref=e325]
+            - generic [ref=e330]:
+              - generic [ref=e331]: 班级管理
+              - generic [ref=e332]: 线下班级/报名/分班
+          - link "排课出勤 课表/出勤记录" [ref=e333] [cursor=pointer]:
+            - /url: /admin/class-schedules
+            - img [ref=e334]
+            - generic [ref=e336]:
+              - generic [ref=e337]: 排课出勤
+              - generic [ref=e338]: 课表/出勤记录
+          - link "报名审核 审核/分班/调课" [ref=e339] [cursor=pointer]:
+            - /url: /admin/registrations
+            - img [ref=e340]
+            - generic [ref=e343]:
+              - generic [ref=e344]: 报名审核
+              - generic [ref=e345]: 审核/分班/调课
+      - generic [ref=e346]:
+        - generic [ref=e347]:
+          - img [ref=e348]
+          - generic [ref=e351]: 线上课程
+        - generic [ref=e352]:
+          - link "课程管理" [ref=e353] [cursor=pointer]:
+            - /url: /admin/courses
+            - img [ref=e354]
+            - generic [ref=e357]: 课程管理
+          - link "课程分类" [ref=e358] [cursor=pointer]:
+            - /url: /admin/categories
+            - img [ref=e359]
+            - generic [ref=e365]: 课程分类
+          - link "成员管理 用户/学员" [ref=e366] [cursor=pointer]:
+            - /url: /admin/members
+            - img [ref=e367]
+            - generic [ref=e371]:
+              - generic [ref=e372]: 成员管理
+              - generic [ref=e373]: 用户/学员
+          - link "评论管理" [ref=e374] [cursor=pointer]:
+            - /url: /admin/comments
+            - img [ref=e375]
+            - generic [ref=e378]: 评论管理
+      - generic [ref=e379]:
+        - generic [ref=e380]:
+          - img [ref=e381]
+          - generic [ref=e385]: 练习考试
+        - generic [ref=e386]:
+          - link "题库管理 内部练习" [ref=e387] [cursor=pointer]:
+            - /url: /admin/exams
+            - img [ref=e388]
+            - generic [ref=e391]:
+              - generic [ref=e392]: 题库管理
+              - generic [ref=e393]: 内部练习
+          - link "练习记录" [ref=e394] [cursor=pointer]:
+            - /url: /admin/practice-records
+            - img [ref=e395]
+            - generic [ref=e400]: 练习记录
+      - generic [ref=e401]:
+        - generic [ref=e402]:
+          - img [ref=e403]
+          - generic [ref=e406]: 证书管理
+        - link "证书管理" [ref=e408] [cursor=pointer]:
+          - /url: /admin/certificates
+          - img [ref=e409]
+          - generic [ref=e413]: 证书管理
+      - generic [ref=e414]:
+        - generic [ref=e415]:
+          - img [ref=e416]
+          - generic [ref=e418]: 财务订单
+        - link "订单财务" [ref=e420] [cursor=pointer]:
+          - /url: /admin/orders
+          - img [ref=e421]
+          - generic [ref=e425]: 订单财务
+      - generic [ref=e426]:
+        - generic [ref=e427]:
+          - img [ref=e428]
+          - generic [ref=e431]: 运营配置
+        - generic [ref=e432]:
+          - link "内容配置 轮播图/公告/首页" [ref=e433] [cursor=pointer]:
+            - /url: /admin/page-config
+            - img [ref=e434]
+            - generic [ref=e438]:
+              - generic [ref=e439]: 内容配置
+              - generic [ref=e440]: 轮播图/公告/首页
+          - link "营销工具 优惠券/活动" [ref=e441] [cursor=pointer]:
+            - /url: /admin/marketing
+            - img [ref=e442]
+            - generic [ref=e445]:
+              - generic [ref=e446]: 营销工具
+              - generic [ref=e447]: 优惠券/活动
+          - link "教师管理" [ref=e448] [cursor=pointer]:
+            - /url: /admin/teachers
+            - img [ref=e449]
+            - generic [ref=e453]: 教师管理
+      - generic [ref=e454]:
+        - generic [ref=e455]:
+          - img [ref=e456]
+          - generic [ref=e458]: 系统管理
+        - generic [ref=e459]:
+          - link "角色权限" [ref=e460] [cursor=pointer]:
+            - /url: /admin/roles
+            - img [ref=e461]
+            - generic [ref=e464]: 角色权限
+          - link "系统日志" [ref=e465] [cursor=pointer]:
+            - /url: /admin/logs
+            - img [ref=e466]
+            - generic [ref=e470]: 系统日志
+          - link "系统设置" [ref=e471] [cursor=pointer]:
+            - /url: /admin/auth-config
+            - img [ref=e472]
+            - generic [ref=e476]: 系统设置
+          - link "数据修复" [ref=e477] [cursor=pointer]:
+            - /url: /admin/data-fix
+            - img [ref=e478]
+            - generic [ref=e481]: 数据修复
+    - link "返回前台" [ref=e483] [cursor=pointer]:
+      - /url: /
+      - img [ref=e484]
+      - generic [ref=e487]: 返回前台
+  - main [ref=e488]:
+    - generic [ref=e490]:
+      - navigation [ref=e492]:
+        - link "首页" [ref=e494] [cursor=pointer]:
+          - /url: /admin
+        - generic [ref=e739]:
+          - img [ref=e740]
+          - link "内容配置" [ref=e742] [cursor=pointer]:
+            - /url: /admin/page-config
+      - generic [ref=e495]:
+        - generic [ref=e496]:
+          - img [ref=e497]
+          - textbox "搜索..." [ref=e500]
+        - button [ref=e502] [cursor=pointer]:
+          - img [ref=e503]
+        - button "系 系统管理员" [ref=e508] [cursor=pointer]:
+          - generic [ref=e509]: 系
+          - generic [ref=e510]: 系统管理员
+    - generic [ref=e745]:
+      - img [ref=e746]
+      - generic [ref=e748]: 加载配置...

@@ -1,0 +1,237 @@
+- generic [ref=e100]:
+  - banner [ref=e956]:
+    - generic [ref=e957]:
+      - link "无人机培训" [ref=e959] [cursor=pointer]:
+        - /url: "#/"
+        - img [ref=e960]
+        - generic [ref=e963]: 无人机培训
+      - generic [ref=e964]:
+        - link "课程" [ref=e965] [cursor=pointer]:
+          - /url: "#/courses"
+          - img [ref=e966]
+          - text: 课程
+        - link "教师团队" [ref=e968] [cursor=pointer]:
+          - /url: "#/teachers"
+          - img [ref=e969]
+          - text: 教师团队
+        - link "题库与考试" [ref=e974] [cursor=pointer]:
+          - /url: "#/exam-center"
+          - img [ref=e975]
+          - text: 题库与考试
+        - link "我的学习" [ref=e978] [cursor=pointer]:
+          - /url: "#/learning"
+          - img [ref=e979]
+          - text: 我的学习
+        - button "管" [ref=e982] [cursor=pointer]:
+          - generic [ref=e983]: 管
+  - generic [ref=e984]:
+    - generic [ref=e985]:
+      - generic [ref=e991]:
+        - generic [ref=e992]:
+          - img [ref=e994]
+          - generic [ref=e996]: 无人机培训中心
+        - heading "翱翔蓝天 成就飞行梦想" [level=1] [ref=e997]:
+          - text: 翱翔蓝天
+          - text: 成就飞行梦想
+        - paragraph [ref=e998]:
+          - generic [ref=e999]: 专业无人机驾驶培训，权威认证资质
+          - text: 从入门到持证，一站式服务让飞行触手可及
+        - generic [ref=e1000]:
+          - link "查看课程" [ref=e1001] [cursor=pointer]:
+            - /url: "#/courses"
+            - button "查看课程" [ref=e1002]:
+              - img [ref=e1003]
+              - text: 查看课程
+          - link "预约试听" [ref=e1006] [cursor=pointer]:
+            - /url: "#/login"
+            - button "预约试听" [ref=e1007]:
+              - img [ref=e1008]
+              - text: 预约试听
+        - generic [ref=e1010]:
+          - generic [ref=e1011]:
+            - img [ref=e1012]
+            - generic [ref=e1015]: 官方认证
+          - generic [ref=e1016]:
+            - img [ref=e1017]
+            - generic [ref=e1020]: 不过退费
+          - generic [ref=e1021]:
+            - img [ref=e1022]
+            - generic [ref=e1025]: 推荐就业
+      - img [ref=e1027]
+    - generic [ref=e1031]:
+      - generic [ref=e1032]:
+        - img [ref=e1034]
+        - paragraph [ref=e1039]: 5,000+
+        - paragraph [ref=e1040]: 累计学员
+      - generic [ref=e1041]:
+        - img [ref=e1043]
+        - paragraph [ref=e1046]: 2,800+
+        - paragraph [ref=e1047]: 持证飞行员
+      - generic [ref=e1048]:
+        - img [ref=e1050]
+        - paragraph [ref=e1053]: 120+
+        - paragraph [ref=e1054]: 合作机构
+      - generic [ref=e1055]:
+        - img [ref=e1057]
+        - paragraph [ref=e1060]: 800+
+        - paragraph [ref=e1061]: 课程时长
+    - generic [ref=e1063]:
+      - generic [ref=e1064]:
+        - heading "热门课程" [level=2] [ref=e1065]
+        - paragraph [ref=e1066]: 专业体系化培训，轻松考取无人机驾驶证
+      - generic [ref=e1069]:
+        - img [ref=e1070]
+        - generic [ref=e1072]: 加载课程...
+      - link "查看全部课程" [ref=e1074] [cursor=pointer]:
+        - /url: "#/courses"
+        - button "查看全部课程" [ref=e1075]:
+          - text: 查看全部课程
+          - img [ref=e1076]
+    - generic [ref=e1079]:
+      - generic [ref=e1080]:
+        - heading "为什么选择我们" [level=2] [ref=e1081]
+        - paragraph [ref=e1082]: 专业、权威、一站式培训服务，让您的飞行之路更加顺畅
+      - generic [ref=e1083]:
+        - generic [ref=e1086]:
+          - img [ref=e1088]
+          - heading "官方认证资质" [level=3] [ref=e1090]
+          - paragraph [ref=e1091]: 中国航空运输协会认证培训机构
+        - generic [ref=e1094]:
+          - img [ref=e1096]
+          - heading "专业教学团队" [level=3] [ref=e1099]
+          - paragraph [ref=e1100]: 资深教官+理论专家双师授课
+        - generic [ref=e1103]:
+          - img [ref=e1105]
+          - heading "高通过率" [level=3] [ref=e1107]
+          - paragraph [ref=e1108]: 理论考试通过率98%+
+        - generic [ref=e1111]:
+          - img [ref=e1113]
+          - heading "灵活排课" [level=3] [ref=e1117]
+          - paragraph [ref=e1118]: 随到随学，支持周末班/脱产班
+    - generic [ref=e1121]:
+      - generic [ref=e1122]:
+        - heading "权威认证 开启职业新篇章" [level=2] [ref=e1123]:
+          - text: 权威认证
+          - text: 开启职业新篇章
+        - paragraph [ref=e1124]: 培训结束后可参加中国航空运输协会统一考试，获取AOPA无人机驾驶员执照。 证书全国通用，是您从事无人机相关工作的必备资质。
+        - generic [ref=e1125]:
+          - generic [ref=e1126]:
+            - img [ref=e1127]
+            - generic [ref=e1130]:
+              - paragraph [ref=e1131]: 视距内驾驶员
+              - paragraph [ref=e1132]: AOPA驾驶员执照
+          - generic [ref=e1133]:
+            - img [ref=e1134]
+            - generic [ref=e1137]:
+              - paragraph [ref=e1138]: 超视距驾驶员
+              - paragraph [ref=e1139]: AOPA驾驶员执照
+          - generic [ref=e1140]:
+            - img [ref=e1141]
+            - generic [ref=e1144]:
+              - paragraph [ref=e1145]: 教员级别
+              - paragraph [ref=e1146]: AOPA教员执照
+        - link "查看证书详情" [ref=e1147] [cursor=pointer]:
+          - /url: "#/certificates"
+          - button "查看证书详情" [ref=e1148]:
+            - img [ref=e1149]
+            - text: 查看证书详情
+      - generic [ref=e1153]:
+        - generic [ref=e1157]:
+          - generic [ref=e1158]:
+            - img [ref=e1159]
+            - generic [ref=e1162]: AOPA CERTIFICATE
+          - heading "无人机驾驶员执照" [level=3] [ref=e1163]
+          - paragraph [ref=e1164]: Certificate of Remote Pilot
+          - generic [ref=e1166]:
+            - generic [ref=e1167]: 证书编号
+            - generic [ref=e1168]: AOPA-2024-XXXXX
+        - img [ref=e1170]
+    - generic [ref=e1174]:
+      - heading "准备好开始您的飞行之旅了吗？" [level=2] [ref=e1175]
+      - paragraph [ref=e1176]:
+        - generic [ref=e1177]: 立即咨询报名，专业顾问为您定制学习方案。
+        - text: 现在报名可享首期优惠，还能获得推荐就业机会。
+      - generic [ref=e1178]:
+        - link "立即报名" [ref=e1179] [cursor=pointer]:
+          - /url: "#/register"
+          - button "立即报名" [ref=e1180]:
+            - img [ref=e1181]
+            - text: 立即报名
+        - link "了解更多" [ref=e1184] [cursor=pointer]:
+          - /url: "#/teachers"
+          - button "了解更多" [ref=e1185]:
+            - img [ref=e1186]
+            - text: 了解更多
+    - contentinfo [ref=e1188]:
+      - generic [ref=e1189]:
+        - generic [ref=e1190]:
+          - generic [ref=e1191]:
+            - generic [ref=e1192]:
+              - img [ref=e1194]
+              - generic [ref=e1196]: 无人机培训中心
+            - paragraph [ref=e1197]: 专业无人机驾驶培训机构，中国航空运输协会认证。
+            - generic [ref=e1199]:
+              - img [ref=e1200]
+              - generic [ref=e1202]: 400-888-8888
+          - generic [ref=e1203]:
+            - heading "快速链接" [level=4] [ref=e1204]
+            - list [ref=e1205]:
+              - listitem [ref=e1206]:
+                - link "课程中心" [ref=e1207] [cursor=pointer]:
+                  - /url: "#/courses"
+              - listitem [ref=e1208]:
+                - link "题库练习" [ref=e1209] [cursor=pointer]:
+                  - /url: "#/exam-center"
+              - listitem [ref=e1210]:
+                - link "证书查询" [ref=e1211] [cursor=pointer]:
+                  - /url: "#/certificates"
+              - listitem [ref=e1212]:
+                - link "教官团队" [ref=e1213] [cursor=pointer]:
+                  - /url: "#/teachers"
+          - generic [ref=e1214]:
+            - heading "联系我们" [level=4] [ref=e1215]
+            - list [ref=e1216]:
+              - listitem [ref=e1217]:
+                - img [ref=e1218]
+                - generic [ref=e1221]: info@drone-train.com
+              - listitem [ref=e1222]:
+                - img [ref=e1223]
+                - generic [ref=e1226]: 北京市朝阳区航空路88号
+        - paragraph [ref=e1228]: © 2024 无人机培训中心 版权所有 | 京ICP备XXXXXXXX号
+  - contentinfo [ref=e1229]:
+    - generic [ref=e1230]:
+      - generic [ref=e1231]:
+        - generic [ref=e1232]:
+          - heading "无人机培训系统" [level=3] [ref=e1233]
+          - paragraph [ref=e1234]: 专业的无人机操作培训机构，提供从入门到精通的完整课程体系。
+        - generic [ref=e1235]:
+          - heading "课程分类" [level=4] [ref=e1236]
+          - list [ref=e1237]:
+            - listitem [ref=e1238]:
+              - link "CAAC执照培训" [ref=e1239] [cursor=pointer]:
+                - /url: "#/courses"
+            - listitem [ref=e1240]:
+              - link "AOPA认证课程" [ref=e1241] [cursor=pointer]:
+                - /url: "#/courses"
+            - listitem [ref=e1242]:
+              - link "技能提升课程" [ref=e1243] [cursor=pointer]:
+                - /url: "#/courses"
+        - generic [ref=e1244]:
+          - heading "帮助中心" [level=4] [ref=e1245]
+          - list [ref=e1246]:
+            - listitem [ref=e1247]:
+              - link "常见问题" [ref=e1248] [cursor=pointer]:
+                - /url: "#/help"
+            - listitem [ref=e1249]:
+              - link "联系我们" [ref=e1250] [cursor=pointer]:
+                - /url: "#/contact"
+            - listitem [ref=e1251]:
+              - link "关于我们" [ref=e1252] [cursor=pointer]:
+                - /url: "#/about"
+        - generic [ref=e1253]:
+          - heading "联系方式" [level=4] [ref=e1254]
+          - list [ref=e1255]:
+            - listitem [ref=e1256]: "电话: 400-xxx-xxxx"
+            - listitem [ref=e1257]: "邮箱: contact@example.com"
+            - listitem [ref=e1258]: "地址: 北京市xxx区xxx路xxx号"
+      - paragraph [ref=e1260]: © 2026 无人机培训系统. All rights reserved.

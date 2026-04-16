@@ -1,0 +1,145 @@
+- generic [ref=e34]:
+  - complementary [ref=e35]:
+    - link "管理后台 无人机培训系统" [ref=e37] [cursor=pointer]:
+      - /url: "#/admin"
+      - img [ref=e39]
+      - generic [ref=e42]:
+        - heading "管理后台" [level=1] [ref=e43]
+        - paragraph [ref=e44]: 无人机培训系统
+    - navigation [ref=e45]:
+      - link "概览" [ref=e46] [cursor=pointer]:
+        - /url: "#/admin"
+        - img [ref=e48]
+        - generic [ref=e53]: 概览
+      - link "课程管理" [ref=e55] [cursor=pointer]:
+        - /url: "#/admin/courses"
+        - img [ref=e56]
+        - generic [ref=e58]: 课程管理
+      - link "课程分类" [ref=e59] [cursor=pointer]:
+        - /url: "#/admin/categories"
+        - img [ref=e60]
+        - generic [ref=e65]: 课程分类
+      - link "学员管理" [ref=e66] [cursor=pointer]:
+        - /url: "#/admin/students"
+        - img [ref=e67]
+        - generic [ref=e72]: 学员管理
+      - link "教师管理" [ref=e73] [cursor=pointer]:
+        - /url: "#/admin/teachers"
+        - img [ref=e74]
+        - generic [ref=e77]: 教师管理
+      - link "排课出勤" [ref=e78] [cursor=pointer]:
+        - /url: "#/admin/schedules"
+        - img [ref=e79]
+        - generic [ref=e81]: 排课出勤
+      - link "订单财务" [ref=e82] [cursor=pointer]:
+        - /url: "#/admin/orders"
+        - img [ref=e83]
+        - generic [ref=e86]: 订单财务
+      - link "考试题库" [ref=e87] [cursor=pointer]:
+        - /url: "#/admin/exams"
+        - img [ref=e88]
+        - generic [ref=e91]: 考试题库
+      - link "内容配置" [ref=e92] [cursor=pointer]:
+        - /url: "#/admin/page-config"
+        - img [ref=e93]
+        - generic [ref=e96]: 内容配置
+      - link "证书管理" [ref=e97] [cursor=pointer]:
+        - /url: "#/admin/certificates"
+        - img [ref=e98]
+        - generic [ref=e101]: 证书管理
+      - link "营销工具" [ref=e102] [cursor=pointer]:
+        - /url: "#/admin/marketing"
+        - img [ref=e103]
+        - generic [ref=e107]: 营销工具
+      - link "系统设置" [ref=e108] [cursor=pointer]:
+        - /url: "#/admin/auth-config"
+        - img [ref=e109]
+        - generic [ref=e111]: 系统设置
+    - link "返回前台" [ref=e113] [cursor=pointer]:
+      - /url: "#/"
+      - img [ref=e114]
+      - generic [ref=e117]: 返回前台
+  - main [ref=e118]:
+    - generic [ref=e120]:
+      - navigation [ref=e122]:
+        - link "首页" [ref=e124] [cursor=pointer]:
+          - /url: "#/admin"
+        - generic [ref=e386]:
+          - img [ref=e387]
+          - link "内容配置" [ref=e389] [cursor=pointer]:
+            - /url: "#/admin/page-config"
+      - generic [ref=e125]:
+        - generic [ref=e126]:
+          - img [ref=e127]
+          - textbox "搜索..." [ref=e130]
+        - button [ref=e132] [cursor=pointer]:
+          - img [ref=e133]
+        - button "系 系统管理员" [ref=e138] [cursor=pointer]:
+          - generic [ref=e139]: 系
+          - generic [ref=e140]: 系统管理员
+    - generic [ref=e395]:
+      - generic [ref=e396]:
+        - generic [ref=e397]:
+          - heading "页面内容配置" [level=1] [ref=e398]:
+            - img [ref=e399]
+            - text: 页面内容配置
+          - paragraph [ref=e402]: 管理首页各模块的显示内容
+        - button "保存全部" [ref=e403] [cursor=pointer]:
+          - img [ref=e404]
+          - text: 保存全部
+      - generic [ref=e408]:
+        - generic [ref=e411]:
+          - heading "配置模块" [level=3] [ref=e412]
+          - generic [ref=e413]:
+            - button "🎯 Hero区域 首屏大图区域，标语和主按钮" [ref=e414] [cursor=pointer]:
+              - generic [ref=e415]:
+                - generic [ref=e416]: 🎯
+                - generic [ref=e417]: Hero区域
+              - paragraph [ref=e418]: 首屏大图区域，标语和主按钮
+            - button "⭐ 热门课程 首页热门课程展示，最多8个课程" [ref=e419] [cursor=pointer]:
+              - generic [ref=e420]:
+                - generic [ref=e421]: ⭐
+                - generic [ref=e422]: 热门课程
+              - paragraph [ref=e423]: 首页热门课程展示，最多8个课程
+            - button "🖼️ 轮播图管理 首页轮播图配置，支持拖拽上传" [ref=e424] [cursor=pointer]:
+              - generic [ref=e425]:
+                - generic [ref=e426]: 🖼️
+                - generic [ref=e427]: 轮播图管理
+              - paragraph [ref=e428]: 首页轮播图配置，支持拖拽上传
+            - button "📊 统计概览 数据统计卡片" [ref=e429] [cursor=pointer]:
+              - generic [ref=e430]:
+                - generic [ref=e431]: 📊
+                - generic [ref=e432]: 统计概览
+              - paragraph [ref=e433]: 数据统计卡片
+            - button "✨ 特色优势 为什么选择我们" [ref=e434] [cursor=pointer]:
+              - generic [ref=e435]:
+                - generic [ref=e436]: ✨
+                - generic [ref=e437]: 特色优势
+              - paragraph [ref=e438]: 为什么选择我们
+            - button "🏆 权威认证 证书类型展示" [ref=e439] [cursor=pointer]:
+              - generic [ref=e440]:
+                - generic [ref=e441]: 🏆
+                - generic [ref=e442]: 权威认证
+              - paragraph [ref=e443]: 证书类型展示
+            - button "📞 联系我们 行动号召区域" [ref=e444] [cursor=pointer]:
+              - generic [ref=e445]:
+                - generic [ref=e446]: 📞
+                - generic [ref=e447]: 联系我们
+              - paragraph [ref=e448]: 行动号召区域
+            - button "📋 页脚信息 底部联系信息和链接" [ref=e449] [cursor=pointer]:
+              - generic [ref=e450]:
+                - generic [ref=e451]: 📋
+                - generic [ref=e452]: 页脚信息
+              - paragraph [ref=e453]: 底部联系信息和链接
+        - generic [ref=e514]:
+          - generic [ref=e515]:
+            - generic [ref=e516]:
+              - heading "热门课程管理" [level=3] [ref=e517]
+              - paragraph [ref=e518]: 设置首页展示的热门课程，最多8个课程
+            - button "添加课程" [active] [ref=e519] [cursor=pointer]:
+              - img [ref=e520]
+              - text: 添加课程
+          - generic [ref=e521]:
+            - img [ref=e522]
+            - paragraph [ref=e524]: 暂无热门课程，点击上方按钮添加
+            - paragraph [ref=e525]: 热门课程将显示在首页轮播图下方

@@ -1,0 +1,31 @@
+[     350ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: banners, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     351ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: banners, query: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     351ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: notices, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     351ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: notices, query: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     352ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredCourses, docId: home-featured} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     353ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredClasses, docId: home-featured-classes} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     353ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredLearningPaths, docId: home-featured-paths} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     354ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: learning_paths, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     355ms] [LOG] [CategoryService] 开始获取分类... @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[     355ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: categories, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     564ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: edeb7057-8a58-43ba-8d4d-256eb10e60c4} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[    1213ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 4aa85264-6bc1-447b-b2bc-788824406b37} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[    1267ms] [LOG] [adminService] 云函数返回: {result: undefined, requestId: 7ae4fcac-33f2-4432-884e-8cf8e158f632} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[    1434ms] [LOG] [adminService] 云函数返回: {result: undefined, requestId: 648cbdcf-aee8-48d7-8dfa-90d62303076d} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[    1434ms] [LOG] [轮播图] 加载结果: {success: true, data: Array, total: 3} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminPageConfigNew-D0e5G3lj-v1776078829070.js:1
+[    1435ms] [LOG] [轮播图] 映射 banner: {原始: Object, 映射后ID: banner_001} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminPageConfigNew-D0e5G3lj-v1776078829070.js:1
+[    1435ms] [LOG] [轮播图] 映射 banner: {原始: Object, 映射后ID: banner_003} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminPageConfigNew-D0e5G3lj-v1776078829070.js:1
+[    1435ms] [LOG] [轮播图] 映射 banner: {原始: Object, 映射后ID: f6fcfb9c69cff35102cd29a71748a7ec} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminPageConfigNew-D0e5G3lj-v1776078829070.js:1
+[    1435ms] [LOG] [轮播图] 设置后 banners: [Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminPageConfigNew-D0e5G3lj-v1776078829070.js:1
+[    1462ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: ca66f229-3614-4b8f-8bdf-89f2d82c5389} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[    1462ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 857a8b64-b30c-4a5a-8eee-bb334b95aefb} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[    1462ms] [LOG] [热门课程] 加载结果: {success: true, data: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminPageConfigNew-D0e5G3lj-v1776078829070.js:1
+[    1494ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: a763f4a0-1875-4a68-b22f-70648cf42af2} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[    1494ms] [LOG] [公告] 加载结果: {success: true, data: Array, total: 4} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminPageConfigNew-D0e5G3lj-v1776078829070.js:1
+[    1521ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 13ce1e4c-8f3a-4c03-8f7a-5d6a09d75f68} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[    1551ms] [ERROR] 加载班级课程选项失败: TypeError: undefined is not an object (evaluating 't.data.list.filter') @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/AdminPageConfigNew-D0e5G3lj-v1776078829070.js:1
+[    1628ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: d6b5ba7e-e2f1-4c52-8a88-1a99a57e700b} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[    1629ms] [LOG] [CategoryService] 云函数返回结果: {code: 0, message: 查询成功, data: Array, total: 6, page: 1} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[    1629ms] [LOG] [CategoryService] res.data 类型: object true @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[    1629ms] [LOG] [CategoryService] 获取到分类数量: 6 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[    1629ms] [LOG] [CategoryService] 分类数据: [Object, Object, Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0

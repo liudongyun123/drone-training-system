@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>初始化首页配置 - 诊断工具</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      color: #1e3a5f;
+      margin-bottom: 8px;
+      font-size: 24px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .step {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .step-title {
+      font-weight: 600;
+      color: #1e3a5f;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .pending { background: #e9ecef; color: #666; }
+    .loading { background: #fff3cd; color: #856404; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    
+    .log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 12px;
+    }
+    .log-entry { margin-bottom: 4px; }
+    .log-time { color: #858585; }
+    .log-success { color: #4ec9b0; }
+    .log-error { color: #f44747; }
+    .log-info { color: #9cdcfe; }
+    
+    button {
+      width: 100%;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8a 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: all 0.3s;
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(30, 58, 95, 0.4);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .result.success { background: #d4edda; color: #155724; }
+    .result.error { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 首页配置初始化工具</h1>
+    <p class="subtitle">解决"最新开班"和"学习路径"模块数据回传问题</p>
+    
+    <div class="step">
+      <div class="step-title">
+        <span class="step-icon pending" id="step1Icon">1</span>
+        初始化 featuredClasses 集合
+      </div>
+      <div id="step1Status">等待执行...</div>
+    </div>
+    
+    <div class="step">
+      <div class="step-title">
+        <span class="step-icon pending" id="step2Icon">2</span>
+        初始化 featuredLearningPaths 集合
+      </div>
+      <div id="step2Status">等待执行...</div>
+    </div>
+    
+    <div class="step">
+      <div class="step-title">
+        <span class="step-icon pending" id="step3Icon">3</span>
+        添加班级和学习路径到首页
+      </div>
+      <div id="step3Status">等待执行...</div>
+    </div>
+    
+    <button id="startBtn" onclick="startInit()">开始初始化</button>
+    
+    <div id="result" style="display: none;"></div>
+    
+    <div class="log" id="logContainer">
+      <div class="log-entry"><span class="log-time">[等待]</span> 点击按钮开始初始化...</div>
+    </div>
+  </div>
+
+  <script src="https://imgcache.qq.com/qcloud/tcbjs/1.4.1/tcb.js"></script>
+  <script>
+    let app;
+    
+    async function initSDK() {
+      app = tcb.init({
+        env: 'rcwljy-5ghmq2ex26764978'
+      });
+      await app.auth({ persistence: 'local' });
+    }
+
+    function log(message, type = 'info') {
+      const container = document.getElementById('logContainer');
+      const time = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type}">${message}</span>`;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function updateStep(step, status, iconClass) {
+      document.getElementById(`step${step}Status`).textContent = status;
+      const icon = document.getElementById(`step${step}Icon`);
+      icon.className = `step-icon ${iconClass}`;
+      icon.textContent = iconClass === 'success' ? '✓' : (iconClass === 'error' ? '✗' : step);
+    }
+
+    async function startInit() {
+      const btn = document.getElementById('startBtn');
+      btn.disabled = true;
+      btn.textContent = '初始化中...';
+      
+      log('开始初始化首页配置...', 'info');
+      
+      // 初始化 SDK
+      try {
+        if (!app) {
+          log('正在连接 CloudBase...', 'info');
+          await initSDK();
+        }
+        log('CloudBase 连接成功', 'success');
+      } catch (e) {
+        log('CloudBase SDK 初始化失败: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '重试';
+        return;
+      }
+      
+      try {
+        // Step 1: 初始化 featuredClasses
+        log('Step 1: 检查 featuredClasses 集合...', 'info');
+        const db = app.database();
+        
+        try {
+          const existing = await db.collection('featuredClasses').doc('home-featured-classes').get();
+          if (existing.data) {
+            log('featuredClasses 配置已存在', 'info');
+            updateStep(1, '配置已存在，跳过', 'success');
+          }
+        } catch (e) {
+          log('featuredClasses 无配置记录，创建中...', 'info');
+          await db.collection('featuredClasses').add({
+            _id: 'home-featured-classes',
+            classIds: [],
+            description: '首页展示班级配置'
+          });
+          log('featuredClasses 配置创建成功', 'success');
+          updateStep(1, '配置创建成功', 'success');
+        }
+
+        // Step 2: 初始化 featuredLearningPaths
+        log('Step 2: 检查 featuredLearningPaths 集合...', 'info');
+        
+        try {
+          const existing2 = await db.collection('featuredLearningPaths').doc('home-featured-paths').get();
+          if (existing2.data) {
+            log('featuredLearningPaths 配置已存在', 'info');
+            updateStep(2, '配置已存在，跳过', 'success');
+          }
+        } catch (e) {
+          log('featuredLearningPaths 无配置记录，创建中...', 'info');
+          await db.collection('featuredLearningPaths').add({
+            _id: 'home-featured-paths',
+            pathIds: [],
+            description: '首页学习路径配置'
+          });
+          log('featuredLearningPaths 配置创建成功', 'success');
+          updateStep(2, '配置创建成功', 'success');
+        }
+
+        // Step 3: 添加班级和学习路径
+        log('Step 3: 获取并添加班级到首页...', 'info');
+        
+        // 获取班级
+        const classesRes = await db.collection('classes').limit(10).get();
+        const classIds = classesRes.data.map(c => c._id);
+        log(`找到 ${classIds.length} 个班级`, 'info');
+        
+        // 获取学习路径
+        const pathsRes = await db.collection('learning_paths').limit(10).get();
+        const pathIds = pathsRes.data.map(p => p._id);
+        log(`找到 ${pathIds.length} 个学习路径`, 'info');
+        
+        // 更新 featuredClasses
+        if (classIds.length > 0) {
+          await db.collection('featuredClasses').doc('home-featured-classes').update({
+            classIds: classIds.slice(0, 6) // 最多6个班级
+          });
+          log('班级已添加到首页展示列表', 'success');
+        }
+        
+        // 更新 featuredLearningPaths
+        if (pathIds.length > 0) {
+          await db.collection('featuredLearningPaths').doc('home-featured-paths').update({
+            pathIds: pathIds.slice(0, 3) // 最多3个路径
+          });
+          log('学习路径已添加到首页展示列表', 'success');
+        }
+        
+        updateStep(3, '数据添加成功', 'success');
+        
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
+        resultDiv.className = 'result success';
+        resultDiv.innerHTML = `<strong>✅ 初始化完成！</strong><br>已将 ${classIds.length} 个班级和 ${pathIds.length} 个学习路径添加到首页。请刷新页面查看效果。`;
+        
+        log('初始化完成！', 'success');
+        
+      } catch (error) {
+        log(`错误: ${error.message || error}`, 'error');
+        updateStep(3, '失败: ' + (error.message || error), 'error');
+        
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `<strong>❌ 初始化失败</strong><br>${error.message || error}`;
+      }
+      
+      btn.disabled = false;
+      btn.textContent = '重新初始化';
+    }
+  </script>
+</body>
+</html>

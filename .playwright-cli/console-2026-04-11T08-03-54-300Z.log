@@ -1,0 +1,22 @@
+[      55ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: banners, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[      56ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: banners, query: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[      57ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredCourses, docId: home-featured} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[      58ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredClasses, docId: home-featured-classes} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[      58ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredLearningPaths, docId: home-featured-paths} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[      59ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: learning_paths, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[    1182ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 5e212f21-62a6-463a-8612-3f8a994d9e85} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[    1190ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 2133576f-e51f-4a98-9744-f5e8dd96e1ed} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[    1199ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 11752da7-d665-4512-8a62-b0cf7a318541} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[    1199ms] [LOG] [热门课程] 加载结果: {success: true, data: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[    1228ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: b7d581d1-1f3b-4c24-bbb6-66a25e1785b8} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[    1237ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 99fd6cb2-dd11-4847-b388-0bf6fb3ca259} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[    2052ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 18f7b7b8-5d2e-4d4f-9ae8-397d0b0e52cc} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1074
+[    2053ms] [LOG] [轮播图] 加载结果: {success: true, data: Array(3), total: 3} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[    2053ms] [LOG] [轮播图] 映射 banner: {原始: Object, 映射后ID: banner_001} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[    2053ms] [LOG] [轮播图] 映射 banner: {原始: Object, 映射后ID: banner_003} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[    2053ms] [LOG] [轮播图] 映射 banner: {原始: Object, 映射后ID: f6fcfb9c69cff35102cd29a71748a7ec} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[    2053ms] [LOG] [轮播图] 设置后 banners: [Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[   12230ms] [LOG] [DEBUG] openBannerDialog 被调用 {banner: undefined, bannerDialogOpen: false} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[   12231ms] [LOG] [DEBUG] bannerDialogOpen 设置为 true @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[   80910ms] [LOG] [DEBUG] openBannerDialog 被调用 {banner: Object, bannerDialogOpen: true} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170
+[   80915ms] [LOG] [DEBUG] bannerDialogOpen 设置为 true @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-build-2025-04-11-1410.js:1170

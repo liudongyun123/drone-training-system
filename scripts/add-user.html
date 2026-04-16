@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>添加用户</title>
+  <script src="https://imgcache.qq.com/qcloud/tcbjs/1.10.8/tcb.js"></script>
+</head>
+<body>
+  <h1>添加用户</h1>
+  <button id="addBtn">添加用户 17628157097 / 123456</button>
+  <pre id="result"></pre>
+  
+  <script>
+    // 初始化 CloudBase
+    const app = tcb.init({
+      env: 'rcwljy-5ghmq2ex26764978'
+    });
+    
+    document.getElementById('addBtn').onclick = async () => {
+      const result = document.getElementById('result');
+      result.textContent = '正在添加...';
+      
+      try {
+        // 调用 admin 云函数添加用户
+        const res = await app.callFunction({
+          name: 'admin',
+          data: {
+            action: 'add',
+            collection: 'users',
+            data: {
+              password: '123456',
+              data: {
+                phone: '17628157097',
+                username: '17628157097',
+                role: 'student',
+                status: 'active',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }
+            }
+          }
+        });
+        
+        console.log('添加结果:', res);
+        result.textContent = JSON.stringify(res, null, 2);
+        
+        if (res.result && res.result.code === 0) {
+          result.textContent += '\n✅ 用户添加成功！';
+        } else {
+          result.textContent += '\n❌ 添加失败';
+        }
+      } catch (error) {
+        console.error('错误:', error);
+        result.textContent = '错误: ' + error.message;
+      }
+    };
+  </script>
+</body>
+</html>

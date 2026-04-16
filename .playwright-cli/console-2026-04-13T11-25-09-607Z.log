@@ -1,0 +1,19 @@
+[       5ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: orders, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[       6ms] [LOG] ✅ 使用缓存的会话 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[     201ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 7ae3eec2-e64d-415b-b2f3-74e35eaeb273} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     201ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: orders, query: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     311ms] [LOG] [paginatedQuery] 查询集合: questionBanks, 参数: {page: 1, pageSize: 100} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     311ms] [LOG] [paginatedQuery] 查询集合: exams, 参数: {} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     371ms] [LOG] [adminService] 云函数返回: {result: undefined, requestId: c7a2fbb2-c960-47e6-9eb8-86bddabbbd0b} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     371ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: registrations, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     433ms] [LOG] [paginatedQuery] 集合 questionBanks 符合条件总数: 5 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     437ms] [LOG] [paginatedQuery] 集合 exams 符合条件总数: 2 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     494ms] [LOG] [paginatedQuery] 查询到 2 条数据: [Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     496ms] [LOG] [paginatedQuery] 查询到 5 条数据: [Object, Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-B6udBOTg-v1776078829070.js:0
+[     554ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 480251c9-61d5-44c4-aaba-063d4158910b} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     554ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: registrations, query: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     692ms] [LOG] [adminService] 云函数返回: {result: undefined, requestId: b96412fe-9dbf-4e22-9c96-7e6856da31f2} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     692ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: notices, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     874ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 86d77050-dec9-4719-92bf-93b06c694a2e} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[     874ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: comments, query: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[    1023ms] [LOG] [adminService] 云函数返回: {result: undefined, requestId: e7340e48-9bfa-4b59-a654-18c9d3f4b97b} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10

@@ -1,0 +1,42 @@
+# CloudBase 静态托管 SPA 路由重定向规则
+# 所有路由重定向到 index.html，支持 React Router
+
+# 前台页面
+courses /index.html 200
+course/* /index.html 200
+my-learning /index.html 200
+lesson/* /index.html 200
+exam/* /index.html 200
+checkout /index.html 200
+messages /index.html 200
+
+# 管理后台 - 每个子路由
+admin/dashboard /admin/dashboard/index.html 200
+admin/courses /admin/courses/index.html 200
+admin/students /admin/students/index.html 200
+admin/teachers /admin/teachers/index.html 200
+admin/schedules /admin/schedules/index.html 200
+admin/attendance /admin/attendance/index.html 200
+admin/orders /admin/orders/index.html 200
+admin/finance /admin/finance/index.html 200
+admin/exams /admin/exams/index.html 200
+admin/question-banks /admin/question-banks/index.html 200
+admin/certificates /admin/certificates/index.html 200
+admin/coupons /admin/coupons/index.html 200
+admin/group-buys /admin/group-buys/index.html 200
+admin/live-streams /admin/live-streams/index.html 200
+admin/banners /admin/banners/index.html 200
+admin/page-config /admin/page-config/index.html 200
+admin/auth-config /admin/auth-config/index.html 200
+admin/logs /admin/logs/index.html 200
+admin/settings /admin/settings/index.html 200
+
+# 管理后台根路径
+admin /admin/index.html 200
+
+# 测试页面
+connection-test /index.html 200
+test-teacher-save /index.html 200
+
+# 默认重定向 - 所有其他路由也指向 index.html
+/* /index.html 200

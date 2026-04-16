@@ -1,0 +1,30 @@
+[     315ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/admin.html#/class-schedules:0
+[     864ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/favicon.ico:0
+[   15690ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:1
+[   15691ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:1
+[   15691ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:1
+[   15698ms] [LOG] [Auth] 未找到缓存手机号，尝试通过 openid 查询: undefined @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:8
+[   15698ms] [ERROR] [Auth] 查询手机号失败: Error: 查询参数对象值不能均为undefined
+    at t.where (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/vendor-cloudbase-DZxcAiCM-v1776079811216.js:127:45093)
+    at https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:9:12120
+    at Generator.next (<anonymous>)
+    at o (https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:2:715) @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:8
+[   15699ms] [LOG] ✅ 用户已登录: undefined , phone: 未绑定 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:8
+[   15742ms] [LOG] 🚀 Drone Training System Started 2026-04-13T11:33:44.582Z @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:39
+[   16223ms] [LOG] ✅ 匿名登录成功 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:8
+[   28928ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: orders, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   29252ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 2ae28f1c-07e1-4d3c-bea8-b0752d48fe05} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   29252ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: orders, query: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   29257ms] [LOG] ✅ 使用缓存的会话 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:8
+[   29258ms] [LOG] [paginatedQuery] 查询集合: courses, 参数: {page: 1, pageSize: 100} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-CpsMoVT8-v1776079811216.js:0
+[   29444ms] [LOG] [paginatedQuery] 集合 courses 符合条件总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-CpsMoVT8-v1776079811216.js:0
+[   29446ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 8405310b-086f-431d-aa8b-54ac60989789} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   29446ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: registrations, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   29517ms] [LOG] [paginatedQuery] 查询到 4 条数据: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/database-CpsMoVT8-v1776079811216.js:0
+[   29642ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 4fead019-40f8-4b64-b162-b901d974b7ca} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   29642ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: registrations, query: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   29822ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 8c5c60e9-8d18-44e0-9c26-1283e3180cb5} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   29822ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: notices, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   30080ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 3406a1b3-c4f5-4c51-b5fc-433aaf2f5f37} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   30080ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: comments, query: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10
+[   30305ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 60228826-9184-4bc1-b6cd-202c5d8a5eca} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776079811216.js:10

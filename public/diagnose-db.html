@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据库诊断</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    h1 { color: #333; border-bottom: 2px solid #0070f3; padding-bottom: 10px; }
+    h2 { color: #555; margin-top: 25px; }
+    .card { background: white; border-radius: 8px; padding: 20px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .success { color: #22c55e; }
+    .error { color: #ef4444; }
+    .warning { color: #f59e0b; }
+    .info { color: #3b82f6; }
+    button { background: #0070f3; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 5px; }
+    button:hover { background: #0051a8; }
+    .loading { color: #666; font-style: italic; }
+    input, select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; margin: 5px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
+    th { background: #f8fafc; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-purple { background: #f3e8ff; color: #6b21a8; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat-box { background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; }
+    .stat-value { font-size: 24px; font-weight: bold; color: #0070f3; }
+    .stat-label { font-size: 12px; color: #666; }
+    pre { background: #1f2937; color: #f3f4f6; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 12px; max-height: 200px; }
+  </style>
+</head>
+<body>
+  <h1>📊 数据库诊断工具</h1>
+  
+  <div class="card">
+    <h2>状态</h2>
+    <div id="status" class="loading">加载中...</div>
+  </div>
+
+  <div class="card">
+    <h2>数据统计</h2>
+    <div class="grid">
+      <div class="stat-box">
+        <div class="stat-value" id="userRolesCount">-</div>
+        <div class="stat-label">管理员账号</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="messagesCount">-</div>
+        <div class="stat-label">消息总数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="messagesUnread">-</div>
+        <div class="stat-label">未读消息</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>管理员账号列表</h2>
+    <button onclick="loadData()">刷新</button>
+    <div id="userRolesList"></div>
+  </div>
+
+  <div class="card">
+    <h2>消息列表</h2>
+    <button onclick="loadMessages()">刷新</button>
+    <div id="messagesList"></div>
+  </div>
+
+  <div class="card">
+    <h2>操作</h2>
+    <div>
+      <input type="text" id="phone" placeholder="手机号" value="13800138000">
+      <input type="text" id="name" placeholder="姓名" value="测试管理员">
+      <select id="role">
+        <option value="super_admin">超级管理员</option>
+        <option value="admin" selected>管理员</option>
+        <option value="teacher">教师</option>
+      </select>
+      <button onclick="createUserRole()">创建账号</button>
+    </div>
+    <div id="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>创建测试消息</h2>
+    <div>
+      <select id="msgType">
+        <option value="system">系统通知</option>
+        <option value="order">订单通知</option>
+        <option value="notice">公告</option>
+      </select>
+      <input type="text" id="msgTitle" placeholder="消息标题" value="测试消息" style="width: 200px;">
+      <input type="text" id="msgPhone" placeholder="发送手机号" value="17628157097">
+      <button onclick="createMessage()">发送消息</button>
+    </div>
+    <div id="msgResult"></div>
+  </div>
+
+  <script>
+    // 使用全局变量，等待 SDK 加载
+    let app = null;
+    
+    // 等待 SDK 加载完成
+    function waitForSDK() {
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 50;
+        const check = () => {
+          attempts++;
+          if (typeof cloudbase !== 'undefined') {
+            resolve(cloudbase);
+          } else if (attempts >= maxAttempts) {
+            reject(new Error('SDK 加载超时'));
+          } else {
+            setTimeout(check, 100);
+          }
+        };
+        check();
+      });
+    }
+
+    async function init() {
+      try {
+        document.getElementById('status').innerHTML = '<p class="loading">等待 SDK 加载...</p>';
+        
+        const cloudbaseSDK = await waitForSDK();
+        
+        app = cloudbaseSDK.init({
+          env: 'rcwljy-5ghmq2ex26764978',
+          timeout: 15000
+        });
+        
+        document.getElementById('status').innerHTML = '<p class="success">✅ SDK 初始化成功</p>';
+        
+        // 匿名登录
+        try {
+          await app.auth().signInAnonymously();
+          document.getElementById('status').innerHTML += '<p class="success">✅ 已匿名登录</p>';
+        } catch (e) {
+          document.getElementById('status').innerHTML += '<p class="warning">⚠️ 匿名登录失败: ' + e.message + '</p>';
+        }
+        
+        await loadData();
+        await loadMessages();
+      } catch (e) {
+        document.getElementById('status').innerHTML = '<p class="error">❌ 初始化失败: ' + e.message + '</p>';
+        console.error(e);
+      }
+    }
+
+    async function loadData() {
+      if (!app) { alert('未初始化'); return; }
+      document.getElementById('userRolesList').innerHTML = '<p class="loading">加载中...</p>';
+      
+      try {
+        const db = app.database();
+        const res = await db.collection('user_roles').get();
+        const roles = res.data || [];
+        
+        document.getElementById('userRolesCount').textContent = roles.length;
+        
+        if (roles.length === 0) {
+          document.getElementById('userRolesList').innerHTML = '<p>暂无数据</p>';
+          return;
+        }
+        
+        let html = '<table><tr><th>手机号</th><th>姓名</th><th>角色</th><th>状态</th><th>创建时间</th></tr>';
+        roles.forEach(r => {
+          const roleClass = r.role === 'super_admin' ? 'badge-red' : r.role === 'admin' ? 'badge-purple' : 'badge-blue';
+          const statusClass = r.status === 'active' ? 'badge-green' : 'badge-red';
+          html += '<tr>' +
+            '<td>' + (r.phone || '-') + '</td>' +
+            '<td>' + (r.name || '-') + '</td>' +
+            '<td><span class="badge ' + roleClass + '">' + (r.roleName || r.role) + '</span></td>' +
+            '<td><span class="badge ' + statusClass + '">' + r.status + '</span></td>' +
+            '<td>' + (r.createdAt ? new Date(r.createdAt).toLocaleString() : '-') + '</td>' +
+          '</tr>';
+        });
+        html += '</table>';
+        document.getElementById('userRolesList').innerHTML = html;
+      } catch (e) {
+        document.getElementById('userRolesList').innerHTML = '<p class="error">❌ ' + e.message + '</p>';
+      }
+    }
+
+    async function loadMessages() {
+      if (!app) { alert('未初始化'); return; }
+      document.getElementById('messagesList').innerHTML = '<p class="loading">加载中...</p>';
+      
+      try {
+        const db = app.database();
+        const res = await db.collection('messages').get();
+        const msgs = res.data || [];
+        
+        document.getElementById('messagesCount').textContent = msgs.length;
+        document.getElementById('messagesUnread').textContent = msgs.filter(m => m.status === 'unread').length;
+        
+        if (msgs.length === 0) {
+          document.getElementById('messagesList').innerHTML = '<p>暂无消息</p>';
+          return;
+        }
+        
+        let html = '<table><tr><th>标题</th><th>类型</th><th>目标</th><th>状态</th><th>isSystem</th><th>时间</th></tr>';
+        const typeLabels = {system: '系统', notice: '公告', audit: '审核', order: '订单', course: '课程', certificate: '证书'};
+        msgs.forEach(m => {
+          const target = m.isSystem ? '全体' : (m.phone || m.userId || '-');
+          const statusClass = m.status === 'unread' ? 'badge-red' : 'badge-green';
+          html += '<tr>' +
+            '<td>' + (m.title || '-') + '</td>' +
+            '<td>' + (typeLabels[m.type] || m.type) + '</td>' +
+            '<td>' + target + '</td>' +
+            '<td><span class="badge ' + statusClass + '">' + m.status + '</span></td>' +
+            '<td>' + m.isSystem + '</td>' +
+            '<td>' + (m.createdAt ? new Date(m.createdAt).toLocaleString() : '-') + '</td>' +
+          '</tr>';
+        });
+        html += '</table>';
+        document.getElementById('messagesList').innerHTML = html;
+      } catch (e) {
+        document.getElementById('messagesList').innerHTML = '<p class="error">❌ ' + e.message + '</p>';
+      }
+    }
+
+    async function createUserRole() {
+      if (!app) { alert('未初始化'); return; }
+      const phone = document.getElementById('phone').value;
+      const name = document.getElementById('name').value;
+      const role = document.getElementById('role').value;
+      const roleNames = { super_admin: '超级管理员', admin: '管理员', teacher: '教师' };
+      
+      document.getElementById('result').innerHTML = '<p class="loading">创建中...</p>';
+      
+      try {
+        const db = app.database();
+        const now = new Date().toISOString();
+        const res = await db.collection('user_roles').add({
+          phone, name, role, roleName: roleNames[role],
+          status: 'active', permissions: [],
+          createdAt: now, updatedAt: now
+        });
+        
+        if (res.id) {
+          document.getElementById('result').innerHTML = '<p class="success">✅ 创建成功！ID: ' + res.id + '</p>';
+          await loadData();
+        } else {
+          document.getElementById('result').innerHTML = '<p class="error">❌ 创建失败</p>';
+        }
+      } catch (e) {
+        document.getElementById('result').innerHTML = '<p class="error">❌ ' + e.message + '</p>';
+      }
+    }
+
+    async function createMessage() {
+      if (!app) { alert('未初始化'); return; }
+      const type = document.getElementById('msgType').value;
+      const title = document.getElementById('msgTitle').value;
+      const phone = document.getElementById('msgPhone').value;
+      
+      document.getElementById('msgResult').innerHTML = '<p class="loading">发送中...</p>';
+      
+      try {
+        const db = app.database();
+        const now = new Date().toISOString();
+        const res = await db.collection('messages').add({
+          type, title,
+          content: '这是一条测试消息',
+          priority: 'medium',
+          status: 'unread',
+          isSystem: false,
+          phone,
+          createdAt: now
+        });
+        
+        if (res.id) {
+          document.getElementById('msgResult').innerHTML = '<p class="success">✅ 发送成功！ID: ' + res.id + '</p>';
+          await loadMessages();
+        } else {
+          document.getElementById('msgResult').innerHTML = '<p class="error">❌ 发送失败</p>';
+        }
+      } catch (e) {
+        document.getElementById('msgResult').innerHTML = '<p class="error">❌ ' + e.message + '</p>';
+      }
+    }
+
+    // 启动
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>

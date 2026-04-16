@@ -1,0 +1,45 @@
+[     222ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/?_t=1776079137:0
+[   14823ms] [INFO] Successfully preconnected to https://fonts.googleapis.com/ @ :0
+[   14883ms] [INFO] Successfully preconnected to https://fonts.gstatic.com/ @ :0
+[   15039ms] [LOG] 📋 CloudBase 环境变量: {ENV_ID: rcwljy-5ghmq2ex26764978, isValidEnvId: true, hasPublishableKey: true, keyLength: 922} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:1
+[   15040ms] [LOG] ✅ 使用 Publishable Key 初始化 CloudBase @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:1
+[   15040ms] [LOG] CloudBase 配置: {env: rcwljy-5ghmq2ex26764978, hasAccessKey: true} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:1
+[   15055ms] [LOG] [Auth] 未找到缓存手机号，尝试通过 openid 查询: undefined @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[   15055ms] [ERROR] [Auth] 查询手机号失败: Error: 查询参数对象值不能均为undefined @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[   15055ms] [LOG] ✅ 用户已登录: undefined , phone: 未绑定 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[   15080ms] [LOG] 🚀 Drone Training System Started 2026-04-13T11:19:29.111Z @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:39
+[   15408ms] [LOG] ✅ ensureAuthenticated: 用户已登录 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[   15583ms] [LOG] ✅ 匿名登录成功 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:8
+[   15653ms] [LOG] 热门课程ID列表: [course_001, course_002, course_003, course_004] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   15653ms] [LOG] 所有课程: [undefined, undefined, undefined, undefined] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   15653ms] [LOG] 匹配到的热门课程: [Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   15654ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: banners, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[   15654ms] [LOG] [adminService] 调用云函数: action=count, params= {collection: banners, query: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[   16824ms] [LOG] [adminService] 云函数返回: {result: undefined, requestId: c1ead763-a90c-4046-998e-1d2b61b7a75c} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[   17536ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: b3fd020d-8236-4f56-be2b-2fbc1bf1f7bc} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[   17539ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredClasses, docId: home-featured-classes} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[   17711ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 98a35c8f-a737-4bf0-8cbb-e78704d0798e} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[   17711ms] [LOG] [首页] 使用配置的班级ID: [c25002a969d86c5403a4c6cb13d2fd82, 2d12bec269d8b22c03b6a5802c58ab69, dde8ef4869db139c03e583bf1e6a8ace] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   17973ms] [LOG] [首页] 匹配到的配置班级: [] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   18202ms] [LOG] [CategoryService] 开始获取分类... @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[   18203ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: categories, query: undefined, options: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[   18410ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 9f0e9e02-be9a-4733-9d05-65233e833848} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[   18410ms] [LOG] [CategoryService] 云函数返回结果: {code: 0, message: 查询成功, data: Array, total: 6, page: 1} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[   18410ms] [LOG] [CategoryService] res.data 类型: object true @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[   18410ms] [LOG] [CategoryService] 获取到分类数量: 6 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[   18410ms] [LOG] [CategoryService] 分类数据: [Object, Object, Object, Object, Object, Object] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/categoryService-DFoUlbzY-v1776078829070.js:0
+[   18411ms] [LOG] [首页] 分类映射: {1fa8f55169cfc37d02ca9b05331e1ccf: 植保无人机, 1fa8f55169cfc37d02ca9b0849594d66: 航拍无人机, 1fa8f55169cfc37d02ca9b076436ae33: 安防无人机, c25002a969db08b903ea93007fbfd8dc: 应急无人机, 1fa8f55169cfc37d02ca9b0909722479: 物流无人机} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   18411ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredLearningPaths, docId: home-featured-paths} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[   18537ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 96cb0ca8-a2ec-4152-b4a5-e4a9ed48a9bb} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/index-v1776078829070.js:10
+[   18538ms] [LOG] [首页] 学习路径ID列表: [path-beginner, path-advanced, path-intermediate, 4d75389069db2c7302492c972a9d1038, 33956e3d69db2d4503e79e19599f727b] 数量: 5 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   18944ms] [LOG] [CloudLearningPathService.getAllPaths] 数据库返回数据: {count: 5, firstItem: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CloudLearningPathService-BAUz_g7O-v1776078829070.js:0
+[   18945ms] [LOG] [CloudLearningPathService.getAllPaths] 处理单条数据: {_id: path-beginner, categoryId: 1fa8f55169cfc37d02ca9b0849594d66, categoryIds: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CloudLearningPathService-BAUz_g7O-v1776078829070.js:0
+[   18945ms] [LOG] [CloudLearningPathService.getAllPaths] 处理单条数据: {_id: path-intermediate, categoryId: undefined, categoryIds: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CloudLearningPathService-BAUz_g7O-v1776078829070.js:0
+[   18946ms] [LOG] [CloudLearningPathService.getAllPaths] 处理单条数据: {_id: path-advanced, categoryId: undefined, categoryIds: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CloudLearningPathService-BAUz_g7O-v1776078829070.js:0
+[   18946ms] [LOG] [CloudLearningPathService.getAllPaths] 处理单条数据: {_id: 4d75389069db2c7302492c972a9d1038, categoryId: undefined, categoryIds: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CloudLearningPathService-BAUz_g7O-v1776078829070.js:0
+[   18946ms] [LOG] [CloudLearningPathService.getAllPaths] 处理单条数据: {_id: 33956e3d69db2d4503e79e19599f727b, categoryId: undefined, categoryIds: undefined} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/CloudLearningPathService-BAUz_g7O-v1776078829070.js:0
+[   18946ms] [LOG] [首页] 所有学习路径: 5 条 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   18947ms] [LOG] [首页] 最终使用的学习路径: 5 条 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   18947ms] [LOG] [首页] 检查是否需要随机选择: allLoadedPaths.length = 5 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   18947ms] [LOG] [首页] 日期种子: 20260413 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1
+[   18947ms] [LOG] [首页] 随机选择3条: [安防无人机, 电力巡检无人机, 航拍无人机] @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/HomePage-D13SCMw5-v1776078829070.js:1

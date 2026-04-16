@@ -1,0 +1,290 @@
+- generic [ref=e285]:
+  - complementary [ref=e286]:
+    - link "管理后台 无人机培训系统" [ref=e288] [cursor=pointer]:
+      - /url: /admin
+      - img [ref=e290]
+      - generic [ref=e293]:
+        - heading "管理后台" [level=1] [ref=e294]
+        - paragraph [ref=e295]: 无人机培训系统
+    - navigation [ref=e296]:
+      - generic [ref=e297]:
+        - generic [ref=e298]:
+          - img [ref=e299]
+          - generic [ref=e304]: 概览
+        - link "仪表盘" [ref=e306] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e308]
+          - generic [ref=e314]: 仪表盘
+      - generic [ref=e316]:
+        - generic [ref=e317]:
+          - img [ref=e318]
+          - generic [ref=e322]: 线下培训
+        - generic [ref=e323]:
+          - link "班级管理 线下班级/报名/分班" [ref=e324] [cursor=pointer]:
+            - /url: /admin/classes
+            - img [ref=e325]
+            - generic [ref=e330]:
+              - generic [ref=e331]: 班级管理
+              - generic [ref=e332]: 线下班级/报名/分班
+          - link "排课出勤 课表/出勤记录" [ref=e333] [cursor=pointer]:
+            - /url: /admin/class-schedules
+            - img [ref=e334]
+            - generic [ref=e336]:
+              - generic [ref=e337]: 排课出勤
+              - generic [ref=e338]: 课表/出勤记录
+          - link "报名审核 审核/分班/调课" [ref=e339] [cursor=pointer]:
+            - /url: /admin/registrations
+            - img [ref=e340]
+            - generic [ref=e343]:
+              - generic [ref=e344]: 报名审核
+              - generic [ref=e345]: 审核/分班/调课
+      - generic [ref=e346]:
+        - generic [ref=e347]:
+          - img [ref=e348]
+          - generic [ref=e351]: 线上课程
+        - generic [ref=e352]:
+          - link "课程管理" [ref=e353] [cursor=pointer]:
+            - /url: /admin/courses
+            - img [ref=e354]
+            - generic [ref=e357]: 课程管理
+          - link "课程分类" [ref=e358] [cursor=pointer]:
+            - /url: /admin/categories
+            - img [ref=e359]
+            - generic [ref=e365]: 课程分类
+          - link "成员管理 用户/学员" [ref=e366] [cursor=pointer]:
+            - /url: /admin/members
+            - img [ref=e367]
+            - generic [ref=e371]:
+              - generic [ref=e372]: 成员管理
+              - generic [ref=e373]: 用户/学员
+          - link "评论管理" [ref=e374] [cursor=pointer]:
+            - /url: /admin/comments
+            - img [ref=e375]
+            - generic [ref=e378]: 评论管理
+      - generic [ref=e379]:
+        - generic [ref=e380]:
+          - img [ref=e381]
+          - generic [ref=e385]: 练习考试
+        - generic [ref=e386]:
+          - link "题库管理 内部练习" [ref=e387] [cursor=pointer]:
+            - /url: /admin/exams
+            - img [ref=e388]
+            - generic [ref=e391]:
+              - generic [ref=e392]: 题库管理
+              - generic [ref=e393]: 内部练习
+          - link "练习记录" [ref=e394] [cursor=pointer]:
+            - /url: /admin/practice-records
+            - img [ref=e395]
+            - generic [ref=e400]: 练习记录
+      - generic [ref=e401]:
+        - generic [ref=e402]:
+          - img [ref=e403]
+          - generic [ref=e406]: 证书管理
+        - link "证书管理" [ref=e408] [cursor=pointer]:
+          - /url: /admin/certificates
+          - img [ref=e409]
+          - generic [ref=e413]: 证书管理
+      - generic [ref=e414]:
+        - generic [ref=e415]:
+          - img [ref=e416]
+          - generic [ref=e418]: 财务订单
+        - link "订单财务" [ref=e420] [cursor=pointer]:
+          - /url: /admin/orders
+          - img [ref=e421]
+          - generic [ref=e425]: 订单财务
+      - generic [ref=e426]:
+        - generic [ref=e427]:
+          - img [ref=e428]
+          - generic [ref=e431]: 运营配置
+        - generic [ref=e432]:
+          - link "内容配置 轮播图/公告/首页" [ref=e433] [cursor=pointer]:
+            - /url: /admin/page-config
+            - img [ref=e434]
+            - generic [ref=e438]:
+              - generic [ref=e439]: 内容配置
+              - generic [ref=e440]: 轮播图/公告/首页
+          - link "营销工具 优惠券/活动" [ref=e441] [cursor=pointer]:
+            - /url: /admin/marketing
+            - img [ref=e442]
+            - generic [ref=e445]:
+              - generic [ref=e446]: 营销工具
+              - generic [ref=e447]: 优惠券/活动
+          - link "教师管理" [ref=e448] [cursor=pointer]:
+            - /url: /admin/teachers
+            - img [ref=e449]
+            - generic [ref=e453]: 教师管理
+      - generic [ref=e454]:
+        - generic [ref=e455]:
+          - img [ref=e456]
+          - generic [ref=e458]: 系统管理
+        - generic [ref=e459]:
+          - link "角色权限" [ref=e460] [cursor=pointer]:
+            - /url: /admin/roles
+            - img [ref=e461]
+            - generic [ref=e464]: 角色权限
+          - link "系统日志" [ref=e465] [cursor=pointer]:
+            - /url: /admin/logs
+            - img [ref=e466]
+            - generic [ref=e470]: 系统日志
+          - link "系统设置" [ref=e471] [cursor=pointer]:
+            - /url: /admin/auth-config
+            - img [ref=e472]
+            - generic [ref=e476]: 系统设置
+          - link "数据修复" [ref=e477] [cursor=pointer]:
+            - /url: /admin/data-fix
+            - img [ref=e478]
+            - generic [ref=e481]: 数据修复
+    - link "返回前台" [ref=e483] [cursor=pointer]:
+      - /url: /
+      - img [ref=e484]
+      - generic [ref=e487]: 返回前台
+  - main [ref=e488]:
+    - generic [ref=e490]:
+      - navigation [ref=e492]:
+        - link "首页" [ref=e494] [cursor=pointer]:
+          - /url: /admin
+        - generic [ref=e739]:
+          - img [ref=e740]
+          - link "内容配置" [ref=e742] [cursor=pointer]:
+            - /url: /admin/page-config
+      - generic [ref=e495]:
+        - generic [ref=e496]:
+          - img [ref=e497]
+          - textbox "搜索..." [ref=e500]
+        - button [ref=e502] [cursor=pointer]:
+          - img [ref=e503]
+        - button "系 系统管理员" [ref=e508] [cursor=pointer]:
+          - generic [ref=e509]: 系
+          - generic [ref=e510]: 系统管理员
+    - generic [ref=e743]:
+      - generic [ref=e749]:
+        - generic [ref=e750]:
+          - heading "页面内容配置" [level=1] [ref=e751]:
+            - img [ref=e752]
+            - text: 页面内容配置
+          - paragraph [ref=e755]: 管理首页各模块的显示内容
+        - button "保存全部" [ref=e756] [cursor=pointer]:
+          - img [ref=e757]
+          - text: 保存全部
+      - generic [ref=e761]:
+        - generic [ref=e764]:
+          - heading "配置模块" [level=3] [ref=e765]
+          - generic [ref=e766]:
+            - button "🎯 Hero区域 首屏大图区域，包含轮播图、标语和主按钮" [ref=e767] [cursor=pointer]:
+              - generic [ref=e768]:
+                - generic [ref=e769]: 🎯
+                - generic [ref=e770]: Hero区域
+              - paragraph [ref=e771]: 首屏大图区域，包含轮播图、标语和主按钮
+            - button "🗺️ 学习路径 入门课程、进阶训练、考证冲刺三个学习路径" [ref=e772] [cursor=pointer]:
+              - generic [ref=e773]:
+                - generic [ref=e774]: 🗺️
+                - generic [ref=e775]: 学习路径
+              - paragraph [ref=e776]: 入门课程、进阶训练、考证冲刺三个学习路径
+            - button "⭐ 热门课程 首页热门课程展示，最多8个课程" [ref=e777] [cursor=pointer]:
+              - generic [ref=e778]:
+                - generic [ref=e779]: ⭐
+                - generic [ref=e780]: 热门课程
+              - paragraph [ref=e781]: 首页热门课程展示，最多8个课程
+            - button "📅 最新开班 正在招生的班级展示，学员可快速报名" [ref=e782] [cursor=pointer]:
+              - generic [ref=e783]:
+                - generic [ref=e784]: 📅
+                - generic [ref=e785]: 最新开班
+              - paragraph [ref=e786]: 正在招生的班级展示，学员可快速报名
+            - button "📊 统计概览 数据统计卡片" [ref=e787] [cursor=pointer]:
+              - generic [ref=e788]:
+                - generic [ref=e789]: 📊
+                - generic [ref=e790]: 统计概览
+              - paragraph [ref=e791]: 数据统计卡片
+            - button "📢 最新公告 首页公告展示区域" [ref=e792] [cursor=pointer]:
+              - generic [ref=e793]:
+                - generic [ref=e794]: 📢
+                - generic [ref=e795]: 最新公告
+              - paragraph [ref=e796]: 首页公告展示区域
+            - button "✨ 特色优势 为什么选择我们" [ref=e797] [cursor=pointer]:
+              - generic [ref=e798]:
+                - generic [ref=e799]: ✨
+                - generic [ref=e800]: 特色优势
+              - paragraph [ref=e801]: 为什么选择我们
+            - button "🏆 权威认证 证书类型展示" [ref=e802] [cursor=pointer]:
+              - generic [ref=e803]:
+                - generic [ref=e804]: 🏆
+                - generic [ref=e805]: 权威认证
+              - paragraph [ref=e806]: 证书类型展示
+            - button "📞 联系我们 行动号召区域" [ref=e807] [cursor=pointer]:
+              - generic [ref=e808]:
+                - generic [ref=e809]: 📞
+                - generic [ref=e810]: 联系我们
+              - paragraph [ref=e811]: 行动号召区域
+            - button "📋 页脚信息 底部联系信息和链接" [ref=e812] [cursor=pointer]:
+              - generic [ref=e813]:
+                - generic [ref=e814]: 📋
+                - generic [ref=e815]: 页脚信息
+              - paragraph [ref=e816]: 底部联系信息和链接
+        - generic [ref=e821]:
+          - heading "Hero 区域配置" [level=3] [ref=e822]
+          - generic [ref=e823]:
+            - generic [ref=e824]:
+              - generic [ref=e825]: Logo文字
+              - textbox "无人机培训中心" [ref=e828]: 戎创未来
+            - generic [ref=e829]:
+              - generic [ref=e830]: 主标题
+              - textbox "翱翔蓝天" [ref=e833]
+            - generic [ref=e834]:
+              - generic [ref=e835]: 副标题
+              - textbox "成就飞行梦想" [ref=e838]
+            - generic [ref=e839]:
+              - generic [ref=e840]: 主按钮文字
+              - textbox "查看课程" [ref=e843]
+            - generic [ref=e844]:
+              - generic [ref=e845]: 次要按钮文字
+              - textbox "预约试听" [ref=e848]
+          - generic [ref=e849]:
+            - generic [ref=e850]: 描述文字（支持换行）
+            - textbox "专业无人机驾驶培训，权威认证资质" [ref=e852]: 专业无人机驾驶培训，权威认证资质 从入门到持证，一站式服务让飞行触手可及
+          - generic [ref=e853]:
+            - generic [ref=e854]:
+              - generic [ref=e855]:
+                - generic [ref=e856]: Hero轮播图
+                - button "添加轮播图" [active] [ref=e857] [cursor=pointer]:
+                  - img [ref=e858]
+                  - text: 添加轮播图
+              - generic [ref=e859]:
+                - generic [ref=e860]:
+                  - img "CAAC执照培训春季特惠" [ref=e862]
+                  - generic [ref=e863]:
+                    - paragraph [ref=e864]: CAAC执照培训春季特惠
+                    - generic [ref=e865]:
+                      - generic [ref=e866]: "排序: 1"
+                      - generic [ref=e867]: "关联: CAAC无人机驾驶员执照培训"
+                  - generic [ref=e868]:
+                    - button "编辑" [ref=e869] [cursor=pointer]:
+                      - img [ref=e870]
+                    - button "删除" [ref=e872] [cursor=pointer]:
+                      - img [ref=e873]
+                - generic [ref=e876]:
+                  - img "AOPA认证限时优惠" [ref=e878]
+                  - generic [ref=e879]:
+                    - paragraph [ref=e880]: AOPA认证限时优惠
+                    - generic [ref=e881]:
+                      - generic [ref=e882]: "排序: 3"
+                      - generic [ref=e883]: "关联: 无人机航拍技术专业课程"
+                  - generic [ref=e884]:
+                    - button "编辑" [ref=e885] [cursor=pointer]:
+                      - img [ref=e886]
+                    - button "删除" [ref=e888] [cursor=pointer]:
+                      - img [ref=e889]
+                - generic [ref=e892]:
+                  - img "猫大爷" [ref=e894]
+                  - generic [ref=e895]:
+                    - paragraph [ref=e896]: 猫大爷
+                    - generic [ref=e897]:
+                      - generic [ref=e898]: "排序: 2"
+                      - generic [ref=e899]: "关联: 植保无人机操作与维护"
+                  - generic [ref=e900]:
+                    - button "编辑" [ref=e901] [cursor=pointer]:
+                      - img [ref=e902]
+                    - button "删除" [ref=e904] [cursor=pointer]:
+                      - img [ref=e905]
+            - generic [ref=e908]:
+              - generic [ref=e909]: 信任标识（逗号分隔）
+              - textbox "官方认证，不过退费，推荐就业" [ref=e912]

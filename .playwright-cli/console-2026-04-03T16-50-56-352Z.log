@@ -1,0 +1,4 @@
+[     345ms] [LOG] [adminService] 调用云函数: action=list, params= {collection: banners, query: Object, options: Object} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-DQFCnNiV-v20260408-0035-featuredCourses-fix.js:0
+[     346ms] [LOG] [adminService] 调用云函数: action=get, params= {collection: featuredCourses, docId: home-featured} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-DQFCnNiV-v20260408-0035-featuredCourses-fix.js:0
+[     573ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: 329c286f-2613-4df0-abb9-3c93903779f4} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-DQFCnNiV-v20260408-0035-featuredCourses-fix.js:0
+[     596ms] [LOG] [adminService] 云函数返回: {result: Object, requestId: a8b946fb-d2c2-4d49-9c45-2b857ccc3ac4} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-DQFCnNiV-v20260408-0035-featuredCourses-fix.js:0

@@ -1,0 +1,4 @@
+[   12450ms] [LOG] ✅ 使用缓存的会话 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/app-PzHiGYuN-v20260408-0020-adminService-fix.js:254
+[   12451ms] [LOG] 查询集合: courses, 参数: {page: 1, pageSize: 100} @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-C6ASClun-v20260408-0020-adminService-fix.js:0
+[   12510ms] [LOG] 集合 courses 总数: 4 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-C6ASClun-v20260408-0020-adminService-fix.js:0
+[   12573ms] [LOG] 查询到 4 条数据 @ https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/assets/chunk-C6ASClun-v20260408-0020-adminService-fix.js:0

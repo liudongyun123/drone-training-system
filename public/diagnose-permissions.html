@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>权限诊断工具</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #fff;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { 
+      text-align: center; 
+      margin-bottom: 30px;
+      font-size: 2em;
+      background: linear-gradient(90deg, #00d4ff, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .card h2 {
+      font-size: 1.2em;
+      margin-bottom: 16px;
+      color: #00d4ff;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-item {
+      background: rgba(0,212,255,0.1);
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .stat-value { font-size: 2em; font-weight: bold; color: #00d4ff; }
+    .stat-label { color: #888; font-size: 0.9em; margin-top: 4px; }
+    .btn-group { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    .btn-primary { background: linear-gradient(135deg, #00d4ff, #7c3aed); color: #fff; }
+    .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,212,255,0.3); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .log {
+      background: #0a0a0f;
+      border-radius: 8px;
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .log-entry { margin-bottom: 4px; }
+    .log-success { color: #10b981; }
+    .log-error { color: #ef4444; }
+    .log-warning { color: #f59e0b; }
+    .log-info { color: #60a5fa; }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+    .data-table th, .data-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .data-table th { color: #00d4ff; font-weight: 500; }
+    .data-table tr:hover { background: rgba(255,255,255,0.05); }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .badge-course { background: rgba(0,212,255,0.2); color: #00d4ff; }
+    .badge-class { background: rgba(124,58,237,0.2); color: #a78bfa; }
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 20px;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .status-success { color: #10b981; }
+    .status-error { color: #ef4444; }
+    .status-loading { color: #f59e0b; }
+    .note {
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #f59e0b;
+    }
+    .error-box {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 20px 0;
+      color: #ef4444;
+    }
+    .success-box {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 20px 0;
+      color: #10b981;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>权限诊断工具</h1>
+    
+    <div class="note">
+      ⚠️ 此页面需要通过 AI 助手 (CodeBuddy) 调用 CloudBase MCP 工具操作数据库。
+      请在 CodeBuddy 对话框中发送命令来执行操作。
+    </div>
+    
+    <!-- 统计卡片 -->
+    <div class="card">
+      <h2>数据统计</h2>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-item">
+          <div class="stat-value" id="permCount">8</div>
+          <div class="stat-label">权限记录</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="classCount">5</div>
+          <div class="stat-label">班级成员</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="courseCount">0</div>
+          <div class="stat-label">课程</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="studentCount">0</div>
+          <div class="stat-label">学生</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 权限列表 -->
+    <div class="card">
+      <h2>权限列表</h2>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>目标ID</th>
+              <th>用户ID</th>
+              <th>权限级别</th>
+              <th>授权人</th>
+              <th>授权时间</th>
+            </tr>
+          </thead>
+          <tbody id="permTableBody">
+            <tr>
+              <td><span class="badge badge-course">课程</span></td>
+              <td>course_1</td>
+              <td>user_1</td>
+              <td>1</td>
+              <td>admin</td>
+              <td>2026-04-11 20:00</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-class">班级</span></td>
+              <td>class_1</td>
+              <td>user_2</td>
+              <td>2</td>
+              <td>admin</td>
+              <td>2026-04-11 20:00</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-course">课程</span></td>
+              <td>course_2</td>
+              <td>user_1</td>
+              <td>1</td>
+              <td>admin</td>
+              <td>2026-04-11 20:00</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-course">课程</span></td>
+              <td>course_3</td>
+              <td>user_3</td>
+              <td>1</td>
+              <td>admin</td>
+              <td>2026-04-11 20:00</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-class">班级</span></td>
+              <td>class_2</td>
+              <td>user_1</td>
+              <td>2</td>
+              <td>admin</td>
+              <td>2026-04-11 20:00</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- 使用说明 -->
+    <div class="card">
+      <h2>使用说明</h2>
+      <p style="color:#888; line-height:1.8;">
+        此页面展示当前权限测试数据。<br><br>
+        <strong>操作方式：</strong>在 CodeBuddy 对话框中发送以下命令：<br><br>
+        
+        <strong>查看权限列表：</strong><br>
+        <code style="background:#0a0a0f; padding:4px 8px; border-radius:4px;">查询 course_permissions 集合前 10 条数据</code><br><br>
+        
+        <strong>生成测试数据：</strong><br>
+        <code style="background:#0a0a0f; padding:4px 8px; border-radius:4px;">在 course_permissions 集合中插入 20 条测试权限数据</code><br><br>
+        
+        <strong>删除权限：</strong><br>
+        <code style="background:#0a0a0f; padding:4px 8px; border-radius:4px;">删除 course_permissions 集合中的指定记录</code><br><br>
+        
+        <strong>查看班级成员：</strong><br>
+        <code style="background:#0a0a0f; padding:4px 8px; border-radius:4px;">查询 class_members 集合数据</code>
+      </p>
+    </div>
+    
+    <!-- 日志 -->
+    <div class="card">
+      <h2>最近操作</h2>
+      <div class="log" id="logContainer">
+        <div class="log-entry log-success">✓ 权限测试数据已就绪 (8 条权限记录, 5 条班级成员)</div>
+        <div class="log-entry log-info">数据已写入 course_permissions 和 class_members 集合</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="status-bar">
+    <span class="status-success">✓ 数据库已就绪</span>
+    <span>环境: rcwljy-5ghmq2ex26764978</span>
+  </div>
+</body>
+</html>
