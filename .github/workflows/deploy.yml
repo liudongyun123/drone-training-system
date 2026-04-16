@@ -30,16 +30,17 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: Install CloudBase CLI
+        run: npm install -g @cloudbase/cli
+
       - name: Deploy to CloudBase
-        uses: TencentCloudBase/action@v2
-        with:
-          secret-id: ${{ secrets.CLOUDBASE_SECRET_ID }}
-          secret-key: ${{ secrets.CLOUDBASE_SECRET_KEY }}
-          env-id: ${{ secrets.CLOUDBASE_ENV_ID }}
-          upload-path: './dist'
-          static-website: true
+        run: |
+          tcb surestatic --env-id ${{ secrets.CLOUDBASE_ENV_ID }} --upload-path ./dist
+        env:
+          CLOUDBASE_SECRET_ID: ${{ secrets.CLOUDBASE_SECRET_ID }}
+          CLOUDBASE_SECRET_KEY: ${{ secrets.CLOUDBASE_SECRET_KEY }}
 
       - name: Deployment Summary
         run: |
           echo "✅ 部署完成！"
-          echo "🌐 访问地址: https://${{ secrets.CLOUDBASE_ENV_ID }}-${{ secrets.CLOUDBASE_APP_ID }}.tcloudbaseapp.com/"
+          echo "🌐 访问地址: https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/"
