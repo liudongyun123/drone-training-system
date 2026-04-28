@@ -7,17 +7,18 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['src/test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    setupFiles: ['./tests/setup.ts'],
+    // 只包含单元测试，不包含 E2E 测试
+    include: ['tests/unit/**/*.test.{js,ts}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
-        'src/test/',
+        'tests/e2e/',
+        'tests/setup.ts',
         '**/*.d.ts',
         '**/*.config.*',
-        '**/index.ts',
       ],
     },
   },

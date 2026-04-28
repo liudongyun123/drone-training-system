@@ -8,7 +8,7 @@ const ENV_ID = "rcwljy-5ghmq2ex26764978";
 const PUBLISHABLE_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY2M2M2Q4MTQ5OCJ9.eyJpc3MiOiJodHRwczovL3Jjd2xqeS01Z2htcTJleDI2NzY0OTc4LmFwLXNoYW5naGFpLnRjYi1hcGkudGVuY2VudGNsb3VkYXBpLmNvbSIsInN1YiI6ImFub24iLCJhdWQiOiJyY3dsanktNWdobXEyZXgyNjc2NDk3OCIsImV4cCI6NDA3NzU5NTUxNCwiaWF0IjoxNzczOTEyMzE0LCJub25jZSI6Ik5ta1U4MXRaUTdHTnFvT2kxY3hrOHciLCJhdF9oYXNoIjoiTm1rVTgxdFpRN0dOcW9PaTFjeGs4dyIsIm5hbWUiOiJBbm9ueW1vdXMiLCJzY29wZSI6ImFub255bW91cyIsInByb2plY3RfaWQiOiJyY3dsanktNWdobXEyZXgyNjc2NDk3OCIsInVzZXJfdHlwZSI6IiIsImNsaWVudF90eXBlIjoiY2xpZW50X3VzZXIiLCJpc19zeXN0ZW1fYWRtaW4iOmZhbHNlfQ.QBOkGCaryupFFhFuxDIwDljwC5PRan_zMneIjlaa9_UJLz1ajlBumYCmaFA5IAYQ97yC5fuxmH36HjhBoegA3XY1gE_BNL0aRcD-Gwu5Tmk57IrPzXKKkXN3eSCbJmD3aLVDeHguRyUO1Qc3oSIiUVlVox77BGj7GFw9TdQzJaWnrRWSmhsPaQoiSqI7HjhdDhIpVoMBZfSpAY1kqEjUvZ8r54e6vHgGm6XmeQXFQQ9141SUAt839J45rkhrRWS28Yxt6Rlbrk7nGllYV-q_uuTzdCaBw0aUYdoRJAHoyaPyTz2rIPexk36Ox8Ai9pQpmn9RcrTpm0MXJIoQrrwNLw";
 
 // 构建版本号
-const BUILD_VERSION = 'v20260416-1615-sentry';
+const BUILD_VERSION = 'v20260427-1510-optimized';
 
 // Sentry 配置
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
@@ -106,16 +106,13 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 500, // 降低警告阈值
+    // 使用 esbuild 压缩并移除 console 和 debugger
     minify: 'esbuild',
+    esbuild: {
+      drop: ['console', 'debugger'], // 生产环境移除 console 和 debugger
+    },
     // 报告压缩后的文件大小
     reportCompressedSize: true,
-    // 启用 gzip 压缩
-    // terserOptions: {
-    //   compress: {
-    //     drop_console: true, // 生产环境移除 console
-    //     drop_debugger: true,
-    //   },
-    // },
   },
   define: {
     'import.meta.env.VITE_ENV_ID': JSON.stringify(ENV_ID),

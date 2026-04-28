@@ -35,3 +35,6 @@ playwright-report/
 *.tmp
 *.temp
 .cache/
+
+# CodeBuddy (AI assistant configs)
+.codebuddy/

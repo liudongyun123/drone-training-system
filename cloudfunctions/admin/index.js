@@ -1,6 +1,6 @@
 // 管理后台云函数 v2.0
 // 处理所有后台管理相关的数据库操作
-// 版本: v202604121540-phone-query
+// 版本: v202604122135-cors
 const tcb = require('tcb-admin-node')
 
 // 使用默认初始化（CloudBase 会自动注入凭证）
@@ -8,11 +8,28 @@ const app = tcb.init()
 const db = app.database()
 const _ = db.command
 
+// CORS 头配置
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+  'Access-Control-Max-Age': '86400'
+}
+
 /**
  * 主函数
  */
 exports.main = async (event, context) => {
   const { action, collection, data, query, docId, options, batchData } = event
+  
+  // 处理 CORS 预检请求
+  if (event.request && event.request.method === 'OPTIONS') {
+    return {
+      code: 200,
+      message: 'OK',
+      headers: CORS_HEADERS
+    }
+  }
   
   console.log('管理后台请求:', { action, collection, docId, dataKeys: data ? Object.keys(data) : [] })
   

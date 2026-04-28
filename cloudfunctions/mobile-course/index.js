@@ -412,15 +412,465 @@ async function getRecommendedCourses(courseId, limit = 6) {
 }
 
 /**
+ * 获取正在招生的班级
+ */
+async function enrollingClasses(params = {}) {
+  const { page = 1, pageSize = 10 } = params;
+  
+  // 从 classes 集合获取正在招生的班级
+  let where = {
+    status: 'open', // 或 'enrolling'
+  };
+  
+  // 获取总数
+  const countResult = await db.collection('classes')
+    .where(where)
+    .count();
+  
+  // 获取列表
+  const classes = await db.collection('classes')
+    .where(where)
+    .orderBy('startDate', 'asc')
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .get();
+  
+  // 获取关联课程信息
+  const courseIds = [...new Set(classes.data.map(c => c.courseId).filter(Boolean))];
+  let coursesMap = {};
+  
+  if (courseIds.length > 0) {
+    const courses = await db.collection('courses')
+      .where({
+        _id: _.in(courseIds),
+      })
+      .field({ _id: true, title: true })
+      .get();
+    
+    coursesMap = courses.data.reduce((acc, c) => {
+      acc[c._id] = c;
+      return acc;
+    }, {});
+  }
+  
+  // 获取关联教师信息
+  const teacherIds = [...new Set(classes.data.map(c => c.teacherId).filter(Boolean))];
+  let teachersMap = {};
+  
+  if (teacherIds.length > 0) {
+    const teachers = await db.collection('teachers')
+      .where({
+        _id: _.in(teacherIds),
+      })
+      .field({ _id: true, name: true })
+      .get();
+    
+    teachersMap = teachers.data.reduce((acc, t) => {
+      acc[t._id] = t;
+      return acc;
+    }, {});
+  }
+  
+  const list = classes.data.map(cls => ({
+    _id: cls._id,
+    classId: cls._id,
+    name: cls.name || cls.className || '班级名称',
+    className: cls.name || cls.className || '班级名称',
+    coverImage: cls.coverImage || cls.cover || '',
+    price: cls.price || 0,
+    startDate: cls.startDate || cls.startTime || '',
+    location: cls.location || '',
+    maxStudents: cls.maxStudents || cls.capacity?.max || 30,
+    enrolledCount: cls.enrolledCount || cls.capacity?.enrolled || 0,
+    status: cls.status || 'open',
+    courseId: cls.courseId,
+    courseName: coursesMap[cls.courseId]?.title || '',
+    teacherId: cls.teacherId,
+    teacherName: teachersMap[cls.teacherId]?.name || '待分配',
+    hasVideoGrant: cls.hasVideoGrant || false,
+    videoGrantCourseName: cls.videoGrantCourseName || '',
+  }));
+  
+  return {
+    success: true,
+    data: list,
+    total: countResult.total,
+    page,
+    pageSize,
+  };
+}
+
+/**
+ * 获取班级详情
+ */
+async function classDetail(classId) {
+  const classes = await db.collection('classes')
+    .doc(classId)
+    .get();
+  
+  if (classes.data.length === 0) {
+    return { success: false, error: '班级不存在' };
+  }
+  
+  const cls = classes.data;
+  
+  // 获取关联课程信息
+  let course = null;
+  if (cls.courseId) {
+    const courses = await db.collection('courses')
+      .doc(cls.courseId)
+      .field({ _id: true, title: true, description: true, cover: true })
+      .get();
+    
+    if (courses.data.length > 0) {
+      course = courses.data;
+    }
+  }
+  
+  // 获取教师信息
+  let teacher = null;
+  if (cls.teacherId) {
+    const teachers = await db.collection('teachers')
+      .doc(cls.teacherId)
+      .field({ _id: true, name: true, avatar: true, title: true })
+      .get();
+    
+    if (teachers.data.length > 0) {
+      teacher = teachers.data;
+    }
+  }
+  
+  return {
+    success: true,
+    data: {
+      _id: cls._id,
+      classId: cls._id,
+      name: cls.name || cls.className || '班级名称',
+      className: cls.name || cls.className || '班级名称',
+      coverImage: cls.coverImage || cls.cover || '',
+      description: cls.description || course?.description || '',
+      price: cls.price || 0,
+      originalPrice: cls.originalPrice || cls.price || 0,
+      startDate: cls.startDate || cls.startTime || '',
+      endDate: cls.endDate || cls.endTime || '',
+      location: cls.location || '',
+      maxStudents: cls.maxStudents || cls.capacity?.max || 30,
+      enrolledCount: cls.enrolledCount || cls.capacity?.enrolled || 0,
+      status: cls.status || 'open',
+      courseId: cls.courseId,
+      courseName: course?.title || '',
+      teacherId: cls.teacherId,
+      teacherName: teacher?.name || '待分配',
+      teacherAvatar: teacher?.avatar || '',
+      teacherTitle: teacher?.title || '',
+      hasVideoGrant: cls.hasVideoGrant || false,
+      videoGrantCourseName: cls.videoGrantCourseName || '',
+      videoGrantCourseId: cls.videoGrantCourseId || '',
+      contactPhone: cls.contactPhone || '',
+      notes: cls.notes || '',
+      createdAt: cls.createdAt,
+      updatedAt: cls.updatedAt,
+    },
+  };
+}
+
+/**
+ * 提交报名
+ */
+async function submitEnrollment(data) {
+  const { classId, name, phone, idCard, notes, code } = data;
+  
+  if (!classId) {
+    return { success: false, error: '缺少班级ID' };
+  }
+  
+  if (!name || !phone) {
+    return { success: false, error: '姓名和手机号不能为空' };
+  }
+  
+  // 验证手机号
+  if (!/^1[3-9]\d{9}$/.test(phone)) {
+    return { success: false, error: '手机号格式不正确' };
+  }
+  
+  // 获取班级信息
+  const classes = await db.collection('classes')
+    .doc(classId)
+    .get();
+  
+  if (classes.data.length === 0) {
+    return { success: false, error: '班级不存在' };
+  }
+  
+  const cls = classes.data;
+  
+  // 检查是否已满员
+  const maxStudents = cls.maxStudents || cls.capacity?.max || 30;
+  const enrolledCount = cls.enrolledCount || cls.capacity?.enrolled || 0;
+  
+  if (enrolledCount >= maxStudents) {
+    return { success: false, error: '班级已满员' };
+  }
+  
+  // 检查是否重复报名
+  const existEnrollment = await db.collection('enrollments')
+    .where({
+      classId,
+      phone,
+      status: _.nin(['cancelled', 'rejected']),
+    })
+    .limit(1)
+    .get();
+  
+  if (existEnrollment.data.length > 0) {
+    return { success: false, error: '您已报名此班级' };
+  }
+  
+  // 创建报名记录
+  const enrollmentData = {
+    classId,
+    className: cls.name || cls.className,
+    courseId: cls.courseId,
+    name,
+    phone,
+    idCard: idCard || '',
+    notes: notes || '',
+    status: 'pending', // pending, confirmed, cancelled
+    enrollmentTime: new Date().toISOString(),
+    source: 'online', // online, offline
+    createdAt: db.serverDate(),
+    updatedAt: db.serverDate(),
+  };
+  
+  // 如果有用户ID，关联用户
+  if (data.userId) {
+    enrollmentData.userId = data.userId;
+  }
+  
+  const result = await db.collection('enrollments')
+    .add({
+      data: enrollmentData,
+    });
+  
+  // 更新班级已报名人数
+  await db.collection('classes')
+    .doc(classId)
+    .update({
+      enrolledCount: _.inc(1),
+      updatedAt: db.serverDate(),
+    });
+  
+  return {
+    success: true,
+    data: {
+      enrollmentId: result.id,
+      message: '报名成功，请等待审核',
+    },
+  };
+}
+
+/**
+ * 获取班级列表（通用，支持更多筛选）
+ */
+async function getClassList(params = {}) {
+  const {
+    page = 1,
+    pageSize = 10,
+    status = '',
+    keyword = '',
+  } = params;
+  
+  let where = {};
+  
+  // 状态筛选
+  if (status) {
+    where.status = status;
+  }
+  
+  // 关键词搜索
+  if (keyword) {
+    where = {
+      ...where,
+      $or: [
+        { name: db.RegExp({ regexp: keyword, options: 'i' }) },
+        { className: db.RegExp({ regexp: keyword, options: 'i' }) },
+      ],
+    };
+  }
+  
+  // 获取总数
+  const countResult = await db.collection('classes')
+    .where(where)
+    .count();
+  
+  // 获取列表
+  const classes = await db.collection('classes')
+    .where(where)
+    .orderBy('startDate', 'asc')
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .get();
+  
+  const list = classes.data.map(cls => ({
+    _id: cls._id,
+    classId: cls._id,
+    name: cls.name || cls.className || '班级名称',
+    className: cls.name || cls.className || '班级名称',
+    coverImage: cls.coverImage || cls.cover || '',
+    price: cls.price || 0,
+    startDate: cls.startDate || '',
+    location: cls.location || '',
+    maxStudents: cls.maxStudents || 30,
+    enrolledCount: cls.enrolledCount || 0,
+    status: cls.status || 'open',
+    teacherName: cls.teacherName || '待分配',
+  }));
+  
+  return {
+    success: true,
+    data: list,
+    total: countResult.total,
+    page,
+    pageSize,
+  };
+}
+
+/**
+ * 获取通知公告
+ */
+async function getNotices(limit = 10) {
+  const notices = await db.collection('notices')
+    .where({
+      status: 'published',
+    })
+    .orderBy('createdAt', 'desc')
+    .limit(limit)
+    .get();
+  
+  return {
+    success: true,
+    data: notices.data.map(n => ({
+      _id: n._id,
+      title: n.title,
+      content: n.content,
+      createdAt: n.createdAt,
+    })),
+  };
+}
+
+/**
+ * 获取教师列表
+ */
+async function getTeachers(params = {}) {
+  const { specialty = '' } = params;
+  
+  let where = {};
+  
+  if (specialty) {
+    where.specialty = specialty;
+  }
+  
+  const teachers = await db.collection('teachers')
+    .where(where)
+    .field({
+      _id: true,
+      name: true,
+      avatar: true,
+      title: true,
+      specialty: true,
+      bio: true,
+    })
+    .limit(20)
+    .get();
+  
+  return {
+    success: true,
+    data: teachers.data,
+  };
+}
+
+/**
+ * 获取学习路径
+ */
+async function getLearningPaths(params = {}) {
+  const { limit = 10, difficulty = '' } = params;
+  
+  let where = {};
+  
+  if (difficulty) {
+    where.difficulty = difficulty;
+  }
+  
+  const paths = await db.collection('learning_paths')
+    .where(where)
+    .orderBy('order', 'asc')
+    .limit(limit)
+    .get();
+  
+  return {
+    success: true,
+    data: paths.data.map(p => ({
+      _id: p._id,
+      name: p.name,
+      description: p.description,
+      difficulty: p.difficulty || 'beginner',
+      categoryIds: p.categoryIds || [],
+      order: p.order || 0,
+    })),
+  };
+}
+
+/**
+ * 获取轮播图
+ */
+async function getBanners(limit = 5) {
+  const banners = await db.collection('banners')
+    .where({
+      status: 'active',
+    })
+    .orderBy('order', 'asc')
+    .limit(limit)
+    .get();
+  
+  return {
+    success: true,
+    data: banners.data.map(b => ({
+      _id: b._id,
+      image: b.image,
+      link: b.link || '',
+      courseId: b.courseId || '',
+      title: b.title || '',
+      order: b.order || 0,
+    })),
+  };
+}
+
+/**
  * 主入口
  */
 exports.main = async (event, context) => {
-  const { action, data = {} } = event;
+  // 调试日志
+  console.log('HTTP Event:', JSON.stringify(event));
+  
+  // HTTP 云函数格式：event 是整个请求体
+  // 如果 event 是字符串，尝试解析
+  let parsedEvent = event;
+  if (typeof event === 'string') {
+    try {
+      parsedEvent = JSON.parse(event);
+    } catch (e) {
+      console.error('Parse event error:', e);
+    }
+  }
+  
+  // HTTP 云函数中，请求参数在 event 中
+  const { action, data = {} } = parsedEvent;
   
   try {
     let result;
     
     switch (action) {
+      // 原有 action（兼容）
       case 'getCourseList':
         result = await getCourseList(data);
         break;
@@ -453,8 +903,63 @@ exports.main = async (event, context) => {
         result = await getRecommendedCourses(data.courseId, data.limit);
         break;
         
+      // 新增 action（匹配 services.ts）
+      case 'list':
+        result = await getCourseList(data);
+        break;
+        
+      case 'detail':
+        result = await getCourseDetail(data.courseId);
+        break;
+        
+      case 'chapters':
+        // 返回课程章节
+        const chaptersResult = await db.collection('lessons')
+          .where({ courseId: data.courseId })
+          .orderBy('order', 'asc')
+          .get();
+        result = { success: true, data: chaptersResult.data };
+        break;
+        
+      case 'categories':
+        result = await getCategories();
+        break;
+        
+      case 'banners':
+        result = await getBanners(data.limit);
+        break;
+        
+      case 'enrollingClasses':
+        result = await enrollingClasses(data);
+        break;
+        
+      case 'classDetail':
+        result = await classDetail(data.classId);
+        break;
+        
+      case 'enroll':
+        result = await submitEnrollment(data);
+        break;
+        
+      case 'learningPaths':
+        result = await getLearningPaths(data);
+        break;
+        
+      case 'notices':
+        result = await getNotices(data.limit);
+        break;
+        
+      case 'teachers':
+        result = await getTeachers(data);
+        break;
+        
+      // 兼容旧格式
+      case 'getList':
+        result = await getCourseList(data);
+        break;
+        
       default:
-        result = { success: false, error: '未知的操作' };
+        result = { success: false, error: '未知的操作: ' + action };
     }
     
     return result;

@@ -3,346 +3,216 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>系统诊断工具</title>
-  <script src="https://static.cloudbase.net/cloudbase-js-sdk/2.26.3/cloudbase.full.js"></script>
+  <title>数据库诊断 - 无人机培训系统</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f5f5;
-      padding: 20px;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 8px;
-      padding: 30px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    h1 {
-      color: #333;
-      margin-bottom: 20px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #1890ff;
-    }
-    .section {
-      margin: 20px 0;
-      padding: 15px;
-      background: #f8f9fa;
-      border-radius: 6px;
-    }
-    .section h3 {
-      color: #555;
-      margin-bottom: 10px;
-    }
-    button {
-      background: #1890ff;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      margin: 5px;
-    }
-    button:hover { background: #40a9ff; }
-    button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-    .result {
-      margin-top: 15px;
-      padding: 15px;
-      border-radius: 4px;
-      font-family: monospace;
-      font-size: 13px;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-    .success { background: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }
-    .error { background: #fff2f0; border: 1px solid #ffccc7; color: #ff4d4f; }
-    .info { background: #e6f7ff; border: 1px solid #91d5ff; color: #1890ff; }
-    .log {
-      max-height: 300px;
-      overflow-y: auto;
-      background: #1e1e1e;
-      color: #d4d4d4;
-      padding: 15px;
-      border-radius: 4px;
-      font-family: 'Consolas', monospace;
-      font-size: 12px;
-      margin-top: 10px;
-    }
-    .log-entry {
-      margin: 2px 0;
-      padding: 2px 0;
-    }
-    .log-time { color: #858585; }
-    .log-info { color: #4fc1ff; }
-    .log-success { color: #4ec9b0; }
-    .log-error { color: #f44747; }
-    .status-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      margin-left: 10px;
-    }
-    .status-ok { background: #52c41a; color: white; }
-    .status-error { background: #ff4d4f; color: white; }
-    .status-pending { background: #faad14; color: white; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { color: #1976d2; margin-bottom: 20px; font-size: 24px; }
+    .test-item { display: flex; align-items: center; padding: 16px; border-bottom: 1px solid #eee; }
+    .test-item:last-child { border-bottom: none; }
+    .status { width: 32px; height: 32px; border-radius: 50%; margin-right: 16px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .pending { background: #ffa726; color: white; }
+    .success { background: #4caf50; color: white; }
+    .error { background: #f44336; color: white; }
+    .info { flex: 1; }
+    .info h3 { font-size: 16px; margin-bottom: 4px; }
+    .info p { font-size: 14px; color: #666; }
+    .details { background: #f5f5f5; padding: 12px; border-radius: 8px; margin-top: 8px; font-family: monospace; font-size: 12px; word-break: break-all; }
+    button { background: #1976d2; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; margin-top: 20px; }
+    button:hover { background: #1565c0; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .summary { background: #e3f2fd; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+    .summary h2 { color: #1976d2; margin-bottom: 8px; }
+    .env-info { background: #fff3e0; padding: 12px; border-radius: 8px; margin-top: 16px; font-size: 14px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>
-      🔧 无人机培训系统诊断工具
-      <span id="overall-status" class="status-badge status-pending">待检测</span>
-    </h1>
+    <h1>🔍 数据库连通性诊断</h1>
     
-    <div class="section">
-      <h3>1. SDK 初始化测试</h3>
-      <p>测试 CloudBase SDK 是否能正确初始化</p>
-      <button onclick="testInit()">测试初始化</button>
-      <div id="init-result" class="result" style="display:none;"></div>
+    <div class="summary" id="summary">
+      <h2>点击下方按钮开始测试</h2>
+      <p>系统将依次检测：环境配置 → SDK初始化 → 匿名登录 → 数据库连接 → 数据读取</p>
     </div>
 
-    <div class="section">
-      <h3>2. 匿名登录测试</h3>
-      <p>测试能否成功匿名登录（数据库访问需要登录）</p>
-      <button onclick="testLogin()">测试登录</button>
-      <div id="login-result" class="result" style="display:none;"></div>
+    <div id="tests">
+      <div class="test-item">
+        <div class="status pending" id="status-1">1</div>
+        <div class="info">
+          <h3>环境配置检测</h3>
+          <p>检查环境ID和密钥是否正确配置</p>
+          <div class="details" id="detail-1">等待测试...</div>
+        </div>
+      </div>
+
+      <div class="test-item">
+        <div class="status pending" id="status-2">2</div>
+        <div class="info">
+          <h3>CloudBase SDK 初始化</h3>
+          <p>验证云开发 SDK 是否正常加载</p>
+          <div class="details" id="detail-2">等待测试...</div>
+        </div>
+      </div>
+
+      <div class="test-item">
+        <div class="status pending" id="status-3">3</div>
+        <div class="info">
+          <h3>匿名登录</h3>
+          <p>测试用户认证功能</p>
+          <div class="details" id="detail-3">等待测试...</div>
+        </div>
+      </div>
+
+      <div class="test-item">
+        <div class="status pending" id="status-4">4</div>
+        <div class="info">
+          <h3>数据库连接</h3>
+          <p>测试 NoSQL 数据库连通性</p>
+          <div class="details" id="detail-4">等待测试...</div>
+        </div>
+      </div>
+
+      <div class="test-item">
+        <div class="status pending" id="status-5">5</div>
+        <div class="info">
+          <h3>数据读取测试</h3>
+          <p>尝试读取 courses 集合数据</p>
+          <div class="details" id="detail-5">等待测试...</div>
+        </div>
+      </div>
     </div>
 
-    <div class="section">
-      <h3>3. 数据库连接测试</h3>
-      <p>测试能否成功查询数据库集合</p>
-      <button onclick="testDatabase()">测试教师数据</button>
-      <button onclick="testStudents()">测试学员数据</button>
-      <div id="db-result" class="result" style="display:none;"></div>
-    </div>
+    <button id="startBtn" onclick="runTests()">▶ 开始诊断</button>
 
-    <div class="section">
-      <h3>4. 全量数据检查</h3>
-      <p>检查所有集合的数据量</p>
-      <button onclick="checkAllCollections()">检查所有集合</button>
-      <div id="all-result" class="result" style="display:none;"></div>
-    </div>
-
-    <div class="section">
-      <h3>📋 运行日志</h3>
-      <div id="log" class="log"></div>
-      <button onclick="clearLog()" style="margin-top:10px;">清空日志</button>
+    <div class="env-info" id="envInfo">
+      <strong>环境信息：</strong><br>
+      <span id="envDisplay"></span>
     </div>
   </div>
 
+  <script src="https://cos.clsaw.com/cloudbase-js-sdk/cloudbase-js-sdk@3.3.3/cloudbase-js-sdk@3.3.3.js"></script>
   <script>
-    const envId = 'rcwljy-5ghmq2ex26764978';
+    // 环境配置
+    const ENV_ID = 'rcwljy-5ghmq2ex26764978';
+    const PUBLISHABLE_KEY = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY2M2M2Q4MTQ5OCJ9.eyJpc3MiOiJodHRwczovL3Jjd2xqeS01Z2htcTJleDI2NzY0OTc4LmFwLXNoYW5naGFpLnRjYi1hcGkudGVuY2VudGNsb3VkYXBpLmNvbSIsInN1YiI6ImFub24iLCJhdWQiOiJyY3dsanktNWdobXEyZXgyNjc2NDk3OCIsImV4cCI6NDA3NzU5NTUxNCwiaWF0IjoxNzczOTEyMzE0LCJub25jZSI6Ik5ta1U4MXRaUTdHTnFvT2kxY3hrOHciLCJhdF9oYXNoIjoiTm1rVTgxdFpRN0dOcW9PaTFjeGs4dyIsIm5hbWUiOiJBbm9ueW1vdXMiLCJzY29wZSI6ImFub255bW91cyIsInByb2plY3RfaWQiOiJyY3dsanktNWdobXEyZXgyNjc2NDk3OCIsInVzZXJfdHlwZSI6IiIsImNsaWVudF90eXBlIjoiY2xpZW50X3VzZXIiLCJpc19zeXN0ZW1fYWRtaW4iOmZhbHNlfQ.QBOkGCaryupFFhFuxDIwDljwC5PRan_zMneIjlaa9_UJLz1ajlBumYCmaFA5IAYQ97yC5fuxmH36HjhBoegA3XY1gE_BNL0aRcD-Gwu5Tmk57IrPzXKKkXN3eSCbJmD3aLVDeHguRyUO1Qc3oSIiUVlVox77BGj7GFw9TdQzJaWnrRWSmhsPaQoiSqI7HjhdDhIpVoMBZfSpAY1kqEjUvZ8r54e6vHgGm6XmeQXFQQ9141SUAt839J45rkhrRWS28Yxt6Rlbrk7nGllYV-q_uuTzdCaBw0aUYdoRJAHoyaPyTz2rIPexk36Ox8Ai9pQpmn9RcrTpm0MXJIoQrrwNLw';
+
     let app = null;
-    let isLoggedIn = false;
+    let passed = 0;
+    let failed = 0;
 
-    function log(message, type = 'info') {
-      const logEl = document.getElementById('log');
-      const time = new Date().toLocaleTimeString();
-      const className = type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : 'log-info';
-      logEl.innerHTML += `<div class="log-entry"><span class="log-time">[${time}]</span> <span class="${className}">${message}</span></div>`;
-      logEl.scrollTop = logEl.scrollHeight;
+    // 显示环境信息
+    document.getElementById('envDisplay').textContent = 
+      `环境ID: ${ENV_ID}\nPublishable Key: ${PUBLISHABLE_KEY.substring(0, 50)}...`;
+
+    function updateStatus(num, status, message, details = '') {
+      const statusEl = document.getElementById(`status-${num}`);
+      const detailEl = document.getElementById(`detail-${num}`);
+      
+      statusEl.className = `status ${status}`;
+      statusEl.textContent = status === 'success' ? '✓' : status === 'error' ? '✗' : num;
+      detailEl.textContent = message + (details ? '\n\n' + details : '');
+      
+      if (status === 'success') passed++;
+      if (status === 'error') failed++;
+      
+      updateSummary();
     }
 
-    function clearLog() {
-      document.getElementById('log').innerHTML = '';
-    }
-
-    function showResult(id, message, type) {
-      const el = document.getElementById(id);
-      el.textContent = message;
-      el.className = `result ${type}`;
-      el.style.display = 'block';
-    }
-
-    function updateOverallStatus() {
-      const badge = document.getElementById('overall-status');
-      if (isLoggedIn) {
-        badge.textContent = '正常';
-        badge.className = 'status-badge status-ok';
+    function updateSummary() {
+      const summaryEl = document.getElementById('summary');
+      if (passed + failed === 0) {
+        summaryEl.innerHTML = '<h2>点击下方按钮开始测试</h2><p>系统将依次检测：环境配置 → SDK初始化 → 匿名登录 → 数据库连接 → 数据读取</p>';
+      } else if (failed === 0) {
+        summaryEl.innerHTML = `<h2>✅ 测试进行中...</h2><p>通过: ${passed} | 失败: ${failed}</p>`;
       } else {
-        badge.textContent = '异常';
-        badge.className = 'status-badge status-error';
+        summaryEl.innerHTML = `<h2>⚠️ 发现问题</h2><p>通过: ${passed} | 失败: ${failed}</p>`;
       }
     }
 
-    async function testInit() {
-      log('开始测试 SDK 初始化...');
-      try {
-        app = cloudbase.init({ env: envId });
-        log('SDK 初始化成功', 'success');
-        showResult('init-result', '✅ SDK 初始化成功\n环境ID: ' + envId, 'success');
-      } catch (err) {
-        log('SDK 初始化失败: ' + err.message, 'error');
-        showResult('init-result', '❌ SDK 初始化失败\n' + err.message, 'error');
-      }
-    }
+    async function runTests() {
+      const btn = document.getElementById('startBtn');
+      btn.disabled = true;
+      btn.textContent = '测试中...';
+      passed = 0;
+      failed = 0;
+      updateSummary();
 
-    async function testLogin() {
-      if (!app) {
-        showResult('login-result', '⚠️ 请先测试 SDK 初始化', 'info');
-        return;
-      }
-      
-      log('开始测试匿名登录...');
+      // 测试1: 环境配置
       try {
-        const auth = app.auth();
-        const loginState = await auth.getLoginState();
-        
-        if (loginState) {
-          log('已处于登录状态', 'success');
-          isLoggedIn = true;
-          showResult('login-result', '✅ 已登录\n匿名用户: ' + (loginState.isAnonymous ? '是' : '否'), 'success');
+        if (ENV_ID && !ENV_ID.includes('your-env') && PUBLISHABLE_KEY) {
+          updateStatus(1, 'success', '✅ 环境配置正确', `ENV_ID: ${ENV_ID}`);
         } else {
-          log('未登录，执行匿名登录...');
-          await auth.signInAnonymously();
-          log('匿名登录成功', 'success');
-          isLoggedIn = true;
-          showResult('login-result', '✅ 匿名登录成功', 'success');
+          updateStatus(1, 'error', '❌ 环境配置不完整', '请检查 ENV_ID 和 PUBLISHABLE_KEY');
         }
-        updateOverallStatus();
-      } catch (err) {
-        log('登录失败: ' + err.message, 'error');
-        showResult('login-result', '❌ 登录失败\n' + err.message, 'error');
+      } catch (e) {
+        updateStatus(1, 'error', '❌ 环境配置检测失败', e.message);
       }
-    }
+      await sleep(500);
 
-    async function testDatabase() {
-      if (!app) {
-        showResult('db-result', '⚠️ 请先测试 SDK 初始化', 'info');
-        return;
+      // 测试2: SDK初始化
+      try {
+        app = cloudbase.init({
+          env: ENV_ID,
+          accessKey: PUBLISHABLE_KEY,
+          auth: { persistence: 'local' }
+        });
+        updateStatus(2, 'success', '✅ SDK 初始化成功', `SDK Version: 3.3.3`);
+      } catch (e) {
+        updateStatus(2, 'error', '❌ SDK 初始化失败', e.message);
       }
-      
-      log('开始测试数据库查询 (teacher_profiles)...');
+      await sleep(500);
+
+      // 测试3: 匿名登录
       try {
         const auth = app.auth();
-        const loginState = await auth.getLoginState();
-        if (!loginState) {
-          log('未登录，先执行匿名登录...');
-          await auth.signInAnonymously();
-          log('匿名登录成功', 'success');
-          isLoggedIn = true;
-          updateOverallStatus();
+        const result = await auth.signInAnonymously();
+        updateStatus(3, 'success', '✅ 匿名登录成功', `User ID: ${result.data?.userId || 'anonymous'}`);
+      } catch (e) {
+        if (e.message && e.message.includes('CORS')) {
+          updateStatus(3, 'error', '❌ CORS 跨域错误', '域名未在 CloudBase 安全配置中添加');
+        } else if (e.code === 'ENV_ISOLATED') {
+          updateStatus(3, 'error', '❌ 环境已被隔离', 'CloudBase 环境已到期，请续费');
+        } else {
+          updateStatus(3, 'error', '❌ 登录失败', e.message);
         }
-        
-        const db = app.database();
-        const result = await db.collection('teacher_profiles').limit(10).get();
-        
-        log('数据库查询成功', 'success');
-        log('返回数据条数: ' + (result.data?.length || 0));
-        
-        showResult('db-result', 
-          '✅ 查询成功\n' +
-          '集合: teacher_profiles\n' +
-          '数据条数: ' + (result.data?.length || 0) + '\n' +
-          '第一条: ' + (result.data?.[0]?.name || '无'), 
-          'success'
-        );
-      } catch (err) {
-        log('数据库查询失败: ' + err.message, 'error');
-        showResult('db-result', '❌ 查询失败\n' + err.message, 'error');
       }
-    }
+      await sleep(500);
 
-    async function testStudents() {
-      if (!app) {
-        showResult('db-result', '⚠️ 请先测试 SDK 初始化', 'info');
-        return;
-      }
-      
-      log('开始测试数据库查询 (user_profiles)...');
+      // 测试4: 数据库连接
       try {
-        const auth = app.auth();
-        const loginState = await auth.getLoginState();
-        if (!loginState) {
-          await auth.signInAnonymously();
-          isLoggedIn = true;
-          updateOverallStatus();
-        }
-        
         const db = app.database();
-        const result = await db.collection('user_profiles').limit(10).get();
-        
-        log('学员数据查询成功', 'success');
-        log('返回数据条数: ' + (result.data?.length || 0));
-        
-        showResult('db-result', 
-          '✅ 查询成功\n' +
-          '集合: user_profiles\n' +
-          '数据条数: ' + (result.data?.length || 0) + '\n' +
-          '第一条: ' + (result.data?.[0]?.name || '无'), 
-          'success'
-        );
-      } catch (err) {
-        log('学员数据查询失败: ' + err.message, 'error');
-        showResult('db-result', '❌ 查询失败\n' + err.message, 'error');
+        const res = await db.collection('courses').count();
+        updateStatus(4, 'success', '✅ 数据库连接成功', `courses 集合统计: ${JSON.stringify(res)}`);
+      } catch (e) {
+        if (e.message && e.message.includes('collection')) {
+          updateStatus(4, 'success', '✅ 数据库连接成功', '集合可能不存在，但连接正常');
+        } else if (e.code === 'DATABASE_PERMISSION_DENIED') {
+          updateStatus(4, 'error', '❌ 权限不足', '请检查数据库安全规则');
+        } else {
+          updateStatus(4, 'error', '❌ 数据库连接失败', e.message);
+        }
       }
-    }
+      await sleep(500);
 
-    async function checkAllCollections() {
-      if (!app) {
-        showResult('all-result', '⚠️ 请先测试 SDK 初始化', 'info');
-        return;
-      }
-      
-      const collections = [
-        'teacher_profiles',
-        'user_profiles', 
-        'course_schedules',
-        'enrollments',
-        'attendance_records',
-        'schedule_changes',
-        'orders'
-      ];
-      
-      log('开始检查所有集合...');
-      const results = [];
-      
+      // 测试5: 数据读取
       try {
-        const auth = app.auth();
-        const loginState = await auth.getLoginState();
-        if (!loginState) {
-          await auth.signInAnonymously();
-          isLoggedIn = true;
-          updateOverallStatus();
-        }
-        
         const db = app.database();
-        
-        for (const coll of collections) {
-          try {
-            const result = await db.collection(coll).count();
-            const count = result.total || 0;
-            results.push({ name: coll, count, status: 'ok' });
-            log(`${coll}: ${count} 条`, 'success');
-          } catch (err) {
-            results.push({ name: coll, count: 0, status: 'error', error: err.message });
-            log(`${coll}: 查询失败 - ${err.message}`, 'error');
-          }
-        }
-        
-        const message = results.map(r => 
-          `${r.status === 'ok' ? '✅' : '❌'} ${r.name}: ${r.count} 条`
-        ).join('\n');
-        
-        showResult('all-result', message, results.some(r => r.status === 'error') ? 'error' : 'success');
-      } catch (err) {
-        showResult('all-result', '❌ 检查失败\n' + err.message, 'error');
+        const res = await db.collection('courses').limit(5).get();
+        updateStatus(5, 'success', '✅ 数据读取成功', `读取到 ${res.data?.length || 0} 条记录`);
+      } catch (e) {
+        updateStatus(5, 'error', '❌ 数据读取失败', e.message);
       }
+
+      // 完成
+      updateSummary();
+      btn.disabled = false;
+      btn.textContent = '▶ 重新测试';
     }
 
-    // 页面加载时自动初始化
-    window.onload = async () => {
-      log('诊断工具已加载');
-      log('环境ID: ' + envId);
-      await testInit();
-    };
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
   </script>
 </body>
 </html>
