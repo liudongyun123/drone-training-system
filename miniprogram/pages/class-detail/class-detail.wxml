@@ -1,79 +1,154 @@
 <!--pages/class-detail/class-detail.wxml-->
-<view class="page">
-  <view wx:if="{{loading}}" class="loading-container"><text>加载中...</text></view>
 
-  <view wx:elif="{{classInfo}}" class="content">
-    <!-- 培训班信息 -->
-    <view class="info-card">
-      <view class="class-header">
-        <text class="class-name">{{classInfo.name}}</text>
-        <view class="status-tag {{classInfo.status === 'enrolling' ? 'active' : ''}}">
-          {{classInfo.status === 'enrolling' ? '报名中' : '已截止'}}
+<view class="page">
+  <view wx:if="{{loading}}" class="loading-container">
+    <text class="loading-spinner">⏳</text>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <block wx:elif="{{classInfo}}">
+    <scroll-view class="content" scroll-y enhanced>
+      <!-- 培训班封面 -->
+      <view class="cover-section">
+        <image class="cover" src="{{classInfo.coverImage}}" mode="aspectFill" />
+      </view>
+
+      <!-- 培训班信息 -->
+      <view class="info-section">
+        <!-- 等级 + 名称 -->
+        <view class="title-row">
+          <text class="level-tag" wx:if="{{classInfo.level}}">{{classInfo.level}}</text>
+          <text class="class-name">{{classInfo.name}}</text>
         </view>
-      </view>
-      
-      <view class="info-row">
-        <text class="label">培训时间</text>
-        <text class="value">{{classInfo.startDate}} ~ {{classInfo.endDate}}</text>
-      </view>
-      <view class="info-row">
-        <text class="label">培训地点</text>
-        <text class="value">{{classInfo.location}}</text>
-      </view>
-      <view class="info-row">
-        <text class="label">讲师</text>
-        <text class="value">{{classInfo.teacherName || '待定'}}</text>
-      </view>
-      <view class="info-row">
-        <text class="label">名额</text>
-        <text class="value">{{classInfo.currentStudents}}/{{classInfo.maxStudents}}人</text>
-      </view>
-      
-      <view class="price-section">
-        <text class="price">
+
+        <!-- 价格 -->
+        <view class="price-row">
           <text class="price-symbol">¥</text>
           <text class="price-num">{{classInfo.price}}</text>
-        </text>
-        <text class="price-label">/人</text>
+          <text class="original-price" wx:if="{{classInfo.originalPrice}}">¥{{classInfo.originalPrice}}</text>
+          <text class="price-unit">/人</text>
+        </view>
+
+        <!-- 报名人数 -->
+        <view class="enroll-row">
+          <text class="enroll-count">{{classInfo.enrolledCount || 0}}/{{classInfo.maxStudents}}人已报名</text>
+          <view class="share-btn" bindtap="shareClass">
+            <text class="share-icon">↗️</text>
+            <text class="share-text">分享</text>
+          </view>
+        </view>
+
+        <!-- 状态标签 -->
+        <view class="status-tag {{classInfo.status}}">
+          <text wx:if="{{classInfo.status === 'enrolling'}}">招生中</text>
+          <text wx:elif="{{classInfo.status === 'ongoing'}}">进行中</text>
+          <text wx:else>已结束</text>
+        </view>
       </view>
-    </view>
 
-    <!-- 培训班简介 -->
-    <view class="section">
-      <text class="section-title">培训简介</text>
-      <text class="description">{{classInfo.description}}</text>
-    </view>
+      <!-- 培训亮点 -->
+      <view class="section" wx:if="{{classInfo.features && classInfo.features.length > 0}}">
+        <text class="section-title">✨ 培训亮点</text>
+        <view class="features-list">
+          <view class="feature-item" wx:for="{{classInfo.features}}" wx:key="*this">
+            <text class="feature-icon">✓</text>
+            <text class="feature-text">{{item}}</text>
+          </view>
+        </view>
+      </view>
 
-    <!-- 课程安排 -->
-    <view class="section">
-      <text class="section-title">日程安排 ({{schedules.length}}天)</text>
-      <view class="schedule-list">
-        <view class="schedule-item" wx:for="{{schedules}}" wx:key="_id">
-          <text class="schedule-date">{{item.date}}</text>
-          <text class="schedule-time">{{item.startTime}} - {{item.endTime}}</text>
-          <text class="schedule-topic">{{item.topic}}</text>
+      <!-- 基本信息 -->
+      <view class="section">
+        <text class="section-title">📋 基本信息</text>
+        <view class="info-grid">
+          <view class="info-item">
+            <text class="info-icon">📅</text>
+            <text class="info-label">培训时间</text>
+            <text class="info-value">{{classInfo.startDate}} - {{classInfo.endDate}}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-icon">📍</text>
+            <text class="info-label">培训地点</text>
+            <text class="info-value">{{classInfo.location}}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-icon">👨‍🏫</text>
+            <text class="info-label">授课讲师</text>
+            <text class="info-value">{{classInfo.instructor || '待定'}}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-icon">⏰</text>
+            <text class="info-label">上课时间</text>
+            <text class="info-value">{{classInfo.schedule || '周一至周五 9:00-17:00'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 设施条件 -->
+      <view class="section" wx:if="{{classInfo.facilities && classInfo.facilities.length > 0}}">
+        <text class="section-title">🏠 设施条件</text>
+        <view class="facilities-list">
+          <view class="facility-item" wx:for="{{classInfo.facilities}}" wx:key="*this">
+            <text class="facility-icon">✓</text>
+            <text class="facility-text">{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 培训简介 -->
+      <view class="section">
+        <text class="section-title">培训简介</text>
+        <text class="description">{{classInfo.description}}</text>
+      </view>
+
+      <!-- 日程安排 -->
+      <view class="section" wx:if="{{schedules && schedules.length > 0}}">
+        <text class="section-title">📅 日程安排 ({{schedules.length}}天)</text>
+        <view class="schedule-list">
+          <view class="schedule-item" wx:for="{{schedules}}" wx:key="_id">
+            <view class="schedule-left">
+              <text class="schedule-day">第{{index + 1}}天</text>
+              <text class="schedule-date">{{item.date}}</text>
+            </view>
+            <view class="schedule-right">
+              <text class="schedule-time">{{item.startTime}} - {{item.endTime}}</text>
+              <text class="schedule-topic">{{item.topic}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 赠送课程 -->
+      <view class="section" wx:if="{{classInfo.includedCourses && classInfo.includedCourses.length > 0}}">
+        <text class="section-title">📚 赠送线上课程 ({{classInfo.includedCourses.length}}门)</text>
+        <view class="courses-list">
+          <view class="course-tag" wx:for="{{classInfo.includedCourses}}" wx:key="*this">
+            <text>{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部间距 -->
+      <view class="footer-space"></view>
+    </scroll-view>
+
+    <!-- 底部操作栏 -->
+    <view class="bottom-bar safe-area-bottom">
+      <view class="action-left">
+        <view class="action-item" bindtap="contactService">
+          <text class="action-icon">📞</text>
+          <text class="action-text">客服</text>
+        </view>
+      </view>
+      <view class="action-right">
+        <view 
+          class="btn-enroll {{classInfo.status !== 'enrolling' ? 'disabled' : ''}}" 
+          bindtap="goToEnrollment"
+        >
+          <text wx:if="{{classInfo.status === 'enrolling'}}">立即报名</text>
+          <text wx:else>报名已截止</text>
         </view>
       </view>
     </view>
-
-    <!-- 包含课程 -->
-    <view class="section" wx:if="{{classInfo.includedCourses.length > 0}}">
-      <text class="section-title">赠送线上课程 ({{classInfo.includedCourses.length}}门)</text>
-      <view class="included-courses">
-        <text class="course-tag" wx:for="{{classInfo.includedCourses}}" wx:key="*this">
-          赠送课程 #{{index + 1}}
-        </text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 底部报名按钮 -->
-  <view class="bottom-bar safe-area-bottom" wx:if="{{classInfo}}">
-    <view 
-      class="btn-enroll {{classInfo.status !== 'enrolling' ? 'disabled' : ''}}" 
-      bindtap="goToEnrollment"
-    >
-      {{classInfo.status === 'enrolling' ? '立即报名' : '报名已截止'}}
-    </view>
-  </view>
+  </block>
 </view>

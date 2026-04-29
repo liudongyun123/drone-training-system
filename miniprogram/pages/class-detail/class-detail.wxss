@@ -1,38 +1,388 @@
 /* pages/class-detail/class-detail.wxss */
-.page { background: #f6f6f6; min-height: 100vh; padding-bottom: 70px; }
-.loading-container { display: flex; justify-content: center; padding: 48px; color: #999; }
 
-.info-card { background: #fff; margin: 12px; border-radius: 8px; padding: 16px; }
-.class-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.class-name { font-size: 20px; font-weight: 600; color: #333; }
-.status-tag { font-size: 12px; padding: 4px 12px; border-radius: 12px; background: #f0f0f0; color: #999; }
-.status-tag.active { background: #e6f7ff; color: #1890ff; }
+.page {
+  min-height: 100vh;
+  background: #f1f5f9;
+}
 
-.info-row { display: flex; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
-.info-row:last-child { border-bottom: none; }
-.label { width: 80px; color: #999; font-size: 14px; flex-shrink: 0; }
-.value { flex: 1; color: #333; font-size: 14px; }
+/* ==================== 加载状态 ==================== */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 160rpx 0;
+}
 
-.price-section { text-align: right; margin-top: 16px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
-.price { color: #ff4d4f; }
-.price-symbol { font-size: 14px; }
-.price-num { font-size: 28px; font-weight: 600; }
-.price-label { font-size: 14px; color: #999; margin-left: 4px; }
+.loading-spinner {
+  font-size: 48rpx;
+  animation: spin 1s linear infinite;
+}
 
-.section { background: #fff; margin: 12px; border-radius: 8px; padding: 16px; }
-.section-title { font-size: 16px; font-weight: 600; color: #333; display: block; margin-bottom: 12px; }
-.description { font-size: 14px; color: #666; line-height: 1.8; }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
-.schedule-list { max-height: 300px; overflow-y: auto; }
-.schedule-item { padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
-.schedule-item:last-child { border-bottom: none; }
-.schedule-date { font-size: 14px; font-weight: 600; color: #333; display: block; }
-.schedule-time { font-size: 12px; color: #999; display: block; margin: 4px 0; }
-.schedule-topic { font-size: 13px; color: #666; display: block; }
+.loading-text {
+  margin-top: 16rpx;
+  color: #94a3b8;
+  font-size: 24rpx;
+}
 
-.included-courses { display: flex; flex-wrap: wrap; gap: 8px; }
-.course-tag { background: #e6f7ff; color: #1890ff; font-size: 12px; padding: 6px 12px; border-radius: 4px; }
+/* ==================== 内容区域 ==================== */
+.content {
+  height: calc(100vh - 120rpx);
+}
 
-.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e8e8e8; }
-.btn-enroll { margin: 8px 16px; height: 44px; background: #1890ff; color: #fff; border-radius: 22px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; }
-.btn-enroll.disabled { background: #d9d9d9; }
+/* ==================== 封面 ==================== */
+.cover-section {
+  position: relative;
+}
+
+.cover {
+  width: 100%;
+  height: 320rpx;
+  background: linear-gradient(135deg, #fef3c7, #fef9c3);
+}
+
+/* ==================== 班级信息 ==================== */
+.info-section {
+  background: #fff;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.level-tag {
+  padding: 6rpx 14rpx;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #d97706;
+  font-size: 22rpx;
+  border-radius: 8rpx;
+}
+
+.class-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+  margin-bottom: 12rpx;
+}
+
+.price-symbol {
+  font-size: 26rpx;
+  color: #ef4444;
+}
+
+.price-num {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #ef4444;
+}
+
+.original-price {
+  font-size: 26rpx;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.price-unit {
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.enroll-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.enroll-count {
+  font-size: 24rpx;
+  color: #64748b;
+}
+
+.share-btn {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 8rpx 16rpx;
+  background: #f1f5f9;
+  border-radius: 16rpx;
+}
+
+.share-icon {
+  font-size: 24rpx;
+}
+
+.share-text {
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.status-tag.enrolling {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+.status-tag.ongoing {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.status-tag.ended {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+}
+
+/* ==================== 分区 ==================== */
+.section {
+  background: #fff;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1e293b;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+/* ==================== 培训亮点 ==================== */
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.feature-icon {
+  color: #10b981;
+  font-size: 24rpx;
+}
+
+.feature-text {
+  font-size: 26rpx;
+  color: #475569;
+}
+
+/* ==================== 基本信息 ==================== */
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.info-icon {
+  font-size: 24rpx;
+  margin-top: 4rpx;
+}
+
+.info-label {
+  font-size: 24rpx;
+  color: #94a3b8;
+  width: 140rpx;
+}
+
+.info-value {
+  font-size: 26rpx;
+  color: #1e293b;
+  flex: 1;
+}
+
+/* ==================== 设施条件 ==================== */
+.facilities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.facility-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: #f8fafc;
+  padding: 12rpx 20rpx;
+  border-radius: 12rpx;
+}
+
+.facility-icon {
+  color: #10b981;
+  font-size: 22rpx;
+}
+
+.facility-text {
+  font-size: 24rpx;
+  color: #475569;
+}
+
+/* ==================== 培训简介 ==================== */
+.description {
+  font-size: 26rpx;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+/* ==================== 日程安排 ==================== */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.schedule-item {
+  display: flex;
+  background: #f8fafc;
+  border-radius: 12rpx;
+  padding: 16rpx;
+}
+
+.schedule-left {
+  width: 140rpx;
+}
+
+.schedule-day {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #2563eb;
+  display: block;
+}
+
+.schedule-date {
+  font-size: 20rpx;
+  color: #94a3b8;
+}
+
+.schedule-right {
+  flex: 1;
+  border-left: 1rpx solid #e2e8f0;
+  padding-left: 16rpx;
+}
+
+.schedule-time {
+  font-size: 22rpx;
+  color: #64748b;
+  display: block;
+}
+
+.schedule-topic {
+  font-size: 26rpx;
+  color: #1e293b;
+  display: block;
+  margin-top: 4rpx;
+}
+
+/* ==================== 赠送课程 ==================== */
+.courses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.course-tag {
+  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+  color: #2563eb;
+  padding: 12rpx 20rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+}
+
+/* ==================== 底部操作栏 ==================== */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 16rpx 24rpx;
+  border-top: 1rpx solid #e2e8f0;
+  z-index: 100;
+}
+
+.action-left {
+  display: flex;
+  gap: 24rpx;
+}
+
+.action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.action-icon {
+  font-size: 28rpx;
+}
+
+.action-text {
+  font-size: 20rpx;
+  color: #64748b;
+}
+
+.action-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-enroll {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+  border-radius: 32rpx;
+  padding: 20rpx 48rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  box-shadow: 0 4rpx 12rpx rgba(37, 99, 235, 0.3);
+}
+
+.btn-enroll.disabled {
+  background: #94a3b8;
+  box-shadow: none;
+}
+
+/* ==================== 底部间距 ==================== */
+.footer-space {
+  height: 32rpx;
+}
+
+/* ==================== 安全区域 ==================== */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

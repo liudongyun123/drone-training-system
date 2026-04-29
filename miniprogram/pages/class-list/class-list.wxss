@@ -1,112 +1,212 @@
 /* pages/class-list/class-list.wxss */
 
 .page {
-  background: var(--bg-color);
   min-height: 100vh;
+  background: #f1f5f9;
 }
 
-/* 培训班列表 */
+/* ==================== 搜索框 ==================== */
+.search-box {
+  padding: 16rpx 24rpx;
+  background: #fff;
+}
+
+.search-input {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 32rpx;
+  padding: 16rpx 24rpx;
+}
+
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+}
+
+.search-placeholder {
+  font-size: 26rpx;
+  color: #94a3b8;
+}
+
+/* ==================== 状态筛选 ==================== */
+.status-bar {
+  display: flex;
+  background: #fff;
+  padding: 12rpx 24rpx;
+  border-bottom: 1rpx solid #e2e8f0;
+}
+
+.status-item {
+  padding: 10rpx 24rpx;
+  font-size: 26rpx;
+  color: #64748b;
+  border-radius: 20rpx;
+}
+
+.status-item.active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+  font-weight: 500;
+}
+
+/* ==================== 培训班列表 ==================== */
+.class-scroll {
+  height: calc(100vh - 140rpx);
+}
+
 .class-list {
-  padding: 12px 16px;
+  padding: 16rpx 24rpx;
 }
 
 .class-card {
-  display: flex;
   background: #fff;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  border-radius: 16rpx;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .class-cover {
-  width: 140px;
-  height: 130px;
-  flex-shrink: 0;
+  width: 100%;
+  height: 200rpx;
+  background: linear-gradient(135deg, #fef3c7, #fef9c3);
 }
 
 .class-info {
-  flex: 1;
-  padding: 12px;
+  padding: 16rpx 20rpx;
+}
+
+.class-header {
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
 }
 
-.class-title {
-  font-size: 15px;
+.class-level {
+  padding: 4rpx 12rpx;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #2563eb;
+  font-size: 20rpx;
+  border-radius: 6rpx;
+}
+
+.class-name {
+  font-size: 28rpx;
   font-weight: 600;
-  color: var(--text-color);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.class-desc {
-  font-size: 12px;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #1e293b;
 }
 
 .class-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  margin-bottom: 12rpx;
 }
 
-.meta-item {
-  font-size: 12px;
-  color: var(--text-placeholder);
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.meta-icon {
+  font-size: 22rpx;
+}
+
+.meta-text {
+  font-size: 24rpx;
+  color: #64748b;
 }
 
 .class-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #f1f5f9;
 }
 
 .price {
-  color: var(--error-color);
+  display: flex;
+  align-items: baseline;
 }
 
 .price-symbol {
-  font-size: 12px;
+  font-size: 20rpx;
+  color: #ef4444;
 }
 
 .price-num {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ef4444;
 }
 
-/* 标签 */
-.tag {
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 12px;
-  border-radius: 4px;
+.status-tag {
+  padding: 6rpx 16rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
 }
 
-.tag.enrolling {
-  background: rgba(82, 196, 26, 0.1);
-  color: var(--success-color);
+.status-tag.enrolling {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
 }
 
-.tag.ongoing {
-  background: rgba(24, 144, 255, 0.1);
-  color: var(--primary-color);
+.status-tag.ongoing {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
-.tag.ended {
-  background: rgba(153, 153, 153, 0.1);
-  color: var(--text-placeholder);
+.status-tag.ended {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
 }
 
-/* 加载更多 */
+.class-count {
+  text-align: right;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+/* ==================== 加载状态 ==================== */
 .load-more {
   text-align: center;
-  padding: 16px;
-  color: #999;
-  font-size: 14px;
+  padding: 24rpx;
+}
+
+.loading-text {
+  color: #94a3b8;
+  font-size: 24rpx;
+}
+
+.end-text {
+  color: #94a3b8;
+  font-size: 22rpx;
+}
+
+/* ==================== 空状态 ==================== */
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 40rpx;
+}
+
+.empty-icon {
+  font-size: 60rpx;
+  margin-bottom: 16rpx;
+  opacity: 0.5;
+}
+
+.empty-text {
+  color: #94a3b8;
+  font-size: 26rpx;
+}
+
+/* ==================== 底部间距 ==================== */
+.footer-space {
+  height: 32rpx;
 }
