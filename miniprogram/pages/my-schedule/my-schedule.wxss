@@ -1,0 +1,151 @@
+/* pages/my-schedule/my-schedule.wxss */
+
+.page {
+  background: var(--bg-color);
+  min-height: 100vh;
+}
+
+/* 日期选择栏 */
+.date-bar {
+  white-space: nowrap;
+  background: #fff;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.date-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  margin-right: 8px;
+  border-radius: 8px;
+  background: var(--bg-color);
+}
+
+.date-item.active {
+  background: var(--primary-color);
+}
+
+.date-day {
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.date-item.active .date-day {
+  color: #fff;
+}
+
+.date-tag {
+  font-size: 10px;
+  color: var(--primary-color);
+  margin-top: 4px;
+}
+
+.date-item.active .date-tag {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 日程列表 */
+.schedule-list {
+  padding: 16px;
+}
+
+.schedule-item {
+  display: flex;
+  margin-bottom: 16px;
+}
+
+.time-line {
+  width: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.time-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.time-vertical {
+  width: 2px;
+  flex: 1;
+  background: var(--border-color);
+  margin-top: 4px;
+}
+
+.schedule-card {
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.schedule-time {
+  font-size: 13px;
+  color: var(--primary-color);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.schedule-content {
+  margin-bottom: 12px;
+}
+
+.schedule-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 6px;
+}
+
+.schedule-teacher {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.schedule-location {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-placeholder);
+}
+
+.location-icon {
+  margin-right: 4px;
+}
+
+.schedule-status {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.status-tag {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.status-tag.status-not_started {
+  background: rgba(153, 153, 153, 0.1);
+  color: var(--text-placeholder);
+}
+
+.status-tag.status-ongoing {
+  background: rgba(24, 144, 255, 0.1);
+  color: var(--primary-color);
+}
+
+.status-tag.status-ended {
+  background: rgba(153, 153, 153, 0.1);
+  color: var(--text-placeholder);
+}

@@ -1,0 +1,126 @@
+/* pages/practice/practice.wxss */
+
+.page {
+  background: var(--bg-color);
+  min-height: 100vh;
+}
+
+.section {
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.section-desc {
+  font-size: 13px;
+  color: var(--text-placeholder);
+}
+
+/* 题库网格 */
+.bank-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.bank-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.bank-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.bank-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.bank-count {
+  font-size: 12px;
+  color: var(--text-placeholder);
+}
+
+/* 模拟考试列表 */
+.exam-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.exam-card {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.exam-info {
+  flex: 1;
+}
+
+.exam-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.exam-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.exam-meta {
+  display: flex;
+  gap: 12px;
+}
+
+.meta-item {
+  font-size: 12px;
+  color: var(--text-placeholder);
+}
+
+.exam-action {
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.start-text {
+  font-size: 14px;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.arrow {
+  color: var(--primary-color);
+  margin-left: 4px;
+}

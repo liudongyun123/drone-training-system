@@ -1,0 +1,84 @@
+<view class="page">
+  <!-- Tab 栏 -->
+  <view class="tab-bar">
+    <view 
+      class="tab-item {{currentTab === item.key ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      bindtap="switchTab"
+      data-key="{{item.key}}"
+    >
+      {{item.title}}
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 订单列表 -->
+  <view class="order-list" wx:if="{{!loading}}">
+    <view class="order-card" wx:for="{{orders}}" wx:key="_id">
+      <!-- 订单头部 -->
+      <view class="order-header">
+        <text class="order-type">{{item.orderType === 'course' ? '课程订单' : '商城订单'}}</text>
+        <text class="order-status status-{{item.status}}">{{item.status === 'pending' ? '待支付' : item.status === 'paid' ? '已支付' : item.status === 'completed' ? '已完成' : item.status === 'cancelled' ? '已取消' : item.status}}</text>
+      </view>
+
+      <!-- 订单商品 -->
+      <view class="order-items">
+        <view class="order-item" wx:for="{{item.items}}" wx:for-item="orderItem" wx:key="index">
+          <image class="item-image" src="{{orderItem.image || '/assets/images/default-cover.png'}}" mode="aspectFill" />
+          <view class="item-info">
+            <text class="item-title">{{orderItem.title}}</text>
+            <view class="item-bottom">
+              <text class="item-price">¥{{orderItem.price}}</text>
+              <text class="item-qty">×{{orderItem.quantity}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 订单金额 -->
+      <view class="order-total">
+        <text>共 {{item.items.length}} 件商品，实付: </text>
+        <text class="total-price">¥{{item.totalPrice}}</text>
+      </view>
+
+      <!-- 订单操作 -->
+      <view class="order-actions">
+        <button 
+          wx:if="{{item.status === 'pending'}}"
+          class="action-btn cancel" 
+          bindtap="cancelOrder" 
+          data-id="{{item._id}}"
+        >取消订单</button>
+        <button 
+          wx:if="{{item.status === 'pending'}}"
+          class="action-btn primary" 
+          bindtap="payOrder" 
+          data-order="{{item}}"
+        >立即支付</button>
+        <button 
+          wx:if="{{item.status === 'completed' || item.status === 'cancelled'}}"
+          class="action-btn" 
+          bindtap="deleteOrder" 
+          data-id="{{item._id}}"
+        >删除订单</button>
+        <button 
+          wx:if="{{item.status === 'completed' || item.status === 'cancelled'}}"
+          class="action-btn primary" 
+          bindtap="reorder" 
+          data-order="{{item}}"
+        >再来一单</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{!loading && orders.length === 0}}" class="empty-container">
+    <text class="empty-icon">📋</text>
+    <text>暂无订单</text>
+  </view>
+</view>

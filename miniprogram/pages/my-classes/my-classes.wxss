@@ -1,0 +1,145 @@
+/* pages/my-classes/my-classes.wxss */
+
+.page {
+  background: var(--bg-color);
+  min-height: 100vh;
+}
+
+/* Tab 栏 */
+.tab-bar {
+  display: flex;
+  background: #fff;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding-bottom: 8px;
+  position: relative;
+}
+
+.tab-item.active {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  background: var(--primary-color);
+  border-radius: 1px;
+}
+
+/* 培训班列表 */
+.class-list {
+  padding: 12px 16px;
+}
+
+.class-card {
+  background: #fff;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.class-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.class-status {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.class-status.status-ongoing {
+  background: rgba(24, 144, 255, 0.1);
+  color: var(--primary-color);
+}
+
+.class-status.status-ended {
+  background: rgba(153, 153, 153, 0.1);
+  color: var(--text-placeholder);
+}
+
+.card-body {
+  padding: 12px 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.info-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.info-value {
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.info-value.status-confirmed {
+  color: var(--success-color);
+}
+
+.info-value.status-pending {
+  color: var(--warning-color);
+}
+
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.action-btn {
+  font-size: 12px;
+  padding: 6px 16px;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.action-btn.primary {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+/* 空状态 */
+.empty-container .go-btn {
+  margin-top: 16px;
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 14px;
+  padding: 10px 24px;
+}

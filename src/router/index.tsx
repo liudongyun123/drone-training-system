@@ -15,6 +15,8 @@ import {
   CartPage,
   CheckoutPage,
   TeachersPage,
+  ShopPage,
+  ProductDetailPage,
 
   // 认证相关
   LoginPage,
@@ -76,6 +78,8 @@ import {
   AdminClassOrders,
   AdminOfflineEnrollment,
   AdminAuthConfig,
+  AdminProducts,
+  AdminShopOrders,
   MyClassesPage,
   MyTrainingPage,
   OpenClassesPage,
@@ -115,6 +119,8 @@ const publicRoutes = [
   { path: '/courses/:id', element: withSuspense(CourseDetailPage) },
   { path: '/classes', element: withSuspense(OpenClassesPage) }, // 开班信息列表
   { path: '/teachers', element: withSuspense(TeachersPage) },
+  { path: '/shop', element: withSuspense(ShopPage) }, // 商城列表
+  { path: '/shop/:id', element: withSuspense(ProductDetailPage) }, // 商品详情
   { path: '/cart', element: withSuspense(CartPage) },
 ];
 
@@ -213,6 +219,10 @@ const adminRoutes = [
   // 订单管理（新业务流 v20260413）
   { path: '/admin/course-orders', element: adminRoute(AdminCourseOrders) }, // 课程订单（视频课程购买）
   { path: '/admin/class-orders', element: adminRoute(AdminClassOrders) }, // 培训班订单（线上报名）
+
+  // 商城管理
+  { path: '/admin/products', element: adminRoute(AdminProducts) }, // 商品管理
+  { path: '/admin/shop-orders', element: adminRoute(AdminShopOrders) }, // 商城订单
 
   // 旧路由重定向（模块合并后兼容）
   { path: '/admin/students', element: <Navigate to="/admin/members" replace /> }, // 旧学员管理 → 新成员管理

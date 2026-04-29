@@ -52,6 +52,10 @@ export const CouponCenterPage = lazy(() => import('@/web/pages/account/CouponCen
 export const MessagesPage = lazy(() => import('@/web/pages/account/MessagesPage'));
 export const TransferRequestPage = lazy(() => import('@/web/pages/account/TransferRequestPage'));
 
+// 商城
+export const ShopPage = lazy(() => import('@/web/pages/shop/ShopPage'));
+export const ProductDetailPage = lazy(() => import('@/web/pages/shop/ProductDetailPage'));
+
 // ==================== 管理后台 (src/admin/pages/) ====================
 
 // 系统管理
@@ -93,6 +97,10 @@ export const AdminPageConfig = lazy(() => import('@/admin/pages/content/AdminPag
 export const AdminComments = lazy(() => import('@/admin/pages/content/AdminComments'));
 export const AdminMarketing = lazy(() => import('@/admin/pages/content/AdminMarketing'));
 export const AdminTeachers = lazy(() => import('@/admin/pages/content/AdminTeachers'));
+
+// 商城管理
+export const AdminProducts = lazy(() => import('@/admin/pages/shop/AdminProducts'));
+export const AdminShopOrders = lazy(() => import('@/admin/pages/shop/AdminShopOrders'));
 
 // ==================== 仍在 components/admin 中的组件 ====================
 export const AdminNoticeManagement = lazy(() => import('@/components/admin/NoticeManagement'));

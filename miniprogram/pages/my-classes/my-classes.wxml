@@ -1,0 +1,54 @@
+<view class="page">
+  <!-- Tab 栏 -->
+  <view class="tab-bar">
+    <view 
+      class="tab-item {{currentTab === item.key ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      bindtap="switchTab"
+      data-key="{{item.key}}"
+    >
+      {{item.title}}
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 培训班列表 -->
+  <view class="class-list" wx:if="{{!loading}}">
+    <view class="class-card" wx:for="{{classes}}" wx:key="_id">
+      <view class="card-header">
+        <text class="class-title">{{item.classInfo.title}}</text>
+        <text class="class-status status-{{item.status}}">{{item.status === 'ongoing' ? '进行中' : item.status === 'ended' ? '已结束' : item.status}}</text>
+      </view>
+      <view class="card-body">
+        <view class="info-row">
+          <text class="info-label">培训时间</text>
+          <text class="info-value">{{item.classInfo.startDate}} - {{item.classInfo.endDate}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">培训地点</text>
+          <text class="info-value">{{item.classInfo.location}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">报名状态</text>
+          <text class="info-value status-{{item.enrollmentStatus}}">{{item.enrollmentStatus === 'confirmed' ? '已确认' : item.enrollmentStatus === 'pending' ? '待确认' : '已完成'}}</text>
+        </view>
+      </view>
+      <view class="card-footer">
+        <button class="action-btn" bindtap="goToDetail" data-id="{{item.classId}}">查看详情</button>
+        <button class="action-btn primary" bindtap="goToSchedule" data-id="{{item.classId}}">我的日程</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{!loading && classes.length === 0}}" class="empty-container">
+    <text class="empty-icon">📚</text>
+    <text>暂无培训班记录</text>
+    <button class="go-btn" bindtap="goToClassList">浏览培训班</button>
+  </view>
+</view>

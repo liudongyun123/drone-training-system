@@ -1,0 +1,54 @@
+<view class="page">
+  <!-- 日期选择 -->
+  <scroll-view class="date-bar" scroll-x>
+    <view 
+      class="date-item {{currentDate === item ? 'active' : ''}}"
+      wx:for="{{dates}}"
+      wx:key="*this"
+      bindtap="selectDate"
+      data-date="{{item}}"
+    >
+      <text class="date-day">{{item}}</text>
+      <text wx:if="{{item === dates[3]}}" class="date-tag">今天</text>
+    </view>
+  </scroll-view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 日程列表 -->
+  <view class="schedule-list" wx:if="{{!loading}}">
+    <block wx:for="{{schedule}}" wx:key="_id" wx:for-item="item">
+      <view wx:if="{{item.startTime.substring(5, 10) === currentDate}}" class="schedule-item">
+        <view class="time-line">
+          <view class="time-dot"></view>
+          <view class="time-vertical"></view>
+        </view>
+        <view class="schedule-card">
+          <view class="schedule-time">
+            <text>{{item.startTime.substring(11, 16)}} - {{item.endTime.substring(11, 16)}}</text>
+          </view>
+          <view class="schedule-content">
+            <text class="schedule-title">{{item.title}}</text>
+            <text class="schedule-teacher" wx:if="{{item.teacher}}">讲师: {{item.teacher}}</text>
+            <view class="schedule-location">
+              <text class="location-icon">📍</text>
+              <text>{{item.location}}</text>
+            </view>
+          </view>
+          <view class="schedule-status">
+            <text class="status-tag status-{{item.status}}">{{item.status === 'not_started' ? '未开始' : item.status === 'ongoing' ? '进行中' : '已结束'}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 当日无日程 -->
+    <view wx:if="{{schedule.filter(s => s.startTime.substring(5, 10) === currentDate).length === 0}}" class="empty-container">
+      <text class="empty-icon">📅</text>
+      <text>当天暂无安排</text>
+    </view>
+  </view>
+</view>
