@@ -1,27 +1,47 @@
-<!--pages/index/index.wxml-->
+<!--pages/index/index.wxml - 首页-->
+
 <view class="page">
-  <!-- 搜索栏 -->
-  <view class="search-bar" bindtap="goToSearch">
-    <view class="search-input">
-      <text class="search-icon">🔍</text>
-      <text class="search-placeholder">搜索课程、培训班、商品</text>
+  <!-- 顶部搜索栏 -->
+  <view class="header">
+    <view class="header-bg"></view>
+    <view class="header-content">
+      <view class="logo-area">
+        <text class="logo-text">🛩️ 无人机培训</text>
+      </view>
+      <view class="search-bar" bindtap="goToSearch">
+        <text class="search-icon">🔍</text>
+        <text class="search-text">搜索课程、培训班、配件...</text>
+      </view>
     </view>
   </view>
 
   <!-- 加载状态 -->
   <view wx:if="{{loading}}" class="loading-container">
+    <text class="loading-icon">⏳</text>
     <text>加载中...</text>
   </view>
 
   <!-- 内容区域 -->
-  <view wx:else class="content">
+  <scroll-view wx:else class="content" scroll-y enable-back-to-top>
+    
     <!-- 热门课程 -->
     <view class="section">
       <view class="section-header">
-        <text class="section-title">热门课程</text>
-        <text class="section-more" bindtap="goToCourseList">查看更多</text>
+        <view class="section-title-wrap">
+          <text class="section-icon">📚</text>
+          <text class="section-title">热门课程</text>
+        </view>
+        <view class="section-more" bindtap="goToCourseList">
+          <text>更多</text>
+          <text class="arrow">›</text>
+        </view>
       </view>
-      <view class="course-grid">
+      
+      <view wx:if="{{hotCourses.length === 0}}" class="empty-hint">
+        <text>暂无课程，敬请期待</text>
+      </view>
+      
+      <view wx:else class="course-scroll">
         <view 
           class="course-card" 
           wx:for="{{hotCourses}}" 
@@ -29,27 +49,45 @@
           bindtap="goToCourse"
           data-id="{{item._id}}"
         >
-          <image class="course-cover" src="{{item.coverImage}}" mode="aspectFill" />
-          <view class="course-info">
+          <image 
+            class="course-cover" 
+            src="{{item.coverImage || 'https://via.placeholder.com/300x180?text=课程封面'}}" 
+            mode="aspectFill"
+          />
+          <view class="course-body">
             <text class="course-title">{{item.title}}</text>
             <view class="course-meta">
-              <text class="price">{{item.price}}</text>
-              <text class="sales">{{item.salesCount}}人已学</text>
+              <text class="course-price">{{item.price}}</text>
+              <text class="course-sales">{{item.salesCount || 0}}人已学</text>
+            </view>
+            <view class="course-level" wx:if="{{item.level}}">
+              <text class="level-tag">{{item.level}}</text>
             </view>
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 培训班 -->
+    <!-- 培训班报名 -->
     <view class="section">
       <view class="section-header">
-        <text class="section-title">培训班报名</text>
-        <text class="section-more" bindtap="goToClassList">查看更多</text>
+        <view class="section-title-wrap">
+          <text class="section-icon">🎓</text>
+          <text class="section-title">培训班报名</text>
+        </view>
+        <view class="section-more" bindtap="goToClassList">
+          <text>更多</text>
+          <text class="arrow">›</text>
+        </view>
       </view>
-      <view class="class-list">
+      
+      <view wx:if="{{enrollingClasses.length === 0}}" class="empty-hint">
+        <text>暂无培训班，敬请期待</text>
+      </view>
+      
+      <view wx:else class="class-list">
         <view 
-          class="class-card" 
+          class="class-card card" 
           wx:for="{{enrollingClasses}}" 
           wx:key="_id"
           bindtap="goToClass"
@@ -57,27 +95,44 @@
         >
           <view class="class-header">
             <text class="class-name">{{item.name}}</text>
-            <text class="class-status enrolling">报名中</text>
+            <text class="class-status tag-primary">招生中</text>
           </view>
           <view class="class-info">
-            <text class="class-date">{{item.startDate}} ~ {{item.endDate}}</text>
-            <text class="class-location">{{item.location}}</text>
+            <view class="info-row">
+              <text class="info-icon">📅</text>
+              <text class="info-text">{{item.startDate}} - {{item.endDate}}</text>
+            </view>
+            <view class="info-row" wx:if="{{item.location}}">
+              <text class="info-icon">📍</text>
+              <text class="info-text">{{item.location}}</text>
+            </view>
           </view>
           <view class="class-footer">
-            <text class="price">{{item.price}}</text>
-            <text class="class-students">已报名 {{item.currentStudents}}/{{item.maxStudents}}</text>
+            <text class="class-price">{{item.price}}</text>
+            <text class="class-count">{{item.enrolledCount || 0}}/{{item.maxStudents}}人</text>
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 商城推荐 -->
+    <!-- 配件商城 -->
     <view class="section">
       <view class="section-header">
-        <text class="section-title">配件商城</text>
-        <text class="section-more" bindtap="goToShop">查看更多</text>
+        <view class="section-title-wrap">
+          <text class="section-icon">🛒</text>
+          <text class="section-title">配件商城</text>
+        </view>
+        <view class="section-more" bindtap="goToShop">
+          <text>更多</text>
+          <text class="arrow">›</text>
+        </view>
       </view>
-      <view class="product-grid">
+      
+      <view wx:if="{{featuredProducts.length === 0}}" class="empty-hint">
+        <text>暂无商品，敬请期待</text>
+      </view>
+      
+      <view wx:else class="product-grid">
         <view 
           class="product-card" 
           wx:for="{{featuredProducts}}" 
@@ -85,16 +140,22 @@
           bindtap="goToProduct"
           data-id="{{item._id}}"
         >
-          <image class="product-cover" src="{{item.coverImage}}" mode="aspectFill" />
-          <view class="product-info">
-            <text class="product-title">{{item.name}}</text>
-            <view class="product-meta">
-              <text class="price">{{item.price}}</text>
-              <text class="product-sales">{{item.salesCount}}人已买</text>
+          <image 
+            class="product-cover" 
+            src="{{item.coverImage || 'https://via.placeholder.com/200x200?text=商品'}}" 
+            mode="aspectFill"
+          />
+          <view class="product-body">
+            <text class="product-name">{{item.name}}</text>
+            <view class="product-price-wrap">
+              <text class="product-price">{{item.price}}</text>
             </view>
           </view>
         </view>
       </view>
     </view>
-  </view>
+
+    <!-- 底部间距 -->
+    <view class="footer-space"></view>
+  </scroll-view>
 </view>

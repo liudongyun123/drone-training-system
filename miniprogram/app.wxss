@@ -1,5 +1,4 @@
-/**app.wxss**/
-/* 全局样式 */
+/* app.wxss - 小程序全局样式 */
 
 /* 主题色 */
 page {
@@ -9,128 +8,132 @@ page {
   --success-color: #52c41a;
   --warning-color: #faad14;
   --error-color: #ff4d4f;
-  --text-color: #333333;
-  --text-secondary: #666666;
-  --text-placeholder: #999999;
+  --text-primary: #262626;
+  --text-secondary: #595959;
+  --text-hint: #8c8c8c;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f7fa;
   --border-color: #e8e8e8;
-  --bg-color: #f6f6f6;
-  --bg-white: #ffffff;
-  
-  background-color: var(--bg-color);
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif;
-  font-size: 14px;
-  color: var(--text-color);
+  --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --radius-small: 8rpx;
+  --radius-medium: 12rpx;
+  --radius-large: 16rpx;
+
+  background-color: var(--bg-secondary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 28rpx;
+  color: var(--text-primary);
+  line-height: 1.5;
 }
 
-/* 容器 */
-.container {
-  padding: 16px;
-}
-
-/* 卡片 */
+/* 卡片通用样式 */
 .card {
-  background: var(--bg-white);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: var(--bg-primary);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-light);
+  overflow: hidden;
 }
 
-/* 按钮 */
+/* 按钮通用样式 */
 .btn-primary {
-  background-color: var(--primary-color);
-  color: #fff;
-  border-radius: 24px;
-  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  color: white;
+  border: none;
+  border-radius: var(--radius-medium);
+  padding: 20rpx 32rpx;
+  font-size: 28rpx;
+  font-weight: 500;
   text-align: center;
+  transition: all 0.3s ease;
 }
 
 .btn-primary:active {
-  background-color: var(--primary-dark);
+  transform: scale(0.98);
+  opacity: 0.9;
 }
 
-.btn-secondary {
-  background-color: var(--bg-white);
+/* 标签通用样式 */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  border-radius: 4rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.tag-primary {
+  background: rgba(24, 144, 255, 0.1);
   color: var(--primary-color);
-  border: 1px solid var(--primary-color);
-  border-radius: 24px;
-  padding: 12px 24px;
-  text-align: center;
 }
 
-/* 文本 */
-.text-primary {
-  color: var(--primary-color);
-}
-
-.text-success {
+.tag-success {
+  background: rgba(82, 196, 26, 0.1);
   color: var(--success-color);
 }
 
-.text-warning {
+.tag-warning {
+  background: rgba(250, 173, 20, 0.1);
   color: var(--warning-color);
 }
 
-.text-error {
+.tag-error {
+  background: rgba(255, 77, 79, 0.1);
   color: var(--error-color);
 }
 
-.text-secondary {
-  color: var(--text-secondary);
-}
-
-/* 价格 */
+/* 价格样式 */
 .price {
-  color: var(--error-color);
+  color: #ff4d4f;
   font-weight: 600;
 }
 
 .price::before {
   content: '¥';
-  font-size: 12px;
-}
-
-/* 标签 */
-.tag {
-  display: inline-block;
-  padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 4px;
-  background-color: var(--primary-light);
-  color: #fff;
-}
-
-/* 分割线 */
-.divider {
-  height: 1px;
-  background-color: var(--border-color);
-  margin: 16px 0;
-}
-
-/* 安全区域 */
-.safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
+  font-size: 22rpx;
+  margin-right: 4rpx;
 }
 
 /* 加载状态 */
 .loading-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  padding: 48px;
+  justify-content: center;
+  padding: 100rpx 0;
+  color: var(--text-hint);
 }
 
-.empty-container {
+/* 空状态 */
+.empty-state {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  padding: 48px;
-  color: var(--text-placeholder);
+  justify-content: center;
+  padding: 120rpx 40rpx;
+  text-align: center;
 }
 
 .empty-icon {
-  width: 120px;
-  height: 120px;
-  margin-bottom: 16px;
+  font-size: 120rpx;
+  margin-bottom: 24rpx;
+  opacity: 0.6;
+}
+
+.empty-text {
+  color: var(--text-hint);
+  font-size: 28rpx;
+}
+
+/* 分割线 */
+.divider {
+  height: 1rpx;
+  background: var(--border-color);
+  margin: 24rpx 0;
+}
+
+/* 安全区域适配 */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }
