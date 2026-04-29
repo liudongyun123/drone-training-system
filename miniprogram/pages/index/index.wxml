@@ -1,7 +1,7 @@
-<!--pages/index/index.wxml - 首页（完整复刻 Web 端）-->
+<!--pages/index/index.wxml - 首页（小程序适配版）-->
 
 <view class="page">
-  <!-- ==================== Hero 区域 ==================== -->
+  <!-- ==================== Hero 区域（紧凑版） ==================== -->
   <view class="hero-section">
     <view class="hero-bg"></view>
     
@@ -21,7 +21,7 @@
       </view>
       
       <!-- 描述 -->
-      <text class="hero-desc">中国航空运输协会认证培训机构，为学员提供从零基础到专业飞手的完整培训体系</text>
+      <text class="hero-desc">中国航空运输协会认证培训机构，零基础到专业飞手的完整培训体系</text>
       
       <!-- 按钮 -->
       <view class="hero-actions">
@@ -51,11 +51,6 @@
         </view>
       </view>
     </view>
-    
-    <!-- 向下滚动提示 -->
-    <view class="scroll-hint">
-      <text class="scroll-arrow">›</text>
-    </view>
   </view>
 
   <!-- 加载状态 -->
@@ -67,8 +62,8 @@
   <!-- 内容区域 -->
   <scroll-view wx:else class="content" scroll-y enable-back-to-top>
     
-    <!-- ==================== 学习路径 ==================== -->
-    <view class="section paths-section">
+    <!-- ==================== 学习路径（横向滑动） ==================== -->
+    <view class="section">
       <view class="section-header">
         <view class="section-icon-box green">
           <text class="section-icon">🗺️</text>
@@ -78,37 +73,46 @@
           <text class="section-subtitle">系统化学习体验</text>
         </view>
         <view class="section-more" bindtap="goToCourseList">
-          <text>查看全部</text>
+          <text>全部</text>
           <text class="arrow">›</text>
         </view>
       </view>
       
-      <view class="paths-grid">
-        <view class="path-card" bindtap="goToCourseList" data-category="基础培训">
-          <view class="path-icon-box blue">
-            <text class="path-icon">🎓</text>
+      <scroll-view class="scroll-x" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="paths-scroll">
+          <view class="path-card" bindtap="goToCourseList" data-category="基础培训">
+            <view class="path-icon-box blue">
+              <text class="path-icon">🎓</text>
+            </view>
+            <text class="path-name">基础入门</text>
+            <text class="path-desc">零基础学员首选</text>
           </view>
-          <text class="path-name">基础入门</text>
-          <text class="path-desc">零基础学员首选</text>
-        </view>
-        <view class="path-card" bindtap="goToCourseList" data-category="航拍技术">
-          <view class="path-icon-box amber">
-            <text class="path-icon">📷</text>
+          <view class="path-card" bindtap="goToCourseList" data-category="航拍技术">
+            <view class="path-icon-box amber">
+              <text class="path-icon">📷</text>
+            </view>
+            <text class="path-name">航拍进阶</text>
+            <text class="path-desc">专业航拍技能</text>
           </view>
-          <text class="path-name">航拍进阶</text>
-          <text class="path-desc">专业航拍技能</text>
-        </view>
-        <view class="path-card" bindtap="goToCourseList" data-category="行业应用">
-          <view class="path-icon-box purple">
-            <text class="path-icon">🚁</text>
+          <view class="path-card" bindtap="goToCourseList" data-category="行业应用">
+            <view class="path-icon-box purple">
+              <text class="path-icon">🚁</text>
+            </view>
+            <text class="path-name">行业应用</text>
+            <text class="path-desc">植保巡检测绘</text>
           </view>
-          <text class="path-name">行业应用</text>
-          <text class="path-desc">植保巡检测绘</text>
+          <view class="path-card" bindtap="goToCourseList" data-category="维修技术">
+            <view class="path-icon-box red">
+              <text class="path-icon">🔧</text>
+            </view>
+            <text class="path-name">维修保养</text>
+            <text class="path-desc">故障排除维护</text>
+          </view>
         </view>
-      </view>
+      </scroll-view>
     </view>
 
-    <!-- ==================== 热门课程 ==================== -->
+    <!-- ==================== 热门课程（横向滑动卡片） ==================== -->
     <view class="section">
       <view class="section-header">
         <view class="section-icon-box blue">
@@ -129,38 +133,36 @@
         <text class="empty-text">暂无课程，敬请期待</text>
       </view>
       
-      <view wx:else class="course-grid">
-        <view 
-          class="course-card" 
-          wx:for="{{hotCourses}}" 
-          wx:key="_id"
-          bindtap="goToCourse"
-          data-id="{{item._id}}"
-        >
-          <image 
-            class="course-cover" 
-            src="{{item.coverImage}}" 
-            mode="aspectFill"
-          />
-          <view class="course-body">
-            <view class="course-level-badge" wx:if="{{item.level}}">
-              <text>{{item.level}}</text>
-            </view>
-            <text class="course-title">{{item.title}}</text>
-            <text class="course-desc">{{item.description}}</text>
-            <view class="course-meta">
-              <view class="course-price-box">
-                <text class="course-price">{{item.price}}</text>
-                <text class="course-original" wx:if="{{item.originalPrice}}">{{item.originalPrice}}</text>
+      <scroll-view wx:else class="scroll-x" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="course-scroll">
+          <view 
+            class="course-card" 
+            wx:for="{{hotCourses}}" 
+            wx:key="_id"
+            bindtap="goToCourse"
+            data-id="{{item._id}}"
+          >
+            <image 
+              class="course-cover" 
+              src="{{item.coverImage}}" 
+              mode="aspectFill"
+            />
+            <view class="course-body">
+              <view class="course-level-badge" wx:if="{{item.level}}">
+                <text>{{item.level}}</text>
               </view>
-              <text class="course-sales">{{item.salesCount || 0}}人已学</text>
+              <text class="course-title">{{item.title}}</text>
+              <view class="course-meta">
+                <text class="course-price">{{item.price}}</text>
+                <text class="course-sales">{{item.salesCount || 0}}人已学</text>
+              </view>
             </view>
           </view>
         </view>
-      </view>
+      </scroll-view>
     </view>
 
-    <!-- ==================== 培训班报名 ==================== -->
+    <!-- ==================== 培训班报名（竖向滑动卡片） ==================== -->
     <view class="section">
       <view class="section-header">
         <view class="section-icon-box amber">
@@ -181,101 +183,116 @@
         <text class="empty-text">暂无培训班，敬请期待</text>
       </view>
       
-      <view wx:else class="class-list">
-        <view 
-          class="class-card" 
-          wx:for="{{enrollingClasses}}" 
-          wx:key="_id"
-          bindtap="goToClass"
-          data-id="{{item._id}}"
-        >
-          <view class="class-header">
-            <text class="class-name">{{item.name}}</text>
-            <view class="class-status-badge enrolling">
-              <text>招生中</text>
+      <scroll-view wx:else class="scroll-x" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="class-scroll">
+          <view 
+            class="class-card" 
+            wx:for="{{enrollingClasses}}" 
+            wx:key="_id"
+            bindtap="goToClass"
+            data-id="{{item._id}}"
+          >
+            <view class="class-top">
+              <text class="class-name">{{item.name}}</text>
+              <view class="class-status-badge enrolling">
+                <text>招生中</text>
+              </view>
             </view>
-          </view>
-          <view class="class-info-row">
-            <text class="info-icon">📅</text>
-            <text class="info-text">{{item.startDate}} - {{item.endDate}}</text>
-          </view>
-          <view class="class-info-row" wx:if="{{item.location}}">
-            <text class="info-icon">📍</text>
-            <text class="info-text">{{item.location}}</text>
-          </view>
-          <view class="class-footer">
-            <view class="class-price-box">
+            <view class="class-info-row">
+              <text class="info-icon">📅</text>
+              <text class="info-text">{{item.startDate}}</text>
+            </view>
+            <view class="class-info-row" wx:if="{{item.location}}">
+              <text class="info-icon">📍</text>
+              <text class="info-text">{{item.location}}</text>
+            </view>
+            <view class="class-divider"></view>
+            <view class="class-bottom">
               <text class="class-price">{{item.price}}</text>
-              <text class="class-original" wx:if="{{item.originalPrice}}">{{item.originalPrice}}</text>
+              <text class="class-count">{{item.enrolledCount || 0}}/{{item.maxStudents}}人</text>
             </view>
-            <text class="class-count">{{item.enrolledCount || 0}}/{{item.maxStudents}}人</text>
           </view>
         </view>
-      </view>
+      </scroll-view>
     </view>
 
     <!-- ==================== 统计数据 ==================== -->
-    <view class="section stats-section">
-      <view class="stats-grid">
-        <view class="stat-card">
+    <view class="section">
+      <view class="stats-bar">
+        <view class="stat-item">
           <text class="stat-number">500+</text>
           <text class="stat-label">培训学员</text>
         </view>
-        <view class="stat-card">
+        <view class="stat-divider"></view>
+        <view class="stat-item">
           <text class="stat-number">98%</text>
           <text class="stat-label">通过率</text>
         </view>
-        <view class="stat-card">
+        <view class="stat-divider"></view>
+        <view class="stat-item">
           <text class="stat-number">50+</text>
           <text class="stat-label">合作企业</text>
         </view>
-        <view class="stat-card">
-          <text class="stat-number">10+</text>
-          <text class="stat-label">年培训经验</text>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-number">10年</text>
+          <text class="stat-label">培训经验</text>
         </view>
       </view>
     </view>
 
-    <!-- ==================== 特色功能 ==================== -->
-    <view class="section features-section">
-      <view class="section-header center">
+    <!-- ==================== 特色功能（横向滑动） ==================== -->
+    <view class="section">
+      <view class="section-header">
+        <view class="section-icon-box blue">
+          <text class="section-icon">⭐</text>
+        </view>
         <text class="section-title">为什么选择我们</text>
       </view>
       
-      <view class="features-grid">
-        <view class="feature-card">
-          <view class="feature-icon-box blue">
-            <text class="feature-icon">🏆</text>
+      <scroll-view class="scroll-x" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="features-scroll">
+          <view class="feature-card">
+            <view class="feature-icon-box blue">
+              <text class="feature-icon">🏆</text>
+            </view>
+            <text class="feature-title">官方认证</text>
+            <text class="feature-desc">航空协会认证培训机构</text>
           </view>
-          <text class="feature-title">官方认证</text>
-          <text class="feature-desc">中国航空运输协会认证培训机构</text>
-        </view>
-        <view class="feature-card">
-          <view class="feature-icon-box green">
-            <text class="feature-icon">👨‍🏫</text>
+          <view class="feature-card">
+            <view class="feature-icon-box green">
+              <text class="feature-icon">👨‍🏫</text>
+            </view>
+            <text class="feature-title">资深教官</text>
+            <text class="feature-desc">AOPA认证，10年经验</text>
           </view>
-          <text class="feature-title">资深教官</text>
-          <text class="feature-desc">AOPA认证教官，10年飞行经验</text>
-        </view>
-        <view class="feature-card">
-          <view class="feature-icon-box amber">
-            <text class="feature-icon">✈️</text>
+          <view class="feature-card">
+            <view class="feature-icon-box amber">
+              <text class="feature-icon">✈️</text>
+            </view>
+            <text class="feature-title">实操为主</text>
+            <text class="feature-desc">70%实操训练</text>
           </view>
-          <text class="feature-title">实操为主</text>
-          <text class="feature-desc">70%实操训练，快速掌握技能</text>
-        </view>
-        <view class="feature-card">
-          <view class="feature-icon-box purple">
-            <text class="feature-icon">💼</text>
+          <view class="feature-card">
+            <view class="feature-icon-box purple">
+              <text class="feature-icon">💼</text>
+            </view>
+            <text class="feature-title">推荐就业</text>
+            <text class="feature-desc">合作企业优先录用</text>
           </view>
-          <text class="feature-title">推荐就业</text>
-          <text class="feature-desc">合作企业优先录用优秀学员</text>
+          <view class="feature-card">
+            <view class="feature-icon-box red">
+              <text class="feature-icon">📱</text>
+            </view>
+            <text class="feature-title">线上学习</text>
+            <text class="feature-desc">随时随地学理论</text>
+          </view>
         </view>
-      </view>
+      </scroll-view>
     </view>
 
-    <!-- ==================== 配件商城入口 ==================== -->
-    <view class="section shop-section">
+    <!-- ==================== 配件商城（横向滑动） ==================== -->
+    <view class="section">
       <view class="section-header">
         <view class="section-icon-box purple">
           <text class="section-icon">🛒</text>
@@ -295,28 +312,30 @@
         <text class="empty-text">暂无商品，敬请期待</text>
       </view>
       
-      <view wx:else class="product-grid">
-        <view 
-          class="product-card" 
-          wx:for="{{featuredProducts}}" 
-          wx:key="_id"
-          bindtap="goToProduct"
-          data-id="{{item._id}}"
-        >
-          <image 
-            class="product-cover" 
-            src="{{item.coverImage}}" 
-            mode="aspectFill"
-          />
-          <view class="product-body">
-            <text class="product-name">{{item.name}}</text>
-            <view class="product-price-box">
-              <text class="product-price">{{item.price}}</text>
+      <scroll-view wx:else class="scroll-x" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="product-scroll">
+          <view 
+            class="product-card" 
+            wx:for="{{featuredProducts}}" 
+            wx:key="_id"
+            bindtap="goToProduct"
+            data-id="{{item._id}}"
+          >
+            <image 
+              class="product-cover" 
+              src="{{item.coverImage}}" 
+              mode="aspectFill"
+            />
+            <view class="product-body">
+              <text class="product-name">{{item.name}}</text>
+              <view class="product-price-box">
+                <text class="product-price">{{item.price}}</text>
+              </view>
+              <text class="product-sales">{{item.salesCount || 0}}人购买</text>
             </view>
-            <text class="product-sales">{{item.salesCount || 0}}人购买</text>
           </view>
         </view>
-      </view>
+      </scroll-view>
     </view>
 
     <!-- 底部间距 -->
