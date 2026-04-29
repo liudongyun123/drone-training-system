@@ -1,62 +1,94 @@
 <!--pages/my-learning/my-learning.wxml-->
+
 <view class="page">
   <!-- 未登录状态 -->
-  <view wx:if="{{!isLoggedIn}}" class="login-prompt">
-    <image class="avatar-placeholder" src="/assets/avatar-placeholder.png" mode="aspectFill" />
-    <text class="prompt-text">登录后查看学习进度</text>
+  <view wx:if="{{!isLoggedIn}}" class="empty-state">
+    <text class="empty-icon">🔒</text>
+    <text class="empty-text">登录后查看学习进度</text>
     <button class="btn-login" bindtap="goToLogin">立即登录</button>
   </view>
 
   <!-- 已登录状态 -->
-  <view wx:else class="user-container">
-    <!-- 用户信息 -->
-    <view class="user-header" bindtap="goToProfile">
-      <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
-      <view class="user-info">
-        <text class="nickname">{{userInfo.nickName}}</text>
-        <text class="phone">{{phone || '未绑定手机号'}}</text>
+  <block wx:else>
+    <!-- Tab 切换 -->
+    <view class="tab-bar">
+      <view class="tab-item {{currentTab === 'learning' ? 'active' : ''}}" bindtap="switchTab" data-tab="learning">
+        <text>学习中</text>
+        <text class="tab-count" wx:if="{{learningCount > 0}}">{{learningCount}}</text>
       </view>
-      <text class="arrow">→</text>
-    </view>
-
-    <!-- 功能入口 -->
-    <view class="menu-grid">
-      <view class="menu-item" bindtap="goToOrders">
-        <text class="menu-icon">📦</text>
-        <text class="menu-text">我的订单</text>
-      </view>
-      <view class="menu-item" bindtap="goToClasses">
-        <text class="menu-icon">✈️</text>
-        <text class="menu-text">我的培训班</text>
-      </view>
-      <view class="menu-item" bindtap="goToPractice">
-        <text class="menu-icon">📝</text>
-        <text class="menu-text">练习记录</text>
-      </view>
-      <view class="menu-item" bindtap="goToCertificates">
-        <text class="menu-icon">🎓</text>
-        <text class="menu-text">我的证书</text>
+      <view class="tab-item {{currentTab === 'completed' ? 'active' : ''}}" bindtap="switchTab" data-tab="completed">
+        <text>已完成</text>
+        <text class="tab-count" wx:if="{{completedCount > 0}}">{{completedCount}}</text>
       </view>
     </view>
 
-    <!-- 学习进度 -->
-    <view class="section">
-      <view class="section-header">
-        <text class="section-title">我的课程</text>
-        <text class="section-more">查看全部</text>
+    <!-- 加载状态 -->
+    <view wx:if="{{loading}}" class="loading-container">
+      <text class="loading-spinner">⏳</text>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 学习中 -->
+    <scroll-view wx:elif="{{currentTab === 'learning'}}" class="content" scroll-y enhanced>
+      <view wx:if="{{learningCourses.length === 0}}" class="empty-state">
+        <text class="empty-icon">📚</text>
+        <text class="empty-text">暂无学习中的课程</text>
+        <button class="btn-primary" bindtap="goToCourseList">去选课</button>
       </view>
-      <view class="course-grid">
+      
+      <view wx:else class="course-list">
         <view 
           class="course-card" 
-          wx:for="{{myCourses}}" 
+          wx:for="{{learningCourses}}" 
           wx:key="_id"
           bindtap="goToCourse"
           data-id="{{item._id}}"
         >
           <image class="course-cover" src="{{item.coverImage}}" mode="aspectFill" />
-          <text class="course-title">{{item.title}}</text>
+          <view class="course-info">
+            <text class="course-title">{{item.title}}</text>
+            <view class="progress-bar">
+              <view class="progress-fill" style="width: {{item.progress}}%"></view>
+            </view>
+            <view class="progress-text">
+              <text>已学 {{item.learnedLessons}}/{{item.totalLessons}} 节</text>
+              <text class="progress-percent">{{item.progress}}%</text>
+            </view>
+            <text class="last-time">上次学习：{{item.lastLearnTime}}</text>
+          </view>
         </view>
       </view>
-    </view>
-  </view>
+    </scroll-view>
+
+    <!-- 已完成 -->
+    <scroll-view wx:elif="{{currentTab === 'completed'}}" class="content" scroll-y enhanced>
+      <view wx:if="{{completedCourses.length === 0}}" class="empty-state">
+        <text class="empty-icon">📭</text>
+        <text class="empty-text">暂无已完成的课程</text>
+      </view>
+      
+      <view wx:else class="course-list">
+        <view 
+          class="course-card completed" 
+          wx:for="{{completedCourses}}" 
+          wx:key="_id"
+          bindtap="goToCourse"
+          data-id="{{item._id}}"
+        >
+          <image class="course-cover" src="{{item.coverImage}}" mode="aspectFill" />
+          <view class="course-info">
+            <view class="title-row">
+              <text class="course-title">{{item.title}}</text>
+              <text class="complete-badge">✓ 完成</text>
+            </view>
+            <text class="complete-time">完成时间：{{item.completeTime}}</text>
+            <view class="course-actions">
+              <button class="btn-review" bindtap="reviewCourse" data-id="{{item._id}}">复习课程</button>
+              <button class="btn-certificate" bindtap="getCertificate" data-id="{{item._id}}">获取证书</button>
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </block>
 </view>
