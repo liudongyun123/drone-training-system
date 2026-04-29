@@ -5,7 +5,7 @@
 // ============================================================================
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import AdminPageTemplate from './_AdminPageTemplate';
+import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { classService } from '@/services';
 import { CloudAdminService } from '@/services/CloudAdminService';
 import type { ClassV2 as Class, ClassSchedule } from '@/types';

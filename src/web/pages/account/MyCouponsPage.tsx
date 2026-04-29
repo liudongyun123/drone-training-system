@@ -7,8 +7,8 @@ import {
   Ticket, Clock, CheckCircle, XCircle, Gift,
   Tag, AlertCircle, ChevronRight, Copy
 } from 'lucide-react';
-import Loading from '../components/Loading';
-import { useAuthStore } from '../store/authStore';
+import Loading from '@/components/Loading';
+import { useAuthStore } from '@/store/authStore';
 
 interface Coupon {
   _id: string;

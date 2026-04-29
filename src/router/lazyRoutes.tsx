@@ -1,96 +1,101 @@
 // ============================================================================
 // 懒加载路由配置 - 性能优化版本
+// 目录重组后: 前台 → src/web/pages/, 后台 → src/admin/pages/
 // ============================================================================
 import { lazy } from 'react';
 
-// 公共页面
-export const HomePage = lazy(() => import('@/routes/HomePage'));
-export const CourseListPage = lazy(() => import('@/routes/CourseListPage'));
-export const CourseDetailPage = lazy(() => import('@/routes/CourseDetailPage'));
-export const OpenClassesPage = lazy(() => import('@/routes/OpenClassesPage')); // 开班信息列表
-export const CartPage = lazy(() => import('@/routes/CartPage'));
-export const CheckoutPage = lazy(() => import('@/routes/CheckoutPage'));
-export const TeachersPage = lazy(() => import('@/routes/TeachersPage'));
+// ==================== 前台页面 (src/web/pages/) ====================
+
+// 首页
+export const HomePage = lazy(() => import('@/web/pages/home/HomePage'));
+export const TeachersPage = lazy(() => import('@/web/pages/home/TeachersPage'));
+export const NoticesPage = lazy(() => import('@/web/pages/home/NoticesPage'));
+export const OpenClassesPage = lazy(() => import('@/web/pages/home/OpenClassesPage'));
+export const RegistrationPage = lazy(() => import('@/web/pages/home/RegistrationPage'));
 
 // 认证相关
-export const LoginPage = lazy(() => import('@/routes/LoginPage'));
-export const RegisterPage = lazy(() => import('@/routes/RegisterPage'));
-export const BindPhonePage = lazy(() => import('@/routes/BindPhonePage')); // 绑定手机页面
+export const LoginPage = lazy(() => import('@/web/pages/account/LoginPage'));
+export const RegisterPage = lazy(() => import('@/web/pages/account/RegisterPage'));
+export const BindPhonePage = lazy(() => import('@/web/pages/account/BindPhonePage'));
 
-// 学习相关
-export const MyLearningPage = lazy(() => import('@/routes/MyLearningPage'));
-export const LessonPlayerPage = lazy(() => import('@/routes/LessonPlayerPage'));
-export const MySchedulePage = lazy(() => import('@/routes/MySchedulePage'));
-export const ExamPage = lazy(() => import('@/routes/ExamPage'));
-export const ExamCenterPage = lazy(() => import('@/pages/ExamCenter'));
-export const ExamResultPage = lazy(() => import('@/pages/ExamResult'));
-export const QuestionBankListPage = lazy(() => import('@/pages/QuestionBankList'));
-export const QuestionBankPracticePage = lazy(() => import('@/pages/QuestionBankPractice'));
-export const CertificateCenterPage = lazy(() => import('@/pages/CertificateCenter'));
-export const MarketingCenterPage = lazy(() => import('@/pages/MarketingCenter'));
+// 线上学习
+export const CourseListPage = lazy(() => import('@/web/pages/learning/CourseListPage'));
+export const CourseDetailPage = lazy(() => import('@/web/pages/learning/CourseDetailPage'));
+export const LessonPlayerPage = lazy(() => import('@/web/pages/learning/LessonPlayerPage'));
+export const MyLearningPage = lazy(() => import('@/web/pages/learning/MyLearningPage'));
+export const LearningPathsPage = lazy(() => import('@/web/pages/learning/LearningPathsPage'));
+export const CoursesPage = lazy(() => import('@/web/pages/learning/CoursesPage'));
 
-// 用户中心
-export const MyOrdersPage = lazy(() => import('@/routes/MyOrdersPage'));
-export const MyCouponsPage = lazy(() => import('@/pages/MyCouponsPage'));
-export const CouponCenterPage = lazy(() => import('@/pages/CouponCenterPage'));
+// 线下培训
+export const ClassEnrollmentPage = lazy(() => import('@/web/pages/training/ClassEnrollmentPage'));
+export const MyClassesPage = lazy(() => import('@/web/pages/training/MyClassesPage'));
+export const MySchedulePage = lazy(() => import('@/web/pages/training/MySchedulePage'));
+export const MyTrainingPage = lazy(() => import('@/web/pages/training/MyTrainingPage'));
+export const StudentScheduleChangePage = lazy(() => import('@/web/pages/training/StudentScheduleChangePage'));
 
-// 管理后台 - 按模块懒加载
-export const AdminDashboard = lazy(() => import('@/routes/admin/AdminDashboard'));
-export const AdminCourses = lazy(() => import('@/routes/admin/AdminCourses'));
-export const AdminTeachers = lazy(() => import('@/routes/admin/AdminTeachers'));
-export const AdminMembers = lazy(() => import('@/components/admin/MemberManagement')); // 统一成员管理入口
+// 练习/考试
+export const ExamPage = lazy(() => import('@/web/pages/practice/ExamPage'));
+export const MyPracticePage = lazy(() => import('@/web/pages/practice/MyPracticePage'));
+export const ExamCenterPage = lazy(() => import('@/web/pages/practice/ExamCenterPage'));
+export const ExamResultPage = lazy(() => import('@/web/pages/practice/ExamResultPage'));
+export const QuestionBankListPage = lazy(() => import('@/web/pages/practice/QuestionBankListPage'));
+export const QuestionBankPracticePage = lazy(() => import('@/web/pages/practice/QuestionBankPracticePage'));
+export const CertificateCenterPage = lazy(() => import('@/web/pages/practice/CertificateCenterPage'));
+export const MarketingCenterPage = lazy(() => import('@/web/pages/practice/MarketingCenterPage'));
 
-export const AdminFinance = lazy(() => import('@/routes/admin/AdminFinance'));
-export const AdminExamsUnited = lazy(() => import('@/routes/admin/AdminExamsUnited'));
-export const AdminPageConfig = lazy(() => import('@/routes/admin/AdminPageConfigNew')); // 统一内容配置入口
-export const AdminCertificates = lazy(() => import('@/routes/admin/AdminCertificates'));
-export const AdminMarketing = lazy(() => import('@/routes/admin/AdminMarketing'));
-export const AdminCategories = lazy(() => import('@/routes/admin/AdminCategories'));
-export const AdminLogin = lazy(() => import('@/components/admin/AdminLogin'));
+// 账户/用户中心
+export const CartPage = lazy(() => import('@/web/pages/account/CartPage'));
+export const CheckoutPage = lazy(() => import('@/web/pages/account/CheckoutPage'));
+export const MyOrdersPage = lazy(() => import('@/web/pages/account/MyOrdersPage'));
+export const MyCouponsPage = lazy(() => import('@/web/pages/account/MyCouponsPage'));
+export const CouponCenterPage = lazy(() => import('@/web/pages/account/CouponCenterPage'));
+export const MessagesPage = lazy(() => import('@/web/pages/account/MessagesPage'));
+export const TransferRequestPage = lazy(() => import('@/web/pages/account/TransferRequestPage'));
 
-// 新增管理模块
-export const AdminComments = lazy(() => import('@/routes/admin/AdminComments'));
-export const AdminLogs = lazy(() => import('@/routes/admin/AdminLogs'));
-export const AdminPracticeRecords = lazy(() => import('@/routes/admin/AdminPracticeRecords'));
-export const AdminMemberLevels = lazy(() => import('@/routes/admin/AdminMemberLevels'));
-export const AdminRoles = lazy(() => import('@/routes/admin/AdminRoles'));
-export const AdminUserRoles = lazy(() => import('@/routes/admin/AdminUserRoles')); // 管理员账号管理
-export const AdminNoticeManagement = lazy(() => import('@/components/admin/NoticeManagement')); // 公告管理
-export const AdminMessageManagement = lazy(() => import('@/components/admin/MessageManagement')); // 消息管理
+// ==================== 管理后台 (src/admin/pages/) ====================
 
-// 数据修复
-export const AdminDataFix = lazy(() => import('@/routes/admin/AdminDataFix'));
+// 系统管理
+export const AdminDashboard = lazy(() => import('@/admin/pages/system/AdminDashboard'));
+export const AdminLogin = lazy(() => import('@/admin/pages/system/AdminLogin'));
+export const AdminDataFix = lazy(() => import('@/admin/pages/system/AdminDataFix'));
+export const AdminDiagnostics = lazy(() => import('@/admin/pages/system/AdminDiagnostics'));
+export const AdminLogs = lazy(() => import('@/admin/pages/system/AdminLogs'));
+export const AdminOfflineEnrollment = lazy(() => import('@/admin/pages/system/AdminOfflineEnrollment'));
 
-// 系统诊断
-export const AdminDiagnostics = lazy(() => import('@/routes/admin/AdminDiagnostics'));
+// 课程管理
+export const AdminCourses = lazy(() => import('@/admin/pages/courses/AdminCourses'));
 
-// 系统设置
-export const AdminAuthConfig = lazy(() => import('@/components/admin/AuthConfig')); // 系统设置（登录方式/角色权限）
+// 班级管理
+export const AdminClasses = lazy(() => import('@/admin/pages/classes/AdminClasses'));
+export const AdminClassSchedules = lazy(() => import('@/admin/pages/classes/AdminClassSchedules'));
+export const AdminClassOrders = lazy(() => import('@/admin/pages/classes/AdminClassOrders'));
+export const AdminRegistrations = lazy(() => import('@/admin/pages/classes/AdminRegistrations'));
 
-// 调课管理
-export const TransferRequestPage = lazy(() => import('@/routes/user/TransferRequestPage')); // 学员端调课申请
-export const AdminTransfers = lazy(() => import('@/routes/admin/AdminTransfers')); // 管理端调课审核
+// 用户管理
+export const AdminRoles = lazy(() => import('@/admin/pages/users/AdminRoles'));
+export const AdminUserRoles = lazy(() => import('@/admin/pages/users/AdminUserRoles'));
+export const AdminMemberLevels = lazy(() => import('@/admin/pages/users/AdminMemberLevels'));
+export const AdminCertificates = lazy(() => import('@/admin/pages/users/AdminCertificates'));
+export const AdminMembers = lazy(() => import('@/components/admin/MemberManagement')); // 统一成员管理入口（组件暂未移动）
 
-// 前台新增功能页面
-export const NoticesPage = lazy(() => import('@/routes/NoticesPage')); // 公告列表
-export const LearningPathsPage = lazy(() => import('@/routes/LearningPathsPage')); // 学习路径
-export const MyPracticePage = lazy(() => import('@/routes/MyPracticePage')); // 我的练习
-export const MessagesPage = lazy(() => import('@/pages/MessagesPage')); // 消息中心
+// 订单财务
+export const AdminCourseOrders = lazy(() => import('@/admin/pages/orders/AdminCourseOrders'));
+export const AdminFinance = lazy(() => import('@/admin/pages/orders/AdminFinance'));
+export const AdminTransfers = lazy(() => import('@/admin/pages/orders/AdminTransfers'));
 
-// 班级与报名管理（新业务流 v20260410）
-export const AdminClasses = lazy(() => import('@/routes/admin/AdminClasses')); // 班级管理
-export const AdminClassSchedules = lazy(() => import('@/routes/admin/AdminClassSchedules')); // 班级排课
-export const AdminRegistrations = lazy(() => import('@/routes/admin/AdminRegistrations')); // 报名审核
-export const PermissionManagement = lazy(() => import('@/components/admin/PermissionManagement')); // 权限管理
+// 考试管理
+export const AdminExamsUnited = lazy(() => import('@/admin/pages/exams/AdminExamsUnited'));
+export const AdminPracticeRecords = lazy(() => import('@/admin/pages/exams/AdminPracticeRecords'));
 
-// 订单管理（新业务流 v20260413）
-export const AdminCourseOrders = lazy(() => import('@/routes/admin/AdminCourseOrders')); // 课程订单（type='course'）
-export const AdminClassOrders = lazy(() => import('@/routes/admin/AdminClassOrders')); // 培训班订单（type='class'）
-export const AdminOfflineEnrollment = lazy(() => import('@/routes/admin/AdminOfflineEnrollment')); // 线下报名
+// 内容管理
+export const AdminCategories = lazy(() => import('@/admin/pages/content/AdminCategories'));
+export const AdminPageConfig = lazy(() => import('@/admin/pages/content/AdminPageConfigNew'));
+export const AdminComments = lazy(() => import('@/admin/pages/content/AdminComments'));
+export const AdminMarketing = lazy(() => import('@/admin/pages/content/AdminMarketing'));
+export const AdminTeachers = lazy(() => import('@/admin/pages/content/AdminTeachers'));
 
-// 学员端 - 我的班级
-export const MyClassesPage = lazy(() => import('@/routes/user/MyClassesPage')); // 我的班级
-export const MyTrainingPage = lazy(() => import('@/routes/user/MyTrainingPage')); // 我的培训（合并班级+课表）
-
-// 前台报名页面
-export const RegistrationPage = lazy(() => import('@/routes/RegistrationPage')); // 独立报名入口
+// ==================== 仍在 components/admin 中的组件 ====================
+export const AdminNoticeManagement = lazy(() => import('@/components/admin/NoticeManagement'));
+export const AdminMessageManagement = lazy(() => import('@/components/admin/MessageManagement'));
+export const AdminAuthConfig = lazy(() => import('@/components/admin/AuthConfig'));
+export const PermissionManagement = lazy(() => import('@/components/admin/PermissionManagement'));

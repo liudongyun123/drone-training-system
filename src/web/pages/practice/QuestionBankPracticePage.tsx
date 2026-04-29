@@ -5,9 +5,9 @@ import {
   BookOpen, RotateCcw, ChevronRight, Eye, EyeOff,
   Heart, Bookmark
 } from 'lucide-react';
-import type { BankQuestion, QuestionBank } from '../types';
-import { questionBankService } from '../services/examService';
-import Loading from '../components/Loading';
+import type { BankQuestion, QuestionBank } from '@/types';
+import { questionBankService } from '@/services/examService';
+import Loading from '@/components/Loading';
 
 export default function QuestionBankPractice() {
   const { bankId } = useParams<{ bankId: string }>();

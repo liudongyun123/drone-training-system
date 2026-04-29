@@ -4,7 +4,7 @@
 // 版本：v20260411-member-source
 // ============================================================================
 import { useState, useEffect } from 'react';
-import AdminPageTemplate from './_AdminPageTemplate';
+import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { classService } from '@/services';
 import { courseService, teacherService } from '@/services/database';
 import type { ClassV2 as Class, Course, Teacher } from '@/types';

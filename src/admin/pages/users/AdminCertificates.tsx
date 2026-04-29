@@ -5,10 +5,10 @@ import {
   FileText, Calendar, User, Check, X, AlertCircle,
   ChevronLeft, ChevronRight, Eye
 } from 'lucide-react';
-import type { Certificate } from '../../types';
-import { certificateService } from '../../services/certificateService';
-import Loading from '../../components/Loading';
-import EmptyState from '../../components/EmptyState';
+import type { Certificate } from '@/types';
+import { certificateService } from '@/services/certificateService';
+import Loading from '@/components/Loading';
+import EmptyState from '@/components/EmptyState';
 import { formatDateStr } from '@/utils/dateUtils';
 
 export default function AdminCertificates() {

@@ -1,0 +1,106 @@
+/* pages/course-list/course-list.wxss */
+
+.page {
+  background: #f6f6f6;
+  min-height: 100vh;
+}
+
+/* 分类筛选栏 */
+.category-bar {
+  white-space: nowrap;
+  background: #fff;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.category-item {
+  display: inline-block;
+  padding: 6px 16px;
+  margin-right: 12px;
+  font-size: 14px;
+  color: #666;
+  border-radius: 16px;
+  background: #f6f6f6;
+}
+
+.category-item.active {
+  color: #fff;
+  background: #1890ff;
+}
+
+/* 课程列表 */
+.course-list {
+  padding: 12px 16px;
+}
+
+.course-card {
+  display: flex;
+  background: #fff;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.course-cover {
+  width: 140px;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.course-info {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.course-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-desc {
+  font-size: 12px;
+  color: #999;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price {
+  color: #ff4d4f;
+}
+
+.price-symbol {
+  font-size: 12px;
+}
+
+.price-num {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.students {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 16px;
+  color: #999;
+  font-size: 14px;
+}

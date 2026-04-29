@@ -4,7 +4,7 @@
 // ============================================================================
 
 import { useState, useEffect } from 'react'
-import AdminPageTemplate from '@/routes/admin/_AdminPageTemplate'
+import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate'
 import { adminService } from '@/services'
 import { ADMIN_ROLE_OPTIONS, ROLE_LABELS, PERMISSION_LABELS } from '@/types/userRole'
 import type { UserRoleRecord, SystemRole } from '@/types/userRole'

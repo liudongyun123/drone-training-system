@@ -1,0 +1,5 @@
+{
+  "navigationBarTitleText": "配件商城",
+  "enablePullDownRefresh": true,
+  "onReachBottomDistance": 50
+}

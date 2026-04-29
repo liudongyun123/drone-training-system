@@ -1,0 +1,39 @@
+<!--pages/login/login.wxml-->
+<view class="login-page">
+  <!-- 未登录状态 -->
+  <view wx:if="{{!isLoggedIn}}" class="login-container">
+    <image class="logo" src="/assets/logo.png" mode="aspectFit" />
+    <text class="title">无人机培训</text>
+    <text class="desc">登录后可享受更多服务</text>
+    
+    <!-- 微信登录按钮 -->
+    <button 
+      class="btn-wx-login" 
+      bindtap="handleWxLogin"
+      loading="{{loading}}"
+    >
+      <text class="btn-icon">👤</text>
+      <text>微信快捷登录</text>
+    </button>
+    
+    <!-- 手机号绑定按钮 -->
+    <button 
+      class="btn-phone-login" 
+      open-type="getPhoneNumber"
+      bindgetphonenumber="handlePhoneLogin"
+    >
+      <text class="btn-icon">📱</text>
+      <text>绑定手机号</text>
+    </button>
+    
+    <text class="tips">登录即表示同意《用户协议》和《隐私政策》</text>
+  </view>
+  
+  <!-- 已登录状态 -->
+  <view wx:else class="logged-container">
+    <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
+    <text class="nickname">{{userInfo.nickName}}</text>
+    
+    <button class="btn-logout" bindtap="handleLogout">退出登录</button>
+  </view>
+</view>

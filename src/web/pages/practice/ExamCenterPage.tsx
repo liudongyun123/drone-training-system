@@ -5,11 +5,11 @@ import {
   AlertCircle, ChevronRight, Play, History, BarChart3,
   CheckCircle, XCircle, Timer, GraduationCap
 } from 'lucide-react';
-import type { Exam, ExamAttempt, QuestionBank } from '../types';
-import { examService, questionBankService } from '../services/examService';
+import type { Exam, ExamAttempt, QuestionBank } from '@/types';
+import { examService, questionBankService } from '@/services/examService';
 import { useAuthStore } from '@/store/authStore';
-import Loading from '../components/Loading';
-import EmptyState from '../components/EmptyState';
+import Loading from '@/components/Loading';
+import EmptyState from '@/components/EmptyState';
 
 interface ExamCardProps {
   exam: Exam;

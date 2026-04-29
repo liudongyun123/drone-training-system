@@ -4,7 +4,7 @@
 // 版本：v1.2 - 班级成员 → 班级权限，明确职责边界
 // ============================================================================
 import { useState, useEffect } from 'react'
-import AdminPageTemplate from '@/routes/admin/_AdminPageTemplate'
+import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate'
 import { permissionService } from '@/services/permissionService'
 import { classService } from '@/services/classService'
 import type { CoursePermission, ClassMember, PermissionStats, ClassMemberStats } from '@/types/permission'

@@ -2,7 +2,7 @@
 // 管理后台 - 课程管理
 // ============================================================================
 import { useState, useEffect } from 'react';
-import AdminPageTemplate from './_AdminPageTemplate';
+import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { courseService, teacherService } from '@/services/database';
 import { CloudAdminService } from '@/services/CloudAdminService';
 import { adminService } from '@/services/adminService';

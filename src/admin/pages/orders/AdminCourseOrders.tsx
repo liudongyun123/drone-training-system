@@ -5,7 +5,7 @@
 // ============================================================================
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import AdminPageTemplate from './_AdminPageTemplate';
+import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { orderService } from '@/services';
 import { toast } from '@/components/Toast';
 import {

@@ -4,9 +4,9 @@
  */
 
 import { useState, useEffect } from 'react'
-import { scheduleChangeService } from '../services/enrollmentService'
-import { scheduleService } from '../services/scheduleService'
-import { useAuthStore } from '../store/authStore'
+import { scheduleChangeService } from '@/services/enrollmentService'
+import { scheduleService } from '@/services/scheduleService'
+import { useAuthStore } from '@/store/authStore'
 
 interface ScheduleChange {
   _id: string

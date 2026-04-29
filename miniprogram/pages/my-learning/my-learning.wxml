@@ -1,0 +1,62 @@
+<!--pages/my-learning/my-learning.wxml-->
+<view class="page">
+  <!-- 未登录状态 -->
+  <view wx:if="{{!isLoggedIn}}" class="login-prompt">
+    <image class="avatar-placeholder" src="/assets/avatar-placeholder.png" mode="aspectFill" />
+    <text class="prompt-text">登录后查看学习进度</text>
+    <button class="btn-login" bindtap="goToLogin">立即登录</button>
+  </view>
+
+  <!-- 已登录状态 -->
+  <view wx:else class="user-container">
+    <!-- 用户信息 -->
+    <view class="user-header" bindtap="goToProfile">
+      <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
+      <view class="user-info">
+        <text class="nickname">{{userInfo.nickName}}</text>
+        <text class="phone">{{phone || '未绑定手机号'}}</text>
+      </view>
+      <text class="arrow">→</text>
+    </view>
+
+    <!-- 功能入口 -->
+    <view class="menu-grid">
+      <view class="menu-item" bindtap="goToOrders">
+        <text class="menu-icon">📦</text>
+        <text class="menu-text">我的订单</text>
+      </view>
+      <view class="menu-item" bindtap="goToClasses">
+        <text class="menu-icon">✈️</text>
+        <text class="menu-text">我的培训班</text>
+      </view>
+      <view class="menu-item" bindtap="goToPractice">
+        <text class="menu-icon">📝</text>
+        <text class="menu-text">练习记录</text>
+      </view>
+      <view class="menu-item" bindtap="goToCertificates">
+        <text class="menu-icon">🎓</text>
+        <text class="menu-text">我的证书</text>
+      </view>
+    </view>
+
+    <!-- 学习进度 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">我的课程</text>
+        <text class="section-more">查看全部</text>
+      </view>
+      <view class="course-grid">
+        <view 
+          class="course-card" 
+          wx:for="{{myCourses}}" 
+          wx:key="_id"
+          bindtap="goToCourse"
+          data-id="{{item._id}}"
+        >
+          <image class="course-cover" src="{{item.coverImage}}" mode="aspectFill" />
+          <text class="course-title">{{item.title}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

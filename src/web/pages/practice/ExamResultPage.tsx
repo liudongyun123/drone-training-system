@@ -4,9 +4,9 @@ import {
   Award, Clock, CheckCircle, XCircle, ArrowLeft, RotateCcw,
   FileText, BarChart3, AlertCircle, ChevronDown, ChevronUp
 } from 'lucide-react';
-import type { ExamAttempt, Exam, Question } from '../types';
-import { examService } from '../services/examService';
-import Loading from '../components/Loading';
+import type { ExamAttempt, Exam, Question } from '@/types';
+import { examService } from '@/services/examService';
+import Loading from '@/components/Loading';
 
 export default function ExamResult() {
   const { attemptId } = useParams<{ attemptId: string }>;

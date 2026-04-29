@@ -5,7 +5,7 @@
 // 数据来源：enrollments 集合
 // ============================================================================
 import { useState, useEffect } from 'react';
-import AdminPageTemplate from './_AdminPageTemplate';
+import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { enrollmentService } from '@/services';
 import type { Enrollment } from '@/types';
 import {

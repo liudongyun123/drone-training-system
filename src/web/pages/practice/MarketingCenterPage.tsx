@@ -36,11 +36,11 @@ import {
   Avatar,
   AvatarGroup,
 } from '@mui/material';
-import type { Coupon, GroupBuy, Course } from '../types';
-import { couponService } from '../services/couponService';
-import { groupBuyService } from '../services/groupBuyService';
-import Loading from '../components/Loading';
-import EmptyState from '../components/EmptyState';
+import type { Coupon, GroupBuy, Course } from '@/types';
+import { couponService } from '@/services/couponService';
+import { groupBuyService } from '@/services/groupBuyService';
+import Loading from '@/components/Loading';
+import EmptyState from '@/components/EmptyState';
 
 interface TabPanelProps {
   children?: React.ReactNode;

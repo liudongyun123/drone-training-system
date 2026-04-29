@@ -4,7 +4,7 @@
 // 关联：通过 memberId 关联 members 表获取学员详细信息
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import AdminPageTemplate from './_AdminPageTemplate';
+import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { orderService, adminService, membersService } from '@/services';
 import {
   Search, RefreshCw, Eye, CheckCircle, Clock, CreditCard, 

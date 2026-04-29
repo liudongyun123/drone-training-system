@@ -4,10 +4,10 @@ import {
   FileText, AlertCircle, ChevronRight, QrCode, Share2,
   Shield, GraduationCap, Calendar
 } from 'lucide-react';
-import type { Certificate } from '../types';
-import { certificateService } from '../services/certificateService';
-import Loading from '../components/Loading';
-import EmptyState from '../components/EmptyState';
+import type { Certificate } from '@/types';
+import { certificateService } from '@/services/certificateService';
+import Loading from '@/components/Loading';
+import EmptyState from '@/components/EmptyState';
 
 export default function CertificateCenter() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);

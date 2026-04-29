@@ -10,9 +10,9 @@ import {
   Award, BarChart3, Play, Search, Filter,
   Lock, Crown, ShoppingCart, Unlock
 } from 'lucide-react';
-import Loading from '../components/Loading';
-import { CloudPracticeService } from '../services/CloudPracticeService';
-import { useAuthStore } from '../store/authStore';
+import Loading from '@/components/Loading';
+import { CloudPracticeService } from '@/services/CloudPracticeService';
+import { useAuthStore } from '@/store/authStore';
 
 interface QuestionBank {
   _id?: string;
