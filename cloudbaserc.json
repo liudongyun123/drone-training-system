@@ -37,7 +37,15 @@
               ]
             },
             {
-              "name": "diagnose",
+              "name": "migrate-permissions",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "triggers": []
+            },
               "timeout": 15,
               "memorySize": 256,
               "runtime": "Nodejs18.15",
