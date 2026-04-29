@@ -1,5 +1,5 @@
 // pages/profile/profile.ts
-// 个人资料页
+// 个人中心
 
 import { userApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
@@ -8,9 +8,7 @@ Page({
   data: {
     userInfo: null as any,
     loading: true,
-    editing: false,
-    tempNickname: '',
-    tempPhone: ''
+    cartCount: 0
   },
 
   onLoad() {
@@ -29,8 +27,6 @@ Page({
       const userInfo = await userApi.getUser(userId)
       this.setData({
         userInfo,
-        tempNickname: userInfo?.nickname || '',
-        tempPhone: userInfo?.phone || '',
         loading: false
       })
     } catch (err) {
@@ -47,10 +43,7 @@ Page({
       sourceType: ['album', 'camera'],
       success: async (res) => {
         const tempFilePath = res.tempFiles[0].tempFilePath
-        // TODO: 上传头像到云存储
         wx.showLoading({ title: '上传中...' })
-        
-        // 模拟上传
         setTimeout(() => {
           wx.hideLoading()
           const userInfo = { ...this.data.userInfo, avatar: tempFilePath }
@@ -61,64 +54,52 @@ Page({
     })
   },
 
-  // 开始编辑
-  startEdit() {
-    this.setData({ editing: true })
-  },
-
-  // 取消编辑
-  cancelEdit() {
-    this.setData({
-      editing: false,
-      tempNickname: this.data.userInfo?.nickname || '',
-      tempPhone: this.data.userInfo?.phone || ''
-    })
-  },
-
-  // 输入昵称
-  onNicknameInput(e: any) {
-    this.setData({ tempNickname: e.detail.value })
-  },
-
-  // 输入手机号
-  onPhoneInput(e: any) {
-    this.setData({ tempPhone: e.detail.value })
-  },
-
-  // 保存修改
-  async saveEdit() {
-    const { tempNickname, tempPhone, userInfo } = this.data
-
-    if (!tempNickname.trim()) {
-      showToast('请输入昵称')
-      return
-    }
-
-    wx.showLoading({ title: '保存中...' })
-
-    try {
-      const userId = getUserId()!
-      await userApi.updateUser(userId, {
-        nickname: tempNickname,
-        phone: tempPhone
-      })
-
-      this.setData({
-        editing: false,
-        userInfo: { ...userInfo, nickname: tempNickname, phone: tempPhone }
-      })
-
-      wx.hideLoading()
-      showToast('保存成功')
-    } catch (err) {
-      wx.hideLoading()
-      showToast('保存失败')
-    }
-  },
-
   // 绑定手机号
   bindPhone() {
     wx.showToast({ title: '手机号绑定功能开发中', icon: 'none' })
+  },
+
+  // ==================== 页面跳转 ====================
+
+  goToMyLearning() {
+    wx.navigateTo({ url: '/pages/my-learning/my-learning' })
+  },
+
+  goToMyClasses() {
+    wx.navigateTo({ url: '/pages/my-classes/my-classes' })
+  },
+
+  goToMySchedule() {
+    wx.navigateTo({ url: '/pages/my-schedule/my-schedule' })
+  },
+
+  goToPractice() {
+    wx.navigateTo({ url: '/pages/practice/practice' })
+  },
+
+  goToCart() {
+    wx.switchTab({ url: '/pages/shop/shop' })
+  },
+
+  goToMyOrders() {
+    wx.navigateTo({ url: '/pages/my-orders/my-orders' })
+  },
+
+  goToMyCertificates() {
+    wx.navigateTo({ url: '/pages/my-certificates/my-certificates' })
+  },
+
+  contactService() {
+    wx.showToast({ title: '客服功能开发中', icon: 'none' })
+  },
+
+  showAbout() {
+    wx.showModal({
+      title: '关于我们',
+      content: '无人机培训中心\n中国航空运输协会认证培训机构',
+      showCancel: false,
+      confirmText: '知道了'
+    })
   },
 
   // 退出登录
