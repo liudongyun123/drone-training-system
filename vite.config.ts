@@ -79,14 +79,14 @@ export default defineConfig({
       },
       output: {
         // 手动分割代码块 - 策略：按库功能分组，每 chunk 控制在 500KB 以下
+        // 注意：framer-motion/video.js/fullcalendar/recharts 等大型库仅被懒加载页面引用，
+        // Rollup 会自动将它们包含在对应页面 chunk 中，无需手动分包
         manualChunks: {
-          // React 核心
-          'vendor-react': ['react', 'react-dom'],
           // React Router
           'vendor-router': ['react-router-dom'],
-          // MUI 核心库（不包含 emotion 和 icons）
+          // MUI 核心库（不包含 emotion 和 icons，约 478KB）
           'vendor-mui-core': ['@mui/material'],
-          // Emotion 样式引擎（MUI 依赖）
+          // Emotion 样式引擎（MUI 依赖，约 26KB）
           'vendor-emotion': ['@emotion/react', '@emotion/styled'],
           // MUI Icons（单独 chunk，tree-shaking 后只包含实际使用的图标，约 5KB）
           'vendor-mui-icons': ['@mui/icons-material'],
@@ -94,16 +94,8 @@ export default defineConfig({
           'vendor-state': ['zustand'],
           // 工具库
           'vendor-utils': ['axios', 'dayjs', 'lucide-react'],
-          // 动画库
-          'vendor-motion': ['framer-motion'],
           // CloudBase SDK（整体不可拆分，约 640KB）
           'vendor-cloudbase': ['@cloudbase/js-sdk'],
-          // 图表库
-          'vendor-charts': ['recharts'],
-          // 视频播放器（仅在课程播放页使用，懒加载时按需获取）
-          'vendor-video': ['video.js'],
-          // 日历组件（仅在排课相关页面使用，懒加载时按需获取）
-          'vendor-calendar': ['@fullcalendar/core', '@fullcalendar/daygrid', '@fullcalendar/interaction', '@fullcalendar/react', '@fullcalendar/timegrid'],
         },
         // 使用内容哈希生成文件名
         entryFileNames: `assets/[name]-${BUILD_VERSION}.js`,
