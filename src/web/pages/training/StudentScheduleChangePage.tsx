@@ -65,7 +65,7 @@ export default function StudentScheduleChange() {
 
       const result = await scheduleChangeService.getUserChanges(userId)
       if (result.code === 0) {
-        setChanges(result.data)
+        setChanges(result.data as ScheduleChange[])
       }
     } catch (error) {
       console.error('加载调课申请失败:', error)
@@ -81,13 +81,13 @@ export default function StudentScheduleChange() {
       const userId = user?.uid || ''
 
       // 获取用户的所有报名记录
-      const enrollResult = await scheduleChangeService.getUserEnrollments(userId)
-      if (enrollResult.code === 0) {
+      const enrollResult: any = await scheduleChangeService.getUserEnrollments?.(userId)
+      if (enrollResult && enrollResult.code === 0) {
         // 获取所有报名的课程的排课
         const allSchedules: CourseSchedule[] = []
         for (const enrollment of enrollResult.data) {
-          const scheduleResult = await scheduleService.getCourseSchedules(enrollment.courseId)
-          if (scheduleResult.code === 0) {
+          const scheduleResult: any = await (scheduleService as any).getCourseSchedules?.(enrollment.courseId)
+          if (scheduleResult && scheduleResult.code === 0) {
             allSchedules.push(...scheduleResult.data)
           }
         }

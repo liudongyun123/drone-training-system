@@ -33,13 +33,13 @@ import { registrationService } from '@/services/registrationService';
 import { classService } from '@/services';
 import { useAuthStore } from '@/store/authStore';
 import { Loading, ErrorState, toast } from '@/components';
-import type { ClassV2, ClassScheduleV2 } from '@/types/class';
+import type { Class, ClassSchedule } from '@/types/class';
 
 interface MyClassInfo {
   registration: any;
-  classInfo: ClassV2 | null;
-  schedules: ClassScheduleV2[];
-  nextSchedule?: ClassScheduleV2;
+  classInfo: Class | null;
+  schedules: ClassSchedule[];
+  nextSchedule?: ClassSchedule;
 }
 
 // 日期工具函数
