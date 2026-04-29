@@ -1,139 +1,140 @@
-/* app.wxss - 小程序全局样式 */
+/* app.wxss - 小程序全局样式（与 Web 端统一设计语言） */
 
-/* 主题色 */
+/* ==================== 主题色（与 Web 端 Tailwind 一致） ==================== */
 page {
-  --primary-color: #1890ff;
-  --primary-light: #40a9ff;
-  --primary-dark: #096dd9;
-  --success-color: #52c41a;
-  --warning-color: #faad14;
-  --error-color: #ff4d4f;
-  --text-primary: #262626;
-  --text-secondary: #595959;
-  --text-hint: #8c8c8c;
+  /* 主色 */
+  --primary: #2563eb;
+  --primary-light: #3b82f6;
+  --primary-dark: #1d4ed8;
+  
+  /* 功能色 */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #8b5cf6;
+  
+  /* 文字色（slate 色系） */
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-hint: #94a3b8;
+  --text-disabled: #cbd5e1;
+  
+  /* 背景色（slate 色系） */
   --bg-primary: #ffffff;
-  --bg-secondary: #f5f7fa;
-  --border-color: #e8e8e8;
-  --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --radius-small: 8rpx;
-  --radius-medium: 12rpx;
-  --radius-large: 16rpx;
-
-  background-color: var(--bg-secondary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  
+  /* 边框色 */
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  
+  /* 阴影 */
+  --shadow-sm: 0 2rpx 4rpx rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+  
+  /* 圆角 */
+  --radius-sm: 8rpx;
+  --radius-md: 16rpx;
+  --radius-lg: 24rpx;
+  --radius-xl: 32rpx;
+  
+  /* 字体 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   font-size: 28rpx;
   color: var(--text-primary);
   line-height: 1.5;
+  background-color: var(--bg-tertiary);
 }
 
-/* 卡片通用样式 */
+/* ==================== 通用卡片 ==================== */
 .card {
   background: var(--bg-primary);
-  border-radius: var(--radius-medium);
-  box-shadow: var(--shadow-light);
-  overflow: hidden;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
-/* 按钮通用样式 */
+/* ==================== 通用按钮 ==================== */
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-  color: white;
-  border: none;
-  border-radius: var(--radius-medium);
-  padding: 20rpx 32rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22rpx 40rpx;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius-md);
   font-size: 28rpx;
-  font-weight: 500;
-  text-align: center;
-  transition: all 0.3s ease;
+  font-weight: 600;
+  box-shadow: 0 4rpx 12rpx rgba(37, 99, 235, 0.3);
 }
 
 .btn-primary:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
   opacity: 0.9;
 }
 
-/* 标签通用样式 */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22rpx 40rpx;
+  background: transparent;
+  border: 2rpx solid var(--border);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* ==================== 价格样式 ==================== */
+.price {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.price::before {
+  content: '¥';
+  font-size: 0.75em;
+}
+
+/* ==================== 标签样式 ==================== */
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: 4rpx 16rpx;
-  border-radius: 4rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
   font-size: 22rpx;
   font-weight: 500;
 }
 
 .tag-primary {
-  background: rgba(24, 144, 255, 0.1);
-  color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary);
 }
 
 .tag-success {
-  background: rgba(82, 196, 26, 0.1);
-  color: var(--success-color);
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
 }
 
 .tag-warning {
-  background: rgba(250, 173, 20, 0.1);
-  color: var(--warning-color);
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
 }
 
-.tag-error {
-  background: rgba(255, 77, 79, 0.1);
-  color: var(--error-color);
+.tag-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
 }
 
-/* 价格样式 */
-.price {
-  color: #ff4d4f;
-  font-weight: 600;
-}
-
-.price::before {
-  content: '¥';
-  font-size: 22rpx;
-  margin-right: 4rpx;
-}
-
-/* 加载状态 */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 100rpx 0;
-  color: var(--text-hint);
-}
-
-/* 空状态 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 120rpx 40rpx;
-  text-align: center;
-}
-
-.empty-icon {
-  font-size: 120rpx;
-  margin-bottom: 24rpx;
-  opacity: 0.6;
-}
-
-.empty-text {
-  color: var(--text-hint);
-  font-size: 28rpx;
-}
-
-/* 分割线 */
+/* ==================== 分割线 ==================== */
 .divider {
   height: 1rpx;
-  background: var(--border-color);
+  background: var(--border-light);
   margin: 24rpx 0;
 }
 
-/* 安全区域适配 */
+/* ==================== 安全区域 ==================== */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }

@@ -23,14 +23,14 @@
   ],
   "window": {
     "navigationBarTitleText": "无人机培训",
-    "navigationBarBackgroundColor": "#1890ff",
+    "navigationBarBackgroundColor": "#2563eb",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#f6f6f6",
     "backgroundTextStyle": "dark"
   },
   "tabBar": {
     "color": "#999999",
-    "selectedColor": "#1890ff",
+    "selectedColor": "#2563eb",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
