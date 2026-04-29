@@ -1,0 +1,111 @@
+<view class="page">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <text>加载中...</text>
+  </view>
+
+  <block wx:if="{{classInfo && !loading}}">
+    <!-- 培训班信息 -->
+    <view class="section">
+      <text class="section-title">培训班信息</text>
+      <view class="class-summary">
+        <image class="class-cover" src="{{classInfo.coverImage}}" mode="aspectFill" />
+        <view class="class-detail">
+          <text class="class-title">{{classInfo.title}}</text>
+          <text class="class-time">时间: {{classInfo.startDate}} - {{classInfo.endDate}}</text>
+          <text class="class-location">地点: {{classInfo.location}}</text>
+          <view class="price-row">
+            <text class="price-symbol">¥</text>
+            <text class="price-num">{{classInfo.price}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 联系人信息 -->
+    <view class="section">
+      <text class="section-title">联系人信息</text>
+      <view class="form-group">
+        <text class="form-label required">姓名</text>
+        <input 
+          class="form-input" 
+          placeholder="请输入联系人姓名" 
+          value="{{contactName}}"
+          bindinput="onNameInput"
+        />
+      </view>
+      <view class="form-group">
+        <text class="form-label required">电话</text>
+        <input 
+          class="form-input" 
+          placeholder="请输入联系电话" 
+          type="number"
+          maxlength="11"
+          value="{{contactPhone}}"
+          bindinput="onPhoneInput"
+        />
+      </view>
+      <view class="form-group">
+        <text class="form-label">备注</text>
+        <input 
+          class="form-input" 
+          placeholder="选填" 
+          value="{{remark}}"
+          bindinput="onRemarkInput"
+        />
+      </view>
+    </view>
+
+    <!-- 缴费方式 -->
+    <view class="section">
+      <text class="section-title">缴费方式</text>
+      <view class="pay-options">
+        <view 
+          class="pay-option {{payMethod === 'online' ? 'active' : ''}}"
+          bindtap="selectPayMethod"
+          data-method="online"
+        >
+          <view class="pay-radio">
+            <text wx:if="{{payMethod === 'online'}}">✓</text>
+          </view>
+          <text class="pay-label">线上支付</text>
+          <text class="pay-desc">微信支付</text>
+        </view>
+        <view 
+          class="pay-option {{payMethod === 'offline' ? 'active' : ''}}"
+          bindtap="selectPayMethod"
+          data-method="offline"
+        >
+          <view class="pay-radio">
+            <text wx:if="{{payMethod === 'offline'}}">✓</text>
+          </view>
+          <text class="pay-label">线下缴费</text>
+          <text class="pay-desc">到店支付或转账</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 费用明细 -->
+    <view class="section">
+      <view class="fee-row total">
+        <text class="fee-label">报名费用</text>
+        <text class="fee-value">¥{{classInfo.price}}</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- 底部提交栏 -->
+  <view class="bottom-bar safe-area-bottom" wx:if="{{classInfo}}">
+    <view class="total-area">
+      <text class="total-text">合计: </text>
+      <text class="total-price">¥{{classInfo.price}}</text>
+    </view>
+    <button 
+      class="submit-btn {{submitting ? 'disabled' : ''}}" 
+      bindtap="submitEnrollment"
+      disabled="{{submitting}}"
+    >
+      {{payMethod === 'online' ? '立即支付' : '提交报名'}}
+    </button>
+  </view>
+</view>

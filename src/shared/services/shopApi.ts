@@ -90,6 +90,40 @@ export const productApi = {
       salesCount: _.inc(delta),
       updatedAt: new Date().toISOString()
     })
+  },
+
+  /**
+   * 创建商品（后台）
+   */
+  async create(data: Omit<Product, '_id' | 'createdAt' | 'updatedAt' | 'salesCount'>): Promise<Product> {
+    const product = {
+      ...data,
+      salesCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+    const result = await db.collection('products').add(product)
+    return {
+      _id: result.id || result.insertedId as string,
+      ...product
+    } as Product
+  },
+
+  /**
+   * 更新商品（后台）
+   */
+  async update(productId: string, data: Partial<Product>): Promise<void> {
+    await db.collection('products').doc(productId).update({
+      ...data,
+      updatedAt: new Date().toISOString()
+    })
+  },
+
+  /**
+   * 删除商品（后台）
+   */
+  async delete(productId: string): Promise<void> {
+    await db.collection('products').doc(productId).remove()
   }
 }
 

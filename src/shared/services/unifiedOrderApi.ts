@@ -122,6 +122,22 @@ export const unifiedOrderApi = {
   },
 
   /**
+   * 发货（商城订单）
+   */
+  async shipOrder(orderId: string, params: { company: string; trackingNumber: string }): Promise<void> {
+    await db.collection('orders').doc(orderId).update({
+      status: 'shipped',
+      shippingInfo: {
+        company: params.company,
+        trackingNumber: params.trackingNumber,
+        shippedAt: new Date().toISOString(),
+        status: 'shipped'
+      },
+      updatedAt: new Date().toISOString()
+    })
+  },
+
+  /**
    * 退款
    */
   async refundOrder(orderId: string, reason?: string): Promise<void> {

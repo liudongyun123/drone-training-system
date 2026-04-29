@@ -1,63 +1,68 @@
-<!--pages/cart/cart.wxml-->
 <view class="page">
-  <!-- 空购物车 -->
+  <!-- 空状态 -->
   <view wx:if="{{isEmpty}}" class="empty-container">
     <text class="empty-icon">🛒</text>
-    <text class="empty-text">购物车空空如也</text>
-    <view class="btn-go-shopping" bindtap="goToShop">去逛逛</view>
+    <text>购物车是空的</text>
+    <button class="go-shopping-btn" bindtap="goShopping">去逛逛</button>
   </view>
 
   <!-- 购物车列表 -->
-  <view wx:else class="cart-container">
+  <block wx:if="{{!isEmpty}}">
     <view class="cart-list">
-      <view class="cart-item" wx:for="{{cartItems}}" wx:key="productId">
+      <view class="cart-item" wx:for="{{cartItems}}" wx:key="index">
         <!-- 选择框 -->
         <view 
-          class="checkbox {{item.selected ? 'checked' : ''}}"
-          bindtap="toggleSelect"
+          class="checkbox {{item.selected ? 'checked' : ''}}" 
+          bindtap="toggleItem" 
           data-index="{{index}}"
         >
           <text wx:if="{{item.selected}}">✓</text>
         </view>
-        
+
         <!-- 商品信息 -->
-        <image class="product-image" src="{{item.productImage}}" mode="aspectFill" />
-        <view class="product-info">
-          <text class="product-name">{{item.productName}}</text>
-          <view class="product-bottom">
-            <text class="price">¥{{item.price}}</text>
-            <view class="quantity-selector">
-              <view class="btn-minus" bindtap="decreaseQuantity" data-index="{{index}}">-</view>
-              <text class="quantity">{{item.quantity}}</text>
-              <view class="btn-plus" bindtap="increaseQuantity" data-index="{{index}}">+</view>
+        <view class="item-content">
+          <image 
+            class="item-image" 
+            src="{{item.product.images[0] || item.product.coverImage}}" 
+            mode="aspectFill"
+            bindtap="goToDetail"
+            data-id="{{item.productId}}"
+          />
+          <view class="item-info">
+            <text class="item-title">{{item.product.title}}</text>
+            <text class="item-spec" wx:if="{{item.specs}}">
+              {{item.selectedSku ? item.selectedSku.name : '默认规格'}}
+            </text>
+            <view class="item-bottom">
+              <text class="item-price">¥{{item.sku.price || item.product.price}}</text>
+              <view class="quantity-control">
+                <button class="qty-btn" bindtap="decreaseQty" data-index="{{index}}">-</button>
+                <text class="qty-num">{{item.quantity}}</text>
+                <button class="qty-btn" bindtap="increaseQty" data-index="{{index}}">+</button>
+              </view>
             </view>
           </view>
         </view>
-        
-        <!-- 删除按钮 -->
-        <view class="btn-delete" bindtap="deleteItem" data-index="{{index}}">
-          <text>删除</text>
-        </view>
+
+        <!-- 删除 -->
+        <text class="delete-btn" bindtap="deleteItem" data-index="{{index}}">×</text>
       </view>
     </view>
 
     <!-- 底部结算栏 -->
     <view class="bottom-bar safe-area-bottom">
-      <view class="select-all" bindtap="toggleSelectAll">
-        <view class="checkbox {{cartItems.length === selectedCount ? 'checked' : ''}}">
-          <text wx:if="{{cartItems.length === selectedCount}}">✓</text>
+      <view class="select-all" bindtap="toggleAll">
+        <view class="checkbox {{allSelected ? 'checked' : ''}}">
+          <text wx:if="{{allSelected}}">✓</text>
         </view>
         <text>全选</text>
       </view>
-      
-      <view class="total-info">
-        <text class="total-text">合计:</text>
+      <view class="checkout-info">
+        <text class="total-label">合计: </text>
         <text class="total-price">¥{{totalPrice}}</text>
+        <text class="total-qty">({{totalQty}}件)</text>
       </view>
-      
-      <view class="btn-checkout {{selectedCount === 0 ? 'disabled' : ''}}" bindtap="checkout">
-        <text>结算({{selectedCount}})</text>
-      </view>
+      <button class="checkout-btn" bindtap="checkout">结算{{totalQty > 0 ? '(' + totalQty + ')' : ''}}</button>
     </view>
-  </view>
+  </block>
 </view>
