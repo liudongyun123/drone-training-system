@@ -51,7 +51,7 @@ export default function ExamResult() {
       setError(null);
       console.log('[ExamResult] loadLatestAttempt: 正在查询最新记录');
       
-      const { getDb } = await import('../services/cloudBaseService');
+      const { getDb } = await import('@/services/cloudBaseService');
       const result = await getDb()
         .collection('examAttempts')
         .orderBy('submitTime', 'desc')
@@ -116,7 +116,7 @@ export default function ExamResult() {
       
       try {
         console.log('[ExamResult] 步骤2.1: 导入 cloudBaseService');
-        const { getDb } = await import('../services/cloudBaseService');
+        const { getDb } = await import('@/services/cloudBaseService');
         console.log('[ExamResult] 步骤2.2: 导入成功，准备查询');
         
         // 直接查询，不依赖任何用户身份
