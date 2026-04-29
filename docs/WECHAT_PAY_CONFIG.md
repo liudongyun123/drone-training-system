@@ -1,160 +1,189 @@
 # 微信支付配置指南
 
-## 📋 前置条件
+## 📋 配置清单
 
-1. **商户号已开通** Native Pay（扫码支付）能力
-2. **AppID 已绑定** 到商户号（微信公众平台 → 支付配置）
-3. **回调域名已配置**（微信商户平台 → 产品中心 → 开发配置）
+| 配置项 | 值 | 状态 |
+|--------|-----|------|
+| **小程序 AppID** | `wx25aaf895ab86181a` | ✅ 已确认 |
+| **商户号** | `1726655499` | ✅ 已确认 |
+| **API 密钥** | - | ⚠️ 需要在商户平台设置 |
+| **回调地址** | - | ⚠️ 需要配置云函数 HTTP 访问 |
+| **支付域名** | - | ⚠️ 需要配置（H5 支付需要） |
 
 ---
 
-## 🔧 配置步骤
+## 🔧 第一步：获取 API 密钥
 
-### 1. 获取商户号信息
-
-登录 [微信商户平台](https://pay.weixin.qq.com)：
-
-| 信息 | 位置 | 用途 |
-|------|------|------|
-| **商户号 mch_id** | 账户中心 → 商户信息 → 商户号 | 云函数环境变量 `WX_MCH_ID` |
-| **API 密钥** | 账户中心 → API安全 → 设置API密钥 | 云函数环境变量 `WX_API_KEY` |
-| **证书序列号** | 账户中心 → API安全 → API证书 | 云函数环境变量 `WX_CERT_SERIAL_NO`（可选，退款需要） |
-
-### 2. 配置回调通知地址
-
-在商户平台 → 产品中心 → 开发配置 → 支付回调URL：
+### 1.1 登录微信商户平台
 
 ```
-https://env-rcwljy-5ghmq2ex26764978.tcloudbaseapp.com/wechat-pay
+地址：https://pay.weixin.qq.com
+账号：商户号 1726655499
 ```
 
-如果使用自己的域名：
+### 1.2 设置 API 密钥
+
 ```
-https://你的域名/api/wechat-pay/callback
-```
-
-### 3. 配置云函数环境变量
-
-#### 方式 A：通过 cloudbaserc.json（推荐）
-
-编辑 `cloudbaserc.json`，修改 `wechat-pay` 函数的 `envVariables`：
-
-```json
-{
-  "name": "wechat-pay",
-  "envVariables": {
-    "WX_APPID": "wx25aaf895ab86181a",
-    "WX_MCH_ID": "你的商户号（10位数字）",
-    "WX_API_KEY": "你的API密钥（32位）",
-    "WX_NOTIFY_URL": "https://env-rcwljy-5ghmq2ex26764978.tcloudbaseapp.com/wechat-pay"
-  }
-}
+商户平台 → 账户中心 → 账户设置 → API安全 → 设置API密钥
 ```
 
-#### 方式 B：通过 CloudBase 控制台
+**重要**：设置后密钥只显示一次，请立即保存！
 
-1. 登录 [CloudBase 控制台](https://console.cloud.tencent.com/tcb)
-2. 环境 → 云函数 → wechat-pay → 函数配置 → 环境变量
-3. 添加以下变量：
+### 1.3 下载 API 证书（退款需要）
+
+```
+商户平台 → 账户中心 → API安全 → 申请API证书
+```
+
+下载后得到：
+- `apiclient_key.pem`（私钥）
+- `apiclient_cert.pem`（证书）
+- 证书序列号
+
+---
+
+## 🚀 第二步：配置云函数环境变量
+
+在 CloudBase 控制台配置：
+
+```
+CloudBase 控制台 → 云函数 → wechat-pay → 配置 → 环境变量
+```
+
+添加以下环境变量：
+
+| 变量名 | 值 | 说明 |
+|--------|-----|------|
+| `WX_APPID` | `wx25aaf895ab86181a` | 小程序 AppID |
+| `WX_MCH_ID` | `1726655499` | 商户号 |
+| `WX_API_KEY` | `（你的API密钥）` | 32位 API 密钥 |
+| `WX_NOTIFY_URL` | `https://xxx.apigw.tencentcs.com/release/wechat-pay-callback` | 回调地址 |
+| `WX_CERT_SERIAL_NO` | `（证书序列号）` | 可选，退款需要 |
+
+---
+
+## 🌐 第三步：配置云函数 HTTP 访问（支付回调）
+
+### 3.1 开启 HTTP 访问
+
+```
+CloudBase 控制台 → 云函数 → wechat-pay → 触发器 → 创建触发器
+```
+
+配置：
+- 触发方式：HTTP 触发器
+- 路径：`/wechat-pay-callback`
+- 方法：POST
+
+### 3.2 获取回调地址
+
+创建后会得到类似：
+```
+https://service-xxx-1234567890.apigw.tencentcs.com/release/wechat-pay-callback
+```
+
+将此地址填入环境变量 `WX_NOTIFY_URL`
+
+---
+
+## 📱 第四步：配置支付域名（H5 支付需要）
+
+如果要使用 H5 支付（手机浏览器直接跳转微信支付）：
+
+### 4.1 在商户平台配置
+
+```
+商户平台 → 产品中心 → 开发配置 → H5支付 → 添加域名
+```
+
+**注意**：域名必须有 ICP 备案！
+
+### 4.2 添加环境变量
 
 | 变量名 | 值 |
-|--------|---|
-| `WX_APPID` | `wx25aaf895ab86181a` |
-| `WX_MCH_ID` | 你的商户号 |
-| `WX_API_KEY` | 你的 API 密钥 |
-| `WX_NOTIFY_URL` | 回调地址 |
-| `WX_CERT_SERIAL_NO` | 证书序列号（可选） |
+|--------|-----|
+| `WX_H5_DOMAIN` | `你的备案域名` |
 
 ---
 
-## 🚀 部署
-
-### 部署云函数
+## 🔄 第五步：部署云函数
 
 ```bash
+# 进入项目目录
+cd drone-training-system
+
+# 部署云函数
 tcb fn deploy wechat-pay
-```
 
-### 部署前端
-
-```bash
-npm run build
-tcb hosting deploy dist
+# 或者使用 cloudbaserc.json
+tcb framework deploy
 ```
 
 ---
 
-## 🧪 测试
+## ✅ 第六步：测试支付
 
-### 测试支付创建
+### 6.1 测试环境
 
-```bash
-curl -X POST \
-  https://env-rcwljy-5ghmq2ex26764978.tcloudbaseapp.com/wechat-pay \
-  -H "Content-Type: application/json" \
-  -d '{"action":"getConfig"}'
-```
+开发环境下，云函数会返回模拟数据（`_mock: true`），前端会模拟支付成功。
 
-期望返回：
-```json
-{
-  "code": 0,
-  "data": {
-    "appId": "wx25aaf895ab86181a",
-    "mchId": "***"
-  }
-}
-```
+### 6.2 生产测试
 
-### 前端测试
-
-1. 登录系统
-2. 添加课程到购物车
-3. 进入结算页面
-4. 点击「立即支付」
-5. 应显示微信支付二维码
+1. 创建一个 0.01 元的课程
+2. 用测试账号购买
+3. 扫码支付
+4. 检查订单状态是否更新
+5. 检查课程权限是否正确授予
 
 ---
 
-## ⚠️ 安全提醒
+## 📝 前端已集成
 
-1. **API 密钥不要写死在代码里**，使用环境变量
-2. **生产环境必须实现签名验证**，防止伪造回调
-3. **退款功能需要证书**，请下载 `apiclient_key.pem` 并上传到云函数
+支付逻辑已在以下文件中集成：
+
+| 文件 | 说明 |
+|------|------|
+| `src/services/wechatPayService.ts` | 支付服务封装 |
+| `src/routes/CheckoutPage.tsx` | 支付页面（支持扫码 + H5） |
+| `src/components/payment/WechatQRCode.tsx` | 二维码展示组件 |
+| `cloudfunctions/wechat-pay/index.js` | 支付云函数 |
+
+---
+
+## ⚠️ 重要提醒
+
+1. **API 密钥绝对不能泄露**，不要提交到 Git
+2. **回调地址必须是 HTTPS**
+3. **H5 支付需要备案域名**，否则只能用扫码支付
+4. **生产环境必须实现签名验证**，当前代码为简化版
+5. **退款需要上传 API 证书**到云函数
+
+---
+
+## 🔐 安全加固（生产环境必须）
+
+当前云函数代码是简化版，生产环境需要：
+
+1. **实现 RSA 签名验证**（API v3）
+2. **实现回调签名验证**
+3. **配置 IP 白名单**
+4. **启用数据库安全规则**
 
 ---
 
 ## 📞 问题排查
 
-| 问题 | 可能原因 | 解决方法 |
-|------|----------|----------|
-| 「商户号未配置」 | 环境变量未设置 | 检查云函数环境变量 |
-| 「签名错误」 | API 密钥错误 | 在商户平台重新设置密钥 |
-| 「AppID未绑定」 | AppID未关联商户号 | 在商户平台添加AppID绑定 |
-| 「回调失败」 | 回调地址未配置 | 在商户平台配置回调URL |
-| 二维码不显示 | 云函数返回异常 | 查看云函数日志 |
-
----
-
-## 🔐 签名验证（生产环境必须）
-
-当前代码未实现完整的 RSA 签名验证。生产环境建议：
-
-1. 使用微信官方 SDK（推荐）
-2. 或手动实现签名验证逻辑
-
-```javascript
-// 签名验证示例（需要 apiclient_key.pem）
-const crypto = require('crypto')
-const verify = crypto.createVerify('RSA-SHA256')
-verify.update(data)
-const valid = verify.verify(publicKey, signature, 'base64')
-```
+| 问题 | 原因 | 解决 |
+|------|------|------|
+| 提示"商户号不存在" | 商户号未关联 AppID | 在商户平台绑定 AppID |
+| 提示"签名错误" | API 密钥错误 | 检查密钥是否正确 |
+| 回调没收到 | 回调地址配置错误 | 检查云函数 HTTP 触发器 |
+| H5 支付失败 | 域名未备案 | 改用扫码支付 |
 
 ---
 
 ## 下一步
 
-1. 把商户号告诉我
-2. 我帮你配置环境变量
-3. 部署后测试
+1. **去商户平台设置 API 密钥**
+2. **告诉我密钥**（或者你自己配置到云函数环境变量）
+3. **我帮你完成最后的配置检查**

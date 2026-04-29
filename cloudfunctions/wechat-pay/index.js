@@ -17,8 +17,8 @@ const CONFIG = {
   // 小程序 AppID
   APPID: process.env.WX_APPID || 'wx25aaf895ab86181a',
   
-  // 微信支付商户号（★ 必填）
-  MCH_ID: process.env.WX_MCH_ID || '',  // ★ 需要填写
+  // 微信支付商户号
+  MCH_ID: process.env.WX_MCH_ID || '1726655499',
   
   // API v3 密钥（★ 必填）
   API_KEY: process.env.WX_API_KEY || '',  // ★ 需要填写
