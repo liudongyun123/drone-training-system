@@ -84,9 +84,11 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom'],
           // React Router
           'vendor-router': ['react-router-dom'],
-          // MUI 核心库（不包含 icons，拆分后约 200-300KB）
-          'vendor-mui-core': ['@mui/material', '@emotion/react', '@emotion/styled'],
-          // MUI Icons（单独 chunk，tree-shaking 后只包含实际使用的图标，约 150-250KB）
+          // MUI 核心库（不包含 emotion 和 icons）
+          'vendor-mui-core': ['@mui/material'],
+          // Emotion 样式引擎（MUI 依赖）
+          'vendor-emotion': ['@emotion/react', '@emotion/styled'],
+          // MUI Icons（单独 chunk，tree-shaking 后只包含实际使用的图标，约 5KB）
           'vendor-mui-icons': ['@mui/icons-material'],
           // 状态管理
           'vendor-state': ['zustand'],
