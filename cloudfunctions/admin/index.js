@@ -1,19 +1,34 @@
-// 管理后台云函数 v2.0
+// 管理后台云函数 v2.1
 // 处理所有后台管理相关的数据库操作
-// 版本: v202604122135-cors
+// 版本: v20260429-auth-guard
 const tcb = require('tcb-admin-node')
+const { authMiddleware, injectUserFilter } = require('./auth')
 
 // 使用默认初始化（CloudBase 会自动注入凭证）
 const app = tcb.init()
 const db = app.database()
 const _ = db.command
 
-// CORS 头配置
+// CORS 头配置 - ★ 生产环境应限制为实际域名
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  // 'https://your-domain.com', // ★ 替换为实际域名
+]
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
   'Access-Control-Max-Age': '86400'
+}
+
+function getCorsHeaders(event) {
+  const requestOrigin = event.request?.headers?.origin || event.request?.headers?.Origin
+  if (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)) {
+    return { ...CORS_HEADERS, 'Access-Control-Allow-Origin': requestOrigin }
+  }
+  return CORS_HEADERS
 }
 
 /**
@@ -27,17 +42,32 @@ exports.main = async (event, context) => {
     return {
       code: 200,
       message: 'OK',
-      headers: CORS_HEADERS
+      headers: getCorsHeaders(event)
     }
   }
   
   console.log('管理后台请求:', { action, collection, docId, dataKeys: data ? Object.keys(data) : [] })
+
+  // ★ 鉴权中间件
+  const authResult = await authMiddleware(app, event)
+  if (!authResult.authorized) {
+    console.warn('[Auth] 鉴权失败:', authResult.error)
+    return {
+      code: authResult.code || 403,
+      message: authResult.error || '权限不足',
+      headers: getCorsHeaders(event)
+    }
+  }
+
+  // ★ 注入用户过滤条件（用户私有数据自动过滤）
+  let effectiveQuery = query
+  if (authResult.injectFilter && authResult.user) {
+    effectiveQuery = injectUserFilter(query, authResult.user)
+    console.log('[Auth] 注入用户过滤条件, scope:', authResult.scope)
+  }
   
   try {
     switch (action) {
-      case 'list':
-        return await handleList(collection, query, options)
-      case 'get':
         return await handleGet(collection, docId)
       case 'add':
         return await handleAdd(collection, data)
