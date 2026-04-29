@@ -1,0 +1,155 @@
+/* pages/my-certificates/my-certificates.wxss */
+
+.page {
+  background: var(--bg-color);
+  min-height: 100vh;
+}
+
+/* Tab 栏 */
+.tab-bar {
+  display: flex;
+  background: #fff;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding-bottom: 8px;
+  position: relative;
+}
+
+.tab-item.active {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  background: var(--primary-color);
+  border-radius: 1px;
+}
+
+/* 证书列表 */
+.cert-list {
+  padding: 12px 16px;
+}
+
+.cert-card {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.cert-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.cert-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.cert-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cert-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--text-placeholder);
+  margin-bottom: 2px;
+}
+
+/* 证书状态 */
+.cert-status {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.cert-status.status-verified {
+  background: rgba(82, 196, 26, 0.1);
+  color: var(--success-color);
+}
+
+.cert-status.status-pending {
+  background: rgba(250, 173, 20, 0.1);
+  color: var(--warning-color);
+}
+
+.cert-status.status-expired {
+  background: rgba(153, 153, 153, 0.1);
+  color: var(--text-placeholder);
+}
+
+/* 证书操作 */
+.cert-action {
+  display: flex;
+  align-items: center;
+}
+
+.action-text {
+  font-size: 13px;
+  color: var(--primary-color);
+}
+
+.arrow {
+  color: var(--primary-color);
+  margin-left: 4px;
+}
+
+/* 添加按钮 */
+.add-btn-container {
+  padding: 16px;
+}
+
+.add-btn {
+  width: 100%;
+  background: #fff;
+  color: var(--primary-color);
+  border: 1px dashed var(--primary-color);
+  border-radius: 8px;
+  font-size: 14px;
+  padding: 12px 0;
+}
+
+.empty-container .add-btn-inline {
+  margin-top: 16px;
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 14px;
+  padding: 10px 24px;
+}
+
+/* 空状态描述 */
+.empty-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--text-placeholder);
+  margin-top: 8px;
+}

@@ -1,0 +1,87 @@
+<view class="page">
+  <!-- Tab 栏 -->
+  <view class="tab-bar">
+    <view 
+      class="tab-item {{currentTab === item.key ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      bindtap="switchTab"
+      data-key="{{item.key}}"
+    >
+      {{item.title}}
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 外部证书 -->
+  <block wx:if="{{!loading && currentTab === 'external'}}">
+    <view class="cert-list">
+      <view 
+        class="cert-card" 
+        wx:for="{{externalCerts}}" 
+        wx:key="_id"
+        bindtap="viewCert"
+        data-id="{{item._id}}"
+        data-type="external"
+      >
+        <image class="cert-icon" src="/assets/icons/cert.png" mode="aspectFit" />
+        <view class="cert-info">
+          <text class="cert-title">{{item.name}}</text>
+          <text class="cert-meta">颁发机构: {{item.issuer}}</text>
+          <text class="cert-meta">获得日期: {{item.issueDate}}</text>
+        </view>
+        <view class="cert-status status-{{item.status}}">
+          <text>{{item.status === 'verified' ? '已认证' : item.status === 'pending' ? '待审核' : '已过期'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 添加按钮 -->
+    <view class="add-btn-container" wx:if="{{externalCerts.length < 10}}">
+      <button class="add-btn" bindtap="addExternalCert">+ 添加外部证书</button>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{externalCerts.length === 0}}" class="empty-container">
+      <text class="empty-icon">🏆</text>
+      <text>暂无外部证书</text>
+      <button class="add-btn-inline" bindtap="addExternalCert">添加证书</button>
+    </view>
+  </block>
+
+  <!-- 结业证明 -->
+  <block wx:if="{{!loading && currentTab === 'training'}}">
+    <view class="cert-list">
+      <view 
+        class="cert-card" 
+        wx:for="{{trainingCerts}}" 
+        wx:key="_id"
+        bindtap="viewCert"
+        data-id="{{item._id}}"
+        data-type="training"
+      >
+        <image class="cert-icon" src="/assets/icons/diploma.png" mode="aspectFit" />
+        <view class="cert-info">
+          <text class="cert-title">{{item.className}}</text>
+          <text class="cert-meta">成绩: {{item.score}}分</text>
+          <text class="cert-meta">颁发日期: {{item.issuedAt}}</text>
+        </view>
+        <view class="cert-action">
+          <text class="action-text">查看</text>
+          <text class="arrow">></text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{trainingCerts.length === 0}}" class="empty-container">
+      <text class="empty-icon">📜</text>
+      <text>暂无结业证明</text>
+      <text class="empty-desc">完成培训班学习后可获得</text>
+    </view>
+  </block>
+</view>

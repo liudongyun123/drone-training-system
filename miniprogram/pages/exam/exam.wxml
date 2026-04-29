@@ -1,0 +1,93 @@
+<view class="page">
+  <!-- 顶部信息栏 -->
+  <view class="header">
+    <view class="progress-info">
+      <text class="progress-text">{{currentIndex + 1}} / {{questions.length}}</text>
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{(currentIndex + 1) / questions.length * 100}}%"></view>
+      </view>
+    </view>
+    <view class="time-display" wx:if="{{type === 'exam'}}">
+      <text class="time-text {{timeLeft < 300 ? 'warning' : ''}}">{{timeText}}</text>
+    </view>
+    <view class="question-nav" bindtap="showQuestionSheet">
+      <text>题卡</text>
+    </view>
+  </view>
+
+  <!-- 题目内容 -->
+  <view class="question-area" wx:if="{{currentQuestion}}">
+    <!-- 题目类型标签 -->
+    <view class="question-type">
+      <text class="type-tag {{currentQuestion.type}}">
+        {{currentQuestion.type === 'single' ? '单选题' : currentQuestion.type === 'multiple' ? '多选题' : '判断题'}}
+      </text>
+    </view>
+
+    <!-- 题目 -->
+    <text class="question-title">{{currentIndex + 1}}. {{currentQuestion.title}}</text>
+
+    <!-- 选项 -->
+    <view class="options">
+      <view 
+        class="option-item {{userAnswers[currentQuestion._id] && userAnswers[currentQuestion._id].includes(item) ? 'selected' : ''}}"
+        wx:for="{{currentQuestion.options}}"
+        wx:key="index"
+        bindtap="selectAnswer"
+        data-question-id="{{currentQuestion._id}}"
+        data-option-index="{{index}}"
+      >
+        <view class="option-radio">
+          <text wx:if="{{userAnswers[currentQuestion._id] && userAnswers[currentQuestion._id].includes(item)}}">✓</text>
+        </view>
+        <text class="option-label">{{String.fromCharCode(65 + index)}}</text>
+        <text class="option-text">{{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar safe-area-bottom">
+    <button class="nav-btn prev" bindtap="prevQuestion" disabled="{{currentIndex === 0}}">上一题</button>
+    <button 
+      wx:if="{{currentIndex < questions.length - 1}}"
+      class="nav-btn next" 
+      bindtap="nextQuestion"
+    >下一题</button>
+    <button 
+      wx:else
+      class="nav-btn submit" 
+      bindtap="doSubmit"
+      disabled="{{submitting}}"
+    >提交</button>
+  </view>
+
+  <!-- 题号面板 -->
+  <view class="sheet-overlay {{showQuestionSheet ? 'show' : ''}}" bindtap="hideQuestionSheet">
+    <view class="question-sheet" catchtap="">
+      <text class="sheet-title">答题卡</text>
+      <view class="sheet-grid">
+        <view 
+          class="sheet-item {{userAnswers[item._id] ? 'answered' : ''}} {{currentIndex === index ? 'current' : ''}}"
+          wx:for="{{questions}}"
+          wx:key="_id"
+          wx:for-index="index"
+          bindtap="goToQuestion"
+          data-index="{{index}}"
+        >
+          {{index + 1}}
+        </view>
+      </view>
+      <view class="sheet-legend">
+        <view class="legend-item">
+          <view class="legend-dot answered"></view>
+          <text>已答</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot"></view>
+          <text>未答</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
