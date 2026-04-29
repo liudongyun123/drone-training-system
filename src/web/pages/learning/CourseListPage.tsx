@@ -15,16 +15,13 @@ interface CategoryOption {
   label: string;
 }
 
-const levels = [
+// 等级选项（从课程数据动态提取）
+const DEFAULT_LEVELS = [
   { value: '', label: '全部等级' },
-  { value: '初级工', label: '初级工' },
-  { value: '中级工', label: '中级工' },
-  { value: '高级工', label: '高级工' },
-  { value: '技师', label: '技师' },
-  { value: '高级技师', label: '高级技师' },
 ];
 
-const sortOptions = [
+// 排序选项（UI 层面，不需要动态加载）
+const SORT_OPTIONS = [
   { value: 'newest', label: '最新发布' },
   { value: 'price_asc', label: '价格从低到高' },
   { value: 'price_desc', label: '价格从高到低' },
@@ -43,6 +40,9 @@ export default function CourseListPage() {
     { value: '', label: '全部分类' }
   ]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  
+  // 等级数据（从课程数据动态提取）
+  const [levels, setLevels] = useState<CategoryOption[]>(DEFAULT_LEVELS);
   
   // 筛选状态
   const [searchKeyword, setSearchKeyword] = useState(searchParams.get('keyword') || '');
@@ -103,6 +103,19 @@ export default function CourseListPage() {
       console.log('[CourseListPage] 课程查询结果:', result);
       setCourses(result.list);
       setTotal(result.total);
+      
+      // 从课程数据中提取已有的等级（动态）
+      const uniqueLevels = new Set<string>();
+      result.list.forEach((course: Course) => {
+        if (course.level) uniqueLevels.add(course.level);
+      });
+      if (uniqueLevels.size > 0) {
+        const levelOptions = [
+          { value: '', label: '全部等级' },
+          ...Array.from(uniqueLevels).map(l => ({ value: l, label: l }))
+        ];
+        setLevels(levelOptions);
+      }
     } catch (err) {
       console.error('加载课程失败:', err);
       setError('加载课程失败，请稍后重试');
@@ -258,7 +271,7 @@ export default function CourseListPage() {
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
                 >
-                  {sortOptions.map((opt) => (
+                  {SORT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
