@@ -738,6 +738,10 @@ export default function Layout() {
                   <Users className="w-4 h-4" />
                   <span className="ml-1">教师团队</span>
                 </Link>
+                <Link to="/shop" className="btn btn-ghost text-white hover:bg-slate-800 hover:text-blue-300">
+                  <ShoppingCart className="w-4 h-4" />
+                  <span className="ml-1">商城</span>
+                </Link>
                 <Link to="/exam-center" className="btn btn-ghost text-white hover:bg-slate-800 hover:text-blue-300">
                   <FileText className="w-4 h-4" />
                   <span className="ml-1">题库与考试</span>
