@@ -1,106 +1,213 @@
 /* pages/course-list/course-list.wxss */
 
 .page {
-  background: #f6f6f6;
   min-height: 100vh;
+  background: #f1f5f9;
 }
 
-/* 分类筛选栏 */
-.category-bar {
-  white-space: nowrap;
+/* ==================== 搜索框 ==================== */
+.search-box {
+  padding: 16rpx 24rpx;
   background: #fff;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e8e8e8;
+}
+
+.search-input {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 32rpx;
+  padding: 16rpx 24rpx;
+}
+
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+}
+
+.search-placeholder {
+  font-size: 26rpx;
+  color: #94a3b8;
+}
+
+/* ==================== 分类筛选 ==================== */
+.category-bar {
+  background: #fff;
+  border-bottom: 1rpx solid #e2e8f0;
+}
+
+.category-scroll {
+  display: inline-flex;
+  padding: 12rpx 24rpx;
 }
 
 .category-item {
-  display: inline-block;
-  padding: 6px 16px;
-  margin-right: 12px;
-  font-size: 14px;
-  color: #666;
-  border-radius: 16px;
-  background: #f6f6f6;
+  padding: 10rpx 24rpx;
+  font-size: 26rpx;
+  color: #64748b;
+  border-radius: 20rpx;
+  margin-right: 12rpx;
 }
 
 .category-item.active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: #fff;
-  background: #1890ff;
+  font-weight: 500;
 }
 
-/* 课程列表 */
+/* ==================== 排序选项 ==================== */
+.sort-bar {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 8rpx 24rpx;
+  border-bottom: 1rpx solid #e2e8f0;
+}
+
+.sort-item {
+  display: flex;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  font-size: 24rpx;
+  color: #64748b;
+}
+
+.sort-item.active {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.sort-arrow {
+  font-size: 20rpx;
+  margin-left: 4rpx;
+}
+
+/* ==================== 课程列表 ==================== */
+.course-scroll {
+  height: calc(100vh - 200rpx);
+}
+
 .course-list {
-  padding: 12px 16px;
+  padding: 16rpx 24rpx;
 }
 
 .course-card {
   display: flex;
   background: #fff;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  border-radius: 16rpx;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .course-cover {
-  width: 140px;
-  height: 100px;
-  flex-shrink: 0;
+  width: 200rpx;
+  height: 160rpx;
+  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
 }
 
 .course-info {
   flex: 1;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  padding: 12rpx 16rpx;
+}
+
+.course-level-row {
+  margin-bottom: 8rpx;
+}
+
+.course-level {
+  display: inline-block;
+  padding: 4rpx 12rpx;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #2563eb;
+  font-size: 20rpx;
+  border-radius: 6rpx;
 }
 
 .course-title {
-  font-size: 15px;
+  font-size: 26rpx;
   font-weight: 600;
-  color: #333;
+  color: #1e293b;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .course-desc {
-  font-size: 12px;
-  color: #999;
+  font-size: 22rpx;
+  color: #64748b;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-top: 6rpx;
 }
 
 .course-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 12rpx;
 }
 
 .price {
-  color: #ff4d4f;
+  display: flex;
+  align-items: baseline;
 }
 
 .price-symbol {
-  font-size: 12px;
+  font-size: 20rpx;
+  color: #ef4444;
 }
 
 .price-num {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #ef4444;
 }
 
 .students {
-  font-size: 12px;
-  color: #999;
+  font-size: 20rpx;
+  color: #94a3b8;
 }
 
-/* 加载更多 */
+/* ==================== 加载状态 ==================== */
 .load-more {
   text-align: center;
-  padding: 16px;
-  color: #999;
-  font-size: 14px;
+  padding: 24rpx;
+}
+
+.loading-text {
+  color: #94a3b8;
+  font-size: 24rpx;
+}
+
+.end-text {
+  color: #94a3b8;
+  font-size: 22rpx;
+}
+
+/* ==================== 空状态 ==================== */
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 40rpx;
+}
+
+.empty-icon {
+  font-size: 60rpx;
+  margin-bottom: 16rpx;
+  opacity: 0.5;
+}
+
+.empty-text {
+  color: #94a3b8;
+  font-size: 26rpx;
+}
+
+/* ==================== 底部间距 ==================== */
+.footer-space {
+  height: 32rpx;
 }

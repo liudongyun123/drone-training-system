@@ -1,130 +1,253 @@
 /* pages/course-detail/course-detail.wxss */
 
 .page {
-  background: #f6f6f6;
   min-height: 100vh;
-  padding-bottom: 70px;
+  background: #f1f5f9;
 }
 
+/* ==================== 加载状态 ==================== */
 .loading-container {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  padding: 48px;
-  color: #999;
+  padding: 160rpx 0;
 }
 
-/* 封面区域 */
+.loading-spinner {
+  font-size: 48rpx;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 16rpx;
+  color: #94a3b8;
+  font-size: 24rpx;
+}
+
+/* ==================== 内容区域 ==================== */
+.content {
+  height: calc(100vh - 120rpx);
+}
+
+/* ==================== 课程封面 ==================== */
 .cover-section {
   position: relative;
 }
 
 .cover {
   width: 100%;
-  height: 220px;
+  height: 360rpx;
+  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
 }
 
-.cover-info {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 16px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+/* ==================== 课程信息 ==================== */
+.info-section {
+  background: #fff;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
 }
 
-.title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #fff;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.meta {
+.title-row {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  align-items: flex-start;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
 }
 
-.teacher {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
+.level-tag {
+  padding: 6rpx 14rpx;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #2563eb;
+  font-size: 22rpx;
+  border-radius: 8rpx;
+}
+
+.course-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.rating {
+  font-size: 24rpx;
+  color: #f59e0b;
+}
+
+.divider {
+  color: #cbd5e1;
 }
 
 .students {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 24rpx;
+  color: #64748b;
 }
 
 .price-row {
-  text-align: right;
-}
-
-.price {
-  color: #ff4d4f;
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
 }
 
 .price-symbol {
-  font-size: 14px;
+  font-size: 26rpx;
+  color: #ef4444;
 }
 
 .price-num {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #ef4444;
 }
 
-/* 内容区域 */
+.original-price {
+  font-size: 26rpx;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.share-btn {
+  position: absolute;
+  top: 24rpx;
+  right: 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12rpx;
+  padding: 12rpx 16rpx;
+}
+
+.share-icon {
+  font-size: 28rpx;
+}
+
+.share-text {
+  font-size: 20rpx;
+  color: #64748b;
+}
+
+/* ==================== 分区 ==================== */
 .section {
   background: #fff;
-  margin: 12px;
-  border-radius: 8px;
-  padding: 16px;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
 }
 
 .section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1e293b;
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 16rpx;
 }
 
+/* ==================== 课程亮点 ==================== */
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.feature-icon {
+  color: #10b981;
+  font-size: 24rpx;
+}
+
+.feature-text {
+  font-size: 26rpx;
+  color: #475569;
+}
+
+/* ==================== 课程简介 ==================== */
 .description {
-  font-size: 14px;
-  color: #666;
-  line-height: 1.8;
+  font-size: 26rpx;
+  color: #64748b;
+  line-height: 1.6;
 }
 
-/* 课程目录 */
+/* ==================== 讲师信息 ==================== */
+.teacher-card {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.teacher-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: #f1f5f9;
+}
+
+.teacher-info {
+  flex: 1;
+}
+
+.teacher-name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1e293b;
+  display: block;
+}
+
+.teacher-title {
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+/* ==================== 课程目录 ==================== */
 .lesson-list {
-  max-height: 400px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
 }
 
 .lesson-item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  background: #f8fafc;
+  border-radius: 12rpx;
+  padding: 16rpx;
 }
 
-.lesson-item:last-child {
-  border-bottom: none;
+.lesson-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
 }
 
 .lesson-index {
-  width: 28px;
-  height: 28px;
-  background: #e6f7ff;
-  color: #1890ff;
-  border-radius: 50%;
+  width: 36rpx;
+  height: 36rpx;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+  border-radius: 8rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 22rpx;
   font-weight: 600;
-  margin-right: 12px;
-  flex-shrink: 0;
 }
 
 .lesson-info {
@@ -132,49 +255,102 @@
 }
 
 .lesson-title {
-  font-size: 14px;
-  color: #333;
+  font-size: 26rpx;
+  color: #1e293b;
   display: block;
 }
 
 .lesson-duration {
-  font-size: 12px;
-  color: #999;
+  font-size: 22rpx;
+  color: #94a3b8;
 }
 
-.lesson-status {
-  color: #1890ff;
-  font-size: 16px;
+.lesson-play {
+  width: 40rpx;
+  height: 40rpx;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 底部操作栏 */
+.play-icon {
+  color: #fff;
+  font-size: 20rpx;
+}
+
+.lesson-lock {
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+/* ==================== 底部操作栏 ==================== */
 .bottom-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: #fff;
-  border-top: 1px solid #e8e8e8;
-}
-
-.btn-start,
-.btn-buy {
-  margin: 8px 16px;
-  height: 44px;
-  border-radius: 22px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
+  background: #fff;
+  padding: 16rpx 24rpx;
+  border-top: 1rpx solid #e2e8f0;
+  z-index: 100;
+}
+
+.action-left {
+  display: flex;
+  gap: 24rpx;
+}
+
+.action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.action-icon {
+  font-size: 28rpx;
+}
+
+.action-text {
+  font-size: 20rpx;
+  color: #64748b;
+}
+
+.action-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .btn-start {
-  background: #52c41a;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: #fff;
+  border-radius: 32rpx;
+  padding: 20rpx 48rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  box-shadow: 0 4rpx 12rpx rgba(37, 99, 235, 0.3);
 }
 
 .btn-buy {
-  background: #ff4d4f;
+  background: linear-gradient(135deg, #ef4444, #f97316);
   color: #fff;
+  border-radius: 32rpx;
+  padding: 20rpx 48rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  box-shadow: 0 4rpx 12rpx rgba(239, 68, 68, 0.3);
+}
+
+/* ==================== 底部间距 ==================== */
+.footer-space {
+  height: 32rpx;
+}
+
+/* ==================== 安全区域 ==================== */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }

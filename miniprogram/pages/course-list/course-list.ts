@@ -10,7 +10,9 @@ Page({
     page: 1,
     hasMore: true,
     categories: [] as string[],
-    currentCategory: ''
+    currentCategory: '',
+    currentSort: 'newest',
+    searchKeyword: ''
   },
 
   onLoad() {
@@ -23,18 +25,14 @@ Page({
     this.loadCourses().then(() => wx.stopPullDownRefresh())
   },
 
-  onReachBottom() {
-    if (this.data.hasMore && !this.data.loading) {
-      this.loadMore()
-    }
-  },
-
   async loadCategories() {
     try {
       const categories = await courseApi.getCategories()
       this.setData({ categories: ['全部', ...categories] })
     } catch (err) {
       console.error('加载分类失败:', err)
+      // 使用默认分类
+      this.setData({ categories: ['全部', '基础培训', '航拍技术', '行业应用', '维修技术'] })
     }
   },
 
@@ -43,8 +41,35 @@ Page({
     
     try {
       const filters: any = { page: 1, pageSize: 10 }
+      
+      // 分类筛选
       if (this.data.currentCategory && this.data.currentCategory !== '全部') {
         filters.category = this.data.currentCategory
+      }
+      
+      // 搜索关键词
+      if (this.data.searchKeyword) {
+        filters.keyword = this.data.searchKeyword
+      }
+      
+      // 排序
+      switch (this.data.currentSort) {
+        case 'newest':
+          filters.sortBy = 'createdAt'
+          filters.sortOrder = 'desc'
+          break
+        case 'hot':
+          filters.sortBy = 'salesCount'
+          filters.sortOrder = 'desc'
+          break
+        case 'price_asc':
+          filters.sortBy = 'price'
+          filters.sortOrder = 'asc'
+          break
+        case 'price_desc':
+          filters.sortBy = 'price'
+          filters.sortOrder = 'desc'
+          break
       }
       
       const courses = await courseApi.getList(filters)
@@ -61,12 +86,38 @@ Page({
   },
 
   async loadMore() {
+    if (this.data.loading || !this.data.hasMore) return
+    
     const nextPage = this.data.page + 1
     
     try {
       const filters: any = { page: nextPage, pageSize: 10 }
+      
       if (this.data.currentCategory && this.data.currentCategory !== '全部') {
         filters.category = this.data.currentCategory
+      }
+      
+      if (this.data.searchKeyword) {
+        filters.keyword = this.data.searchKeyword
+      }
+      
+      switch (this.data.currentSort) {
+        case 'newest':
+          filters.sortBy = 'createdAt'
+          filters.sortOrder = 'desc'
+          break
+        case 'hot':
+          filters.sortBy = 'salesCount'
+          filters.sortOrder = 'desc'
+          break
+        case 'price_asc':
+          filters.sortBy = 'price'
+          filters.sortOrder = 'asc'
+          break
+        case 'price_desc':
+          filters.sortBy = 'price'
+          filters.sortOrder = 'desc'
+          break
       }
       
       const newCourses = await courseApi.getList(filters)
@@ -86,6 +137,28 @@ Page({
     const category = e.currentTarget.dataset.category
     this.setData({ currentCategory: category })
     this.loadCourses()
+  },
+
+  // 切换排序
+  switchSort(e: any) {
+    const sort = e.currentTarget.dataset.sort
+    this.setData({ currentSort: sort })
+    this.loadCourses()
+  },
+
+  // 搜索
+  goToSearch() {
+    wx.showModal({
+      title: '搜索课程',
+      editable: true,
+      placeholderText: '请输入课程名称',
+      success: (res) => {
+        if (res.confirm && res.content) {
+          this.setData({ searchKeyword: res.content })
+          this.loadCourses()
+        }
+      }
+    })
   },
 
   // 跳转课程详情

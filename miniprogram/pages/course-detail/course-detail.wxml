@@ -1,65 +1,125 @@
 <!--pages/course-detail/course-detail.wxml-->
+
 <view class="page">
   <view wx:if="{{loading}}" class="loading-container">
-    <text>加载中...</text>
+    <text class="loading-spinner">⏳</text>
+    <text class="loading-text">加载中...</text>
   </view>
 
-  <view wx:elif="{{course}}" class="content">
-    <!-- 课程封面 -->
-    <view class="cover-section">
-      <image class="cover" src="{{course.coverImage}}" mode="aspectFill" />
-      <view class="cover-info">
-        <text class="title">{{course.title}}</text>
-        <view class="meta">
-          <text class="teacher">讲师: {{course.teacherName || '待定'}}</text>
-          <text class="students">{{course.salesCount}}人已学</text>
+  <block wx:elif="{{course}}">
+    <scroll-view class="content" scroll-y enhanced>
+      <!-- 课程封面 -->
+      <view class="cover-section">
+        <image class="cover" src="{{course.coverImage}}" mode="aspectFill" />
+      </view>
+
+      <!-- 课程信息 -->
+      <view class="info-section">
+        <!-- 等级标签 + 标题 -->
+        <view class="title-row">
+          <text class="level-tag" wx:if="{{course.level}}">{{course.level}}</text>
+          <text class="course-title">{{course.title}}</text>
         </view>
+
+        <!-- 评分 + 学习人数 -->
+        <view class="meta-row">
+          <text class="rating">⭐ {{course.rating || 4.9}}</text>
+          <text class="divider">|</text>
+          <text class="students">{{course.salesCount || 0}}人已学</text>
+        </view>
+
+        <!-- 价格 -->
         <view class="price-row">
-          <view class="price">
-            <text class="price-symbol">¥</text>
-            <text class="price-num">{{course.price}}</text>
+          <text class="price-symbol">¥</text>
+          <text class="price-num">{{course.price}}</text>
+          <text class="original-price" wx:if="{{course.originalPrice}}">¥{{course.originalPrice}}</text>
+        </view>
+
+        <!-- 分享按钮 -->
+        <view class="share-btn" bindtap="shareCourse">
+          <text class="share-icon">↗️</text>
+          <text class="share-text">分享</text>
+        </view>
+      </view>
+
+      <!-- 课程亮点 -->
+      <view class="section" wx:if="{{course.features && course.features.length > 0}}">
+        <text class="section-title">📋 课程亮点</text>
+        <view class="features-list">
+          <view class="feature-item" wx:for="{{course.features}}" wx:key="*this">
+            <text class="feature-icon">✓</text>
+            <text class="feature-text">{{item}}</text>
           </view>
         </view>
       </view>
-    </view>
 
-    <!-- 课程简介 -->
-    <view class="section">
-      <text class="section-title">课程简介</text>
-      <text class="description">{{course.description}}</text>
-    </view>
+      <!-- 课程简介 -->
+      <view class="section">
+        <text class="section-title">课程简介</text>
+        <text class="description">{{course.description}}</text>
+      </view>
 
-    <!-- 课程目录 -->
-    <view class="section">
-      <text class="section-title">课程目录 ({{lessons.length}}节)</text>
-      <view class="lesson-list">
-        <view 
-          class="lesson-item"
-          wx:for="{{lessons}}" 
-          wx:key="_id"
-          bindtap="startLearning"
-          data-id="{{item._id}}"
-        >
-          <view class="lesson-index">{{index + 1}}</view>
-          <view class="lesson-info">
-            <text class="lesson-title">{{item.title}}</text>
-            <text class="lesson-duration">{{item.duration || 0}}分钟</text>
-          </view>
-          <view class="lesson-status" wx:if="{{hasPermission}}">
-            <text>▶</text>
+      <!-- 讲师信息 -->
+      <view class="section" wx:if="{{course.instructor}}">
+        <text class="section-title">👨‍🏫 授课讲师</text>
+        <view class="teacher-card">
+          <image class="teacher-avatar" src="{{course.instructorAvatar || 'https://via.placeholder.com/80?text=讲师'}}" mode="aspectFill" />
+          <view class="teacher-info">
+            <text class="teacher-name">{{course.instructor}}</text>
+            <text class="teacher-title">{{course.instructorTitle || '资深教官'}}</text>
           </view>
         </view>
       </view>
-    </view>
-  </view>
 
-  <!-- 底部操作栏 -->
-  <view class="bottom-bar safe-area-bottom">
-    <view wx:if="{{hasPermission}}" class="btn-start" bindtap="startLearning" data-id="{{lessons[0]._id}}">
-      <text>开始学习</text>
+      <!-- 课程目录 -->
+      <view class="section">
+        <text class="section-title">📚 课程目录 ({{lessons.length}}节)</text>
+        <view class="lesson-list">
+          <view 
+            class="lesson-item"
+            wx:for="{{lessons}}" 
+            wx:key="_id"
+            bindtap="startLearning"
+            data-id="{{item._id}}"
+            data-index="{{index}}"
+          >
+            <view class="lesson-left">
+              <text class="lesson-index">{{index + 1}}</text>
+              <view class="lesson-info">
+                <text class="lesson-title">{{item.title}}</text>
+                <text class="lesson-duration">{{item.duration || 10}}分钟</text>
+              </view>
+            </view>
+            <view class="lesson-play" wx:if="{{hasPermission}}">
+              <text class="play-icon">▶</text>
+            </view>
+            <view class="lesson-lock" wx:else>
+              <text class="lock-icon">🔒</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部间距 -->
+      <view class="footer-space"></view>
+    </scroll-view>
+
+    <!-- 底部操作栏 -->
+    <view class="bottom-bar safe-area-bottom">
+      <view class="action-left">
+        <view class="action-item" bindtap="contactService">
+          <text class="action-icon">📞</text>
+          <text class="action-text">客服</text>
+        </view>
+      </view>
+      <view class="action-right">
+        <view wx:if="{{hasPermission}}" class="btn-start" bindtap="startLearning" data-id="{{lessons[0]._id}}">
+          <text>开始学习</text>
+        </view>
+        <view wx:else class="btn-buy" bindtap="buyCourse">
+          <text>立即购买 ¥{{course.price}}</text>
+        </view>
+      </view>
     </view>
-    <view wx:else class="btn-buy" bindtap="buyCourse">
-      <text>立即购买 ¥{{course.price}}</text>
-    </view>
-  </view>
+  </block>
 </view>
