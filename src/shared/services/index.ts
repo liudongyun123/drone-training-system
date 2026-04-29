@@ -1,6 +1,9 @@
 // ============================================================================
-// 共用 API - 统一导出
+// 共用服务 - 统一导出
 // ============================================================================
 
-export { courseApi } from './courseApi'
-export { orderApi } from './orderApi'
+export * from './courseApi'
+export * from './orderApi'
+export * from './classApi'      // 培训班 + 排课 + 报名
+export * from './shopApi'      // 商城
+export * from './unifiedOrderApi'  // 统一订单
