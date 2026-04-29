@@ -182,7 +182,8 @@ export default function CourseDetailPage() {
   // 进入学习
   const handleStartLearning = () => {
     if (lessons.length > 0) {
-      navigate(`/lessons/${lessons[0]._id}`);
+      // ★ 修复：路由是 /learning/lesson/:courseId，参数是课程ID
+      navigate(`/learning/lesson/${courseId}?lessonId=${lessons[0]._id}`);
     } else {
       toast.info('课程暂无内容');
     }
