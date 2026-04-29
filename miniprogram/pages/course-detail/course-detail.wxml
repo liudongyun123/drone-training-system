@@ -1,0 +1,65 @@
+<!--pages/course-detail/course-detail.wxml-->
+<view class="page">
+  <view wx:if="{{loading}}" class="loading-container">
+    <text>加载中...</text>
+  </view>
+
+  <view wx:elif="{{course}}" class="content">
+    <!-- 课程封面 -->
+    <view class="cover-section">
+      <image class="cover" src="{{course.coverImage}}" mode="aspectFill" />
+      <view class="cover-info">
+        <text class="title">{{course.title}}</text>
+        <view class="meta">
+          <text class="teacher">讲师: {{course.teacherName || '待定'}}</text>
+          <text class="students">{{course.salesCount}}人已学</text>
+        </view>
+        <view class="price-row">
+          <view class="price">
+            <text class="price-symbol">¥</text>
+            <text class="price-num">{{course.price}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 课程简介 -->
+    <view class="section">
+      <text class="section-title">课程简介</text>
+      <text class="description">{{course.description}}</text>
+    </view>
+
+    <!-- 课程目录 -->
+    <view class="section">
+      <text class="section-title">课程目录 ({{lessons.length}}节)</text>
+      <view class="lesson-list">
+        <view 
+          class="lesson-item"
+          wx:for="{{lessons}}" 
+          wx:key="_id"
+          bindtap="startLearning"
+          data-id="{{item._id}}"
+        >
+          <view class="lesson-index">{{index + 1}}</view>
+          <view class="lesson-info">
+            <text class="lesson-title">{{item.title}}</text>
+            <text class="lesson-duration">{{item.duration || 0}}分钟</text>
+          </view>
+          <view class="lesson-status" wx:if="{{hasPermission}}">
+            <text>▶</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar safe-area-bottom">
+    <view wx:if="{{hasPermission}}" class="btn-start" bindtap="startLearning" data-id="{{lessons[0]._id}}">
+      <text>开始学习</text>
+    </view>
+    <view wx:else class="btn-buy" bindtap="buyCourse">
+      <text>立即购买 ¥{{course.price}}</text>
+    </view>
+  </view>
+</view>

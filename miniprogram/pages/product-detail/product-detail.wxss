@@ -1,0 +1,151 @@
+/* pages/product-detail/product-detail.wxss */
+
+.page {
+  background: #f6f6f6;
+  min-height: 100vh;
+  padding-bottom: 70px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+  color: #999;
+}
+
+/* 商品图片 */
+.image-swiper {
+  width: 100%;
+  height: 375px;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+}
+
+/* 商品信息 */
+.product-info {
+  background: #fff;
+  padding: 16px;
+}
+
+.product-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.product-desc {
+  font-size: 14px;
+  color: #666;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price {
+  color: #ff4d4f;
+}
+
+.price-symbol {
+  font-size: 14px;
+}
+
+.price-num {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.stock {
+  font-size: 14px;
+  color: #999;
+}
+
+/* 内容区域 */
+.section {
+  background: #fff;
+  margin-top: 12px;
+  padding: 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.detail-text {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.8;
+}
+
+/* 数量选择器 */
+.quantity-selector {
+  display: flex;
+  align-items: center;
+}
+
+.btn-minus,
+.btn-plus {
+  width: 32px;
+  height: 32px;
+  background: #f6f6f6;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #666;
+}
+
+.quantity {
+  width: 48px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 底部操作栏 */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-top: 1px solid #e8e8e8;
+  display: flex;
+}
+
+.btn-cart,
+.btn-buy {
+  flex: 1;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.btn-cart {
+  background: #fff;
+  color: #1890ff;
+  border-right: 1px solid #e8e8e8;
+}
+
+.btn-buy {
+  background: #ff4d4f;
+  color: #fff;
+}

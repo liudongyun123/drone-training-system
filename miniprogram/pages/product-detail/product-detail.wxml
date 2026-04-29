@@ -1,0 +1,50 @@
+<!--pages/product-detail/product-detail.wxml-->
+<view class="page">
+  <view wx:if="{{loading}}" class="loading-container">
+    <text>加载中...</text>
+  </view>
+
+  <view wx:elif="{{product}}" class="content">
+    <!-- 商品图片 -->
+    <swiper class="image-swiper" indicator-dots autoplay>
+      <swiper-item>
+        <image class="product-image" src="{{product.coverImage}}" mode="aspectFill" />
+      </swiper-item>
+    </swiper>
+
+    <!-- 商品信息 -->
+    <view class="product-info">
+      <text class="product-name">{{product.name}}</text>
+      <text class="product-desc">{{product.description}}</text>
+      <view class="price-row">
+        <view class="price">
+          <text class="price-symbol">¥</text>
+          <text class="price-num">{{product.price}}</text>
+        </view>
+        <text class="stock">库存: {{product.stock}}</text>
+      </view>
+    </view>
+
+    <!-- 商品详情 -->
+    <view class="section">
+      <text class="section-title">商品详情</text>
+      <text class="detail-text">{{product.detail || '暂无详情'}}</text>
+    </view>
+
+    <!-- 规格选择 -->
+    <view class="section">
+      <text class="section-title">数量</text>
+      <view class="quantity-selector">
+        <view class="btn-minus" bindtap="decreaseQuantity">-</view>
+        <text class="quantity">{{quantity}}</text>
+        <view class="btn-plus" bindtap="increaseQuantity">+</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar safe-area-bottom">
+    <view class="btn-cart" bindtap="addToCart">加入购物车</view>
+    <view class="btn-buy" bindtap="buyNow">立即购买</view>
+  </view>
+</view>
