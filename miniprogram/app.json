@@ -1,0 +1,65 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/course-list/course-list",
+    "pages/course-detail/course-detail",
+    "pages/my-learning/my-learning",
+    "pages/class-list/class-list",
+    "pages/class-detail/class-detail",
+    "pages/class-enrollment/class-enrollment",
+    "pages/my-classes/my-classes",
+    "pages/my-schedule/my-schedule",
+    "pages/shop/shop",
+    "pages/product-detail/product-detail",
+    "pages/cart/cart",
+    "pages/checkout/checkout",
+    "pages/my-orders/my-orders",
+    "pages/login/login",
+    "pages/profile/profile",
+    "pages/practice/practice",
+    "pages/exam/exam",
+    "pages/result/result",
+    "pages/my-certificates/my-certificates"
+  ],
+  "window": {
+    "navigationBarTitleText": "无人机培训",
+    "navigationBarBackgroundColor": "#1890ff",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f6f6f6",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#1890ff",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/course-list/course-list",
+        "text": "课程",
+        "iconPath": "assets/icons/course.png",
+        "selectedIconPath": "assets/icons/course-active.png"
+      },
+      {
+        "pagePath": "pages/shop/shop",
+        "text": "商城",
+        "iconPath": "assets/icons/shop.png",
+        "selectedIconPath": "assets/icons/shop-active.png"
+      },
+      {
+        "pagePath": "pages/my-learning/my-learning",
+        "text": "我的",
+        "iconPath": "assets/icons/user.png",
+        "selectedIconPath": "assets/icons/user-active.png"
+      }
+    ]
+  },
+  "usingComponents": {},
+  "sitemapLocation": "sitemap.json"
+}

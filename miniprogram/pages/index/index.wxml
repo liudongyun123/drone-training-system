@@ -1,0 +1,100 @@
+<!--pages/index/index.wxml-->
+<view class="page">
+  <!-- 搜索栏 -->
+  <view class="search-bar" bindtap="goToSearch">
+    <view class="search-input">
+      <text class="search-icon">🔍</text>
+      <text class="search-placeholder">搜索课程、培训班、商品</text>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 内容区域 -->
+  <view wx:else class="content">
+    <!-- 热门课程 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">热门课程</text>
+        <text class="section-more" bindtap="goToCourseList">查看更多</text>
+      </view>
+      <view class="course-grid">
+        <view 
+          class="course-card" 
+          wx:for="{{hotCourses}}" 
+          wx:key="_id"
+          bindtap="goToCourse"
+          data-id="{{item._id}}"
+        >
+          <image class="course-cover" src="{{item.coverImage}}" mode="aspectFill" />
+          <view class="course-info">
+            <text class="course-title">{{item.title}}</text>
+            <view class="course-meta">
+              <text class="price">{{item.price}}</text>
+              <text class="sales">{{item.salesCount}}人已学</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 培训班 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">培训班报名</text>
+        <text class="section-more" bindtap="goToClassList">查看更多</text>
+      </view>
+      <view class="class-list">
+        <view 
+          class="class-card" 
+          wx:for="{{enrollingClasses}}" 
+          wx:key="_id"
+          bindtap="goToClass"
+          data-id="{{item._id}}"
+        >
+          <view class="class-header">
+            <text class="class-name">{{item.name}}</text>
+            <text class="class-status enrolling">报名中</text>
+          </view>
+          <view class="class-info">
+            <text class="class-date">{{item.startDate}} ~ {{item.endDate}}</text>
+            <text class="class-location">{{item.location}}</text>
+          </view>
+          <view class="class-footer">
+            <text class="price">{{item.price}}</text>
+            <text class="class-students">已报名 {{item.currentStudents}}/{{item.maxStudents}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 商城推荐 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">配件商城</text>
+        <text class="section-more" bindtap="goToShop">查看更多</text>
+      </view>
+      <view class="product-grid">
+        <view 
+          class="product-card" 
+          wx:for="{{featuredProducts}}" 
+          wx:key="_id"
+          bindtap="goToProduct"
+          data-id="{{item._id}}"
+        >
+          <image class="product-cover" src="{{item.coverImage}}" mode="aspectFill" />
+          <view class="product-info">
+            <text class="product-title">{{item.name}}</text>
+            <view class="product-meta">
+              <text class="price">{{item.price}}</text>
+              <text class="product-sales">{{item.salesCount}}人已买</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
