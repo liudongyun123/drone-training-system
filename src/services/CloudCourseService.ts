@@ -1,3 +1,16 @@
+/**
+ * @deprecated 此服务已废弃，建议迁移到 courseApi (from '@/shared/services/courseApi')
+ * 
+ * 注意：courseApi 提供更强大的功能：
+ * - getList(filters): 支持分页、筛选、排序
+ * - getDetail(courseId): 获取课程详情（含章节）
+ * - getHotCourses(limit): 热门课程
+ * - getRecommendedCourses(category): 推荐课程
+ * - getCategories(): 分类列表
+ * 
+ * 此服务保留用于向后兼容，将在后续版本中删除
+ */
+
 import { app } from '@/utils/cloudbase'
 import type { Course } from '../types'
 

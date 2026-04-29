@@ -78,22 +78,30 @@ export default defineConfig({
         warn(warning);
       },
       output: {
-        // 手动分割代码块
+        // 手动分割代码块 - 策略：按库功能分组，每 chunk 控制在 500KB 以下
         manualChunks: {
           // React 核心
           'vendor-react': ['react', 'react-dom'],
           // React Router
           'vendor-router': ['react-router-dom'],
-          // UI 框架
-          'vendor-mui': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+          // MUI 核心库（不包含 icons，拆分后约 200-300KB）
+          'vendor-mui-core': ['@mui/material', '@emotion/react', '@emotion/styled'],
+          // MUI Icons（单独 chunk，tree-shaking 后只包含实际使用的图标，约 150-250KB）
+          'vendor-mui-icons': ['@mui/icons-material'],
           // 状态管理
           'vendor-state': ['zustand'],
           // 工具库
           'vendor-utils': ['axios', 'dayjs', 'lucide-react'],
-          // CloudBase SDK
+          // 动画库
+          'vendor-motion': ['framer-motion'],
+          // CloudBase SDK（整体不可拆分，约 640KB）
           'vendor-cloudbase': ['@cloudbase/js-sdk'],
           // 图表库
           'vendor-charts': ['recharts'],
+          // 视频播放器（仅在课程播放页使用，懒加载时按需获取）
+          'vendor-video': ['video.js'],
+          // 日历组件（仅在排课相关页面使用，懒加载时按需获取）
+          'vendor-calendar': ['@fullcalendar/core', '@fullcalendar/daygrid', '@fullcalendar/interaction', '@fullcalendar/react', '@fullcalendar/timegrid'],
         },
         // 使用内容哈希生成文件名
         entryFileNames: `assets/[name]-${BUILD_VERSION}.js`,
@@ -105,7 +113,8 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 500, // 降低警告阈值
+    // CloudBase SDK 整体约 640KB 无法进一步拆分，设为 700 避免误报
+    chunkSizeWarningLimit: 700,
     // 使用 esbuild 压缩并移除 console 和 debugger
     minify: 'esbuild',
     esbuild: {

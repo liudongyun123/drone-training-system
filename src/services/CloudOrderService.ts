@@ -1,4 +1,17 @@
 /**
+ * @deprecated 此服务已废弃，建议迁移到 orderApi (from '@/shared/services/orderApi')
+ * 
+ * 注意：orderApi 提供更简洁的 API：
+ * - create(params): 创建订单
+ * - getByUserId(userId): 获取用户订单
+ * - getById(orderId): 获取订单详情
+ * - updateStatus(orderId, status): 更新订单状态
+ * 
+ * 此服务保留用于向后兼容，因为它包含复杂的授权逻辑，
+ * 将在后续版本中迁移到统一订单服务后删除
+ */
+
+/**
  * 订单数据服务（C端）
  * 使用统一的订单类型和数据结构
  */

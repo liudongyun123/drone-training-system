@@ -1,0 +1,32 @@
+<!--components/class-card/class-card.wxml-->
+<view class="class-card" bindtap="onTap">
+  <view class="header">
+    <text class="name">{{classInfo.name}}</text>
+    <view class="status {{classInfo.status}}">{{statusText}}</view>
+  </view>
+  
+  <view class="info">
+    <view class="row">
+      <text class="label">时间</text>
+      <text class="value">{{classInfo.startDate}} ~ {{classInfo.endDate}}</text>
+    </view>
+    <view class="row">
+      <text class="label">地点</text>
+      <text class="value">{{classInfo.location}}</text>
+    </view>
+    <view class="row">
+      <text class="label">名额</text>
+      <text class="value">{{classInfo.currentStudents}}/{{classInfo.maxStudents}}人</text>
+    </view>
+  </view>
+  
+  <view class="footer">
+    <view class="price">
+      <text class="symbol">¥</text>
+      <text class="num">{{classInfo.price}}</text>
+    </view>
+    <view class="btn-schedule" wx:if="{{showActions}}" catchtap="goToSchedule">
+      <text>查看日程</text>
+    </view>
+  </view>
+</view>

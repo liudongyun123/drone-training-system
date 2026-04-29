@@ -1,0 +1,25 @@
+<!--components/product-card/product-card.wxml-->
+<view class="product-card">
+  <view class="card-main" bindtap="onTap">
+    <image 
+      class="cover" 
+      src="{{product.coverImage || defaultCover}}" 
+      mode="aspectFill"
+      lazy-load
+    />
+    <view class="info">
+      <text class="name">{{product.name}}</text>
+      <view class="price-row">
+        <text class="price">
+          <text class="symbol">¥</text>
+          <text class="num">{{product.price}}</text>
+        </text>
+      </view>
+    </view>
+  </view>
+  <view class="card-actions">
+    <view class="btn-cart" catchtap="addToCart">
+      <text class="cart-icon">🛒</text>
+    </view>
+  </view>
+</view>

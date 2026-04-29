@@ -1,0 +1,26 @@
+<!--components/course-card/course-card.wxml-->
+<view class="course-card" bindtap="onTap">
+  <image 
+    class="cover" 
+    src="{{course.coverImage || defaultCover}}" 
+    mode="aspectFill"
+    lazy-load
+  />
+  <view class="info">
+    <text class="title">{{course.title}}</text>
+    <text class="desc">{{course.description}}</text>
+    <view class="bottom">
+      <view class="price">
+        <text class="symbol">¥</text>
+        <text class="num">{{course.price}}</text>
+      </view>
+      <text class="sales">{{course.salesCount}}人已学</text>
+    </view>
+    <view class="progress" wx:if="{{showProgress && course.progress}}">
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{course.progress}}%"></view>
+      </view>
+      <text class="progress-text">{{course.progress}}%</text>
+    </view>
+  </view>
+</view>

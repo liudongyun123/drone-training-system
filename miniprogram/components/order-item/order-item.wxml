@@ -1,0 +1,50 @@
+<!--components/order-item/order-item.wxml-->
+<view class="order-item" bindtap="goToDetail">
+  <view class="header">
+    <text class="order-no">订单号: {{order.orderNo}}</text>
+    <view class="status {{statusClass}}">{{statusText}}</view>
+  </view>
+  
+  <view class="body">
+    <!-- 课程订单 -->
+    <block wx:if="{{order.orderType === 'course'}}">
+      <view class="item" wx:for="{{order.items}}" wx:key="courseId">
+        <image class="item-cover" src="{{item.coverImage}}" mode="aspectFill" />
+        <view class="item-info">
+          <text class="item-title">{{item.courseName}}</text>
+          <text class="item-price">¥{{item.price}}</text>
+        </view>
+      </view>
+    </block>
+    
+    <!-- 商城订单 -->
+    <block wx:if="{{order.orderType === 'shop'}}">
+      <view class="item" wx:for="{{order.shopItems}}" wx:key="productId">
+        <image class="item-cover" src="{{item.coverImage}}" mode="aspectFill" />
+        <view class="item-info">
+          <text class="item-title">{{item.name}} x{{item.quantity}}</text>
+          <text class="item-price">¥{{item.price}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+  
+  <view class="footer">
+    <view class="total">
+      <text class="label">实付：</text>
+      <text class="price">¥{{order.finalAmount}}</text>
+    </view>
+    
+    <view class="actions">
+      <view class="btn" wx:if="{{order.status === 'pending'}}" catchtap="cancelOrder">
+        取消订单
+      </view>
+      <view class="btn primary" wx:if="{{order.status === 'pending'}}" catchtap="payOrder">
+        去支付
+      </view>
+      <view class="btn primary" wx:if="{{order.status === 'shipped'}}" catchtap="confirmReceipt">
+        确认收货
+      </view>
+    </view>
+  </view>
+</view>
