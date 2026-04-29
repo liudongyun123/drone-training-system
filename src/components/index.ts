@@ -73,6 +73,6 @@ export {
 // ============================================================================
 // 管理后台组件（新增/增强）
 // ============================================================================
-export { ImageUploader } from './admin/ImageUploader';
-export { BannerManagement } from './admin/BannerManagement';
-export { QuestionImport } from './admin/QuestionImport';
+export { default as ImageUploader } from './admin/ImageUploader';
+export { default as BannerManagement } from './admin/BannerManagement';
+export { default as QuestionImport } from './admin/QuestionImport';

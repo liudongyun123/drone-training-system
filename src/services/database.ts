@@ -16,6 +16,7 @@ import type {
   Coupon,
   GroupBuy,
   LiveStream,
+  Lesson,
   PaginationParams,
   PaginatedResponse,
   FilterParams,

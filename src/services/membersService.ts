@@ -25,7 +25,7 @@ interface ApiResponse<T> {
 }
 
 // 获取集合引用
-const getCollection = () => db.collection('members')
+const getCollection = (): any => db.collection('members') as any
 
 // 确保已认证的辅助函数 - 每次都真正等待认证完成
 const ensureAuth = async () => {
@@ -137,7 +137,7 @@ export const membersService = {
       
       while (hasMore) {
         const query = lastId 
-          ? getCollection().where({ _id: db.command.gt(lastId) }).orderBy('_id', 'asc').limit(batchSize)
+          ? getCollection().where({ _id: db.command.gt(lastId as any) }).orderBy('_id', 'asc').limit(batchSize)
           : getCollection().where({}).orderBy('_id', 'asc').limit(batchSize)
         
         const res = await query.get()
@@ -495,7 +495,7 @@ export const membersService = {
         enrolledCourses: db.command.addToSet(courseId),
         // 如果是 user 类型，升级为 student
         type: 'student',
-        firstPurchaseAt: db.command.missing()._op === 'missing' 
+        firstPurchaseAt: (db.command as any).missing()._op === 'missing' 
           ? new Date().toISOString() 
           : undefined,
         updatedAt: new Date().toISOString()
@@ -634,15 +634,15 @@ export const membersService = {
       const offset = (page - 1) * pageSize
 
       // 强制筛选 type=student
-      const conditions: any[] = [db.command.eq('type', 'student')]
+      const conditions: any[] = [{ type: 'student' }]
 
       // 关键词搜索
       if (keyword) {
         conditions.push(
-          db.command.or(
-            db.command.regexp({ regexp: keyword, options: 'i' })._path('name'),
-            db.command.regexp({ regexp: keyword, options: 'i' })._path('phone'),
-            db.command.regexp({ regexp: keyword, options: 'i' })._path('email')
+          (db.command as any).or(
+            (db.command as any).regexp({ regexp: keyword, options: 'i' })._path('name'),
+            (db.command as any).regexp({ regexp: keyword, options: 'i' })._path('phone'),
+            (db.command as any).regexp({ regexp: keyword, options: 'i' })._path('email')
           )
         )
       }
@@ -931,8 +931,8 @@ export const membersService = {
       console.log('[membersService] 绑定手机号:', { openid, phone })
       
       // 1. 验证短信验证码
-      const verifyResult = await app.auth().verifyOtp({ phone, code })
-      if (!verifyResult.success) {
+      const verifyResult = await app.auth().verifyOtp({ phone, token: code } as any)
+      if (verifyResult.error) {
         return { success: false, error: '验证码错误或已过期' }
       }
 
@@ -1134,8 +1134,8 @@ export const membersService = {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // 1. 验证新手机号验证码
-      const verifyResult = await app.auth().verifyOtp({ phone: newPhone, code })
-      if (!verifyResult.success) {
+      const verifyResult = await app.auth().verifyOtp({ phone: newPhone, token: code } as any)
+      if (verifyResult.error) {
         return { success: false, error: '验证码错误或已过期' }
       }
 

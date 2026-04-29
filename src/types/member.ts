@@ -88,6 +88,10 @@ export interface EnrollmentInfo {
 export interface Member {
   _id: string               // CloudBase Auth 的 openid 或自定义 ID
   authId?: string           // Auth UID
+  openid?: string           // 微信 openid
+  unionId?: string          // 微信 unionId
+  relatedOpenids?: string[] // 关联的其他 openid
+  lastLoginAt?: string      // 最后登录时间
   
   // 基本信息
   name: string

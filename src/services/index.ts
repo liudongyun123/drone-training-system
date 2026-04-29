@@ -14,14 +14,16 @@ export * from './adminService'
 
 // 业务服务
 export * from './cart'
-export * from './coupon'
+// coupon 和 groupBuy 在 database.ts 中已有导出，这里使用显式导出避免重复
+export { couponService as couponServiceFromCoupon } from './coupon'
 export * from './enrollmentService'
 export * from './flashSale'
-export * from './groupBuy'
+export { groupBuyService as groupBuyServiceFromGroupBuy } from './groupBuy'
 export * from './marketing'
 export * from './progress'
 
-export * from './teacherService'
+// teacherService 在 database.ts 中已有导出
+export { teacherService as teacherServiceFromTeacher } from './teacherService'
 export * from './membersService'
 
 // 报名服务（新增）

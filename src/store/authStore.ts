@@ -761,7 +761,16 @@ export const useAuthStore = create<AuthState>()(
 // 初始化函数 - 检查登录状态
 export const initAuth = async () => {
   try {
-    const loginState = await app.auth().getLoginState()
+    // 添加超时机制，防止 CloudBase SDK 初始化卡住
+    const timeout = new Promise<null>((_, reject) => 
+      setTimeout(() => reject(new Error('Auth initialization timeout')), 5000)
+    )
+    
+    const loginState = await Promise.race([
+      app.auth().getLoginState(),
+      timeout
+    ]) as any
+    
     if (loginState) {
       // 用户已登录，恢复状态 - ★关键：必须设置isAuthenticated为true
       useAuthStore.setState({ isAuthenticated: true })
