@@ -6,6 +6,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Search, BookOpen, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { courseService } from '@/services/database';
 import { categoryService } from '@/services/categoryService';
+import { getPlaceholderImage } from '@/services/siteConfigService';
 import type { Course } from '@/types';
 import { Loading, EmptyState, ErrorState, toast } from '@/components';
 
@@ -14,11 +15,6 @@ interface CategoryOption {
   value: string;
   label: string;
 }
-
-// 等级选项（从课程数据动态提取）
-const DEFAULT_LEVELS = [
-  { value: '', label: '全部等级' },
-];
 
 // 排序选项（UI 层面，不需要动态加载）
 const SORT_OPTIONS = [
@@ -42,7 +38,10 @@ export default function CourseListPage() {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   
   // 等级数据（从课程数据动态提取）
-  const [levels, setLevels] = useState<CategoryOption[]>(DEFAULT_LEVELS);
+  const [levels, setLevels] = useState<CategoryOption[]>([{ value: '', label: '全部等级' }]);
+
+  // 默认课程封面
+  const [defaultCover, setDefaultCover] = useState<string>('');
   
   // 筛选状态
   const [searchKeyword, setSearchKeyword] = useState(searchParams.get('keyword') || '');
@@ -54,10 +53,19 @@ export default function CourseListPage() {
 
   const pageSize = 12;
 
-  // 加载分类数据
+  // 加载默认配置
   useEffect(() => {
-    loadCategories();
+    loadDefaultConfigs();
   }, []);
+
+  const loadDefaultConfigs = async () => {
+    try {
+      const cover = await getPlaceholderImage('course');
+      setDefaultCover(cover);
+    } catch (err) {
+      console.error('加载默认配置失败:', err);
+    }
+  };
 
   // 加载课程数据
   useEffect(() => {
@@ -172,22 +180,26 @@ export default function CourseListPage() {
 
   const hasActiveFilters = searchKeyword || category || level;
 
-  const levelBadgeColor: Record<string, string> = {
-    'beginner': 'badge-success',
-    '入门': 'badge-success',
-    'intermediate': 'badge-warning',
-    '进阶': 'badge-warning',
-    'advanced': 'badge-error',
-    '高级': 'badge-error'
+  // 等级颜色映射（根据等级名称动态计算）
+  const getLevelBadgeColor = (level: string): string => {
+    const lowerLevel = level?.toLowerCase() || '';
+    if (lowerLevel.includes('beginner') || lowerLevel.includes('入门') || lowerLevel.includes('初级')) {
+      return 'badge-success';
+    }
+    if (lowerLevel.includes('intermediate') || lowerLevel.includes('进阶') || lowerLevel.includes('中级')) {
+      return 'badge-warning';
+    }
+    if (lowerLevel.includes('advanced') || lowerLevel.includes('高级') || lowerLevel.includes('技师')) {
+      return 'badge-error';
+    }
+    return 'badge-info';
   };
 
-  const levelText: Record<string, string> = {
-    'beginner': '入门',
-    '入门': '入门',
-    'intermediate': '进阶',
-    '进阶': '进阶',
-    'advanced': '高级',
-    '高级': '高级'
+  // 等级显示文本（直接使用数据库中的值）
+  const getLevelText = (level: string): string => {
+    if (!level) return '';
+    // 直接显示数据库中存储的等级名称
+    return level;
   };
 
   if (error) {
@@ -380,13 +392,13 @@ export default function CourseListPage() {
                 >
                   <figure className="aspect-video relative overflow-hidden">
                     <img 
-                      src={course.coverImage || 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=400'} 
+                      src={course.coverImage || defaultCover} 
                       alt={course.title} 
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     <div className="absolute top-2 right-2">
-                      <span className={`badge ${levelBadgeColor[course.level]}`}>
-                        {levelText[course.level]}
+                      <span className={`badge ${getLevelBadgeColor(course.level)}`}>
+                        {getLevelText(course.level)}
                       </span>
                     </div>
                   </figure>

@@ -7,6 +7,18 @@
 
 import { app, ensureAuthenticated } from '@/utils/cloudbase';
 import { db } from './cloudBaseService';
+import type { ApiResponse, Course } from '@/types';
+
+/** 课程分类类型 */
+export interface CourseCategory {
+  _id: string;
+  name: string;
+  title?: string;
+  order?: number;
+  status?: boolean | 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 /**
  * 云函数调用封装
@@ -35,31 +47,31 @@ async function callFunction<T = any>(params: {
       data: params
     });
 
-    console.log(`[adminApi] ${params.action} ${params.collection}:`, result.data);
+    // CloudBase SDK callFunction 返回 { result: {...} }
+    const response = (result as any).result || result;
+    console.log(`[adminApi] ${params.action} ${params.collection}:`, response);
 
-    if (result.errCode === 0 && result.data) {
-      if (result.data.code === 0) {
-        return {
-          success: true,
-          data: result.data.data,
-          message: result.data.message
-        };
-      } else {
-        console.error(`API 调用失败 [${result.data.code}]:`, result.data.message);
-        return {
-          success: false,
-          data: null,
-          message: result.data.message || '操作失败'
-        };
-      }
+    if (response && response.code === 0) {
+      return {
+        success: true,
+        data: response.data,
+        message: response.message
+      };
+    } else if (response && response.code !== 0) {
+      console.error(`API 调用失败 [${response.code}]:`, response.message);
+      return {
+        success: false,
+        data: undefined as T | undefined,
+        message: response.message || '操作失败'
+      };
     }
 
-    throw new Error(`请求失败: ${result.errCode} - ${result.errMsg}`);
+    throw new Error(`请求失败: ${JSON.stringify(response)}`);
   } catch (error: any) {
     console.error('API 调用异常:', error);
     return {
       success: false,
-      data: null,
+      data: undefined as T | undefined,
       message: error.message || '网络请求失败'
     };
   }
@@ -199,16 +211,16 @@ export const featuredCourseApi = {
   async addCourse(courseId: string): Promise<ApiResponse<void>> {
     const current = await this.getList();
     if (!current.success || !current.data) {
-      return { success: false, data: null, message: '获取当前配置失败' };
+      return { success: false, data: undefined, message: '获取当前配置失败' };
     }
     
     const currentIds = current.data.courseIds || [];
     if (currentIds.length >= 8) {
-      return { success: false, data: null, message: '热门课程已达上限(8个)' };
+      return { success: false, data: undefined, message: '热门课程已达上限(8个)' };
     }
     
     if (currentIds.includes(courseId)) {
-      return { success: false, data: null, message: '该课程已在热门列表中' };
+      return { success: false, data: undefined, message: '该课程已在热门列表中' };
     }
     
     return this.setFeaturedCourses([...currentIds, courseId]);
@@ -220,7 +232,7 @@ export const featuredCourseApi = {
   async removeCourse(courseId: string): Promise<ApiResponse<void>> {
     const current = await this.getList();
     if (!current.success || !current.data) {
-      return { success: false, data: null, message: '获取当前配置失败' };
+      return { success: false, data: undefined, message: '获取当前配置失败' };
     }
     
     const currentIds = current.data.courseIds || [];

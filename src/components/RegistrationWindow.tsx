@@ -6,8 +6,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Calendar, MapPin, Users, Clock, CheckCircle, AlertCircle,
-  ChevronRight, Phone, User, BookOpen, GraduationCap,
+  Calendar, MapPin, Clock, CheckCircle, AlertCircle,
+  ChevronRight, User, BookOpen, GraduationCap,
   Play, FileText, X, Eye, ExternalLink
 } from 'lucide-react';
 import { classService } from '@/services/classService';
@@ -250,7 +250,7 @@ export default function RegistrationWindow({ courseId, classId, onSuccess, onClo
       } else {
         // 默认：加载所有招生中的班级
         const result = await classService.getList({ status: 'enrolling', page: 1, pageSize: 50 });
-        const safeList = result.data?.data?.list || result.data?.list || [];
+        const safeList = result.data?.list || [];
         setClasses(safeList);
       }
     } catch (error) {
@@ -299,22 +299,18 @@ export default function RegistrationWindow({ courseId, classId, onSuccess, onClo
     
     setSubmitting(true);
     try {
-      // 创建报名记录 - 状态为已完成（缴费即报名）
+      // 创建报名记录 - 缴费即报名，直接标记为已确认
       await registrationService.create({
-        userId: user!.id,
-        userName: formData.name,
-        userPhone: formData.phone,
+        studentId: user!.id,
+        studentName: formData.name,
+        phone: formData.phone,
         courseId: selectedClass.courseId || course?._id || '',
         courseName: selectedClass.courseName || course?.title || '',
         classId: selectedClass._id!,
         className: selectedClass.name,
         source: 'offline',
-        remark: formData.remark,
-        // 缴费即报名，直接标记为已支付
-        paymentStatus: 'paid',
-        paymentTime: new Date().toISOString(),
-        paymentAmount: selectedClass.price || 0,
-        enrollmentStatus: 'confirmed' // 报名已确认
+        remarks: formData.remark || '',
+        status: 'confirmed'
       });
       
       setShowPaymentConfirm(false);

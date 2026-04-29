@@ -32,13 +32,14 @@ function toGroupBuy(a: GroupBuyActivity): GroupBuy {
 /**
  * 将管理后台的创建数据转为数据库 Activity 格式
  */
-// 拼团有效期默认值（小时）
-const DEFAULT_GROUP_BUY_DURATION = 48;
-
 function fromGroupBuyCreate(data: Omit<GroupBuy, '_id' | 'currentCount' | 'createdAt' | 'updatedAt'>): Omit<GroupBuyActivity, '_id' | 'activeGroups' | 'createdAt' | 'updatedAt'> {
   let status: GroupBuyActivity['status'] = 'active';
   if (data.status === 'expired') status = 'ended';
   // 'completed' 没有直接对应，映射为 active
+
+  // 读取拼团时长和倍数配置（带默认值兜底）
+  const duration = (data as any).duration; // 由调用方传入，不在此硬编码
+  const multiplier = (data as any).multiplier || 2;
 
   return {
     courseId: data.courseId,
@@ -46,8 +47,8 @@ function fromGroupBuyCreate(data: Omit<GroupBuy, '_id' | 'currentCount' | 'creat
     originalPrice: data.originalPrice,
     groupPrice: data.price,
     minPeople: data.requiredCount,
-    maxPeople: data.requiredCount * 2, // 默认最大人数为所需人数的2倍
-    duration: (data as any).duration || DEFAULT_GROUP_BUY_DURATION, // 拼团有效时长，默认48小时
+    maxPeople: data.requiredCount * multiplier,
+    duration: duration,
     startDate: data.validFrom,
     endDate: data.validTo,
     status,

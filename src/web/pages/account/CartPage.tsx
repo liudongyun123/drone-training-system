@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, ShoppingBag, ArrowRight, Gift, AlertCircle } from 'lucide-react';
+import { Trash2, ArrowRight, Gift, AlertCircle } from 'lucide-react';
 import { cartService } from '@/services/cart';
 import { couponService } from '@/services/coupon';
 import { useAuthStore } from '@/store/authStore';
@@ -13,12 +13,12 @@ import { Loading, EmptyState, Button, toast } from '@/components';
 export default function CartPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
-  const [cartItems, setCartItems] = useState<CartItemType[]>([]);
+  const [cartItems, setCartItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCoupon, setSelectedCoupon] = useState<CartItemType | null>(null);
+  const [selectedCoupon, setSelectedCoupon] = useState<any>(null);
   const [showCouponList, setShowCouponList] = useState(false);
   const [couponDiscount, setCouponDiscount] = useState(0);
-  const [userCoupons, setUserCoupons] = useState<CartItemType[]>([]);
+  const [userCoupons, setUserCoupons] = useState<any[]>([]);
   const [loadingCoupons, setLoadingCoupons] = useState(false);
 
   useEffect(() => {
@@ -171,7 +171,7 @@ export default function CartPage() {
                       <div className="flex gap-4">
                         <div className="w-32 h-20 rounded overflow-hidden flex-shrink-0">
                           <img
-                            src={item.coverImage || 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=128'}
+                            src={item.courseCover || 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=128'}
                             alt={item.courseTitle}
                             className="w-full h-full object-cover"
                           />
@@ -180,7 +180,7 @@ export default function CartPage() {
                           <h3 className="font-semibold mb-2 truncate">{item.courseTitle}</h3>
                           <div className="flex items-center justify-between">
                             <div className="text-sm text-gray-500">
-                              {item.teacherName || '未知教师'}
+                              {'讲师'}
                             </div>
                             <div className="text-lg font-bold text-primary">
                               ¥{item.price}

@@ -5,13 +5,11 @@
 import { useState, useEffect } from 'react';
 import { 
   DollarSign, ShoppingCart, TrendingUp, Users, Download,
-  Calendar, Search, Filter, ChevronLeft, ChevronRight,
-  CreditCard, Package, Award, BarChart3, FileText,
-  CheckCircle, XCircle, Clock, MoreHorizontal
+  Search, ChevronLeft, ChevronRight,
+  CreditCard, Package, Award, BarChart3, FileText
 } from 'lucide-react';
 import { financeService } from '@/services/financeService';
 import type { Order } from '@/types';
-import type { Course, Teacher } from '@/types/service';
 import { formatDateStr } from '@/utils/dateUtils';
 
 // 课程销售数据接口
@@ -29,6 +27,8 @@ interface TeacherPerformanceData {
   courseCount: number
   studentCount: number
   revenue: number
+  orderCount?: number
+  totalRevenue?: number
 }
 
 // 订单详情弹窗
@@ -93,7 +93,7 @@ function OrderDetailModal({ order, isOpen, onClose, onStatusChange }: OrderDetai
                 </div>
                 <div>
                   <span className="text-gray-500">支付方式:</span>
-                  <p className="text-gray-800">{getPaymentMethodText(order.paymentMethod)}</p>
+                  <p className="text-gray-800">{getPaymentMethodText(order.paymentMethod ?? 'unknown')}</p>
                 </div>
                 {order.paidAt && (
                   <div>
@@ -117,15 +117,15 @@ function OrderDetailModal({ order, isOpen, onClose, onStatusChange }: OrderDetai
                 {order.items?.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-4 p-3 border rounded-lg">
                     <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                      {item.coverImage ? (
-                        <img src={item.coverImage} alt="" className="w-full h-full object-cover rounded-lg" />
+                      {item.thumbnail ? (
+                        <img src={item.thumbnail} alt="" className="w-full h-full object-cover rounded-lg" />
                       ) : (
                         <Package className="text-gray-400" size={24} />
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-gray-800">{item.courseTitle}</p>
-                      <p className="text-sm text-gray-500">{item.teacherName}</p>
+                      <p className="font-medium text-gray-800">{item.title}</p>
+                      <p className="text-sm text-gray-500">{item.instructor}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-800">¥{item.price}</p>
@@ -157,13 +157,13 @@ function OrderDetailModal({ order, isOpen, onClose, onStatusChange }: OrderDetai
             {order.status === 'pending' && (
               <div className="flex gap-3">
                 <button
-                  onClick={() => { onStatusChange(order._id, 'paid'); onClose(); }}
+                  onClick={() => { onStatusChange(order._id || order.id || '', 'paid'); onClose(); }}
                   className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
                 >
                   标记为已支付
                 </button>
                 <button
-                  onClick={() => { onStatusChange(order._id, 'cancelled'); onClose(); }}
+                  onClick={() => { onStatusChange(order._id || order.id || '', 'cancelled'); onClose(); }}
                   className="flex-1 py-2.5 border hover:bg-gray-50 rounded-lg font-medium transition-colors"
                 >
                   取消订单
@@ -172,7 +172,7 @@ function OrderDetailModal({ order, isOpen, onClose, onStatusChange }: OrderDetai
             )}
             {order.status === 'paid' && (
               <button
-                onClick={() => { onStatusChange(order._id, 'refunded'); onClose(); }}
+                onClick={() => { onStatusChange(order._id || order.id || '', 'refunded'); onClose(); }}
                 className="w-full py-2.5 border hover:bg-gray-50 rounded-lg font-medium transition-colors text-red-600"
               >
                 申请退款
@@ -368,7 +368,7 @@ export default function AdminFinance() {
 
   const handleOrderStatusChange = async (orderId: string, status: string) => {
     try {
-      await financeServiceDirect.updateOrderStatus(orderId, status);
+      await financeService.updateOrderStatus(orderId, status);
       loadOrders();
       loadStats();
     } catch (error) {

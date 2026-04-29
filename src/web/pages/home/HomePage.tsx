@@ -2,7 +2,7 @@
 // 首页 - 无人机培训系统
 // 支持从后台管理配置内容
 // ============================================================================
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   GraduationCap, 
@@ -16,12 +16,12 @@ import {
   BookOpen,
   BarChart3,
   Target,
-  ArrowRight,
+  // ArrowRight removed - unused
   CheckCircle,
   Phone,
   Mail,
   MapPin,
-  Star,
+  // Star removed - unused
   Play,
   ChevronLeft,
   Bell,
@@ -30,9 +30,10 @@ import {
   Calendar,
   DollarSign
 } from 'lucide-react';
-import { Button, Card, Loading } from '@/components';
+import { Button, Loading, Card } from '@/components';
 import { CloudCourseService } from '@/services/CloudCourseService';
 import { pageConfigService, defaultPageConfig } from '@/services/pageConfigService';
+import type { HeroConfig, StatItem, FeatureItem, FooterConfig } from '@/services/pageConfigService';
 import { CloudBannerAdminService } from '@/services/CloudAdminService';
 import { featuredCourseService } from '@/services/featuredCourseService';
 import { featuredClassService } from '@/services/featuredClassService';
@@ -40,6 +41,7 @@ import { featuredPathService } from '@/services/featuredPathService';
 import { CloudNoticeService } from '@/services/CloudNoticeService';
 import { categoryService } from '@/services/categoryService';
 import type { Course } from '@/types';
+import type { Notice } from '@/shared/types/common';
 import NoticePopup from '@/components/NoticePopup';
 import LazyImage from '@/components/LazyImage';
 
@@ -83,12 +85,7 @@ interface HeroBanner {
   status: string;
 }
 
-// 链接图标组件
-const LinkIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-  </svg>
-);
+// LinkIcon removed - unused
 
 // 班级类型
 interface ClassItem {
@@ -125,13 +122,13 @@ export default function HomePage() {
   
   // 页面配置
   const [pageConfig, setPageConfig] = useState<{
-    hero: NonNullable<typeof defaultPageConfig.hero>;
-    stats: NonNullable<typeof defaultPageConfig.stats>;
-    features: NonNullable<typeof defaultPageConfig.features>;
-    contact: NonNullable<typeof defaultPageConfig.contact>;
-    footer: NonNullable<typeof defaultPageConfig.footer>;
+    hero: HeroConfig;
+    stats: StatItem[];
+    features: FeatureItem[];
+    contact: { title: string; description: string; ctaPrimaryText: string; ctaSecondaryText: string; } | undefined;
+    footer: FooterConfig;
   }>({
-    hero: defaultPageConfig.hero || {
+    hero: (defaultPageConfig.hero as HeroConfig) || {
       logoIcon: 'Plane',
       logoText: '无人机培训中心',
       mainTitle: '翱翔蓝天',
@@ -143,15 +140,10 @@ export default function HomePage() {
       featureImage: '',
       trustBadges: [],
     },
-    stats: defaultPageConfig.stats || [],
-    features: defaultPageConfig.features || [],
-    contact: defaultPageConfig.contact || {
-      title: '准备好开始您的飞行之旅了吗？',
-      description: '',
-      ctaPrimaryText: '立即报名',
-      ctaSecondaryText: '了解更多',
-    },
-    footer: defaultPageConfig.footer || {
+    stats: (defaultPageConfig.stats as StatItem[]) || [],
+    features: (defaultPageConfig.features as FeatureItem[]) || [],
+    contact: defaultPageConfig.contact as { title: string; description: string; ctaPrimaryText: string; ctaSecondaryText: string; } | undefined,
+    footer: (defaultPageConfig.footer as FooterConfig) || {
       logoText: '无人机培训中心',
       description: '',
       phone: '',
@@ -195,7 +187,7 @@ export default function HomePage() {
         // 如果有配置的班级，优先使用配置的班级
         console.log('[首页] 使用配置的班级ID:', featuredClassIds);
         const allClassesResult = await classService.getList({ page: 1, pageSize: 100 });
-        const allClasses = allClassesResult.data?.data?.list || allClassesResult.data?.list || [];
+        const allClasses = allClassesResult.data?.list || [];
         classesList = featuredClassIds
           .map((id: string) => allClasses.find((c: any) => c._id === id || c.id === id))
           .filter(Boolean);
@@ -209,7 +201,7 @@ export default function HomePage() {
           page: 1, 
           pageSize: 6 
         });
-        classesList = result.data?.data?.list || result.data?.list || [];
+        classesList = result.data?.list || [];
       }
       
       setEnrollingClasses(classesList);
@@ -337,7 +329,7 @@ export default function HomePage() {
         pageConfigService.getHomePageConfig(),
         CloudCourseService.getAll().catch(() => []),
         featuredCourseService.getFeaturedCourses().catch(() => []),
-        CloudNoticeService.getPublishedNotices({ limit: 5 }).catch(() => ({ success: false, data: [] })),
+        CloudNoticeService.getPublishedNotices({ limit: 5 }).catch(() => [] as Notice[]),
       ]);
       
       setPageConfig(config);
@@ -361,8 +353,8 @@ export default function HomePage() {
       await loadHeroBanners();
       
       // 加载公告
-      if (noticeResult.success && noticeResult.data) {
-        setNotices(noticeResult.data);
+      if (Array.isArray(noticeResult) && noticeResult.length > 0) {
+        setNotices(noticeResult);
       }
       
       // 加载招生班级
@@ -421,7 +413,7 @@ export default function HomePage() {
     }
   };
 
-  const { hero, stats, features, contact, footer } = pageConfig;
+  const { hero, stats, features, contact } = pageConfig;
 
   // 分割描述文字（支持\n换行）
   const descriptionLines = hero.description.split('\n');
@@ -1036,6 +1028,7 @@ export default function HomePage() {
           <div className="border-t border-white/20 my-12"></div>
 
           {/* 下半部分：联系我们 */}
+          {contact && (
           <div className="text-center max-w-4xl mx-auto">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
               {contact.title}
@@ -1070,6 +1063,7 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
+          )}
         </div>
       </section>
 

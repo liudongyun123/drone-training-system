@@ -160,82 +160,7 @@ const QuestionBankCard = ({ bank, onPractice }: QuestionBankCardProps) => {
   );
 };
 
-// 示例考试数据（当数据库为空时显示）
-const DEMO_EXAMS: Exam[] = [
-  {
-    _id: 'demo-exam-1',
-    title: '无人机驾驶员理论考试',
-    description: 'AOPA无人机驾驶员理论考试全真模拟，涵盖飞行原理、法规、气象等内容',
-    duration: 120,
-    questionCount: 100,
-    totalScore: 100,
-    passScore: 80,
-    attempts: 3,
-    status: 'published'
-  },
-  {
-    _id: 'demo-exam-2',
-    title: '视距内驾驶员考试',
-    description: '视距内驾驶员理论考试模拟，包括飞行操作、安全规范等',
-    duration: 90,
-    questionCount: 80,
-    totalScore: 100,
-    passScore: 70,
-    attempts: 5,
-    status: 'published'
-  },
-  {
-    _id: 'demo-exam-3',
-    title: '超视距驾驶员考试',
-    description: '超视距驾驶员理论考试模拟，难度较高，适合进阶学员',
-    duration: 120,
-    questionCount: 120,
-    totalScore: 100,
-    passScore: 80,
-    attempts: 3,
-    status: 'published'
-  }
-];
-
-// 示例题库数据
-const DEMO_BANKS: QuestionBank[] = [
-  {
-    _id: 'demo-bank-1',
-    name: '无人机基础理论',
-    description: '涵盖无人机基本原理、构造、飞行原理等核心知识点',
-    category: 'principles',
-    level: 'medium',
-    courseIds: [],
-    questionCount: 150,
-    passingScore: 60,
-    timeLimit: 60,
-    status: 'active'
-  },
-  {
-    _id: 'demo-bank-2',
-    name: '民航法规与政策',
-    description: '民用航空法规、空域管理规定、飞行申请流程等政策法规知识',
-    category: 'regulations',
-    level: 'easy',
-    courseIds: [],
-    questionCount: 120,
-    passingScore: 60,
-    timeLimit: 60,
-    status: 'active'
-  },
-  {
-    _id: 'demo-bank-3',
-    name: '飞行操作实务',
-    description: '起飞降落、航线飞行、特情处置等实际操作技能',
-    category: 'aerial',
-    level: 'hard',
-    courseIds: [],
-    questionCount: 80,
-    passingScore: 60,
-    timeLimit: 60,
-    status: 'active'
-  }
-];
+// 数据为空时显示空状态，不使用示例数据
 
 export default function ExamCenter() {
   const navigate = useNavigate();
@@ -281,16 +206,12 @@ export default function ExamCenter() {
           setExams(examsData);
           console.log('[ExamCenter] 考试列表加载成功:', examsData.length, '条');
         } else {
-          console.warn('[ExamCenter] 考试列表为空，使用示例数据');
-          examsData = DEMO_EXAMS;
-          setExams(DEMO_EXAMS);
-          setIsDemoMode(true);
+          console.warn('[ExamCenter] 考试列表为空');
+          setExams([]);
         }
       } catch (err) {
         console.error('[ExamCenter] 考试列表异常:', err);
-        examsData = DEMO_EXAMS;
-        setExams(DEMO_EXAMS);
-        setIsDemoMode(true);
+        setExams([]);
       }
       
       // 获取题库列表
@@ -301,14 +222,12 @@ export default function ExamCenter() {
           setBanks(banksData);
           console.log('[ExamCenter] 题库列表加载成功:', banksData.length, '条');
         } else {
-          console.warn('[ExamCenter] 题库列表为空，使用示例数据');
-          banksData = DEMO_BANKS;
-          setBanks(DEMO_BANKS);
+          console.warn('[ExamCenter] 题库列表为空');
+          setBanks([]);
         }
       } catch (err) {
         console.error('[ExamCenter] 题库列表异常:', err);
-        banksData = DEMO_BANKS;
-        setBanks(DEMO_BANKS);
+        setBanks([]);
       }
       
       // 获取考试记录（可能需要登录）

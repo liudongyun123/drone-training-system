@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Loading from '@/components/Loading';
 import { useAuthStore } from '@/store/authStore';
+import { couponService } from '@/services/couponService';
 
 interface Coupon {
   _id: string;
@@ -23,56 +24,6 @@ interface Coupon {
   status: 'active' | 'used' | 'expired';
   usedAt?: string;
 }
-
-// 模拟用户优惠券数据
-const MOCK_MY_COUPONS: Coupon[] = [
-  {
-    _id: 'uc_1',
-    code: 'WELCOME2024',
-    type: 'fixed',
-    value: 100,
-    minAmount: 500,
-    description: '新用户专享优惠券',
-    validFrom: '2024-01-01T00:00:00.000Z',
-    validTo: '2024-12-31T23:59:59.000Z',
-    status: 'active',
-  },
-  {
-    _id: 'uc_2',
-    code: 'NEWYEAR20',
-    type: 'percent',
-    value: 20,
-    minAmount: 1000,
-    maxDiscount: 300,
-    description: '新年特惠8折券',
-    validFrom: '2024-01-01T00:00:00.000Z',
-    validTo: '2024-06-30T23:59:59.000Z',
-    status: 'active',
-  },
-  {
-    _id: 'uc_3',
-    code: 'FLASH50',
-    type: 'fixed',
-    value: 50,
-    minAmount: 200,
-    description: '限时闪购优惠券',
-    validFrom: '2024-01-01T00:00:00.000Z',
-    validTo: '2024-03-15T23:59:59.000Z',
-    status: 'expired',
-  },
-  {
-    _id: 'uc_4',
-    code: 'BIRTHDAY100',
-    type: 'fixed',
-    value: 100,
-    minAmount: 300,
-    description: '生日专属优惠券',
-    validFrom: '2024-01-01T00:00:00.000Z',
-    validTo: '2024-12-31T23:59:59.000Z',
-    status: 'used',
-    usedAt: '2024-02-15T10:30:00.000Z',
-  },
-];
 
 export default function MyCouponsPage() {
   const navigate = useNavigate();
@@ -93,11 +44,16 @@ export default function MyCouponsPage() {
   const loadCoupons = async () => {
     setLoading(true);
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setCoupons(MOCK_MY_COUPONS);
+      // 从数据库读取用户优惠券
+      const result = await couponService.getUserCoupons();
+      if (result && result.length > 0) {
+        setCoupons(result);
+      } else {
+        setCoupons([]);
+      }
     } catch (error) {
       console.error('加载优惠券失败:', error);
+      setCoupons([]);
     } finally {
       setLoading(false);
     }
@@ -264,10 +220,14 @@ export default function MyCouponsPage() {
             <div className="bg-white rounded-xl shadow-sm p-12 text-center">
               <Ticket className="w-16 h-16 mx-auto text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                暂无{activeTab === 'available' ? '可使用' : activeTab === 'used' ? '已使用' : '已过期'}的优惠券
+                {coupons.length === 0 
+                  ? '暂无优惠券数据' 
+                  : `暂无${activeTab === 'available' ? '可使用' : activeTab === 'used' ? '已使用' : '已过期'}的优惠券`}
               </h3>
               <p className="text-gray-500 mb-4">
-                {activeTab === 'available' ? '快去领取优惠券，享受课程折扣吧！' : ''}
+                {coupons.length === 0 
+                  ? '管理员尚未发放优惠券，请耐心等待' 
+                  : (activeTab === 'available' ? '快去领取优惠券，享受课程折扣吧！' : '')}
               </p>
               {activeTab === 'available' && (
                 <button

@@ -2,17 +2,15 @@
 // 页面配置管理 - 首页内容管理组件
 // ============================================================================
 import { useState, useEffect } from 'react';
-import { 
-  Settings, 
-  Save, 
-  Plus, 
-  Trash2, 
-  Edit2, 
-  Eye, 
-  EyeOff,
+import {
+  Settings,
+  Save,
+  Plus,
+  Trash2,
+  Edit2,
+  Eye,
   ChevronDown,
   ChevronUp,
-  Upload,
   X,
   Image as ImageIcon,
   Star,
@@ -21,12 +19,11 @@ import {
   Link as LinkIcon,
   Bell,
   ExternalLink,
-  Search,
   BarChart3,
   School,
 } from 'lucide-react';
 import { Button, Card, Input, TextArea, Loading, Modal } from '@/components';
-import { pageConfigService, defaultPageConfig, type PageConfig, type HeroConfig, type StatItem, type FeatureItem, type FooterConfig } from '@/services/pageConfigService';
+import { pageConfigService, defaultPageConfig, type PageConfig, type StatItem, type FeatureItem } from '@/services/pageConfigService';
 import { CloudBannerAdminService, CloudNoticeAdminService } from '@/services/CloudAdminService';
 import { CloudCourseService } from '@/services/CloudCourseService';
 import { CloudAdminService } from '@/services/CloudAdminService';
@@ -37,7 +34,7 @@ import ImageUploader from './ImageUploader';
 import type { Course } from '@/types';
 import type { Class } from '@/types/class';
 
-type SectionType = PageConfig['section'] | 'banners';
+type SectionType = PageConfig['section'] | 'banners' | 'learningPaths' | 'featured' | 'openClasses' | 'notices';
 
 // 轮播图接口
 interface BannerItem {
@@ -157,8 +154,6 @@ export default function PageConfigManagement() {
     message: '',
     type: 'success',
   });
-  const [uploadingImage, setUploadingImage] = useState<string | null>(null);
-
   // 轮播图相关状态
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -204,7 +199,7 @@ export default function PageConfigManagement() {
   const [noticeSearchText, setNoticeSearchText] = useState('');
   // 公告可选班级课程
   const [noticeAvailableClasses, setNoticeAvailableClasses] = useState<ClassOption[]>([]);
-  const [noticeAvailableCourses, setNoticeAvailableCourses] = useState<CourseOption[]>([]);
+  const [_noticeAvailableCourses, setNoticeAvailableCourses] = useState<CourseOption[]>([]);
   // 公告统计
   const [noticeStats, setNoticeStats] = useState({ total: 0, published: 0, draft: 0, expired: 0, popupEnabled: 0 });
 
@@ -253,17 +248,17 @@ export default function PageConfigManagement() {
         contact: { ...defaultPageConfig.contact, ...data.find(c => c.section === 'contact')?.data.contact },
         footer: { ...defaultPageConfig.footer, ...data.find(c => c.section === 'footer')?.data.footer },
         // 新增模块配置
-        learningPaths: data.find(c => c.section === 'learningPaths')?.data || {
+        learningPaths: (data as any[]).find((c: any) => c.section === 'learningPaths')?.data || {
           enabled: true,
           title: '学习路径',
           subtitle: '系统化学习体验'
         },
-        openClasses: data.find(c => c.section === 'openClasses')?.data || {
+        openClasses: (data as any[]).find((c: any) => c.section === 'openClasses')?.data || {
           enabled: true,
           title: '最新开班信息',
           subtitle: '热门班级火热招生中，名额有限，报满即止'
         },
-        notices: data.find(c => c.section === 'notices')?.data || {
+        notices: (data as any[]).find((c: any) => c.section === 'notices')?.data || {
           enabled: true,
           title: '最新公告',
           subtitle: '了解培训最新动态'
@@ -355,7 +350,7 @@ export default function PageConfigManagement() {
           clicks: n.clicks || 0,
         }));
         // 按置顶和创建时间排序
-        mappedNotices.sort((a, b) => {
+        mappedNotices.sort((a: NoticeItem, b: NoticeItem) => {
           if (a.isPinned && !b.isPinned) return -1;
           if (!a.isPinned && b.isPinned) return 1;
           return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
@@ -365,10 +360,10 @@ export default function PageConfigManagement() {
         // 计算统计
         setNoticeStats({
           total: mappedNotices.length,
-          published: mappedNotices.filter(n => n.status === 'published').length,
-          draft: mappedNotices.filter(n => n.status === 'draft').length,
-          expired: mappedNotices.filter(n => n.status === 'expired').length,
-          popupEnabled: mappedNotices.filter(n => n.isPopupEnabled).length,
+          published: mappedNotices.filter((n: NoticeItem) => n.status === 'published').length,
+          draft: mappedNotices.filter((n: NoticeItem) => n.status === 'draft').length,
+          expired: mappedNotices.filter((n: NoticeItem) => n.status === 'expired').length,
+          popupEnabled: mappedNotices.filter((n: NoticeItem) => n.isPopupEnabled).length,
         });
       }
     } catch (error) {
@@ -488,7 +483,7 @@ export default function PageConfigManagement() {
         });
       } else {
         // 创建
-        result = await CloudNoticeAdminService.create({
+        result = await CloudNoticeAdminService.add({
           ...noticeForm,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -624,7 +619,7 @@ export default function PageConfigManagement() {
     try {
       const { classService } = await import('@/services/classService');
       const result = await classService.getList({ page: 1, pageSize: 100 });
-      const list = result.data?.data?.list || result.data?.list || [];
+      const list = result.data?.list || [];
       setAllClasses(list);
     } catch (error) {
       console.error('加载班级列表失败:', error);
@@ -728,7 +723,7 @@ export default function PageConfigManagement() {
 
   // 打开热门课程选择弹窗
   const openFeaturedDialog = () => {
-    setAvailableCourses(courses.filter(c => !featuredCourseIds.includes(c.id)));
+    setAvailableCourses(courses.filter(c => !featuredCourseIds.includes(c._id)));
     setFeaturedDialogOpen(true);
   };
 
@@ -775,7 +770,7 @@ export default function PageConfigManagement() {
     if (result.success) {
       showToast('添加成功');
       setFeaturedCourseIds(newIds);
-      setAvailableCourses(courses.filter(c => !newIds.includes(c.id)));
+      setAvailableCourses(courses.filter(c => !newIds.includes(c._id)));
     } else {
       showToast('添加失败', 'error');
     }
@@ -824,7 +819,7 @@ export default function PageConfigManagement() {
 
   // 获取热门课程的完整信息
   const getFeaturedCourse = (courseId: string) => {
-    return courses.find(c => c.id === courseId);
+    return courses.find(c => c._id === courseId);
   };
 
   // 获取热门班级的完整信息
@@ -1151,7 +1146,7 @@ export default function PageConfigManagement() {
 
   // 获取课程标题
   const getCourseTitle = (courseId: string) => {
-    const course = courses.find(c => c.id === courseId);
+    const course = courses.find(c => c._id === courseId);
     return course ? course.title : '';
   };
 
@@ -1165,7 +1160,7 @@ export default function PageConfigManagement() {
     try {
       setSaving(true);
       
-      const sectionData = {
+      const sectionData: Record<string, any> = {
         hero: editData.hero,
         stats: editData.stats,
         features: editData.features,
@@ -1186,7 +1181,7 @@ export default function PageConfigManagement() {
           });
         } else {
           await pageConfigService.create({
-            section: section.key,
+            section: section.key as PageConfig['section'],
             title: sections.find(s => s.key === section.key)?.label || section.label,
             enabled: true,
             order: i,
@@ -1206,33 +1201,6 @@ export default function PageConfigManagement() {
   };
 
   // 上传图片
-  const handleImageUpload = async (section: string, field: string, file: File) => {
-    try {
-      setUploadingImage(`${section}-${field}`);
-      const result = await uploadFile(file, 'page-configs');
-      if (result.success && result.fileID) {
-        // 获取临时URL
-        const { getFileUrl } = await import('@/services/storageService');
-        const url = await getFileUrl(result.fileID);
-        setEditData(prev => ({
-          ...prev,
-          [section]: {
-            ...prev[section],
-            [field]: url || result.fileID,
-          },
-        }));
-        showToast('图片上传成功');
-      } else {
-        showToast('图片上传失败', 'error');
-      }
-    } catch (error) {
-      console.error('上传失败:', error);
-      showToast('图片上传失败', 'error');
-    } finally {
-      setUploadingImage(null);
-    }
-  };
-
   // 更新字段
   const updateField = (section: string, field: string, value: any) => {
     setEditData(prev => ({
@@ -1452,7 +1420,7 @@ export default function PageConfigManagement() {
                   <div className="mt-4">
                     <label className="block text-sm font-medium text-slate-700 mb-1">描述文字（支持换行）</label>
                     <TextArea
-                      value={editData.hero?.description || ''}
+                      value={String(editData.hero?.description || '')}
                       onChange={e => updateField('hero', 'description', e.target.value)}
                       placeholder="专业无人机驾驶培训，权威认证资质"
                       rows={3}
@@ -1633,9 +1601,9 @@ export default function PageConfigManagement() {
                         <div className="max-h-80 overflow-y-auto space-y-2">
                           {availableCourses.map(course => (
                             <div
-                              key={course.id}
+                              key={course._id}
                               className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors"
-                              onClick={() => handleAddFeatured(course.id)}
+                              onClick={() => handleAddFeatured(course._id)}
                             >
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-slate-800 truncate">{course.title}</p>
@@ -1704,7 +1672,7 @@ export default function PageConfigManagement() {
                             </p>
                             <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                               <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
-                                ¥{cls?.price || 0}
+                                ¥{cls?.enrollmentConfig?.price || cls?.price || 0}
                               </span>
                               {cls?.startDate && (
                                 <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded">
@@ -1781,7 +1749,7 @@ export default function PageConfigManagement() {
                                   <p className="font-medium text-slate-800 truncate">{cls.name}</p>
                                   <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                                     <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
-                                      ¥{cls.price || 0}
+                                    ¥{cls.enrollmentConfig?.price || cls.price || 0}
                                     </span>
                                     {cls.startDate && (
                                       <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded">
@@ -2514,7 +2482,7 @@ export default function PageConfigManagement() {
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">描述（支持换行）</label>
                     <TextArea
-                      value={editData.contact?.description || ''}
+                      value={String(editData.contact?.description || '')}
                       onChange={e => setEditData(prev => ({ ...prev, contact: { ...prev.contact, description: e.target.value } }))}
                       placeholder="立即咨询报名，专业顾问为您定制学习方案。"
                       rows={3}
@@ -2581,7 +2549,7 @@ export default function PageConfigManagement() {
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">机构描述</label>
                     <TextArea
-                      value={editData.footer?.description || ''}
+                      value={String(editData.footer?.description || '')}
                       onChange={e => setEditData(prev => ({ ...prev, footer: { ...prev.footer, description: e.target.value } }))}
                       placeholder="专业无人机驾驶培训机构，中国航空运输协会认证。"
                       rows={2}
@@ -2682,7 +2650,7 @@ export default function PageConfigManagement() {
                   >
                     <option value="">不关联课程</option>
                     {courses.map((course) => (
-                      <option key={course.id} value={course.id}>
+                      <option key={course._id} value={course._id}>
                         {course.title}
                       </option>
                     ))}
@@ -2863,7 +2831,7 @@ export default function PageConfigManagement() {
                       >
                         <option value="">请选择课程</option>
                         {availableCourses.map(course => (
-                          <option key={course.id} value={course.id}>{course.title}</option>
+                          <option key={course._id} value={course._id}>{course.title}</option>
                         ))}
                       </select>
                     </div>

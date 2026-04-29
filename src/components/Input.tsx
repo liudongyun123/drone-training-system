@@ -3,9 +3,9 @@
  * 统一风格的表单输入组件 - Retro-futuristic 航空美学
  */
 
-import { ReactNode, InputHTMLAttributes, forwardRef } from 'react'
+import { ReactNode, InputHTMLAttributes, TextareaHTMLAttributes, forwardRef } from 'react'
 
-export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix'> {
   /** 标签 */
   label?: string
   /** 错误信息 */
@@ -82,7 +82,7 @@ Input.displayName = 'Input'
 /**
  * 文本域组件
  */
-export interface TextAreaProps extends InputHTMLAttributes<HTMLTextAreaElement> {
+export interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string
   error?: string
   hint?: string

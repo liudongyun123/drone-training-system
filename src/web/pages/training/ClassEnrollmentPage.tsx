@@ -27,12 +27,9 @@ import {
   CreditCard,
   CheckCircle,
   ChevronRight,
-  Search,
-  Filter,
   Video,
   BookOpen,
   AlertCircle,
-  Phone,
   User,
 } from 'lucide-react';
 import { app } from '@/utils/cloudbase';
@@ -75,7 +72,7 @@ interface EnrollmentForm {
 
 export default function ClassEnrollmentPage() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, phone, loginWithPhone, sendPhoneCode } = useAuthStore();
+  const { user, loginWithPhone, sendPhoneCode } = useAuthStore();
   
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState<ClassInfo[]>([]);

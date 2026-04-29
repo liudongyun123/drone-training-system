@@ -2,34 +2,23 @@
 // 学习路径列表页 - 前台
 // ============================================================================
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   Map, 
   ChevronRight, 
   Clock, 
   BookOpen,
   Users,
-  Star,
   ArrowLeft,
   Play,
-  CheckCircle,
-  Lock,
   X,
   Grid,
   List
 } from 'lucide-react';
-import { Button, Card, Loading } from '@/components';
+import { Button, Loading } from '@/components';
 import { CloudLearningPathService } from '@/services/CloudLearningPathService';
 import { CloudCourseService } from '@/services/CloudCourseService';
 import { useAuth } from '@/contexts/AuthContext';
-
-// 数字格式化函数
-const formatNumber = (num: number) => {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w';
-  }
-  return num.toLocaleString();
-};
 
 interface PathItem {
   id: string;
@@ -84,7 +73,7 @@ export default function LearningPathsPage() {
   const [categoryGroups, setCategoryGroups] = useState<CategoryCourseGroup[]>([]);  // 按分类分组的课程
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [showAll, setShowAll] = useState(false);  // 是否显示全部路径
-  const { isAuthenticated } = useAuth();
+  const { isLoggedIn } = useAuth();
   const navigate = useNavigate();
 
   // 加载学习路径
@@ -108,7 +97,7 @@ export default function LearningPathsPage() {
 
   // 开始学习
   const handleStartLearning = async (path: LearningPath) => {
-    if (!isAuthenticated) {
+    if (!isLoggedIn) {
       navigate('/login');
       return;
     }
@@ -148,8 +137,8 @@ export default function LearningPathsPage() {
     console.log('[LearningPathsPage] 查看学习路径详情:', {
       pathId: path.id,
       name: path.name,
-      categoryId: path.categoryId,
-      categoryIds: path.categoryIds,
+      categoryId: path.categoryIds?.[0] || path.categoryIds?.[0] || "",
+      categoryIds: path.categoryIds?.[0] || path.categoryIds,
       classIds: path.classIds,
       hasItems: path.items?.length > 0
     });
@@ -163,10 +152,10 @@ export default function LearningPathsPage() {
       const classNames: Record<string, string> = {};
       
       // 1. 首先处理分类关联
-      if (path.categoryIds && path.categoryIds.length > 0) {
-        console.log('[LearningPathsPage] 处理分类关联，categoryIds:', path.categoryIds);
+      if (path.categoryIds?.[0] || path.categoryIds && path.categoryIds?.[0] || path.categoryIds.length > 0) {
+        console.log('[LearningPathsPage] 处理分类关联，categoryIds:', path.categoryIds?.[0] || path.categoryIds);
         // 并行查询所有分类的课程
-        const categoryPromises = path.categoryIds.map(async (catId) => {
+        const categoryPromises = path.categoryIds?.[0] || path.categoryIds.map(async (catId) => {
           console.log('[LearningPathsPage] 查询分类课程, catId:', catId);
           const result = await CloudCourseService.getByCategory(catId);
           console.log('[LearningPathsPage] 分类查询结果, catId:', catId, 'courses count:', result?.length);
@@ -207,9 +196,9 @@ export default function LearningPathsPage() {
             allCourses = [...allCourses, ...r.courses];
           }
         });
-      } else if (path.categoryId) {
+      } else if (path.categoryIds?.[0] || path.categoryIds?.[0] || "") {
         // 兼容旧数据：单个分类
-        const result = await CloudCourseService.getByCategory(path.categoryId);
+        const result = await CloudCourseService.getByCategory(path.categoryIds?.[0] || path.categoryIds?.[0] || "");
         if (result && Array.isArray(result) && result.length > 0) {
           const courses = result.map((c: any) => ({
             id: c._id || c.id,
@@ -228,7 +217,7 @@ export default function LearningPathsPage() {
           if (courses.length > 0) {
             groups.push({
               type: 'category',
-              groupId: path.categoryId,
+              groupId: path.categoryIds?.[0] || path.categoryIds?.[0] || "",
               groupName: courses[0].category || path.category,
               courses,
             });
@@ -550,7 +539,7 @@ export default function LearningPathsPage() {
                 <Button
                   onClick={() => {
                     handleCloseDetail();
-                    if (!isAuthenticated) {
+                    if (!isLoggedIn) {
                       navigate('/login');
                       return;
                     }
@@ -667,13 +656,13 @@ export default function LearningPathsPage() {
                   <div className="flex items-center gap-4 text-sm text-slate-500 mb-4">
                     <span className="flex items-center gap-1">
                       <BookOpen className="w-4 h-4" />
-                      {path.categoryId ? '分类课程' : `${path.items?.length || 0} 课程`}
+                      {path.categoryIds?.[0] || path.categoryIds?.[0] || "" ? '分类课程' : `${path.items?.length || 0} 课程`}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
                       {path.estimatedHours || 0}h
                     </span>
-                    {path.categoryId && (
+                    {path.categoryIds?.[0] || path.categoryIds?.[0] || "" && (
                       <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs">
                         <Grid className="w-3 h-3" />
                         自动

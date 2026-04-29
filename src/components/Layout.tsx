@@ -4,18 +4,18 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, BookOpen, Users, GraduationCap, Calendar, 
-  ClipboardCheck, ShoppingCart, TrendingUp, FileText, 
-  Award, Percent, Video, HelpCircle, Settings, Menu, X, 
-  Bell, Search, ChevronRight, User, LogOut,
-  LayoutDashboard, Library, Wallet, Image, Shield, FolderTree,
-  Star, MessageSquare, Route, ScrollText, UsersRound,
-  ArrowLeftRight, Wrench, Layers, Building2, CreditCard, ClipboardList,
+  ClipboardCheck, ShoppingCart, FileText, 
+  Award, Settings, Menu, 
+  Bell, Search, ChevronRight, LogOut,
+  LayoutDashboard, Wallet, Shield, FolderTree,
+  MessageSquare, ScrollText, UsersRound,
+  Wrench, Layers, Building2, CreditCard, ClipboardList,
   BookMarked, Megaphone, Gauge, Database
 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/components/Toast';
-import { pageConfigService, defaultPageConfig } from '@/services/pageConfigService';
+import { pageConfigService, type FooterConfig } from '@/services/pageConfigService';
 import { adminService } from '@/services/adminService';
 import { CloudMessageService } from '@/services/CloudMessageService';
 
@@ -192,7 +192,21 @@ export default function Layout() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
-  const [footerConfig, setFooterConfig] = useState(defaultPageConfig.footer);
+  const [footerConfig, setFooterConfig] = useState<FooterConfig>({
+    logoText: '无人机培训中心',
+    description: '专业无人机驾驶培训机构，中国航空运输协会认证。',
+    phone: '400-888-8888',
+    email: 'info@drone-train.com',
+    address: '北京市朝阳区航空路88号',
+    quickLinks: [
+      { label: '课程中心', path: '/courses' },
+      { label: '题库练习', path: '/exam-center' },
+      { label: '证书查询', path: '/certificates' },
+      { label: '教官团队', path: '/teachers' },
+    ],
+    copyright: '© 2024 无人机培训中心 版权所有',
+    icp: '京ICP备XXXXXXXX号',
+  });
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const location = useLocation();
   const navigate = useNavigate();
@@ -226,7 +240,6 @@ export default function Layout() {
       
       // 1. 获取待处理订单数量
       try {
-        const pendingOrders = await adminService.list('orders', { status: 'pending' }, { limit: 1 });
         const pendingOrderCount = await adminService.count('orders', { status: 'pending' });
         if (pendingOrderCount.data > 0) {
           notificationItems.push({
@@ -243,7 +256,6 @@ export default function Layout() {
       
       // 2. 获取待审核报名
       try {
-        const pendingRegs = await adminService.list('registrations', { status: 'pending' }, { limit: 1 });
         const pendingRegCount = await adminService.count('registrations', { status: 'pending' });
         if (pendingRegCount.data > 0) {
           notificationItems.push({
@@ -348,10 +360,10 @@ export default function Layout() {
       }
       
       try {
-        const { user, phone } = useAuthStore.getState();
+        const { user } = useAuthStore.getState();
         const count = await CloudMessageService.getUnreadCount({
           userId: user?.id,
-          phone,
+          phone: user?.phone,
           _openid: user?._openid
         });
         setUnreadMessageCount(count);
@@ -663,9 +675,9 @@ export default function Layout() {
                       className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-lg transition-colors"
                     >
                       <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
-                        {user?.name?.[0] || user?.username?.[0] || 'A'}
+                        {user?.name?.[0] || user?.nickname?.[0] || 'A'}
                       </div>
-                      <span className="hidden md:block text-sm font-medium text-slate-700">{user?.name || user?.username || '管理员'}</span>
+                      <span className="hidden md:block text-sm font-medium text-slate-700">{user?.name || user?.nickname || '管理员'}</span>
                     </button>
 
                     {/* 用户下拉菜单 */}
@@ -677,7 +689,7 @@ export default function Layout() {
                         />
                         <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 z-50 py-2">
                           <div className="px-4 py-3 border-b border-slate-100">
-                            <p className="font-medium text-slate-900">{user?.name || user?.username || '管理员'}</p>
+                            <p className="font-medium text-slate-900">{user?.name || user?.nickname || '管理员'}</p>
                             <p className="text-xs text-slate-500 mt-0.5">{user?.email || 'admin@example.com'}</p>
                           </div>
                           <button

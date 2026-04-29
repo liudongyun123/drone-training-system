@@ -1,18 +1,10 @@
-/**
- * 学员端 - 调课申请页面
- * 版本: v20260406-production
- * 功能:
- * - 我的调课记录
- * - 提交调课申请
- * - 取消申请
- */
 import { useState, useEffect } from 'react'
 import {
   ArrowLeft, Calendar, Clock, MapPin, User, Book, FileText,
   CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw,
-  ChevronRight, Plus, X, Search, Filter, Eye
+  Plus, X
 } from 'lucide-react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { transferService, TransferRequest, TransferStats } from '@/services/transferService'
 import { useAuthStore } from '@/store/authStore'
 import { app } from '@/utils/cloudbase'
@@ -54,7 +46,6 @@ const STATUS_CONFIG = {
 
 export default function TransferRequestPage() {
   const navigate = useNavigate()
-  const location = useLocation()
   const { user } = useAuthStore()
 
   // ★ 从 localStorage 获取手机号（兼容管理员登录）
@@ -80,7 +71,7 @@ export default function TransferRequestPage() {
 
   // 加载数据
   const loadRequests = async () => {
-    if (!user?.studentId && !user?._openid && !userPhone) {
+    if (!user?.id && !user?._openid && !userPhone) {
       console.log('未登录或无学员信息')
       return
     }
@@ -88,7 +79,7 @@ export default function TransferRequestPage() {
     setLoading(true)
     try {
       const result = await transferService.listMyRequests({
-        studentId: user?.studentId || user?._openid,
+        studentId: user?.id || user?._openid,
         phone: userPhone,
         status: statusFilter as any,
         transferType: typeFilter as any,
@@ -97,9 +88,10 @@ export default function TransferRequestPage() {
       })
 
       if (result.code === 0) {
-        setRequests(result.data?.data || result.data || [])
-        setTotal(result.data?.total || 0)
-        setTotalPages(result.data?.totalPages || 1)
+        const data = result.data as any
+        setRequests(data?.list || data || [])
+        setTotal(data?.total || 0)
+        setTotalPages(data?.totalPages || 1)
       }
     } catch (error) {
       console.error('加载调课记录失败:', error)
@@ -112,8 +104,8 @@ export default function TransferRequestPage() {
   const loadStats = async () => {
     try {
       const result = await transferService.getStats()
-      if (result.code === 0) {
-        setStats(result.data)
+      if (result.code === 0 && result.data) {
+        setStats(result.data as TransferStats)
       }
     } catch (error) {
       console.error('加载统计失败:', error)
@@ -134,7 +126,7 @@ export default function TransferRequestPage() {
     try {
       const result = await transferService.cancelRequest(
         requestId,
-        user?.studentId || user?._openid || ''
+        user?.id || user?._openid || ''
       )
       if (result.code === 0) {
         alert('申请已取消')
@@ -152,8 +144,8 @@ export default function TransferRequestPage() {
   const handleViewDetail = async (request: TransferRequest) => {
     try {
       const result = await transferService.getRequestDetail(request._id || request.id || '')
-      if (result.code === 0) {
-        setSelectedRequest(result.data)
+      if (result.code === 0 && result.data) {
+        setSelectedRequest(result.data as TransferRequest)
         setShowDetail(true)
       }
     } catch (error) {

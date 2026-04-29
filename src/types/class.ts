@@ -35,6 +35,8 @@ export interface Class {
   // 时间
   startDate: string              // 开始日期
   endDate: string                // 结束日期
+  startTime?: string             // 默认开始时间
+  endTime?: string               // 默认结束时间
   
   // 地点
   location: string               // 上课地点
@@ -44,9 +46,21 @@ export interface Class {
   teacherName?: string           // 教师名称（冗余存储）
   assistantIds?: string[]        // 助教ID列表
   
+  // 价格（兼容字段）
+  price?: number                 // 报名价格（与 enrollmentConfig.price 同值）
+  
   // 状态
   status: ClassStatus
-  
+
+  // 班级介绍（视频/文档/文字）
+  intro?: {
+    videoUrl?: string;
+    videoCover?: string;
+    documentUrl?: string;
+    documentName?: string;
+    content?: string;
+  }
+
   // 排课列表（子文档或关联）
   schedules?: ClassSchedule[]
   scheduleCount?: number

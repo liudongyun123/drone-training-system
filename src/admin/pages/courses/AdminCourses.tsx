@@ -7,14 +7,13 @@ import { courseService, teacherService } from '@/services/database';
 import { CloudAdminService } from '@/services/CloudAdminService';
 import { adminService } from '@/services/adminService';
 import { safeGetList, safeGetTotal } from '@/utils/safeData';
+import { getLevelOptions } from '@/services/dictionaryService';
 
 import { uploadFile, deleteFile } from '@/services/storageService';
 import { app } from '@/utils/cloudbase';
 import type { Course, Lesson, Teacher } from '@/types';
 
 import { X, Save, Trash2, List, Play, GripVertical, Plus, ArrowUp, ArrowDown, User, Upload, FileText, Video, XCircle, Image as ImageIcon, TrendingUp, BookOpen, UserCheck, Shield } from 'lucide-react';
-
-const LEVELS = ['', '初级工', '中级工', '高级工', '技师', '高级技师'];
 
 interface CourseFormData {
   title: string;
@@ -79,7 +78,24 @@ export default function AdminCourses() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teachersLoading, setTeachersLoading] = useState(false);
 
-  // 分类列表（从数据库读取）
+  // 等级列表（从数据库读取）
+  const [levels, setLevels] = useState<string[]>([]);
+
+  // 获取等级列表
+  useEffect(() => {
+    loadLevels();
+  }, []);
+
+  const loadLevels = async () => {
+    try {
+      const levelOptions = await getLevelOptions();
+      const levelValues = ['', ...levelOptions.map(item => item.value)];
+      setLevels(levelValues);
+    } catch (error) {
+      console.error('加载等级列表失败:', error);
+      setLevels(['', '入门', '进阶', '高级']); //兜底
+    }
+  };
   const [categories, setCategories] = useState<Array<{ _id: string; name: string; code: string }>>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
@@ -926,7 +942,7 @@ export default function AdminCourses() {
                     value={formData.level}
                     onChange={(e) => setFormData({ ...formData, level: e.target.value })}
                   >
-                    {LEVELS.map((level) => (
+                    {levels.map((level) => (
                       <option key={level} value={level}>{level || '不选'}</option>
                     ))}
                   </select>

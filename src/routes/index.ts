@@ -1,52 +1,67 @@
 // ============================================================================
-// 页面组件导出
+// 页面组件导出 - Web 前端
 // ============================================================================
-export { default as HomePage } from './HomePage';
-export { default as CourseListPage } from './CourseListPage';
-export { default as CourseDetailPage } from './CourseDetailPage';
-export { default as MyLearningPage } from './MyLearningPage';
-export { default as LessonPlayerPage } from './LessonPlayerPage';
-export { default as ExamPage } from './ExamPage';
-export { default as ExamCenterPage } from '../pages/ExamCenter';
-export { default as ExamResultPage } from '../pages/ExamResult';
-export { default as QuestionBankListPage } from '../pages/QuestionBankList';
-export { default as QuestionBankPracticePage } from '../pages/QuestionBankPractice';
-export { default as CertificateCenterPage } from '../pages/CertificateCenter';
-export { default as MarketingCenterPage } from '../pages/MarketingCenter';
-export { default as LoginPage } from './LoginPage';
-export { default as RegisterPage } from './RegisterPage';
-export { default as CartPage } from './CartPage';
-export { default as CheckoutPage } from './CheckoutPage';
-export { default as TeachersPage } from './TeachersPage';
-export { default as MySchedulePage } from './MySchedulePage';
-export { default as MyOrdersPage } from './MyOrdersPage';
-export { default as MyCouponsPage } from '../pages/MyCouponsPage';
-export { default as CouponCenterPage } from '../pages/CouponCenterPage';
+// 注意：页面组件位于 src/web/pages 目录下
+// ============================================================================
 
-// 管理后台路由
-export { default as AdminDashboard } from './admin/AdminDashboard';
-export { default as AdminCourses } from './admin/AdminCourses';
-export { default as AdminStudents } from './admin/AdminStudents';
-export { default as AdminTeachers } from './admin/AdminTeachers';
-export { default as AdminSchedules } from './admin/AdminSchedules';
-export { default as AdminAttendance } from './admin/AdminAttendance';
-export { default as AdminFinance } from './admin/AdminFinance';
-export { default as AdminExamsUnited } from './admin/AdminExamsUnited';
-export { default as AdminBanners } from './admin/AdminBanners';
-export { default as AdminPageConfig } from './admin/AdminPageConfig';
-export { default as AdminCertificates } from './admin/AdminCertificates';
-export { default as AdminMarketing } from './admin/AdminMarketing';
-export { default as AdminLogin } from '../components/admin/AdminLogin';
-export { default as AdminDataFix } from './admin/AdminDataFix';
-export { default as AdminCourseOrders } from './admin/AdminCourseOrders';
-export { default as AdminClassOrders } from './admin/AdminClassOrders';
-export { default as AdminOfflineEnrollment } from './admin/AdminOfflineEnrollment';
+// 首页相关
+export { default as HomePage } from '../web/pages/home/HomePage';
+export { default as NoticesPage } from '../web/pages/home/NoticesPage';
+export { default as TeachersPage } from '../web/pages/home/TeachersPage';
+export { default as OpenClassesPage } from '../web/pages/home/OpenClassesPage';
+export { default as RegistrationPage } from '../web/pages/home/RegistrationPage';
 
-// 其他页面
-export { default as NoticesPage } from './NoticesPage';
-export { default as LearningPathsPage } from './LearningPathsPage';
-export { default as MyPracticePage } from './MyPracticePage';
-export { default as OpenClassesPage } from './OpenClassesPage';
-export { default as RegistrationPage } from './RegistrationPage';
-export { default as MyTrainingPage } from './MyTrainingPage';
-export { default as ClassEnrollmentPage } from './ClassEnrollmentPage';
+// 账户相关
+export { default as LoginPage } from '../web/pages/account/LoginPage';
+export { default as RegisterPage } from '../web/pages/account/RegisterPage';
+export { default as CartPage } from '../web/pages/account/CartPage';
+export { default as CheckoutPage } from '../web/pages/account/CheckoutPage';
+export { default as MyOrdersPage } from '../web/pages/account/MyOrdersPage';
+export { default as MyCouponsPage } from '../web/pages/account/MyCouponsPage';
+export { default as CouponCenterPage } from '../web/pages/account/CouponCenterPage';
+export { default as TransferRequestPage } from '../web/pages/account/TransferRequestPage';
+
+// 学习相关
+export { default as CourseListPage } from '../web/pages/learning/CourseListPage';
+export { default as CourseDetailPage } from '../web/pages/learning/CourseDetailPage';
+export { default as MyLearningPage } from '../web/pages/learning/MyLearningPage';
+export { default as LessonPlayerPage } from '../web/pages/learning/LessonPlayerPage';
+export { default as LearningPathsPage } from '../web/pages/learning/LearningPathsPage';
+
+// 练习/考试相关
+export { default as ExamPage } from '../web/pages/practice/ExamPage';
+export { default as ExamCenterPage } from '../web/pages/practice/ExamCenterPage';
+export { default as ExamResultPage } from '../web/pages/practice/ExamResultPage';
+export { default as MyPracticePage } from '../web/pages/practice/MyPracticePage';
+export { default as QuestionBankListPage } from '../web/pages/practice/QuestionBankListPage';
+export { default as QuestionBankPracticePage } from '../web/pages/practice/QuestionBankPracticePage';
+export { default as CertificateCenterPage } from '../web/pages/practice/CertificateCenterPage';
+export { default as MarketingCenterPage } from '../web/pages/practice/MarketingCenterPage';
+
+// 培训班相关
+export { default as MyTrainingPage } from '../web/pages/training/MyTrainingPage';
+export { default as MySchedulePage } from '../web/pages/training/MySchedulePage';
+export { default as ClassEnrollmentPage } from '../web/pages/training/ClassEnrollmentPage';
+
+// 商城相关
+export { default as ShopPage } from '../web/pages/shop/ShopPage';
+export { default as ProductDetailPage } from '../web/pages/shop/ProductDetailPage';
+
+// 管理后台 - 从 src/admin/pages 导出
+export { default as AdminDashboard } from '../admin/pages/system/AdminDashboard';
+export { default as AdminCourses } from '../admin/pages/courses/AdminCourses';
+export { default as AdminStudents } from '../admin/pages/users/AdminRoles';
+export { default as AdminTeachers } from '../admin/pages/content/AdminTeachers';
+export { default as AdminSchedules } from '../admin/pages/classes/AdminClassSchedules';
+export { default as AdminAttendance } from '../admin/pages/classes/AdminRegistrations';
+export { default as AdminFinance } from '../admin/pages/orders/AdminFinance';
+export { default as AdminExamsUnited } from '../admin/pages/exams/AdminExamsUnited';
+export { default as AdminBanners } from '../admin/pages/shop/AdminProducts';
+export { default as AdminPageConfig } from '../admin/pages/content/AdminPageConfigNew';
+export { default as AdminCertificates } from '../admin/pages/users/AdminCertificates';
+export { default as AdminMarketing } from '../admin/pages/content/AdminMarketing';
+export { default as AdminLogin } from '../admin/pages/system/AdminLogin';
+export { default as AdminDataFix } from '../admin/pages/system/AdminDataFix';
+export { default as AdminCourseOrders } from '../admin/pages/orders/AdminCourseOrders';
+export { default as AdminClassOrders } from '../admin/pages/classes/AdminClassOrders';
+export { default as AdminOfflineEnrollment } from '../admin/pages/system/AdminOfflineEnrollment';

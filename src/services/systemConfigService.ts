@@ -4,6 +4,7 @@
  */
 
 import { app } from '@/utils/cloudbase';
+import { DEFAULT_DICTIONARIES } from './dictionaryService';
 
 const db = app.database();
 const CONFIG_COLLECTION = 'systemConfig';
@@ -28,6 +29,7 @@ export interface SystemConfig {
   _id?: string;
   loginProviders: LoginProviderConfig[];
   roles: RolePermission[];
+  dictionaries?: Record<string, any>; // 字典配置（状态标签、类型标签等）
   wechatConfig?: {
     appId: string;
     appSecret: string;
@@ -82,6 +84,7 @@ const defaultConfig: SystemConfig = {
       isSystem: true
     },
   ],
+  dictionaries: DEFAULT_DICTIONARIES, // 引用字典服务的默认数据
   updatedAt: new Date(),
 };
 

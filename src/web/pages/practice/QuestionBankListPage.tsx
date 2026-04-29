@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import Loading from '@/components/Loading';
 import { CloudPracticeService } from '@/services/CloudPracticeService';
+import { getQuestionBankCategories } from '@/services/dictionaryService';
+import type { OptionItem } from '@/services/dictionaryService';
 import { useAuthStore } from '@/store/authStore';
 
 interface QuestionBank {
@@ -38,60 +40,6 @@ const getBankTitle = (bank: QuestionBank): string => {
   return bank.title || bank.name || '未命名题库';
 };
 
-// 示例题库数据（当数据库为空时显示）
-const DEMO_BANKS: QuestionBank[] = [
-  {
-    id: 'demo-1',
-    name: '无人机基础理论',
-    description: '涵盖无人机基本原理、构造、飞行原理等核心知识点',
-    category: '理论',
-    questionCount: 150,
-    level: 'medium',
-    tags: ['基础', '飞行原理', '构造'],
-    courseTitles: ['无人机考证培训']
-  },
-  {
-    id: 'demo-2',
-    name: '民航法规与政策',
-    description: '民用航空法规、空域管理规定、飞行申请流程等政策法规知识',
-    category: '法规',
-    questionCount: 120,
-    level: 'easy',
-    tags: ['法规', '政策', '空域'],
-    courseTitles: ['无人机考证培训']
-  },
-  {
-    id: 'demo-3',
-    name: '飞行操作实务',
-    description: '起飞降落、航线飞行、特情处置等实际操作技能',
-    category: '实操',
-    questionCount: 80,
-    level: 'hard',
-    tags: ['实操', '飞行', '特情'],
-    courseTitles: ['实操训练课程']
-  },
-  {
-    id: 'demo-4',
-    name: '气象学基础',
-    description: '气象要素、天气现象、对飞行的影响等气象知识',
-    category: '安全',
-    questionCount: 100,
-    level: 'medium',
-    tags: ['气象', '天气', '安全'],
-    courseTitles: ['气象知识课程']
-  },
-  {
-    id: 'demo-5',
-    name: 'AOPA考证模拟',
-    description: 'AOPA驾驶员考试全真模拟题库，助力考试通过',
-    category: '考证',
-    questionCount: 500,
-    level: 'hard',
-    tags: ['AOPA', '考证', '模拟'],
-    courseTitles: ['AOPA考证培训']
-  }
-];
-
 export default function QuestionBankList() {
   const navigate = useNavigate();
   const [allBanks, setAllBanks] = useState<QuestionBank[]>([]);
@@ -100,39 +48,45 @@ export default function QuestionBankList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('全部');
   
+  // 分类列表（从数据库读取，初始化时使用默认值）
+  const [categories, setCategories] = useState<OptionItem[]>([
+    { value: '', label: '全部' },
+    { value: '理论', label: '理论' },
+    { value: '法规', label: '法规' },
+    { value: '实操', label: '实操' },
+    { value: '安全', label: '安全' },
+    { value: '考证', label: '考证' },
+  ]);
+
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  // 获取题库数据
+  // 加载分类和题库数据
   useEffect(() => {
     const fetchBanks = async () => {
       try {
-        // 获取所有题库
-        const banks = await CloudPracticeService.getAllBanks();
+        // 并行加载分类配置和题库数据
+        const [categoryOptions, banks] = await Promise.all([
+          getQuestionBankCategories(),
+          CloudPracticeService.getAllBanks(),
+        ]);
+
+        // 更新分类列表
+        if (categoryOptions && categoryOptions.length > 0) {
+          setCategories(categoryOptions);
+        }
+
         console.log('[QuestionBankList] 获取到所有题库:', banks.length, '个');
-        
-        // 如果数据库为空，使用示例数据
-        const displayBanks = banks.length > 0 ? banks : DEMO_BANKS;
-        console.log('[QuestionBankList] 显示题库数量:', displayBanks.length, '个（' + (banks.length > 0 ? '真实数据' : '示例数据') + '）');
-        setAllBanks(displayBanks);
+        setAllBanks(banks);
         
         // 如果已登录，获取可访问的题库
         if (isAuthenticated) {
           const accessibleBanks = await CloudPracticeService.getAccessibleBanks();
           console.log('[QuestionBankList] 用户可访问的题库:', accessibleBanks.length, '个');
-          // 如果可访问的题库为空但有示例数据，全部解锁
-          if (accessibleBanks.length === 0 && banks.length === 0) {
-            setOwnedBanks(DEMO_BANKS);
-          } else {
-            setOwnedBanks(accessibleBanks);
-          }
+          setOwnedBanks(accessibleBanks);
         }
       } catch (error) {
         console.error('获取题库列表失败:', error);
-        // 出错时使用示例数据
-        setAllBanks(DEMO_BANKS);
-        if (isAuthenticated) {
-          setOwnedBanks(DEMO_BANKS);
-        }
+        setAllBanks([]);
       } finally {
         setLoading(false);
       }
@@ -146,7 +100,7 @@ export default function QuestionBankList() {
     const bankTitle = getBankTitle(bank);
     const matchesSearch = bankTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          bank.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === '全部' || bank.category === selectedCategory;
+    const matchesCategory = selectedCategory === '全部' || selectedCategory === '' || bank.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -184,8 +138,6 @@ export default function QuestionBankList() {
     if (value === null || value === undefined) return '';
     return String(value);
   };
-
-  const categories = ['全部', '理论', '法规', '实操', '安全', '考证'];
 
   if (loading) {
     return <Loading />;
@@ -269,15 +221,15 @@ export default function QuestionBankList() {
               <div className="flex space-x-2">
                 {categories.map(cat => (
                   <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
+                    key={cat.value}
+                    onClick={() => setSelectedCategory(cat.label)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      selectedCategory === cat
+                      selectedCategory === cat.label
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {cat}
+                    {cat.label}
                   </button>
                 ))}
               </div>
@@ -423,8 +375,12 @@ export default function QuestionBankList() {
         {filteredBanks.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">没有找到相关题库</h3>
-            <p className="text-gray-500">请尝试其他搜索关键词或筛选条件</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {allBanks.length === 0 ? '暂无题库数据' : '没有找到相关题库'}
+            </h3>
+            <p className="text-gray-500">
+              {allBanks.length === 0 ? '管理员尚未创建题库，请耐心等待' : '请尝试其他搜索关键词或筛选条件'}
+            </p>
           </div>
         )}
       </div>

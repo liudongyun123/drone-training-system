@@ -4,22 +4,61 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
-import dayjs from 'dayjs';
 import { examService } from '@/services/examService';
 import { useAuthStore } from '@/store/authStore';
-import type { Exam, Question, ExamAttempt } from '@/types/service';
+import type { QuestionOption } from '@/types/service';
+
+// 本地类型 - 匹配实际数据库/服务返回的数据结构
+interface ExamItem {
+  _id?: string;
+  id?: string;
+  title: string;
+  description?: string;
+  courseId?: string;
+  duration: number;
+  passScore: number;
+  totalScore: number;
+  questionCount?: number;
+  attempts?: number;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface QuestionItem {
+  _id?: string;
+  id?: string;
+  examId?: string;
+  type: string;
+  question?: string;
+  content?: string;
+  options?: (string | QuestionOption)[];
+  answer: string | string[];
+  explanation?: string;
+  score?: number;
+  order?: number;
+}
+
+interface ExamResult {
+  score: number;
+  passStatus?: boolean;
+  passed?: boolean;
+  correctCount?: number;
+  totalCount?: number;
+  answers?: any[];
+}
 
 export default function ExamPage() {
   // ★ 路由定义为 /learning/exam/:examId，所以参数名必须是 examId
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [exam, setExam] = useState<Exam | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [exam, setExam] = useState<ExamItem | null>(null);
+  const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [result, setResult] = useState<ExamAttempt | null>(null);
+  const [result, setResult] = useState<ExamResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -86,7 +125,7 @@ export default function ExamPage() {
         console.log('[ExamPage] 尝试从 startExam 获取题目...');
         try {
           const startResult = await examService.startExam(examId, user?.uid || 'anonymous');
-          if (startResult.success && startResult.data?.questions?.length > 0) {
+          if (startResult.success && startResult.data && startResult.data.questions && startResult.data.questions.length > 0) {
             console.log('[ExamPage] 从 startExam 获取到', startResult.data.questions.length, '题');
             setQuestions(startResult.data.questions);
             setAttemptId(startResult.data.attemptId);
@@ -277,11 +316,14 @@ export default function ExamPage() {
 
                     {questions[currentQuestion].type === 'single' && (
                       <div className="space-y-3">
-                        {questions[currentQuestion].options?.map((option: string, idx: number) => (
+                        {(questions[currentQuestion].options || []).map((opt: any, idx: number) => {
+                          const optStr = typeof opt === 'string' ? opt : opt?.content || '';
+                          const qId = questions[currentQuestion]._id || String(idx);
+                          return (
                           <label
                             key={idx}
                             className={`label cursor-pointer border rounded-lg p-4 hover:bg-base-200 ${
-                              answers[questions[currentQuestion]._id] === option
+                              answers[qId] === optStr
                                 ? 'border-primary bg-primary/10'
                                 : 'border-gray-200'
                             }`}
@@ -289,26 +331,30 @@ export default function ExamPage() {
                             <div className="flex items-center gap-3">
                               <input
                                 type="radio"
-                                name={questions[currentQuestion]._id}
+                                name={qId}
                                 className="radio radio-primary"
-                                checked={answers[questions[currentQuestion]._id] === option}
-                                onChange={(e) => handleAnswer(questions[currentQuestion]._id, e.target.value)}
-                                value={option}
+                                checked={answers[qId] === optStr}
+                                onChange={(e) => handleAnswer(qId, e.target.value)}
+                                value={optStr}
                               />
-                              <span>{option}</span>
+                              <span>{optStr}</span>
                             </div>
                           </label>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
 
                     {questions[currentQuestion].type === 'multiple' && (
                       <div className="space-y-3">
-                        {questions[currentQuestion].options?.map((option: string, idx: number) => (
+                        {(questions[currentQuestion].options || []).map((opt: any, idx: number) => {
+                          const optStr = typeof opt === 'string' ? opt : opt?.content || '';
+                          const qId = questions[currentQuestion]._id || String(idx);
+                          return (
                           <label
                             key={idx}
                             className={`label cursor-pointer border rounded-lg p-4 hover:bg-base-200 ${
-                              (answers[questions[currentQuestion]._id] || []).includes(option)
+                              (answers[qId] || []).includes(optStr)
                                 ? 'border-primary bg-primary/10'
                                 : 'border-gray-200'
                             }`}
@@ -317,34 +363,37 @@ export default function ExamPage() {
                               <input
                                 type="checkbox"
                                 className="checkbox checkbox-primary"
-                                checked={(answers[questions[currentQuestion]._id] || []).includes(option)}
+                                checked={(answers[qId] || []).includes(optStr)}
                                 onChange={(e) => {
-                                  const current = answers[questions[currentQuestion]._id] || [];
+                                  const current = answers[qId] || [];
                                   if (e.target.checked) {
-                                    handleAnswer(questions[currentQuestion]._id, [...current, option]);
+                                    handleAnswer(qId, [...current, optStr]);
                                   } else {
-                                    handleAnswer(questions[currentQuestion]._id, current.filter((v: any) => v !== option));
+                                    handleAnswer(qId, current.filter((v: any) => v !== optStr));
                                   }
                                 }}
-                                value={option}
+                                value={optStr}
                               />
-                              <span>{option}</span>
+                              <span>{optStr}</span>
                             </div>
                           </label>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
 
-                    {questions[currentQuestion].type === 'judge' && (
+                    {(questions[currentQuestion].type === 'judge' || questions[currentQuestion].type === 'truefalse' || questions[currentQuestion].type === 'true_false') && (() => {
+                      const qId = questions[currentQuestion]._id || String(questions[currentQuestion].order || 0);
+                      return (
                       <div className="flex gap-4">
                         <label className="label cursor-pointer border rounded-lg p-4 hover:bg-base-200 w-full">
                           <div className="flex items-center gap-3">
                             <input
                               type="radio"
-                              name={questions[currentQuestion]._id}
+                              name={qId}
                               className="radio radio-primary"
-                              checked={answers[questions[currentQuestion]._id] === true}
-                              onChange={() => handleAnswer(questions[currentQuestion]._id, true)}
+                              checked={answers[qId] === true}
+                              onChange={() => handleAnswer(qId, true)}
                             />
                             <span>正确</span>
                           </div>
@@ -353,16 +402,17 @@ export default function ExamPage() {
                           <div className="flex items-center gap-3">
                             <input
                               type="radio"
-                              name={questions[currentQuestion]._id}
+                              name={qId}
                               className="radio radio-primary"
-                              checked={answers[questions[currentQuestion]._id] === false}
-                              onChange={() => handleAnswer(questions[currentQuestion]._id, false)}
+                              checked={answers[qId] === false}
+                              onChange={() => handleAnswer(qId, false)}
                             />
                             <span>错误</span>
                           </div>
                         </label>
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 )}
 
