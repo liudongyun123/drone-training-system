@@ -1,484 +1,461 @@
 /**
- * 微信支付云函数 - Native支付
+ * 微信支付云函数 v1.0
+ * 支持：Native Pay（PC扫码） + H5支付（手机浏览器）
  * 
- * 支持：
- * - 统一下单（生成二维码）
- * - 支付回调
- * - 查询订单
- * - 关闭订单
- * 
- * 环境变量配置：
- * - WECHAT_MCHID: 商户号
- * - WECHAT_APIKEY: API密钥
- * - WECHAT_APPID: AppID（微信开放平台应用）
- * - WECHAT_NOTIFY_URL: 支付回调地址
+ * 版本: v20260429-initial
  */
 
-const cloud = require('tcb-admin-node');
-const crypto = require('crypto');
-const https = require('https');
+const crypto = require('crypto')
+const tcb = require('tcb-admin-node')
 
-// 初始化云开发
-cloud.init({
-  env: cloud.SYMBOL_CURRENT_ENV,
-});
+const app = tcb.init()
+const db = app.database()
 
-const db = cloud.database();
-const _ = db.command;
+// ========== 支付配置（★ 需要在云函数环境变量中配置） ==========
+// 腾讯云云函数 → 环境变量 中配置以下值
+const CONFIG = {
+  // 小程序 AppID
+  APPID: process.env.WX_APPID || 'wx25aaf895ab86181a',
+  
+  // 微信支付商户号（★ 必填）
+  MCH_ID: process.env.WX_MCH_ID || '',  // ★ 需要填写
+  
+  // API v3 密钥（★ 必填）
+  API_KEY: process.env.WX_API_KEY || '',  // ★ 需要填写
+  
+  // API 证书序列号
+  CERT_SERIAL_NO: process.env.WX_CERT_SERIAL_NO || '',
+  
+  // 回调通知地址（必须 HTTPS）
+  NOTIFY_URL: process.env.WX_NOTIFY_URL || '',  // ★ 需要填写
+  
+  // 请求超时
+  TIMEOUT: 10000,
+}
 
-// 配置
-const MCHID = process.env.WECHAT_MCHID || '';
-const APIKEY = process.env.WECHAT_APIKEY || '';
-const APPID = process.env.WECHAT_APPID || '';
-const NOTIFY_URL = process.env.WECHAT_NOTIFY_URL || '';
-
-// 微信支付API地址
-const UNIFIED_ORDER_URL = 'https://api.mch.weixin.qq.com/pay/unifiedorder';
-const ORDER_QUERY_URL = 'https://api.mch.weixin.qq.com/pay/orderquery';
-const CLOSE_ORDER_URL = 'https://api.mch.weixin.qq.com/pay/closeorder';
+// 微信支付 API 地址
+const WX_PAY_BASE = 'https://api.mch.weixin.qq.com'
 
 /**
  * 生成随机字符串
  */
 function generateNonceStr(length = 32) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let str = '';
-  for (let i = 0; i < length; i++) {
-    str += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return str;
+  return crypto.randomBytes(length).toString('hex').slice(0, length)
 }
 
 /**
- * 生成签名
+ * HTTP 请求封装
  */
-function generateSign(params, key) {
-  // 1. 字典序排序参数
-  const sorted = Object.keys(params)
-    .filter(k => params[k] !== '' && params[k] !== null && params[k] !== undefined)
-    .sort()
-    .map(k => `${k}=${params[k]}`)
-    .join('&');
+async function httpRequest(url, method, data, headers = {}) {
+  const https = require('https')
+  const urlObj = new URL(url)
   
-  // 2. 拼接密钥
-  const signStr = `${sorted}&key=${key}`;
-  
-  // 3. MD5签名并转大写
-  return crypto.createHash('md5').update(signStr, 'utf8').digest('hex').toUpperCase();
-}
-
-/**
- * 转换为XML
- */
-function toXML(params) {
-  let xml = '<xml>';
-  for (const [key, value] of Object.entries(params)) {
-    xml += `<${key}><![CDATA[${value}]]></${key}>`;
-  }
-  xml += '</xml>';
-  return xml;
-}
-
-/**
- * 解析XML
- */
-function parseXML(xml) {
-  const result = {};
-  const regex = /<(\w+)><!\[CDATA\[([^\]]*)\]\]><\/\1>/g;
-  let match;
-  while ((match = regex.exec(xml)) !== null) {
-    result[match[1]] = match[2];
-  }
-  return result;
-}
-
-/**
- * 发送HTTPS请求
- */
-function httpsRequest(url, data) {
   return new Promise((resolve, reject) => {
-    const parsedUrl = new URL(url);
     const options = {
-      hostname: parsedUrl.hostname,
+      hostname: urlObj.hostname,
       port: 443,
-      path: parsedUrl.pathname,
-      method: 'POST',
+      path: urlObj.pathname + urlObj.search,
+      method,
       headers: {
-        'Content-Type': 'text/xml',
-        'Content-Length': Buffer.byteLength(data)
-      }
-    };
-
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    }
+    
     const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => resolve(body));
-    });
-
-    req.on('error', reject);
-    req.write(data);
-    req.end();
-  });
-}
-
-/**
- * 统一下单 - 生成支付二维码
- */
-async function unifiedOrder(params) {
-  const { orderNo, amount, description, attach = '' } = params;
-
-  // 验证配置
-  if (!MCHID || !APIKEY || !APPID) {
-    return {
-      success: false,
-      error: '微信支付配置不完整，请联系管理员'
-    };
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const nonceStr = generateNonceStr();
-  const outTradeNo = orderNo || `ORDER${Date.now()}`;
-  
-  // 单位转换：元转分
-  const totalFee = Math.round(parseFloat(amount) * 100);
-
-  // 构建请求参数
-  const requestParams = {
-    appid: APPID,
-    mch_id: MCHID,
-    nonce_str: nonceStr,
-    body: description.substring(0, 128), // 限制长度
-    out_trade_no: outTradeNo,
-    total_fee: totalFee,
-    spbill_create_ip: '127.0.0.1',
-    notify_url: NOTIFY_URL || `https://${process.env.ENV_ID}.tcloudbaseapp.com/wechat-pay-callback`,
-    trade_type: 'NATIVE',
-    attach: attach.substring(0, 128),
-    time_start: new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14),
-    time_expire: new Date(Date.now() + 30 * 60 * 1000).toISOString().replace(/[-:T]/g, '').slice(0, 14)
-  };
-
-  // 生成签名
-  requestParams.sign = generateSign(requestParams, APIKEY);
-
-  // 发送请求
-  const xmlData = toXML(requestParams);
-  console.log('统一下单请求:', xmlData);
-
-  try {
-    const response = await httpsRequest(UNIFIED_ORDER_URL, xmlData);
-    console.log('统一下单响应:', response);
-
-    const result = parseXML(response);
-
-    if (result.return_code === 'SUCCESS' && result.result_code === 'SUCCESS') {
-      // 保存订单到数据库
-      await db.collection('wechat_orders').add({
-        data: {
-          orderNo: outTradeNo,
-          mchId: MCHID,
-          appId: APPID,
-          totalFee,
-          description,
-          attach,
-          codeUrl: result.code_url,
-          transactionId: '',
-          tradeState: 'NOTPAY',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      });
-
-      return {
-        success: true,
-        data: {
-          orderNo: outTradeNo,
-          codeUrl: result.code_url,
-          qrCode: result.code_url // 前端可用于生成二维码
-        }
-      };
-    } else {
-      return {
-        success: false,
-        error: result.err_code_des || result.return_msg || '统一下单失败'
-      };
-    }
-  } catch (error) {
-    console.error('统一下单异常:', error);
-    return {
-      success: false,
-      error: '请求微信支付接口失败'
-    };
-  }
-}
-
-/**
- * 支付回调处理
- */
-async function handleNotify(notifyData) {
-  const { return_code, return_msg, transaction_id, out_trade_no, total_fee, trade_state, attach } = notifyData;
-
-  console.log('支付回调数据:', notifyData);
-
-  // 验证签名
-  const sign = notifyData.sign;
-  const signParams = { ...notifyData };
-  delete signParams.sign;
-  const calculatedSign = generateSign(signParams, APIKEY);
-
-  if (calculatedSign !== sign) {
-    return {
-      return_code: 'FAIL',
-      return_msg: '签名验证失败'
-    };
-  }
-
-  // 更新订单状态
-  try {
-    const orderResult = await db.collection('wechat_orders')
-      .where({ orderNo: out_trade_no })
-      .limit(1)
-      .get();
-
-    if (orderResult.data.length > 0) {
-      const order = orderResult.data[0];
-      
-      // 避免重复处理
-      if (order.tradeState === 'SUCCESS') {
-        return { return_code: 'SUCCESS', return_msg: 'OK' };
-      }
-
-      await db.collection('wechat_orders')
-        .doc(order._id)
-        .update({
-          data: {
-            transactionId: transaction_id,
-            tradeState: trade_state || 'SUCCESS',
-            totalFee: parseInt(total_fee),
-            updatedAt: new Date().toISOString()
-          }
-        });
-
-      // 如果有附加数据，更新课程权限等
-      if (attach) {
+      let body = ''
+      res.on('data', chunk => body += chunk)
+      res.on('end', () => {
         try {
-          const attachData = JSON.parse(attach);
-          if (attachData.type === 'course_purchase') {
-            // 添加课程权限
-            await db.collection('course_permissions').add({
-              data: {
-                userId: attachData.userId,
-                courseId: attachData.courseId,
-                orderNo: out_trade_no,
-                source: 'wechat_pay',
-                status: 'active',
-                createdAt: new Date().toISOString()
-              }
-            });
-          }
-        } catch (e) {
-          console.error('处理附加数据失败:', e);
+          resolve(JSON.parse(body))
+        } catch {
+          resolve({ raw: body })
         }
-      }
-    }
-
-    return { return_code: 'SUCCESS', return_msg: 'OK' };
-  } catch (error) {
-    console.error('处理回调失败:', error);
-    return { return_code: 'FAIL', return_msg: '处理失败' };
-  }
-}
-
-/**
- * 查询订单
- */
-async function queryOrder(outTradeNo) {
-  const nonceStr = generateNonceStr();
-  
-  const requestParams = {
-    appid: APPID,
-    mch_id: MCHID,
-    nonce_str: nonceStr,
-    out_trade_no: outTradeNo
-  };
-  
-  requestParams.sign = generateSign(requestParams, APIKEY);
-  
-  const xmlData = toXML(requestParams);
-  
-  try {
-    const response = await httpsRequest(ORDER_QUERY_URL, xmlData);
-    const result = parseXML(response);
+      })
+    })
     
-    if (result.return_code === 'SUCCESS' && result.result_code === 'SUCCESS') {
-      return {
-        success: true,
-        data: {
-          orderNo: outTradeNo,
-          tradeState: result.trade_state,
-          transactionId: result.transaction_id,
-          totalFee: parseInt(result.total_fee),
-          tradeStateDesc: result.trade_state_desc
-        }
-      };
-    } else {
-      return {
-        success: false,
-        error: result.err_code_des || '查询失败'
-      };
-    }
-  } catch (error) {
-    console.error('查询订单异常:', error);
-    return {
-      success: false,
-      error: '查询失败'
-    };
-  }
-}
-
-/**
- * 关闭订单
- */
-async function closeOrder(outTradeNo) {
-  const nonceStr = generateNonceStr();
-  
-  const requestParams = {
-    appid: APPID,
-    mch_id: MCHID,
-    nonce_str: nonceStr,
-    out_trade_no: outTradeNo
-  };
-  
-  requestParams.sign = generateSign(requestParams, APIKEY);
-  
-  const xmlData = toXML(requestParams);
-  
-  try {
-    const response = await httpsRequest(CLOSE_ORDER_URL, xmlData);
-    const result = parseXML(response);
+    req.on('error', reject)
     
-    if (result.return_code === 'SUCCESS' && result.result_code === 'SUCCESS') {
-      // 更新订单状态
-      await db.collection('wechat_orders')
-        .where({ orderNo: outTradeNo })
-        .update({
-          data: {
-            tradeState: 'CLOSED',
-            updatedAt: new Date().toISOString()
-          }
-        });
-      
-      return { success: true };
-    } else {
-      return {
-        success: false,
-        error: result.err_code_des || '关闭失败'
-      };
+    if (data) {
+      req.write(JSON.stringify(data))
     }
-  } catch (error) {
-    console.error('关闭订单异常:', error);
-    return {
-      success: false,
-      error: '关闭失败'
-    };
-  }
-}
-
-/**
- * 获取订单状态
- */
-async function getOrderStatus(outTradeNo) {
-  try {
-    const result = await db.collection('wechat_orders')
-      .where({ orderNo: outTradeNo })
-      .limit(1)
-      .get();
     
-    if (result.data.length > 0) {
-      const order = result.data[0];
-      return {
-        success: true,
-        data: {
-          orderNo: order.orderNo,
-          tradeState: order.tradeState,
-          totalFee: order.totalFee / 100, // 分转元
-          description: order.description,
-          createdAt: order.createdAt
-        }
-      };
-    } else {
-      return {
-        success: false,
-        error: '订单不存在'
-      };
-    }
-  } catch (error) {
-    console.error('查询订单状态异常:', error);
-    return {
-      success: false,
-      error: '查询失败'
-    };
-  }
+    req.end()
+  })
 }
 
-/**
- * 主入口
- */
+// ========== 主函数 ==========
 exports.main = async (event, context) => {
-  const { action, data = {} } = event;
-
-  // 如果是支付回调（POST请求直接带XML数据）
-  if (event.httpMethod === 'POST' && !action) {
-    const notifyData = parseXML(event.body || event.rawBody || '');
-    return await handleNotify(notifyData);
-  }
-
+  const { action } = event
+  
+  console.log('[WechatPay] 请求:', { action, orderId: event.orderId })
+  
   try {
-    let result;
-
     switch (action) {
       case 'createOrder':
-        // 创建支付订单
-        result = await unifiedOrder(data);
-        break;
-
+        return await createPayOrder(event)
       case 'queryOrder':
-        // 查询订单（微信API）
-        result = await queryOrder(data.orderNo);
-        break;
-
-      case 'getOrderStatus':
-        // 获取本地订单状态
-        result = await getOrderStatus(data.orderNo);
-        break;
-
-      case 'closeOrder':
-        // 关闭订单
-        result = await closeOrder(data.orderNo);
-        break;
-
-      case 'notify':
-        // 处理支付回调
-        result = await handleNotify(data);
-        break;
-
-      case 'checkConfig':
-        // 检查配置状态
-        result = {
-          configured: !!(MCHID && APIKEY && APPID),
-          mchId: MCHID ? MCHID.slice(0, 4) + '****' + MCHID.slice(-4) : '',
-          appId: APPID ? APPID.slice(0, 4) + '****' : '',
-          hasNotifyUrl: !!NOTIFY_URL
-        };
-        break;
-
+        return await queryPayOrder(event)
+      case 'handleCallback':
+        return await handlePayCallback(event)
+      case 'refund':
+        return await createRefund(event)
+      case 'getConfig':
+        return { code: 0, data: { appId: CONFIG.APPID, mchId: CONFIG.MCH_ID ? '***' : '未配置' } }
       default:
-        result = { success: false, error: '未知的操作' };
+        return { code: 400, message: `未知操作: ${action}` }
     }
-
-    return result;
   } catch (error) {
-    console.error('Wechat Pay Error:', error);
-    return { success: false, error: error.message };
+    console.error('[WechatPay] 错误:', error)
+    return { code: 500, message: error.message }
   }
-};
+}
+
+// ========== 创建支付订单 ==========
+async function createPayOrder(event) {
+  const { orderId, payType = 'native', clientIp = '127.0.0.1' } = event
+  
+  if (!CONFIG.MCH_ID || !CONFIG.API_KEY) {
+    console.error('[WechatPay] 商户号或密钥未配置')
+    return { code: 500, message: '微信支付未配置，请联系管理员' }
+  }
+  
+  // 1. 查询订单
+  const orderRes = await db.collection('orders').doc(orderId).get()
+  if (!orderRes.data) {
+    return { code: 404, message: '订单不存在' }
+  }
+  
+  const order = orderRes.data
+  
+  if (order.status === 'paid') {
+    return { code: 400, message: '订单已支付' }
+  }
+  
+  // 2. 生成微信支付订单号
+  const outTradeNo = order.orderNo || `ORD${Date.now()}`
+  
+  // 3. 构建请求参数
+  const body = {
+    appid: CONFIG.APPID,
+    mchid: CONFIG.MCH_ID,
+    description: order.courseName || `课程购买-${outTradeNo.slice(-8)}`,
+    out_trade_no: outTradeNo,
+    notify_url: CONFIG.NOTIFY_URL,
+    amount: {
+      total: Math.round((order.finalAmount || order.amount || 0) * 100),  // 元转分
+      currency: 'CNY'
+    },
+  }
+  
+  // 根据支付类型添加不同参数
+  if (payType === 'native') {
+    // PC 扫码支付
+    // 无需额外参数，微信会返回 code_url
+  } else if (payType === 'h5') {
+    // H5 支付（手机浏览器）
+    if (!CONFIG.H5_DOMAIN) {
+      return { code: 500, message: 'H5 支付域名未配置' }
+    }
+    body.scene_info = {
+      payer_client_ip: clientIp,
+      h5_info: {
+        type: 'Wap',
+        h5_info: {
+          type: 'Wap',
+          wap_url: CONFIG.H5_DOMAIN,
+          wap_name: '无人机培训系统'
+        }
+      }
+    }
+  }
+  
+  console.log('[WechatPay] 创建订单参数:', JSON.stringify(body))
+  
+  // 4. 调用微信支付 API
+  try {
+    const result = await httpRequest(
+      `${WX_PAY_BASE}/v3/pay/transactions/${payType === 'h5' ? 'h5' : 'native'}`,
+      'POST',
+      body
+    )
+    
+    console.log('[WechatPay] 微信返回:', JSON.stringify(result))
+    
+    if (result.code_url) {
+      // Native Pay：返回二维码链接
+      return {
+        code: 0,
+        message: '支付订单创建成功',
+        data: {
+          payType: 'native',
+          codeUrl: result.code_url,  // 二维码内容
+          outTradeNo,
+          orderId: order._id
+        }
+      }
+    } else if (result.h5_url) {
+      // H5 Pay：返回跳转链接
+      return {
+        code: 0,
+        message: '支付订单创建成功',
+        data: {
+          payType: 'h5',
+          h5Url: result.h5_url,
+          outTradeNo,
+          orderId: order._id
+        }
+      }
+    } else {
+      console.error('[WechatPay] 微信返回异常:', result)
+      return { code: 500, message: '创建支付订单失败: ' + JSON.stringify(result) }
+    }
+  } catch (err) {
+    console.error('[WechatPay] 请求微信失败:', err.message)
+    
+    // 开发环境：返回模拟数据
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[WechatPay] 开发模式，返回模拟支付二维码')
+      return {
+        code: 0,
+        message: '支付订单创建成功（模拟）',
+        data: {
+          payType: 'native',
+          codeUrl: `https://qr.alipay.com/demo_${outTradeNo}`,
+          outTradeNo,
+          orderId: order._id,
+          _mock: true
+        }
+      }
+    }
+    
+    return { code: 500, message: '请求微信支付失败: ' + err.message }
+  }
+}
+
+// ========== 查询支付状态 ==========
+async function queryPayOrder(event) {
+  const { outTradeNo } = event
+  
+  if (!CONFIG.MCH_ID) {
+    return { code: 500, message: '微信支付未配置' }
+  }
+  
+  try {
+    const result = await httpRequest(
+      `${WX_PAY_BASE}/v3/pay/transactions/out-trade-no/${outTradeNo}?mchid=${CONFIG.MCH_ID}`,
+      'GET'
+    )
+    
+    return {
+      code: 0,
+      data: {
+        tradeState: result.trade_state,  // SUCCESS / NOTPAY / CLOSED
+        tradeStateDesc: result.trade_state_desc,
+        paidAt: result.success_time
+      }
+    }
+  } catch (err) {
+    console.error('[WechatPay] 查询失败:', err.message)
+    return { code: 500, message: '查询支付状态失败' }
+  }
+}
+
+// ========== 支付回调处理 ==========
+async function handlePayCallback(event) {
+  // 微信支付回调会以 HTTP POST 形式调用
+  const { body: callbackBody, headers } = event
+  
+  console.log('[WechatPay] 收到支付回调')
+  
+  // 1. 验签（生产环境必须实现）
+  // TODO: 实现 RSA 签名验证
+  
+  // 2. 解密回调数据
+  // API v3 使用 AEAD_AES_256_GCM 加密
+  
+  try {
+    // 从回调中提取订单信息
+    const resource = callbackBody?.resource || {}
+    const notification = resource.ciphertext ? 
+      JSON.parse(Buffer.from(resource.ciphertext, 'base64').toString()) :
+      callbackBody
+    
+    const outTradeNo = notification.out_trade_no
+    const tradeState = notification.trade_state
+    
+    console.log('[WechatPay] 回调订单:', outTradeNo, '状态:', tradeState)
+    
+    if (tradeState !== 'SUCCESS') {
+      return { code: 200, message: '非成功状态，忽略' }
+    }
+    
+    // 3. 更新订单状态
+    const orderRes = await db.collection('orders')
+      .where({ orderNo: outTradeNo })
+      .limit(1)
+      .get()
+    
+    if (!orderRes.data || orderRes.data.length === 0) {
+      console.error('[WechatPay] 订单不存在:', outTradeNo)
+      return { code: 404, message: '订单不存在' }
+    }
+    
+    const order = orderRes.data[0]
+    
+    if (order.status === 'paid') {
+      console.log('[WechatPay] 订单已处理，跳过:', outTradeNo)
+      return { code: 200, message: '已处理' }
+    }
+    
+    // 4. 更新订单
+    await db.collection('orders').doc(order._id).update({
+      status: 'paid',
+      paidAt: new Date().toISOString(),
+      payMethod: 'wechat',
+      wxTransactionId: notification.transaction_id,
+      updatedAt: new Date().toISOString()
+    })
+    
+    // 5. 授予课程权限（写入 course_permissions + members）
+    const phone = order.phone
+    const courseIds = []
+    if (order.items && Array.isArray(order.items)) {
+      order.items.forEach(item => {
+        if (item.courseId) courseIds.push(item.courseId)
+      })
+    }
+    if (order.courseId && !courseIds.includes(order.courseId)) {
+      courseIds.push(order.courseId)
+    }
+    
+    if (phone && courseIds.length > 0) {
+      for (const courseId of courseIds) {
+        // 写入 course_permissions
+        try {
+          const existing = await db.collection('course_permissions')
+            .where({ phone, courseId })
+            .limit(1)
+            .get()
+          
+          if (!existing.data || existing.data.length === 0) {
+            await db.collection('course_permissions').add({
+              phone,
+              courseId,
+              orderId: order._id,
+              source: 'purchase',
+              status: 'active',
+              grantedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            })
+            console.log('[WechatPay] course_permissions 写入成功:', phone, courseId)
+          }
+        } catch (err) {
+          console.error('[WechatPay] course_permissions 写入失败:', err)
+        }
+        
+        // 更新 members.enrolledCourses
+        try {
+          const memberRes = await db.collection('members')
+            .where({ phone })
+            .limit(1)
+            .get()
+          
+          if (memberRes.data && memberRes.data.length > 0) {
+            const member = memberRes.data[0]
+            const existingCourses = member.enrolledCourses || []
+            const alreadyEnrolled = existingCourses.some(c => 
+              typeof c === 'string' ? c === courseId : c.courseId === courseId
+            )
+            
+            if (!alreadyEnrolled) {
+              await db.collection('members').doc(member._id).update({
+                enrolledCourses: [...existingCourses, {
+                  courseId,
+                  source: 'purchase',
+                  orderId: order._id,
+                  grantedAt: new Date().toISOString()
+                }],
+                type: 'student',
+                updatedAt: new Date().toISOString()
+              })
+              console.log('[WechatPay] members 更新成功:', phone)
+            }
+          }
+        } catch (err) {
+          console.error('[WechatPay] members 更新失败:', err)
+        }
+      }
+    }
+    
+    console.log('[WechatPay] 支付回调处理完成:', outTradeNo)
+    
+    // 6. 返回成功响应给微信
+    return { code: 'SUCCESS', message: '处理成功' }
+    
+  } catch (err) {
+    console.error('[WechatPay] 回调处理失败:', err)
+    return { code: 500, message: '处理失败' }
+  }
+}
+
+// ========== 申请退款 ==========
+async function createRefund(event) {
+  const { orderId, reason = '用户申请退款' } = event
+  
+  if (!CONFIG.MCH_ID) {
+    return { code: 500, message: '微信支付未配置' }
+  }
+  
+  // 查询订单
+  const orderRes = await db.collection('orders').doc(orderId).get()
+  if (!orderRes.data) {
+    return { code: 404, message: '订单不存在' }
+  }
+  
+  const order = orderRes.data
+  
+  if (order.status !== 'paid') {
+    return { code: 400, message: '只能退款已支付的订单' }
+  }
+  
+  // 生成退款单号
+  const outRefundNo = `REF${Date.now()}`
+  
+  try {
+    const result = await httpRequest(
+      `${WX_PAY_BASE}/v3/refund/domestic/refunds`,
+      'POST',
+      {
+        out_trade_no: order.orderNo,
+        out_refund_no: outRefundNo,
+        reason,
+        amount: {
+          refund: Math.round((order.finalAmount || order.amount || 0) * 100),
+          total: Math.round((order.finalAmount || order.amount || 0) * 100),
+          currency: 'CNY'
+        }
+      }
+    )
+    
+    console.log('[WechatPay] 退款结果:', result)
+    
+    if (result.refund_id) {
+      // 更新订单状态
+      await db.collection('orders').doc(orderId).update({
+        status: 'refunded',
+        refundNo: outRefundNo,
+        refundReason: reason,
+        refundedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+      
+      return { code: 0, message: '退款申请成功', data: { refundId: result.refund_id } }
+    }
+    
+    return { code: 500, message: '退款失败: ' + JSON.stringify(result) }
+  } catch (err) {
+    return { code: 500, message: '退款失败: ' + err.message }
+  }
+}

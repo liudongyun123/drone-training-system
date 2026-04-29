@@ -1,0 +1,10 @@
+{
+  "name": "wechat-pay",
+  "version": "1.0.0",
+  "description": "微信支付云函数 - Native Pay + H5",
+  "main": "index.js",
+  "dependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}

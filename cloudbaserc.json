@@ -46,11 +46,18 @@
               "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
               "triggers": []
             },
+            {
+              "name": "wechat-pay",
               "timeout": 15,
               "memorySize": 256,
               "runtime": "Nodejs18.15",
               "handler": "index.main",
-              "envVariables": {},
+              "envVariables": {
+                "WX_APPID": "wx25aaf895ab86181a",
+                "WX_MCH_ID": "",
+                "WX_API_KEY": "",
+                "WX_NOTIFY_URL": ""
+              },
               "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
               "triggers": [
                 {

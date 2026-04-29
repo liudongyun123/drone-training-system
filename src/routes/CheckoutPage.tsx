@@ -12,6 +12,8 @@ import { couponService } from '@/services/coupon';
 import { useAuthStore } from '@/store/authStore';
 import type { CartItem } from '@/types';
 import { Loading, Button, toast } from '@/components';
+import { createWechatPay, pollPaymentResult, getPayType, isMobile } from '@/services/wechatPayService';
+import WechatQRCode from '@/components/payment/WechatQRCode';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -24,6 +26,8 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'bindPhone' | 'confirm' | 'paying' | 'success'>('confirm');
   const [orderNo, setOrderNo] = useState('');
+  const [payResult, setPayResult] = useState<any>(null);
+  const [pollStatus, setPollStatus] = useState<string>('');
   
   // 手机号绑定
   const [bindPhone, setBindPhone] = useState('');
@@ -168,10 +172,50 @@ export default function CheckoutPage() {
 
       setStep('paying');
       
-      // 模拟支付流程
-      setTimeout(() => {
-        handlePayment(order._id as string);
-      }, 2000);
+      // ★ 调用微信支付（替换模拟流程）
+      if (order._id) {
+        try {
+          const payType = getPayType()
+          console.log('[Checkout] 支付类型:', payType)
+          
+          const payResult = await createWechatPay({
+            orderId: order._id as string,
+            payType
+          })
+          
+          setPayResult(payResult)
+          
+          if (payResult._mock) {
+            // 开发模式模拟
+            toast.info('模拟支付模式，3秒后自动完成')
+            setTimeout(() => handlePayment(order._id as string), 3000)
+          } else if (payResult.payType === 'native' && payResult.codeUrl) {
+            // Native Pay：轮询支付结果
+            const pollResult = await pollPaymentResult(payResult.outTradeNo, {
+              interval: 3000,
+              timeout: 300000,
+              onPolling: setPollStatus
+            })
+            
+            if (pollResult === 'success') {
+              handlePayment(order._id as string)
+            } else {
+              toast.warning('支付超时，请重新尝试')
+              setStep('confirm')
+            }
+          } else if (payResult.payType === 'h5' && payResult.h5Url) {
+            // H5 Pay：跳转到微信支付页面
+            toast.info('正在跳转到微信支付...')
+            window.location.href = payResult.h5Url
+          }
+        } catch (err: any) {
+          console.error('[Checkout] 支付创建失败:', err)
+          toast.error(err.message || '支付创建失败')
+          setStep('confirm')
+        }
+      } else {
+        toast.error('订单创建失败')
+      }
     } catch (error) {
       console.error('创建订单失败:', error);
       toast.error('创建订单失败');
@@ -267,6 +311,56 @@ export default function CheckoutPage() {
         </div>
       </div>
     );
+  }
+
+  // 支付中页面（显示二维码）
+  if (step === 'paying') {
+    return (
+      <div className="min-h-screen bg-base-200 flex items-center justify-center px-4">
+        <div className="card bg-base-100 shadow-xl max-w-md w-full">
+          <div className="card-body items-center text-center py-12">
+            {payResult?.payType === 'native' && payResult?.codeUrl ? (
+              <>
+                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                  <Smartphone className="text-green-500 w-12 h-12" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">请扫码支付</h2>
+                <p className="text-gray-600 mb-2">订单号：{orderNo}</p>
+                <p className="text-lg font-bold text-red-500 mb-6">¥{finalAmount}</p>
+                <div className="bg-white p-4 rounded-xl shadow mb-6">
+                  {/* ★ 微信支付二维码 - 生产环境替换为真实二维码组件 */}
+                  <WechatQRCode url={payResult.codeUrl} />
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+                  <div className={`w-2 h-2 rounded-full ${pollStatus === 'SUCCESS' ? 'bg-green-500' : 'bg-yellow-400 animate-pulse'}`} />
+                  {pollStatus === 'SUCCESS' ? '支付成功' : '等待扫码支付...'}
+                </div>
+                <p className="text-sm text-gray-400">请使用微信扫描上方二维码完成支付</p>
+              </>
+            ) : payResult?.payType === 'h5' && payResult?.h5Url ? (
+              <>
+                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                  <Smartphone className="text-green-500 w-12 h-12" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">正在跳转到微信支付</h2>
+                <p className="text-gray-600 mb-6">如果没有自动跳转，请点击下方按钮</p>
+                <Button variant="primary" block onClick={() => window.location.href = payResult.h5Url}>
+                  前往微信支付
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-6">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-yellow-500 border-t-transparent" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">正在创建支付订单</h2>
+                <p className="text-gray-500">请稍候...</p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // 支付成功页面
