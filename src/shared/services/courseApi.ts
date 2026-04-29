@@ -31,7 +31,7 @@ export const courseApi = {
     } = filters
 
     // 构建查询条件
-    const where: any = {}
+    const where: Record<string, unknown> = {}
     
     if (status) where.status = status
     if (category) where.category = category
@@ -138,7 +138,7 @@ export const courseApi = {
       .get()
     
     // 去重
-    const categories = [...new Set(result.data.map((item: any) => item.category))]
+    const categories = [...new Set(result.data.map(item => (item as { category: string }).category))]
     return categories.filter(Boolean)
   }
 }

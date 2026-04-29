@@ -25,7 +25,7 @@ export const classApi = {
   } = {}): Promise<{ classes: TrainingClass[], total: number }> {
     const { status, teacherId, keyword, page = 1, pageSize = 10 } = filters
     
-    const where: any = {}
+    const where: Record<string, unknown> = {}
     if (status) where.status = status
     if (teacherId) where.teacherId = teacherId
     if (keyword) {
@@ -139,7 +139,7 @@ export const scheduleApi = {
       .where({ userId, status: 'confirmed' })
       .get()
     
-    const classIds = enrollmentsResult.data.map((e: any) => e.classId)
+    const classIds = enrollmentsResult.data.map(e => (e as Enrollment).classId)
     
     if (classIds.length === 0) return []
     

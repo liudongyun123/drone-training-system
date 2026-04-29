@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { app } from '@/utils/cloudbase'
-import type { Order, OrderItem, OrderStatus } from '@/shared/types/order'
+import type { Order, OrderItem, OrderStatus, PaymentMethod } from '@/shared/types/order'
 import type { CartItem } from '@/types'
 
 const db = app.database()
@@ -39,7 +39,7 @@ export const orderApi = {
       totalAmount,
       discountAmount: 0,
       finalAmount: totalAmount,
-      paymentMethod: (params.paymentMethod as any) || 'wechat',
+      paymentMethod: (params.paymentMethod as PaymentMethod) || 'wechat',
       status: 'pending',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

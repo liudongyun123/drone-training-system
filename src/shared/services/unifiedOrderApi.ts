@@ -29,7 +29,7 @@ export const unifiedOrderApi = {
       pageSize = 10
     } = filters
     
-    const where: any = {}
+    const where: Record<string, unknown> = {}
     
     // 类型筛选
     if (orderType && orderType !== 'all') {
@@ -100,7 +100,7 @@ export const unifiedOrderApi = {
    * 获取用户的订单列表
    */
   async getByUserId(userId: string, orderType?: 'course' | 'shop'): Promise<UnifiedOrder[]> {
-    const where: any = { userId }
+    const where: Record<string, unknown> = { userId }
     if (orderType) where.orderType = orderType
     
     const result = await db.collection('orders')
@@ -172,7 +172,7 @@ export const unifiedOrderApi = {
   } = {}): Promise<OrderStatistics> {
     const { startDate, endDate } = params
     
-    const where: any = {}
+    const where: Record<string, unknown> = {}
     if (startDate || endDate) {
       where.createdAt = {}
       if (startDate) where.createdAt = _.gte(startDate)

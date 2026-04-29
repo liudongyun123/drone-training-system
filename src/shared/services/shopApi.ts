@@ -25,7 +25,7 @@ export const productApi = {
   } = {}): Promise<{ products: Product[], total: number }> {
     const { categoryId, status = 'onsale', keyword, page = 1, pageSize = 10 } = filters
     
-    const where: any = { status }
+    const where: Record<string, unknown> = { status }
     if (categoryId) where.categoryId = categoryId
     if (keyword) {
       where.name = db.RegExp({
