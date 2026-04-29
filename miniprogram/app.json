@@ -47,14 +47,20 @@
         "selectedIconPath": "assets/icons/course-active.png"
       },
       {
+        "pagePath": "pages/class-list/class-list",
+        "text": "培训班",
+        "iconPath": "assets/icons/class.png",
+        "selectedIconPath": "assets/icons/class-active.png"
+      },
+      {
         "pagePath": "pages/shop/shop",
         "text": "商城",
         "iconPath": "assets/icons/shop.png",
         "selectedIconPath": "assets/icons/shop-active.png"
       },
       {
-        "pagePath": "pages/my-learning/my-learning",
-        "text": "我的",
+        "pagePath": "pages/profile/profile",
+        "text": "个人中心",
         "iconPath": "assets/icons/user.png",
         "selectedIconPath": "assets/icons/user-active.png"
       }
