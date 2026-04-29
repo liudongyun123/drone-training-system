@@ -138,59 +138,105 @@ export default function MyLearningPage() {
 
       // ========================================
       // 2. 查询课程权限（已购买课程）
-      //    ★ 兼容多种userId/phone字段格式
+      //    ★ phone 为主键（最稳定），userId/openid 为补充
+      //    ★ 三路数据源兜底：course_permissions → 已支付订单 → members.enrolledCourses
       // ========================================
       const purchasedCourses: LearningCourse[] = [];
+      const seenCids = new Set<string>(); // 全局去重
 
-      // 构建查询条件列表
-      const permQueries: any[] = [];
-      if (userId) {
-        permQueries.push({ userId }, { studentId: userId }, { memberId: userId },
-          { _openid: userId });
-      }
-      if (userPhone) {
-        permQueries.push({ phone: userPhone }, { userPhone: userPhone });
-      }
-
+      // --- 数据源 A: course_permissions 集合 ---
       try {
-        let permissions: any[] = [];
-        // 先尝试 $or 组合查询
-        const permResult = await adminService.list('course_permissions',
-          permQueries.length > 1 ? { $or: permQueries } : (permQueries[0] || {}), { limit: 100 });
-        permissions = Array.isArray(permResult.data) ? permResult.data : (permResult.data?.list || []);
+        // ★ phone 优先查询（新写入的数据都用 phone）
+        if (userPhone) {
+          const permByPhone = await adminService.list('course_permissions', { phone: userPhone }, { limit: 100 });
+          const perms = Array.isArray(permByPhone.data) ? permByPhone.data : (permByPhone.data?.list || []);
+          console.log('[MyLearningPage] A-phone 查到权限:', perms.length);
+          for (const perm of perms) {
+            const cid = perm.courseId || perm.targetId;
+            if (!cid || seenCids.has(cid)) continue;
+            seenCids.add(cid);
+            try {
+              const cr = await adminService.get('courses', cid);
+              const course = cr.data;
+              if (!course || course.status !== 'published') continue;
+              purchasedCourses.push(buildCourse(course, 'purchase', {
+                orderId: perm.orderId, purchaseTime: perm.purchaseTime || perm.createdAt,
+              }, progressData));
+            } catch (e) { console.warn('[MyLearningPage] 课程获取失败:', cid); }
+          }
+        }
 
-        // 如果没查到，逐条件查询兜底
-        if (permissions.length === 0 && permQueries.length > 1) {
-          console.log('[MyLearningPage] $or未命中，逐条件查询 course_permissions...');
-          for (const q of permQueries) {
+        // userId 补充查询（兼容旧数据）
+        if (userId) {
+          const userIdQueries = [{ userId }, { studentId: userId }, { memberId: userId }, { _openid: userId }];
+          for (const q of userIdQueries) {
             try {
               const r = await adminService.list('course_permissions', q, { limit: 100 });
               const arr = Array.isArray(r.data) ? r.data : (r.data?.list || []);
-              if (arr.length > 0) permissions = [...permissions, ...arr];
+              for (const perm of arr) {
+                const cid = perm.courseId || perm.targetId;
+                if (!cid || seenCids.has(cid)) continue;
+                seenCids.add(cid);
+                try {
+                  const cr = await adminService.get('courses', cid);
+                  const course = cr.data;
+                  if (!course || course.status !== 'published') continue;
+                  purchasedCourses.push(buildCourse(course, 'purchase', {
+                    orderId: perm.orderId, purchaseTime: perm.purchaseTime || perm.createdAt,
+                  }, progressData));
+                } catch (e) { /* skip */ }
+              }
             } catch (e) { /* skip */ }
           }
         }
-        console.log('[MyLearningPage] 权限记录:', permissions.length);
-
-        // 去重后获取课程详情
-        const seenIds = new Set<string>();
-        for (const perm of permissions) {
-          const cid = perm.courseId || perm.targetId;
-          if (!cid || seenIds.has(cid)) continue;
-          seenIds.add(cid);
-          try {
-            const cr = await adminService.get('courses', cid);
-            const course = cr.data;
-            if (!course || course.status !== 'published') continue;
-            purchasedCourses.push(buildCourse(course, 'purchase', {
-              orderId: perm.orderId, purchaseTime: perm.purchaseTime || perm.createdAt,
-            }, progressData));
-          } catch (e) { console.warn('[MyLearningPage] 课程获取失败:', cid); }
-        }
       } catch (e) {
-        console.error('[MyLearningPage] 权限查询失败:', e);
+        console.error('[MyLearningPage] course_permissions 查询失败:', e);
       }
-      console.log('[MyLearningPage] 购买课程数:', purchasedCourses.length);
+      console.log('[MyLearningPage] A: course_permissions 购买课程数:', purchasedCourses.length);
+
+      // --- 数据源 B: 已支付订单直接查询（兜底，防止 course_permissions 缺失） ---
+      if (purchasedCourses.length === 0) {
+        console.log('[MyLearningPage] course_permissions 为空，尝试从已支付订单兜底查询...');
+        try {
+          const orderQuery: any = {};
+          if (userPhone) {
+            orderQuery.$or = [{ phone: userPhone }];
+          }
+          if (userId) {
+            orderQuery.$or = orderQuery.$or || [];
+            orderQuery.$or.push({ userId }, { _openid: userId });
+          }
+
+          const orderResult = await adminService.list('orders', orderQuery, { limit: 100 });
+          const paidOrders = (Array.isArray(orderResult.data) ? orderResult.data : (orderResult.data?.list || []))
+            .filter((o: any) => ['paid', 'completed', 'paid_offline'].includes(o.status));
+
+          console.log('[MyLearningPage] B: 已支付订单:', paidOrders.length);
+          for (const order of paidOrders) {
+            const cids: string[] = [];
+            if (order.items && Array.isArray(order.items)) {
+              order.items.forEach((item: any) => { if (item.courseId) cids.push(item.courseId); });
+            }
+            if (order.courseId && !cids.includes(order.courseId)) cids.push(order.courseId);
+
+            for (const cid of cids) {
+              if (!cid || seenCids.has(cid)) continue;
+              seenCids.add(cid);
+              try {
+                const cr = await adminService.get('courses', cid);
+                const course = cr.data;
+                if (!course || course.status !== 'published') continue;
+                purchasedCourses.push(buildCourse(course, 'purchase', {
+                  orderId: order._id, purchaseTime: order.paidAt || order.createdAt,
+                }, progressData));
+              } catch (e) { /* skip */ }
+            }
+          }
+        } catch (e) {
+          console.error('[MyLearningPage] 订单兜底查询失败:', e);
+        }
+        console.log('[MyLearningPage] B: 订单兜底后购买课程数:', purchasedCourses.length);
+      }
 
       // ========================================
       // 3. 查询报班附赠的课程（registrations -> classes -> courses）

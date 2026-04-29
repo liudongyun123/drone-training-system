@@ -164,25 +164,56 @@ export const CloudOrderService = {
 
       const result = await dbService.update('orders', id, updateData)
 
-      // 支付成功后：授予课程权限
+      // 支付成功后：授予课程权限（写入 course_permissions 集合）
       if (result && status === 'paid') {
         console.log('[CloudOrderService] 订单支付成功，触发课程授权逻辑')
 
-        // ★ 新逻辑：通过手机号授予课程权限
         const phone = (order as any).phone
-        if (phone && order.courseId) {
+        const orderItems = order.items || []
+        const courseIds = orderItems.map((item: any) => item.courseId).filter(Boolean)
+        if (order.courseId && !courseIds.includes(order.courseId)) {
+          courseIds.push(order.courseId)
+        }
+
+        if (phone && courseIds.length > 0) {
+          // 先更新 members.enrolledCourses
           try {
-            await membersService.grantCoursePermission(phone, order.courseId, {
+            await membersService.grantCoursePermission(phone, order.courseId || courseIds[0], {
               source: 'purchase',
               orderId: order._id || id
             })
-            console.log('[CloudOrderService] 课程权限授予成功:', { phone, courseId: order.courseId })
+            console.log('[CloudOrderService] members.enrolledCourses 更新成功')
           } catch (err) {
-            console.error('[CloudOrderService] 授予课程权限失败:', err)
-            // 不阻塞主流程，仅记录错误
+            console.error('[CloudOrderService] members 更新失败:', err)
+          }
+
+          // ★ 关键修复：写入 course_permissions 集合
+          for (const courseId of courseIds) {
+            try {
+              await app.callFunction({
+                name: 'admin',
+                data: {
+                  action: 'upsert',
+                  collection: 'course_permissions',
+                  query: { phone, courseId },
+                  data: {
+                    phone,
+                    courseId,
+                    orderId: order._id || id,
+                    source: 'purchase',
+                    status: 'active',
+                    grantedAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                  }
+                }
+              })
+              console.log('[CloudOrderService] course_permissions 写入成功:', { phone, courseId })
+            } catch (permErr) {
+              console.error('[CloudOrderService] course_permissions 写入失败:', permErr)
+            }
           }
         } else {
-          console.warn('[CloudOrderService] 无法授权课程：缺少手机号或课程ID')
+          console.warn('[CloudOrderService] 无法授权课程：缺少手机号或课程ID', { phone, courseIds })
         }
       }
 
