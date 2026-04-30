@@ -8,6 +8,7 @@
  * - 统计数据
  */
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/admin/hooks/useConfirm'
 import {
   Search, Filter, RefreshCw, CheckCircle, XCircle, AlertCircle,
   Clock, Calendar, User, Book, MapPin, FileText, Loader2,
@@ -35,6 +36,7 @@ const STATUS_CONFIG = {
 }
 
 export default function AdminTransfers() {
+  const { confirm, ConfirmDialog } = useConfirm()
   // 状态
   const [loading, setLoading] = useState(false)
   const [requests, setRequests] = useState<TransferRequest[]>([])
@@ -194,7 +196,7 @@ export default function AdminTransfers() {
     const requestId = auditModal.request._id || auditModal.request.id || ''
     
     if (auditModal.type === 'reject' && (!auditModal.reply.trim() || auditModal.reply.trim().length < 2)) {
-      alert('请填写拒绝原因')
+      await confirm({ title: '提示', message: '请填写拒绝原因', variant: 'info' })
       return
     }
 
@@ -214,15 +216,15 @@ export default function AdminTransfers() {
       }
 
       if (result.code === 0) {
-        alert(auditModal.type === 'approve' ? '已通过申请' : '已拒绝申请')
+        await confirm({ title: '提示', message: auditModal.type === 'approve' ? '已通过申请' : '已拒绝申请', variant: 'info' })
         setAuditModal({ show: false, type: 'approve', request: null, reply: '', loading: false })
         loadRequests()
         loadStats()
       } else {
-        alert(result.message || '操作失败')
+        await confirm({ title: '提示', message: result.message || '操作失败', variant: 'info' })
       }
     } catch (error: any) {
-      alert(error.message || '操作失败')
+      await confirm({ title: '提示', message: error.message || '操作失败', variant: 'info' })
     } finally {
       setAuditModal({ ...auditModal, loading: false })
     }
@@ -231,12 +233,12 @@ export default function AdminTransfers() {
   // 批量审核
   const handleBatchAudit = async () => {
     if (selectedIds.length === 0) {
-      alert('请选择要审核的申请')
+      await confirm({ title: '提示', message: '请选择要审核的申请', variant: 'info' })
       return
     }
 
     if (batchModal.type === 'reject' && (!batchModal.reply.trim() || batchModal.reply.trim().length < 2)) {
-      alert('批量拒绝需要填写原因')
+      await confirm({ title: '提示', message: '批量拒绝需要填写原因', variant: 'info' })
       return
     }
 
@@ -256,17 +258,17 @@ export default function AdminTransfers() {
       }
 
       if (result.code === 0) {
-        alert(`批量操作完成：成功 ${result.data?.successCount || 0}，失败 ${result.data?.failCount || 0}`)
+        await confirm({ title: '提示', message: `批量操作完成：成功 ${result.data?.successCount || 0}，失败 ${result.data?.failCount || 0}`, variant: 'info' })
         setBatchModal({ show: false, type: 'approve', reply: '', loading: false })
         setSelectedIds([])
         setSelectAll(false)
         loadRequests()
         loadStats()
       } else {
-        alert(result.message || '操作失败')
+        await confirm({ title: '提示', message: result.message || '操作失败', variant: 'info' })
       }
     } catch (error: any) {
-      alert(error.message || '操作失败')
+      await confirm({ title: '提示', message: error.message || '操作失败', variant: 'info' })
     } finally {
       setBatchModal({ ...batchModal, loading: false })
     }
@@ -643,6 +645,8 @@ export default function AdminTransfers() {
           onSubmit={handleAudit}
         />
       )}
+
+      <ConfirmDialog />
 
       {/* 批量审核弹窗 */}
       {batchModal.show && (

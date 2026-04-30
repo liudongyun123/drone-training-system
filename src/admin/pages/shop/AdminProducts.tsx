@@ -3,6 +3,7 @@
 // ============================================================================
 
 import React, { useState, useEffect } from 'react'
+import { useConfirm } from '@/admin/hooks/useConfirm'
 import {
   Box,
   Typography,
@@ -40,6 +41,7 @@ import { productApi, categoryApi } from '@/shared/services/shopApi'
 import type { Product, ProductCategory } from '@/shared/types/shop'
 
 export default function AdminProducts() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<ProductCategory[]>([])
   const [loading, setLoading] = useState(true)
@@ -127,7 +129,8 @@ export default function AdminProducts() {
   }
 
   const handleDelete = async (productId: string) => {
-    if (!window.confirm('确定要删除该商品吗？')) return
+    const ok = await confirm({ title: '删除确认', message: '确定要删除该商品吗？', variant: 'danger' })
+    if (!ok) return
     try {
       await productApi.delete(productId)
       loadData()
@@ -289,6 +292,7 @@ export default function AdminProducts() {
           </Button>
         </DialogActions>
       </Dialog>
+      <ConfirmDialog />
     </Box>
   )
 }

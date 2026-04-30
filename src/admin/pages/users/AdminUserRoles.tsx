@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/admin/hooks/useConfirm'
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate'
 import { adminService } from '@/services'
 import { ADMIN_ROLE_OPTIONS, ROLE_LABELS, PERMISSION_LABELS } from '@/types/userRole'
@@ -41,6 +42,7 @@ const GROUP_COLOR_MAP: Record<string, { bg: string; text: string; border: string
 }
 
 export default function AdminUserRoles() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [roles, setRoles] = useState<UserRoleRecord[]>([])
@@ -258,18 +260,19 @@ export default function AdminUserRoles() {
 
   // 删除
   const handleDelete = async (record: UserRoleRecord) => {
-    if (!confirm(`确定要删除 ${record.name} (${record.phone}) 吗？`)) return
+    const ok = await confirm({ title: '删除确认', message: `确定要删除 ${record.name} (${record.phone}) 吗？`, variant: 'danger' })
+    if (!ok) return
 
     try {
       const result = await adminService.delete('user_roles', record._id!)
       if (result.code === 0) {
         await loadData(false)
       } else {
-        alert(result.message || '删除失败')
+        await confirm({ title: '提示', message: result.message || '删除失败', variant: 'info' })
       }
     } catch (error: any) {
       console.error('删除失败:', error)
-      alert(error.message || '删除失败')
+      await confirm({ title: '提示', message: error.message || '删除失败', variant: 'info' })
     }
   }
 
@@ -779,6 +782,8 @@ export default function AdminUserRoles() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog />
     </AdminPageTemplate>
   )
 }

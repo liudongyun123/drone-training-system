@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
+import { useConfirm } from '@/admin/hooks/useConfirm';
 import { classService } from '@/services';
 import { CloudAdminService } from '@/services/CloudAdminService';
 import type { ClassV2 as Class, ClassSchedule } from '@/types';
@@ -40,6 +41,7 @@ export default function AdminClassSchedules() {
   const [editingSchedule, setEditingSchedule] = useState<ClassSchedule | null>(null);
   const [selectedScheduleForAttendance, setSelectedScheduleForAttendance] = useState<ClassSchedule | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   // 表单数据
   const [formData, setFormData] = useState({
@@ -154,7 +156,7 @@ export default function AdminClassSchedules() {
   // 提交表单
   const handleSubmit = async () => {
     if (!formData.date || !formData.startTime || !formData.endTime) {
-      alert('请填写完整的时间和地点信息');
+      await confirm({ title: '提示', message: '请填写完整的时间和地点信息', variant: 'info' });
       return;
     }
 
@@ -173,7 +175,7 @@ export default function AdminClassSchedules() {
       loadSchedules(selectedClass!._id!);
     } catch (error) {
       console.error('保存失败:', error);
-      alert('保存失败');
+      await confirm({ title: '提示', message: '保存失败', variant: 'info' });
     } finally {
       setSubmitting(false);
     }
@@ -182,7 +184,7 @@ export default function AdminClassSchedules() {
   // 批量创建排课
   const handleBatchSubmit = async () => {
     if (!batchFormData.startDate || !batchFormData.endDate) {
-      alert('请选择日期范围');
+      await confirm({ title: '提示', message: '请选择日期范围', variant: 'info' });
       return;
     }
 
@@ -197,7 +199,7 @@ export default function AdminClassSchedules() {
       loadSchedules(selectedClass!._id!);
     } catch (error) {
       console.error('批量创建失败:', error);
-      alert('批量创建失败');
+      await confirm({ title: '提示', message: '批量创建失败', variant: 'info' });
     } finally {
       setSubmitting(false);
     }
@@ -205,13 +207,14 @@ export default function AdminClassSchedules() {
 
   // 删除排课
   const handleDelete = async (scheduleId: string) => {
-    if (!confirm('确定删除该排课？')) return;
+    const ok = await confirm({ title: '删除确认', message: '确定要删除该排课吗？', variant: 'danger' });
+    if (!ok) return;
 
     try {
       await classService.deleteSchedule(scheduleId, selectedClass!._id!);
       loadSchedules(selectedClass!._id!);
     } catch (error) {
-      alert('删除失败');
+      await confirm({ title: '提示', message: '删除失败', variant: 'info' });
     }
   };
 
@@ -524,6 +527,8 @@ export default function AdminClassSchedules() {
         />
       )}
 
+      <ConfirmDialog />
+
       {/* 批量排课模态框 */}
       {isBatchModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -804,11 +809,11 @@ function AttendanceModal({ schedule, classInfo, onClose }: AttendanceModalProps)
           }
         });
       }
-      alert('出勤记录已保存');
+      await confirm({ title: '提示', message: '出勤记录已保存', variant: 'info' });
       onClose();
     } catch (error) {
       console.error('保存出勤记录失败:', error);
-      alert('保存失败');
+      await confirm({ title: '提示', message: '保存失败', variant: 'info' });
     } finally {
       setSaving(false);
     }

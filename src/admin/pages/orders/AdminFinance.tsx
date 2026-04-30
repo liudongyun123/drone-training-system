@@ -3,6 +3,7 @@
 // 功能：收入统计、订单管理、课程销售、教师业绩、数据导出
 // ============================================================================
 import { useState, useEffect } from 'react';
+import { useConfirm } from '@/admin/hooks/useConfirm';
 import { 
   DollarSign, ShoppingCart, TrendingUp, Users, Download,
   Search, ChevronLeft, ChevronRight,
@@ -197,6 +198,7 @@ function OrderDetailModal({ order, isOpen, onClose, onStatusChange }: OrderDetai
 
 // 主组件
 export default function AdminFinance() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'courses' | 'teachers'>('overview');
   const [loading, setLoading] = useState(false);
   
@@ -373,7 +375,7 @@ export default function AdminFinance() {
       loadStats();
     } catch (error) {
       console.error('更新订单状态失败:', error);
-      alert('更新失败，请重试');
+      await confirm({ title: '提示', message: '更新失败，请重试', variant: 'info' });
     }
   };
 
@@ -414,7 +416,7 @@ export default function AdminFinance() {
       document.body.removeChild(link);
     } catch (error) {
       console.error('导出失败:', error);
-      alert('导出失败，请重试');
+      await confirm({ title: '提示', message: '导出失败，请重试', variant: 'info' });
     }
   };
 
@@ -964,6 +966,8 @@ export default function AdminFinance() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog />
 
       {/* 订单详情弹窗 */}
       <OrderDetailModal

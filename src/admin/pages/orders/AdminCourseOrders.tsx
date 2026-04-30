@@ -5,6 +5,7 @@
 // ============================================================================
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useConfirm } from '@/admin/hooks/useConfirm';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { orderService } from '@/services';
 import { toast } from '@/components/Toast';
@@ -22,6 +23,7 @@ const STATUS_LABELS: Record<string, { text: string; color: string }> = {
 };
 
 export default function AdminCourseOrders() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -96,7 +98,8 @@ export default function AdminCourseOrders() {
 
   // 确认支付
   const handleConfirmPayment = async (order: any) => {
-    if (!confirm(`确定要确认订单 ${order.orderNo || order._id} 的支付吗？`)) return;
+    const ok = await confirm({ title: '支付确认', message: `确定要确认订单 ${order.orderNo || order._id} 的支付吗？`, variant: 'danger' });
+    if (!ok) return;
     try {
       const result = await orderService.updateStatus(order._id, 'paid');
       if (result.code === 0) {
@@ -113,7 +116,8 @@ export default function AdminCourseOrders() {
 
   // 取消订单
   const handleCancelOrder = async (order: any) => {
-    if (!confirm(`确定要取消订单 ${order.orderNo || order._id} 吗？`)) return;
+    const ok = await confirm({ title: '取消确认', message: `确定要取消订单 ${order.orderNo || order._id} 吗？`, variant: 'danger' });
+    if (!ok) return;
     try {
       const result = await orderService.updateStatus(order._id, 'cancelled');
       if (result.code === 0) {
@@ -130,7 +134,8 @@ export default function AdminCourseOrders() {
 
   // 退款
   const handleRefund = async (order: any) => {
-    if (!confirm(`确定要为订单 ${order.orderNo || order._id} 退款吗？`)) return;
+    const ok = await confirm({ title: '退款确认', message: `确定要为订单 ${order.orderNo || order._id} 退款吗？`, variant: 'danger' });
+    if (!ok) return;
     try {
       const result = await orderService.refund(order._id);
       if (result.code === 0) {
@@ -454,6 +459,8 @@ export default function AdminCourseOrders() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog />
     </AdminPageTemplate>
   );
 }

@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Wallet, Shield, FolderTree,
   MessageSquare, ScrollText, UsersRound,
   Wrench, Layers, Building2, CreditCard, ClipboardList,
-  BookMarked, Megaphone, Gauge, Database
+  BookMarked, Megaphone, Gauge, Database, Globe
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -53,32 +53,44 @@ interface MenuGroup {
 
 // 管理后台菜单配置（按业务场景分组）
 const adminMenuGroups: MenuGroup[] = [
+  // ==================== 工作台 ====================
   {
-    title: '概览',
+    title: '工作台',
     icon: LayoutDashboard,
     items: [
-      { path: '/admin', icon: LayoutDashboard, label: '仪表盘' },
+      { path: '/admin', icon: LayoutDashboard, label: '数据概览' },
     ]
   },
+
+  // ==================== 内容管理 ====================
   {
-    title: '线上课程',
-    icon: BookMarked,
+    title: '内容管理',
+    icon: BookOpen,
     items: [
-      { path: '/admin/courses', icon: BookOpen, label: '课程管理' },
-      { path: '/admin/categories', icon: FolderTree, label: '课程分类' },
-      { path: '/admin/comments', icon: MessageSquare, label: '评论管理' },
+      { path: '/admin/courses', icon: BookOpen, label: '课程管理', description: '视频课程' },
+      { path: '/admin/teachers', icon: GraduationCap, label: '教师管理', description: '教师档案' },
+      { path: '/admin/categories', icon: FolderTree, label: '分类管理', description: '课程/商品分类' },
+      { 
+        path: '/admin/page-config', 
+        icon: Layers, 
+        label: '内容配置', 
+        description: '首页/营销/评论',
+        relatedPaths: ['/admin/banners', '/admin/featured-courses', '/admin/notices', '/admin/marketing', '/admin/comments']
+      },
     ]
   },
+
+  // ==================== 培训管理 ====================
   {
-    title: '线下培训',
+    title: '培训管理',
     icon: Building2,
     items: [
       { 
         path: '/admin/classes', 
         icon: Users, 
         label: '班级管理',
-        description: '开班信息/培训安排',
-        relatedPaths: ['/admin/class-schedules', '/admin/attendance', '/admin/schedules']
+        description: '开班信息/学员名单',
+        relatedPaths: ['/admin/class-schedules']
       },
       { 
         path: '/admin/class-schedules', 
@@ -86,59 +98,87 @@ const adminMenuGroups: MenuGroup[] = [
         label: '排课出勤',
         description: '课表/出勤记录',
       },
+      { path: '/admin/registrations', icon: ClipboardList, label: '报名审核', description: '报名申请审核' },
+      { path: '/admin/transfers', icon: ScrollText, label: '调课申请', description: '调课/请假' },
+      { path: '/admin/certificates', icon: Award, label: '证书登记', description: '学员证书登记（非发证）' },
     ]
   },
+
+  // ==================== 考试中心 ====================
   {
-    title: '教师管理',
-    icon: GraduationCap,
+    title: '考试中心',
+    icon: FileText,
     items: [
-      { path: '/admin/teachers', icon: GraduationCap, label: '教师管理' },
+      { 
+        path: '/admin/exams', 
+        icon: FileText, 
+        label: '题库管理', 
+        description: '试卷/题库/题目',
+        relatedPaths: ['/admin/question-banks']
+      },
+      { path: '/admin/practice-records', icon: ClipboardCheck, label: '练习记录', description: '学员练习数据' },
     ]
   },
+
+  // ==================== 订单管理 ====================
   {
-    title: '学员管理',
+    title: '订单管理',
+    icon: CreditCard,
+    items: [
+      { path: '/admin/course-orders', icon: BookOpen, label: '课程订单', description: '视频课程购买' },
+      { path: '/admin/class-orders', icon: Users, label: '培训班订单', description: '线上报名' },
+      { path: '/admin/shop-orders', icon: ShoppingCart, label: '商城订单', description: '配件销售' },
+      { path: '/admin/finance', icon: Wallet, label: '财务统计', description: '收入报表/对账' },
+    ]
+  },
+
+  // ==================== 商城管理 ====================
+  {
+    title: '商城管理',
+    icon: ShoppingCart,
+    items: [
+      { path: '/admin/products', icon: ShoppingCart, label: '商品管理', description: '整机/配件' },
+    ]
+  },
+
+  // ==================== 用户管理 ====================
+  {
+    title: '用户管理',
     icon: UsersRound,
     items: [
       { path: '/admin/members', icon: UsersRound, label: '成员管理', description: '用户/学员', relatedPaths: ['/admin/students'] },
+      { path: '/admin/roles', icon: Shield, label: '角色管理', description: '角色权限配置' },
+      { path: '/admin/user-roles', icon: Users, label: '管理员账号', description: '后台账号管理' },
       { path: '/admin/permissions', icon: Shield, label: '权限管理', description: '视频权限/班级成员' },
     ]
   },
+
+  // ==================== 系统配置 ====================
   {
-    title: '考试认证',
-    icon: ClipboardCheck,
+    title: '系统配置',
+    icon: Settings,
     items: [
-      { path: '/admin/exams', icon: FileText, label: '题库管理', description: '内部练习', relatedPaths: ['/admin/question-banks'] },
-      { path: '/admin/practice-records', icon: ClipboardCheck, label: '练习记录' },
-      { path: '/admin/certificates', icon: Award, label: '证书管理' },
+      { path: '/admin/dictionaries', icon: Database, label: '字典管理', description: '状态标签/等级分类' },
+      { path: '/admin/site-config', icon: Globe, label: '站点配置', description: '默认图片/业务参数' },
+      { path: '/admin/auth-config', icon: Shield, label: '登录配置', description: '登录方式/认证设置' },
+      { 
+        path: '/admin/messages', 
+        icon: Bell, 
+        label: '消息公告', 
+        description: '系统通知/站内消息',
+        relatedPaths: ['/admin/notices']
+      },
     ]
   },
+
+  // ==================== 系统工具 ====================
   {
-    title: '订单财务',
-    icon: CreditCard,
+    title: '系统工具',
+    icon: Wrench,
     items: [
-      { path: '/admin/course-orders', icon: BookOpen, label: '课程订单', description: '线上购买视频课程' },
-      { path: '/admin/class-orders', icon: Users, label: '培训班订单', description: '线上报名培训班' },
-      { path: '/admin/finance', icon: Wallet, label: '财务报表', description: '收入统计' },
-    ]
-  },
-  {
-    title: '运营配置',
-    icon: Gauge,
-    items: [
-      { path: '/admin/page-config', icon: Layers, label: '首页配置', description: '轮播图/公告/推荐班级', relatedPaths: ['/admin/banners', '/admin/featured-courses', '/admin/notices'] },
-      { path: '/admin/messages', icon: Bell, label: '消息管理', description: '系统通知/用户消息' },
-      { path: '/admin/marketing', icon: Megaphone, label: '营销工具', description: '优惠券/活动' },
-    ]
-  },
-  {
-    title: '系统管理',
-    icon: Shield,
-    items: [
-      { path: '/admin/logs', icon: ScrollText, label: '系统日志' },
-      { path: '/admin/diagnostics', icon: Database, label: '系统诊断', description: '检测数据加载状态' },
-      { path: '/admin/data-fix', icon: Wrench, label: '数据修复', description: '修复数据关联问题' },
-      { path: '/admin/auth-config', icon: Settings, label: '系统设置', description: '登录方式', relatedPaths: ['/admin/user-roles'] },
-      { path: '/admin/user-roles', icon: Users, label: '账号管理', description: '管理员/教师账号' },
+      { path: '/admin/logs', icon: ScrollText, label: '操作日志', description: '后台操作记录' },
+      { path: '/admin/diagnostics', icon: Database, label: '系统诊断', description: '健康检查' },
+      { path: '/admin/data-fix', icon: Wrench, label: '数据修复', description: '数据问题修复' },
     ]
   },
 ];

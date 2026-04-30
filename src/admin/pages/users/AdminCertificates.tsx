@@ -39,7 +39,6 @@ export default function AdminCertificates() {
         setCertificates(certsRes.data);
       } else {
         setCertificates([]);
-        console.warn('证书数据格式不正确:', certsRes);
       }
       
       if (statsRes.success && statsRes.data) {

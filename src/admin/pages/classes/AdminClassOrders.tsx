@@ -5,6 +5,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
+import { useConfirm } from '@/admin/hooks/useConfirm';
 import { orderService, adminService, membersService } from '@/services';
 import {
   Search, RefreshCw, Eye, CheckCircle, Clock, CreditCard, 
@@ -65,6 +66,7 @@ export default function AdminClassOrders() {
     notes: '',
   });
   const [availableClasses, setAvailableClasses] = useState<any[]>([]);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   // 加载所有学员信息用于关联查询
   const loadAllMembers = async () => {
@@ -78,7 +80,6 @@ export default function AdminClassOrders() {
           cache[m._id] = m;
         });
         setMembersCache(cache);
-        console.log('[AdminClassOrders] 加载学员缓存:', Object.keys(cache).length, '条');
       }
     } catch (error) {
       console.error('加载学员信息失败:', error);
@@ -204,14 +205,14 @@ export default function AdminClassOrders() {
     try {
       const result = await orderService.grantPermission(selectedOrder._id);
       if (result.code === 0) {
-        alert('权限开放成功！');
+        await confirm({ title: '提示', message: '权限开放成功！', variant: 'info' });
         setGrantModalOpen(false);
         loadOrders();
       } else {
-        alert(result.message || '操作失败');
+        await confirm({ title: '提示', message: result.message || '操作失败', variant: 'info' });
       }
     } catch (error: any) {
-      alert(error.message || '操作失败');
+      await confirm({ title: '提示', message: error.message || '操作失败', variant: 'info' });
     } finally {
       setGranting(false);
     }
@@ -225,10 +226,8 @@ export default function AdminClassOrders() {
     try {
       // 查询所有班级，不限制状态，确保能加载到数据
       const result = await adminService.list('classes', {}, { limit: 200 });
-      console.log('[AdminClassOrders] 加载班级列表:', result);
       if (result.code === 0) {
         const list = Array.isArray(result.data) ? result.data : (result.data?.data || result.data?.list || []);
-        console.log('[AdminClassOrders] 班级数量:', list.length);
         setAvailableClasses(list);
       } else {
         console.error('[AdminClassOrders] 加载班级失败:', result.message);
@@ -259,7 +258,7 @@ export default function AdminClassOrders() {
   const searchMember = async () => {
     const phone = offlineEnrollForm.memberPhone.trim();
     if (!phone) {
-      alert('请输入手机号');
+      await confirm({ title: '提示', message: '请输入手机号', variant: 'info' });
       return;
     }
     try {
@@ -271,7 +270,7 @@ export default function AdminClassOrders() {
           memberName: result.data.name || '',
         }));
       } else {
-        alert('未找到该手机号对应的会员，请确认后重试');
+        await confirm({ title: '提示', message: '未找到该手机号对应的会员，请确认后重试', variant: 'info' });
       }
     } catch (error) {
       console.error('搜索会员失败:', error);
@@ -282,11 +281,11 @@ export default function AdminClassOrders() {
   const handleOfflineEnroll = async () => {
     const { memberPhone, classId, className, amount } = offlineEnrollForm;
     if (!memberPhone) {
-      alert('请填写手机号');
+      await confirm({ title: '提示', message: '请填写手机号', variant: 'info' });
       return;
     }
     if (!classId) {
-      alert('请选择班级');
+      await confirm({ title: '提示', message: '请选择班级', variant: 'info' });
       return;
     }
 
@@ -320,24 +319,23 @@ export default function AdminClassOrders() {
       }
 
       const orderId = orderResult.data?._id || orderResult.data?.id;
-      console.log('[OfflineEnroll] 订单创建成功:', orderId);
 
       // 2. 调用 grantPermission 开放权限（自动创建报名记录+授予权限）
       const grantResult = await orderService.grantPermission(orderId);
 
       if (grantResult.code === 0) {
-        alert('线下报名成功！学员权限已自动开放。');
+        await confirm({ title: '提示', message: '线下报名成功！学员权限已自动开放。', variant: 'info' });
         setOfflineEnrollModalOpen(false);
         loadOrders();
       } else {
         // 订单已创建但权限开放失败，提示用户
-        alert(`订单已创建（${orderId}），但权限开放失败：${grantResult.message}。请手动开放权限。`);
+        await confirm({ title: '提示', message: `订单已创建（${orderId}），但权限开放失败：${grantResult.message}。请手动开放权限。`, variant: 'info' });
         setOfflineEnrollModalOpen(false);
         loadOrders();
       }
     } catch (error: any) {
       console.error('线下报名失败:', error);
-      alert(error.message || '线下报名失败，请重试');
+      await confirm({ title: '提示', message: error.message || '线下报名失败，请重试', variant: 'info' });
     } finally {
       setOfflineEnrollLoading(false);
     }
@@ -647,6 +645,8 @@ export default function AdminClassOrders() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog />
 
       {/* 开放权限弹窗 */}
       <Modal

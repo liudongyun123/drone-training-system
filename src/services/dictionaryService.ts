@@ -154,6 +154,13 @@ export const DEFAULT_DICTIONARIES: Record<string, any> = {
     wechat: { text: '微信注册', color: 'bg-green-100 text-green-700' },
   },
 
+  // 教师状态
+  teacherStatus: {
+    active: { text: '在职', color: 'bg-green-100 text-green-700' },
+    inactive: { text: '离职', color: 'bg-gray-100 text-gray-600' },
+    suspended: { text: '停用', color: 'bg-red-100 text-red-700' },
+  },
+
   // 课程等级
   courseLevels: [
     { value: 'beginner', label: '入门', badgeColor: 'badge-success' },

@@ -1,9 +1,10 @@
 // ============================================================================
 // 管理后台 - 班级管理
-// 功能：班级CRUD、关联课程、教师分配、报名配置
-// 版本：v20260411-member-source
+// 功能:班级CRUD、关联课程、教师分配、报名配置
+// 版本:v20260411-member-source
 // ============================================================================
 import { useState, useEffect } from 'react';
+import { useConfirm } from '@/admin/hooks/useConfirm';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { classService } from '@/services';
 import { courseService, teacherService } from '@/services/database';
@@ -11,7 +12,7 @@ import type { ClassV2 as Class, Course, Teacher } from '@/types';
 import type { MemberSource } from '@/types/member';
 import { MemberSourceLabels, MemberSourceColors } from '@/types/member';
 import { CloudAdminService } from '@/services/CloudAdminService';
-import { 
+import {
   Plus, Edit, Trash2, Search, Calendar, MapPin, Users,
   BookOpen, UserCheck, Video, X, ChevronLeft, ChevronRight, Grid, List,
   Link as LinkIcon, ExternalLink, Copy, Check, Monitor, Smartphone
@@ -27,16 +28,16 @@ const STATUS_LABELS: Record<string, { text: string; color: string }> = {
   cancelled: { text: '已取消', color: 'bg-red-100 text-red-700' }
 };
 
-// ★ 辅助函数：获取班级人数（兼容新旧格式）
+// ★ 辅助函数:获取班级人数(兼容新旧格式)
 const getClassEnrollmentStats = (cls: any) => {
-  // 新版格式：capacity.confirmed / capacity.max
+  // 新版格式:capacity.confirmed / capacity.max
   if (cls.capacity) {
     return {
       enrolled: cls.capacity.confirmed || 0,
       max: cls.capacity.max || cls.maxStudents || 20
     };
   }
-  // 旧版格式：enrolledCount / maxStudents
+  // 旧版格式:enrolledCount / maxStudents
   return {
     enrolled: cls.enrolledCount || 0,
     max: cls.maxStudents || 20
@@ -85,11 +86,11 @@ const initialFormData = {
   teacherId: '',
   // 班级介绍
   intro: {
-    videoUrl: '',        // 视频介绍URL（如B站、腾讯视频等）
+    videoUrl: '',        // 视频介绍URL(如B站、腾讯视频等)
     videoCover: '',      // 视频封面图
-    documentUrl: '',     // 文档介绍URL（如PDF链接）
+    documentUrl: '',     // 文档介绍URL(如PDF链接)
     documentName: '',    // 文档名称
-    content: ''          // 详细介绍（富文本或markdown）
+    content: ''          // 详细介绍(富文本或markdown)
   },
   enrollmentConfig: {
     price: 0,
@@ -106,12 +107,12 @@ export default function AdminClasses() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
-  
+
   // 筛选状态
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCourse, setFilterCourse] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
-  
+
   // ★ 学员来源统计
   const [classMemberStats, setClassMemberStats] = useState<Record<string, {
     total: number;
@@ -120,18 +121,19 @@ export default function AdminClasses() {
     hybrid: number;
     other: number;
   }>>({});
-  
+
   // 模态框状态
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<Class | null>(null);
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // 关联数据
   const [courses, setCourses] = useState<Course[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const { confirm, ConfirmDialog } = useConfirm();
   
-  // 安全提取列表数据（兼容多种返回格式）
+  // 安全提取列表数据(兼容多种返回格式)
   const extractList = <T,>(result: any): T[] => {
     if (!result) return [];
     // 格式1: 直接数组
@@ -145,8 +147,8 @@ export default function AdminClasses() {
     if (Array.isArray(result.list)) return result.list;
     return [];
   };
-  
-  // 安全提取总数（兼容多种返回格式）
+
+  // 安全提取总数(兼容多种返回格式)
   const extractTotal = (result: any): number => {
     if (!result) return 0;
     // 格式1: { code: 0, data: { list, total } } - classService 返回格式
@@ -157,7 +159,7 @@ export default function AdminClasses() {
     if (typeof result.data?.total === 'number') return result.data.total;
     return 0;
   };
-  
+
   // 加载班级列表
   const loadClasses = async () => {
     setLoading(true);
@@ -166,16 +168,15 @@ export default function AdminClasses() {
       if (filterStatus) query.status = filterStatus;
       if (filterCourse) query.courseId = filterCourse;
       if (searchKeyword) query.keyword = searchKeyword;
-      
+
       const result = await classService.getList({
         ...query,
         page,
         pageSize: 10
       });
-      
+
       // 安全提取数据
       const listData = extractList<Class>(result);
-      console.log('班级数据:', listData);
       setClasses(listData);
       setTotal(extractTotal(result));
     } catch (error) {
@@ -186,7 +187,7 @@ export default function AdminClasses() {
       setLoading(false);
     }
   };
-  
+
   // 加载关联数据
   const loadRelatedData = async () => {
     try {
@@ -194,12 +195,10 @@ export default function AdminClasses() {
         courseService.getList({ page: 1, pageSize: 100 }),
         teacherService.getList({ page: 1, pageSize: 100 })
       ]);
-      
+
       // 调试日志
-      console.log('coursesResult:', coursesResult);
-      console.log('coursesResult.list:', coursesResult?.list);
-      
-      // 直接访问 list 字段，确保是数组
+
+      // 直接访问 list 字段,确保是数组
       setCourses(Array.isArray(coursesResult?.list) ? coursesResult.list : []);
       setTeachers(Array.isArray(teachersResult?.list) ? teachersResult.list : []);
     } catch (error) {
@@ -209,12 +208,12 @@ export default function AdminClasses() {
       setTeachers([]);
     }
   };
-  
+
   useEffect(() => {
     loadClasses();
     loadRelatedData();
   }, [page, filterStatus, filterCourse]);
-  
+
   // ★ 加载班级学员来源统计
   const loadClassMemberStats = async (classId: string) => {
     try {
@@ -223,7 +222,7 @@ export default function AdminClasses() {
         query: { classId },
         options: { limit: 100 }
       }) as { code: number; data: any[] };
-      
+
       if (result.code === 0 && result.data) {
         const stats = {
           total: result.data.length,
@@ -232,7 +231,7 @@ export default function AdminClasses() {
           hybrid: 0,
           other: 0
         };
-        
+
         result.data.forEach((member: any) => {
           // 通过 member.source 或关联的 registration/source 判断来源
           if (member.source === 'online_enroll') stats.online_enroll++;
@@ -240,14 +239,14 @@ export default function AdminClasses() {
           else if (member.source === 'hybrid') stats.hybrid++;
           else stats.other++;
         });
-        
+
         setClassMemberStats(prev => ({ ...prev, [classId]: stats }));
       }
     } catch (error) {
       console.error('加载班级学员统计失败:', error);
     }
   };
-  
+
   // 加载所有班级的学员统计
   const loadAllClassMemberStats = async () => {
     for (const cls of classes) {
@@ -256,21 +255,21 @@ export default function AdminClasses() {
       }
     }
   };
-  
-  // 当班级列表加载完成后，加载学员统计
+
+  // 当班级列表加载完成后,加载学员统计
   useEffect(() => {
     if (classes.length > 0) {
       loadAllClassMemberStats();
     }
   }, [classes]);
-  
+
   // 打开创建模态框
   const openCreateModal = () => {
     setEditingClass(null);
     setFormData(initialFormData);
     setIsModalOpen(true);
   };
-  
+
   // 打开编辑模态框
   const openEditModal = (cls: Class) => {
     setEditingClass(cls);
@@ -288,51 +287,52 @@ export default function AdminClasses() {
     });
     setIsModalOpen(true);
   };
-  
+
   // 提交表单
   const handleSubmit = async () => {
     if (!formData.name || !formData.courseId || !formData.teacherId) {
-      alert('请填写必填项');
+      await confirm({ title: '提示', message: '请填写必填项', variant: 'info' });
       return;
     }
-    
+
     setSubmitting(true);
     try {
       // 获取课程和教师名称
       const course = courses.find(c => c._id === formData.courseId);
       const teacher = teachers.find(t => t._id === formData.teacherId);
-      
+
       const submitData = {
         ...formData,
         courseName: course?.title,
         teacherName: teacher?.name
       };
-      
+
       if (editingClass) {
         await classService.update(editingClass._id!, submitData);
       } else {
         await classService.create(submitData);
       }
-      
+
       setIsModalOpen(false);
       loadClasses();
     } catch (error) {
       console.error('保存失败:', error);
-      alert('保存失败');
+      await confirm({ title: '提示', message: '保存失败', variant: 'info' });
     } finally {
       setSubmitting(false);
     }
   };
-  
+
   // 删除班级
   const handleDelete = async (id: string) => {
-    if (!confirm('确定删除该班级？')) return;
-    
+    const ok = await confirm({ title: '删除确认', message: '确定要删除该班级吗？此操作不可撤销。', variant: 'danger' });
+    if (!ok) return;
+
     try {
       await classService.delete(id);
       loadClasses();
     } catch (error: any) {
-      alert(error.message || '删除失败');
+      await confirm({ title: '提示', message: error.message || '删除失败', variant: 'info' });
     }
   };
 
@@ -343,13 +343,9 @@ export default function AdminClasses() {
     const success = await copyToClipboard(url);
     if (success) {
       setCopiedClassId(cls._id!);
-      // 显示成功提示
-      const link = document.createElement('a');
-      link.href = url;
-      alert(`已复制报名链接：\n${url}`);
       setTimeout(() => setCopiedClassId(null), 2000);
     } else {
-      alert('复制失败，请手动复制链接');
+      await confirm({ title: '提示', message: '复制失败，请手动复制链接', variant: 'info' });
     }
   };
 
@@ -358,7 +354,7 @@ export default function AdminClasses() {
     const url = getClassRegistrationUrl(classId);
     window.open(url, '_blank');
   };
-  
+
   // 渲染班级卡片
   const renderClassCard = (cls: Class) => (
     <div key={cls._id} className="bg-white rounded-xl border hover:shadow-lg transition-shadow p-5">
@@ -371,7 +367,7 @@ export default function AdminClasses() {
           {STATUS_LABELS[cls.status]?.text || cls.status}
         </span>
       </div>
-      
+
       <div className="space-y-2 text-sm text-gray-600 mb-4">
         <div className="flex items-center gap-2">
           <Calendar size={14} />
@@ -390,7 +386,7 @@ export default function AdminClasses() {
           <span>{getClassEnrollmentStats(cls).enrolled} / {getClassEnrollmentStats(cls).max} 人</span>
         </div>
       </div>
-      
+
       <div className="flex items-center justify-between pt-4 border-t">
         <div className="flex items-center gap-4 text-sm">
           <span className="text-gray-500">
@@ -410,8 +406,8 @@ export default function AdminClasses() {
               <button
                 onClick={() => handleCopyRegistrationLink(cls)}
                 className={`p-2 rounded-lg transition-colors ${
-                  copiedClassId === cls._id 
-                    ? 'text-green-600 bg-green-50' 
+                  copiedClassId === cls._id
+                    ? 'text-green-600 bg-green-50'
                     : 'text-green-600 hover:bg-green-50'
                 }`}
                 title="复制报名链接"
@@ -443,14 +439,14 @@ export default function AdminClasses() {
       </div>
     </div>
   );
-  
+
   // ★ 渲染学员来源统计
   const renderMemberSourceStats = (clsId: string) => {
     const stats = classMemberStats[clsId];
     if (!stats) {
       return <span className="text-gray-400 text-xs">加载中...</span>;
     }
-    
+
     return (
       <div className="flex items-center gap-2 flex-wrap">
         {/* 线上报名 */}
@@ -513,7 +509,7 @@ export default function AdminClasses() {
           {getClassEnrollmentStats(cls).enrolled} / {getClassEnrollmentStats(cls).max}
         </div>
       </td>
-      {/* ★ 新增：学员来源列 */}
+      {/* ★ 新增:学员来源列 */}
       <td className="px-6 py-4">
         {renderMemberSourceStats(cls._id!)}
       </td>
@@ -528,8 +524,8 @@ export default function AdminClasses() {
               <button
                 onClick={() => handleCopyRegistrationLink(cls)}
                 className={`p-2 rounded-lg transition-colors ${
-                  copiedClassId === cls._id 
-                    ? 'text-green-600 bg-green-50' 
+                  copiedClassId === cls._id
+                    ? 'text-green-600 bg-green-50'
                     : 'text-green-600 hover:bg-green-50'
                 }`}
                 title="复制报名链接"
@@ -567,7 +563,7 @@ export default function AdminClasses() {
   return (
     <AdminPageTemplate
       title="班级管理"
-      description="管理线下培训班级，配置课程、教师、排课信息"
+      description="管理线下培训班级,配置课程、教师、排课信息"
       action={
         <button
           onClick={openCreateModal}
@@ -593,7 +589,7 @@ export default function AdminClasses() {
               />
             </div>
           </div>
-          
+
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -605,7 +601,7 @@ export default function AdminClasses() {
             <option value="in_progress">进行中</option>
             <option value="completed">已结课</option>
           </select>
-          
+
           <select
             value={filterCourse}
             onChange={(e) => setFilterCourse(e.target.value)}
@@ -616,7 +612,7 @@ export default function AdminClasses() {
               <option key={course._id} value={course._id}>{course.title}</option>
             ))}
           </select>
-          
+
           <div className="flex gap-2">
             <button
               onClick={() => setViewMode('list')}
@@ -633,7 +629,7 @@ export default function AdminClasses() {
           </div>
         </div>
       </div>
-      
+
       {/* 班级列表 */}
       {loading ? (
         <div className="flex items-center justify-center h-64">
@@ -663,7 +659,7 @@ export default function AdminClasses() {
           </table>
         </div>
       )}
-      
+
       {/* 分页 */}
       {!loading && total > 10 && (
         <div className="flex items-center justify-between mt-6">
@@ -691,7 +687,9 @@ export default function AdminClasses() {
           </div>
         </div>
       )}
-      
+
+      <ConfirmDialog />
+
       {/* 创建/编辑模态框 */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -718,7 +716,7 @@ export default function AdminClasses() {
                 <X size={20} />
               </button>
             </div>
-            
+
             {/* 表单 */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-5">
@@ -732,11 +730,11 @@ export default function AdminClasses() {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="如：无人机驾驶第3期"
+                      placeholder="如:无人机驾驶第3期"
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
-                  
+
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">班级描述</label>
                     <textarea
@@ -746,7 +744,7 @@ export default function AdminClasses() {
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       关联课程 <span className="text-red-500">*</span>
@@ -762,7 +760,7 @@ export default function AdminClasses() {
                       ))}
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       授课教师 <span className="text-red-500">*</span>
@@ -779,7 +777,7 @@ export default function AdminClasses() {
                     </select>
                   </div>
                 </div>
-                
+
                 {/* 时间地点 */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
@@ -791,7 +789,7 @@ export default function AdminClasses() {
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">结束日期</label>
                     <input
@@ -801,7 +799,7 @@ export default function AdminClasses() {
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">最大学员数</label>
                     <input
@@ -812,25 +810,25 @@ export default function AdminClasses() {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">上课地点</label>
                   <input
                     type="text"
                     value={formData.location}
                     onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    placeholder="如：北京市海淀区XX路XX号"
+                    placeholder="如:北京市海淀区XX路XX号"
                     className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
                 </div>
-                
+
                 {/* 班级介绍 */}
                 <div className="border-t pt-5 mt-5">
                   <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
                     <Video className="w-4 h-4 text-purple-600" />
-                    班级介绍（前台展示给学员）
+                    班级介绍(前台展示给学员)
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">视频介绍URL</label>
@@ -841,12 +839,12 @@ export default function AdminClasses() {
                           ...prev,
                           intro: { ...prev.intro, videoUrl: e.target.value }
                         }))}
-                        placeholder="如：https://www.bilibili.com/video/xxx"
+                        placeholder="如:https://www.bilibili.com/video/xxx"
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       />
                       <p className="text-xs text-gray-500 mt-1">支持B站、腾讯视频、微信视频号等链接</p>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">视频封面图URL</label>
                       <input
@@ -856,12 +854,12 @@ export default function AdminClasses() {
                           ...prev,
                           intro: { ...prev.intro, videoCover: e.target.value }
                         }))}
-                        placeholder="视频封面图片链接（可选）"
+                        placeholder="视频封面图片链接(可选)"
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">课程文档URL</label>
@@ -872,12 +870,12 @@ export default function AdminClasses() {
                           ...prev,
                           intro: { ...prev.intro, documentUrl: e.target.value }
                         }))}
-                        placeholder="如：https://example.com/syllabus.pdf"
+                        placeholder="如:https://example.com/syllabus.pdf"
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       />
                       <p className="text-xs text-gray-500 mt-1">支持PDF、Word等文档链接</p>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">文档名称</label>
                       <input
@@ -887,12 +885,12 @@ export default function AdminClasses() {
                           ...prev,
                           intro: { ...prev.intro, documentName: e.target.value }
                         }))}
-                        placeholder="如：课程大纲、招生简章"
+                        placeholder="如:课程大纲、招生简章"
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">详细介绍</label>
                     <textarea
@@ -907,11 +905,11 @@ export default function AdminClasses() {
                     />
                   </div>
                 </div>
-                
+
                 {/* 报名配置 */}
                 <div className="border-t pt-5">
                   <h3 className="font-medium text-gray-900 mb-4">报名配置</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">报名价格</label>
@@ -925,7 +923,7 @@ export default function AdminClasses() {
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">原价</label>
                       <input
@@ -938,7 +936,7 @@ export default function AdminClasses() {
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">视频有效期(天)</label>
                       <input
@@ -952,7 +950,7 @@ export default function AdminClasses() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -965,13 +963,13 @@ export default function AdminClasses() {
                       className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                     />
                     <label htmlFor="enableVideo" className="text-sm text-gray-700">
-                      开通视频观看权限（学员报名后可观看关联课程的线上视频）
+                      开通视频观看权限(学员报名后可观看关联课程的线上视频)
                     </label>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             {/* 底部按钮 */}
             <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
               <button

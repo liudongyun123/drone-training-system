@@ -128,7 +128,6 @@ export default function AdminOfflineEnrollment() {
           name: result.data.name || (result.data as any).nickname || '',
           memberId: result.data._id || undefined,  // members._id 是 CloudBase 自动生成的 ID
         });
-        console.log('[OfflineEnrollment] 查询到会员:', result.data._id, result.data.name);
       } else {
         // 用户不存在，可以新建
         setUserInfo({ phone, name: '', memberId: undefined });
@@ -203,10 +202,8 @@ export default function AdminOfflineEnrollment() {
         if (memberResult?.success && memberResult.data) {
           // 会员已存在，获取 memberId（对应 members._id）
           memberId = memberResult.data._id;
-          console.log('[OfflineEnrollment] 找到已有会员:', memberId, memberResult.data.name);
         } else {
           // 会员不存在，创建新会员
-          console.log('[OfflineEnrollment] 创建新会员记录:', enrollmentForm.phone);
           const newMember = await membersService.create({
             name: enrollmentForm.userName || userInfo?.name || '线下报名用户',
             phone: enrollmentForm.phone,
@@ -215,7 +212,6 @@ export default function AdminOfflineEnrollment() {
           });
           if (newMember.success && newMember.data) {
             memberId = newMember.data._id;  // CloudBase 自动生成的 ID
-            console.log('[OfflineEnrollment] 新会员创建成功:', memberId);
           }
         }
       } catch (memberError) {

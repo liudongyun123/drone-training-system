@@ -89,7 +89,6 @@ export default function AdminDashboard() {
       try {
         await checkLogin();
       } catch (authError) {
-        console.warn('登录检查失败,尝试继续:', authError);
       }
 
       const db = cloudbaseApp.database();

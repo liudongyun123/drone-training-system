@@ -68,6 +68,8 @@ import {
   AdminMessageManagement,
   AdminDataFix,
   AdminDiagnostics,
+  AdminDictionaries,
+  AdminSiteConfig,
   TransferRequestPage,
   AdminTransfers,
   AdminClasses,
@@ -201,6 +203,10 @@ const adminRoutes = [
 
   // 系统诊断
   { path: '/admin/diagnostics', element: adminRoute(AdminDiagnostics) },
+
+  // 系统配置中心
+  { path: '/admin/dictionaries', element: adminRoute(AdminDictionaries) },
+  { path: '/admin/site-config', element: adminRoute(AdminSiteConfig) },
 
   // 系统设置
   { path: '/admin/auth-config', element: adminRoute(AdminAuthConfig) },
