@@ -1,7 +1,7 @@
 /* pages/my-schedule/my-schedule.wxss */
 
 .page {
-  background: var(--bg-color);
+  background: #f5f5f5;
   min-height: 100vh;
 }
 
@@ -9,27 +9,27 @@
 .date-bar {
   white-space: nowrap;
   background: #fff;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #eee;
 }
 
 .date-item {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 16px;
-  margin-right: 8px;
-  border-radius: 8px;
-  background: var(--bg-color);
+  padding: 16rpx 24rpx;
+  margin-right: 16rpx;
+  border-radius: 16rpx;
+  background: #f5f5f5;
 }
 
 .date-item.active {
-  background: var(--primary-color);
+  background: #2563eb;
 }
 
 .date-day {
-  font-size: 14px;
-  color: var(--text-color);
+  font-size: 28rpx;
+  color: #333;
 }
 
 .date-item.active .date-day {
@@ -37,91 +37,101 @@
 }
 
 .date-tag {
-  font-size: 10px;
-  color: var(--primary-color);
-  margin-top: 4px;
+  font-size: 20rpx;
+  color: #2563eb;
+  margin-top: 8rpx;
 }
 
 .date-item.active .date-tag {
   color: rgba(255, 255, 255, 0.8);
 }
 
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 200rpx;
+  color: #999;
+  font-size: 28rpx;
+}
+
 /* 日程列表 */
 .schedule-list {
-  padding: 16px;
+  padding: 32rpx;
 }
 
 .schedule-item {
   display: flex;
-  margin-bottom: 16px;
+  margin-bottom: 32rpx;
 }
 
 .time-line {
-  width: 32px;
+  width: 64rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-right: 12px;
+  margin-right: 24rpx;
 }
 
 .time-dot {
-  width: 10px;
-  height: 10px;
+  width: 20rpx;
+  height: 20rpx;
   border-radius: 50%;
-  background: var(--primary-color);
+  background: #2563eb;
   flex-shrink: 0;
 }
 
 .time-vertical {
-  width: 2px;
+  width: 4rpx;
   flex: 1;
-  background: var(--border-color);
-  margin-top: 4px;
+  background: #e0e0e0;
+  margin-top: 8rpx;
 }
 
 .schedule-card {
   flex: 1;
   background: #fff;
-  border-radius: 8px;
-  padding: 12px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 16rpx;
+  padding: 24rpx 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
 }
 
 .schedule-time {
-  font-size: 13px;
-  color: var(--primary-color);
+  font-size: 26rpx;
+  color: #2563eb;
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: 16rpx;
 }
 
 .schedule-content {
-  margin-bottom: 12px;
+  margin-bottom: 24rpx;
 }
 
 .schedule-title {
   display: block;
-  font-size: 15px;
+  font-size: 30rpx;
   font-weight: 600;
-  color: var(--text-color);
-  margin-bottom: 6px;
+  color: #333;
+  margin-bottom: 12rpx;
 }
 
 .schedule-teacher {
   display: block;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 8rpx;
 }
 
 .schedule-location {
   display: flex;
   align-items: center;
-  font-size: 12px;
-  color: var(--text-placeholder);
+  font-size: 24rpx;
+  color: #999;
 }
 
 .location-icon {
-  margin-right: 4px;
+  margin-right: 8rpx;
 }
 
 .schedule-status {
@@ -130,22 +140,41 @@
 }
 
 .status-tag {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  font-size: 24rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
 }
 
 .status-tag.status-not_started {
   background: rgba(153, 153, 153, 0.1);
-  color: var(--text-placeholder);
+  color: #999;
 }
 
 .status-tag.status-ongoing {
-  background: rgba(24, 144, 255, 0.1);
-  color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
 }
 
 .status-tag.status-ended {
   background: rgba(153, 153, 153, 0.1);
-  color: var(--text-placeholder);
+  color: #999;
+}
+
+/* 空状态 */
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 32rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
 }

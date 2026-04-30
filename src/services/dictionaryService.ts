@@ -163,9 +163,6 @@ export const DEFAULT_DICTIONARIES: Record<string, any> = {
 
   // 课程等级
   courseLevels: [
-    { value: 'beginner', label: '入门', badgeColor: 'badge-success' },
-    { value: 'intermediate', label: '进阶', badgeColor: 'badge-warning' },
-    { value: 'advanced', label: '高级', badgeColor: 'badge-error' },
     { value: '初级工', label: '初级工', badgeColor: 'badge-success' },
     { value: '中级工', label: '中级工', badgeColor: 'badge-warning' },
     { value: '高级工', label: '高级工', badgeColor: 'badge-error' },

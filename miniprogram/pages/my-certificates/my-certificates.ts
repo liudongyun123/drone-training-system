@@ -1,10 +1,8 @@
 // pages/my-certificates/my-certificates.ts
 // 我的证书页
 
-import { getDatabase } from '../../utils/cloudbase'
+import { getExternalCertificates, getTrainingCertificates, getCertificates } from '../../utils/http'
 import { checkLogin, formatDate } from '../../utils/util'
-
-const db = getDatabase()
 
 Page({
   data: {
@@ -42,20 +40,16 @@ Page({
     try {
       const userId = wx.getStorageSync('userId')
 
-      const [externalResult, trainingResult] = await Promise.all([
-        db.collection('external_certificates')
-          .where({ userId })
-          .orderBy('createdAt', 'desc')
-          .get(),
-        db.collection('training_certificates')
-          .where({ userId })
-          .orderBy('issuedAt', 'desc')
-          .get()
+      // 尝试加载证书数据（可能集合不存在）
+      const [externalResult, trainingResult, certResult] = await Promise.all([
+        getExternalCertificates(userId).catch(() => ({ data: [] })),
+        getTrainingCertificates(userId).catch(() => ({ data: [] })),
+        getCertificates(userId).catch(() => ({ data: [] }))
       ])
 
       this.setData({
-        externalCerts: externalResult.data,
-        trainingCerts: trainingResult.data,
+        externalCerts: externalResult.data || certResult.data || [],
+        trainingCerts: trainingResult.data || [],
         loading: false
       })
     } catch (err) {
@@ -82,7 +76,7 @@ Page({
   },
 
   // 格式化日期
-  formatDate(dateStr: string): string {
+  formatCertDate(dateStr: string): string {
     return formatDate(dateStr, 'YYYY-MM-DD')
   }
 })

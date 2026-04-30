@@ -6,63 +6,93 @@
   background: #f1f5f9;
 }
 
-/* ==================== Hero 区域（紧凑版） ==================== */
+/* ==================== Hero 区域（三块布局） ==================== */
 .hero-section {
-  position: relative;
-  padding: 48rpx 24rpx 36rpx;
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+  padding: 16rpx 24rpx 16rpx 24rpx;
+  box-sizing: border-box;
+}
+
+/* 顶部区域（左右分栏） */
+.hero-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+/* 左侧文字区域 */
+.hero-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 底部区域 */
+.hero-bottom {
+  margin-top: 0;
+  padding-left: 0;
+  padding-right: 24rpx;
+  padding-bottom: 16rpx;
+}
+
+/* 右侧轮播图区域 */
+.hero-right {
+  width: 52%;
+}
+
+.hero-swiper {
+  width: 100%;
+  height: 280rpx;
+  border-radius: 16rpx;
   overflow: hidden;
 }
 
-.hero-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: -16rpx;
-  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-  border-radius: 0 0 32rpx 32rpx;
+.hero-banner-image {
+  width: 100%;
+  height: 280rpx;
+  border-radius: 16rpx;
 }
 
-.hero-content {
-  position: relative;
-  z-index: 1;
+/* 底部按钮区域（横跨两栏） */
+.hero-bottom {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10rpx;
+}
+
+.hero-bottom .hero-desc {
+  margin-bottom: 10rpx;
+}
+
+/* 按钮和信任标签同行 */
+.hero-bottom-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16rpx;
 }
 
 /* Logo */
 .hero-logo {
   display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin-bottom: 20rpx;
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin-bottom: 0;
+  margin-top: 0;
 }
 
-.logo-box {
-  width: 56rpx;
-  height: 56rpx;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 14rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logo-icon {
-  font-size: 28rpx;
-}
-
-.logo-text {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #fff;
+.logo-img {
+  width: 160rpx;
+  height: 80rpx;
 }
 
 /* 标题 */
 .hero-title {
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
 }
 
 .title-main {
-  font-size: 44rpx;
+  font-size: 52rpx;
   font-weight: 800;
   color: #fff;
   line-height: 1.2;
@@ -70,37 +100,37 @@
 }
 
 .title-sub {
-  font-size: 44rpx;
+  font-size: 52rpx;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.9);
   line-height: 1.2;
   display: block;
 }
 
-/* 描述 */
-.hero-desc {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1.5;
-  margin-bottom: 24rpx;
-  display: block;
-}
+
 
 /* 按钮 */
 .hero-actions {
   display: flex;
-  gap: 16rpx;
-  margin-bottom: 24rpx;
+  gap: 10rpx;
+  margin-bottom: 16rpx;
 }
-
+/* 描述 */
+.hero-desc {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  margin-bottom: 28rpx;
+  display: block;
+}
 .btn-primary {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16rpx 28rpx;
+  padding: 10rpx 18rpx;
   background: #fff;
   color: #2563eb;
-  border-radius: 12rpx;
+  border-radius: 6rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.15);
   font-weight: 600;
 }
@@ -109,71 +139,73 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16rpx 28rpx;
+  padding: 10rpx 18rpx;
   background: rgba(255, 255, 255, 0.1);
   border: 1rpx solid rgba(255, 255, 255, 0.3);
   color: #fff;
-  border-radius: 12rpx;
+  border-radius: 6rpx;
   font-weight: 500;
 }
 
 .btn-icon {
-  font-size: 24rpx;
-  margin-right: 8rpx;
+  font-size: 20rpx;
+  margin-right: 6rpx;
 }
 
 .btn-text {
-  font-size: 24rpx;
+  font-size: 20rpx;
 }
 
 /* 信任标签 */
 .hero-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  gap: 12rpx;
 }
 
 .badge-item {
   display: flex;
   align-items: center;
-  gap: 6rpx;
+  gap: 4rpx;
 }
 
 .badge-icon {
   color: #34d399;
-  font-size: 22rpx;
+  font-size: 18rpx;
 }
 
 .badge-text {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 22rpx;
+  font-size: 18rpx;
 }
 
 /* ==================== 内容区域 ==================== */
 .content {
-  padding: 16rpx 24rpx;
+  padding: 24rpx;
+  box-sizing: border-box;
 }
 
 /* ==================== 分区通用样式 ==================== */
 .section {
-  margin-bottom: 24rpx;
+  margin-bottom: 28rpx;
 }
 
 .section-header {
   display: flex;
   align-items: center;
-  margin-bottom: 16rpx;
+  margin-bottom: 18rpx;
 }
 
 .section-icon-box {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 14rpx;
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12rpx;
+  margin-right: 14rpx;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
 }
 
 .section-icon-box.green {
@@ -197,35 +229,49 @@
 }
 
 .section-icon {
-  font-size: 26rpx;
+  font-size: 28rpx;
 }
 
 .section-title-wrap {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .section-title {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 700;
   color: #1e293b;
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .section-subtitle {
-  font-size: 20rpx;
+  font-size: 22rpx;
   color: #64748b;
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .section-more {
   display: flex;
   align-items: center;
+  justify-content: center;
   color: #2563eb;
-  font-size: 22rpx;
+  font-size: 24rpx;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  white-space: nowrap;
+  min-width: 80rpx;
+  padding: 8rpx 12rpx;
 }
 
 .arrow {
-  font-size: 28rpx;
+  font-size: 30rpx;
   margin-left: 4rpx;
 }
 
@@ -233,6 +279,9 @@
 .scroll-x {
   width: 100%;
   white-space: nowrap;
+  padding-bottom: 8rpx;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .paths-scroll,
@@ -241,28 +290,31 @@
 .features-scroll,
 .product-scroll {
   display: inline-flex;
-  gap: 12rpx;
-  padding-right: 24rpx;
+  gap: 11rpx;
+  padding-left: 8rpx;
+  padding-right: 8rpx;
 }
 
 /* ==================== 学习路径卡片 ==================== */
 .path-card {
-  width: 160rpx;
+  width: 165rpx;
+  flex-shrink: 0;
   background: #fff;
   border-radius: 16rpx;
-  padding: 20rpx 16rpx;
+  padding: 20rpx 12rpx;
   text-align: center;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
 }
 
 .path-icon-box {
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 12rpx;
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 30rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 12rpx;
+  margin: 0 auto 10rpx;
 }
 
 .path-icon-box.blue {
@@ -291,30 +343,39 @@
   color: #1e293b;
   display: block;
   margin-bottom: 6rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .path-desc {
   font-size: 20rpx;
   color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ==================== 课程卡片（横向滑动） ==================== */
 .course-card {
-  width: 280rpx;
+  width: 225rpx;
+  flex-shrink: 0;
   background: #fff;
   border-radius: 16rpx;
   overflow: hidden;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
 }
 
 .course-cover {
   width: 100%;
-  height: 160rpx;
+  height: 130rpx;
   background: linear-gradient(135deg, #dbeafe, #e0e7ff);
 }
 
 .course-body {
   padding: 12rpx;
+  width: auto;
 }
 
 .course-level-badge {
@@ -324,19 +385,20 @@
   color: #2563eb;
   font-size: 18rpx;
   border-radius: 6rpx;
-  margin-bottom: 8rpx;
+  margin-bottom: 6rpx;
 }
 
 .course-title {
-  font-size: 24rpx;
+  font-size: 23rpx;
   font-weight: 600;
   color: #1e293b;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.3;
-  min-height: 60rpx;
+  text-overflow: ellipsis;
+  min-height: 56rpx;
 }
 
 .course-meta {
@@ -347,24 +409,25 @@
 }
 
 .course-price {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: #ef4444;
 }
 
 .course-price::before {
   content: '¥';
-  font-size: 18rpx;
+  font-size: 20rpx;
 }
 
 .course-sales {
-  font-size: 18rpx;
+  font-size: 20rpx;
   color: #94a3b8;
 }
 
 /* ==================== 培训班卡片（横向滑动） ==================== */
 .class-card {
-  width: 320rpx;
+  width: 190rpx;
+  flex-shrink: 0;
   background: #fff;
   border-radius: 16rpx;
   padding: 16rpx;
@@ -372,27 +435,27 @@
 }
 
 .class-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10rpx;
+  margin-bottom: 8rpx;
 }
 
 .class-name {
-  flex: 1;
+  width: 100%;
   font-size: 24rpx;
   font-weight: 600;
   color: #1e293b;
+  line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .class-status-badge {
   padding: 4rpx 12rpx;
   border-radius: 16rpx;
   font-size: 20rpx;
+  flex-shrink: 0;
 }
 
 .class-status-badge.enrolling {
@@ -408,12 +471,16 @@
 }
 
 .info-icon {
-  font-size: 20rpx;
+  font-size: 22rpx;
+  flex-shrink: 0;
 }
 
 .info-text {
-  font-size: 20rpx;
+  font-size: 22rpx;
   color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .class-divider {
@@ -429,18 +496,18 @@
 }
 
 .class-price {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 700;
   color: #ef4444;
 }
 
 .class-price::before {
   content: '¥';
-  font-size: 20rpx;
+  font-size: 22rpx;
 }
 
 .class-count {
-  font-size: 20rpx;
+  font-size: 22rpx;
   color: #64748b;
 }
 
@@ -448,14 +515,18 @@
 .stats-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-  border-radius: 16rpx;
-  padding: 20rpx 24rpx;
+  border-radius: 19rpx;
+  padding: 50rpx 12rpx;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .stat-item {
   text-align: center;
+  min-width: 10;
+  padding: 0 50rpx;
 }
 
 .stat-number {
@@ -463,6 +534,10 @@
   font-weight: 800;
   color: #fff;
   display: block;
+  letter-spacing: -1rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stat-label {
@@ -474,13 +549,15 @@
 
 .stat-divider {
   width: 1rpx;
-  height: 40rpx;
+  height: 44rpx;
   background: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
 }
 
 /* ==================== 特色功能卡片 ==================== */
 .feature-card {
-  width: 160rpx;
+  width: 135rpx;
+  flex-shrink: 0;
   background: #fff;
   border-radius: 14rpx;
   padding: 16rpx;
@@ -489,7 +566,7 @@
 }
 
 .feature-icon-box {
-  width: 44rpx;
+  width: 40rpx;
   height: 44rpx;
   border-radius: 12rpx;
   display: flex;
@@ -531,17 +608,19 @@
 }
 
 .feature-desc {
-  font-size: 18rpx;
+  font-size: 16rpx;
   color: #64748b;
 }
 
 /* ==================== 商品卡片 ==================== */
 .product-card {
-  width: 200rpx;
+  width: 170rpx;
+  flex-shrink: 0;
   background: #fff;
   border-radius: 14rpx;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
 }
 
 .product-cover {
@@ -557,12 +636,13 @@
 .product-name {
   font-size: 22rpx;
   color: #1e293b;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.3;
-  min-height: 56rpx;
+  text-overflow: ellipsis;
+  min-height: 60rpx;
 }
 
 .product-price-box {

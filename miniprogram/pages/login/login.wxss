@@ -4,8 +4,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 48px 24px;
-  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+  padding: 96rpx 48rpx;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
   min-height: 100vh;
 }
 
@@ -18,31 +18,43 @@
 }
 
 .logo {
-  width: 120px;
-  height: 120px;
-  margin-bottom: 24px;
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 48rpx;
+  background: #fff;
+  border-radius: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);
+}
+
+.logo-img {
+  width: 160rpx;
+  height: auto;
+  max-height: 160rpx;
 }
 
 .title {
-  font-size: 24px;
+  font-size: 48rpx;
   font-weight: 600;
   color: #fff;
-  margin-bottom: 8px;
+  margin-bottom: 16rpx;
 }
 
 .desc {
-  font-size: 14px;
+  font-size: 28rpx;
   color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 48px;
+  margin-bottom: 96rpx;
 }
 
 .btn-wx-login,
 .btn-phone-login {
-  width: 280px;
-  height: 48px;
-  border-radius: 24px;
-  margin-bottom: 16px;
-  font-size: 16px;
+  width: 560rpx;
+  height: 96rpx;
+  border-radius: 48rpx;
+  margin-bottom: 32rpx;
+  font-size: 32rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,23 +62,23 @@
 
 .btn-wx-login {
   background: #fff;
-  color: #1890ff;
+  color: #2563eb;
 }
 
 .btn-phone-login {
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1rpx solid rgba(255, 255, 255, 0.4);
 }
 
 .btn-icon {
-  margin-right: 8px;
+  margin-right: 16rpx;
 }
 
 .tips {
-  font-size: 12px;
+  font-size: 24rpx;
   color: rgba(255, 255, 255, 0.6);
-  margin-top: 24px;
+  margin-top: 48rpx;
 }
 
 /* 已登录状态 */
@@ -75,29 +87,31 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  padding-top: 48px;
+  padding-top: 96rpx;
 }
 
 .avatar {
-  width: 100px;
-  height: 100px;
+  width: 200rpx;
+  height: 200rpx;
   border-radius: 50%;
-  border: 4px solid #fff;
-  margin-bottom: 16px;
+  border: 8rpx solid #fff;
+  margin-bottom: 32rpx;
+  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
 }
 
 .nickname {
-  font-size: 20px;
+  font-size: 40rpx;
   font-weight: 600;
   color: #fff;
-  margin-bottom: 48px;
+  margin-bottom: 96rpx;
 }
 
 .btn-logout {
-  width: 200px;
-  height: 48px;
+  width: 400rpx;
+  height: 96rpx;
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 48rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.4);
+  font-size: 32rpx;
 }

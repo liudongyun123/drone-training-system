@@ -1,15 +1,14 @@
 // pages/my-schedule/my-schedule.ts
 // 我的日程页
 
-import { getDatabase } from '../../utils/cloudbase'
+import { getMySchedules } from '../../utils/http'
 import { formatDate } from '../../utils/util'
 import { checkLogin } from '../../utils/util'
-
-const db = getDatabase()
 
 Page({
   data: {
     schedule: [] as any[],
+    daySchedules: [] as any[],
     dates: [] as string[],
     currentDate: '',
     loading: true,
@@ -24,6 +23,10 @@ Page({
     }
     this.initDates()
     this.loadSchedule()
+  },
+
+  onShow() {
+    // this.loadSchedule()
   },
 
   initDates() {
@@ -45,20 +48,27 @@ Page({
 
     try {
       const userId = wx.getStorageSync('userId')
-      const where: any = { userId }
-      if (this.data.classId) {
-        where.classId = this.data.classId
+      const openid = wx.getStorageSync('openid')
+      const uid = userId || openid
+
+      if (!uid) {
+        this.setData({ loading: false, schedule: [], daySchedules: [] })
+        return
       }
 
-      const result = await db.collection('schedules')
-        .where(where)
-        .orderBy('startTime', 'asc')
-        .get()
+      const result = await getMySchedules({
+        userId: uid,
+        classId: this.data.classId || undefined
+      })
 
+      const schedule = result.data || []
+      
       this.setData({
-        schedule: result.data,
+        schedule,
         loading: false
       })
+      
+      this.calculateDaySchedules()
     } catch (err) {
       console.error('加载日程失败:', err)
       this.setData({ loading: false })
@@ -69,19 +79,48 @@ Page({
   selectDate(e: any) {
     const date = e.currentTarget.dataset.date
     this.setData({ currentDate: date })
+    this.calculateDaySchedules()
   },
 
-  // 获取今日日程
-  getTodaySchedule(): any[] {
+  // 计算当日日程
+  calculateDaySchedules() {
     const { schedule, currentDate } = this.data
-    return schedule.filter((item: any) => {
-      const itemDate = formatDate(item.startTime, 'MM-DD')
-      return itemDate === currentDate
+    
+    const daySchedules = schedule
+      .filter((item: any) => {
+        const itemDate = formatDate(item.startTime, 'MM-DD')
+        return itemDate === currentDate
+      })
+      .map((item: any) => {
+        const startTimeStr = formatDate(item.startTime, 'HH:mm')
+        const endTimeStr = formatDate(item.endTime, 'HH:mm')
+        
+        let statusText = '未知'
+        if (item.status === 'not_started') statusText = '未开始'
+        else if (item.status === 'ongoing') statusText = '进行中'
+        else if (item.status === 'ended') statusText = '已结束'
+        
+        return {
+          ...item,
+          startTimeStr,
+          endTimeStr,
+          statusText
+        }
+      })
+    
+    this.setData({ daySchedules })
+  },
+
+  onPullDownRefresh() {
+    this.loadSchedule().then(() => {
+      wx.stopPullDownRefresh()
     })
   },
 
-  // 格式化时间
-  formatTime(dateStr: string): string {
-    return formatDate(dateStr, 'HH:mm')
+  onShareAppMessage() {
+    return {
+      title: '我的日程',
+      path: '/pages/my-schedule/my-schedule'
+    }
   }
 })

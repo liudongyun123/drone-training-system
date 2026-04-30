@@ -3,21 +3,21 @@
 .page {
   background: var(--bg-color);
   min-height: 100vh;
-  padding-bottom: 80px;
+  padding-bottom: 80rpx;
 }
 
 .section {
   background: #fff;
-  padding: 16px;
-  margin-bottom: 12px;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
 }
 
 .section-title {
   display: block;
-  font-size: 16px;
+  font-size: 32rpx;
   font-weight: 600;
   color: var(--text-color);
-  margin-bottom: 16px;
+  margin-bottom: 32rpx;
 }
 
 /* 培训班摘要 */
@@ -26,11 +26,11 @@
 }
 
 .class-cover {
-  width: 80px;
-  height: 80px;
-  border-radius: 8px;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 16rpx;
   flex-shrink: 0;
-  margin-right: 12px;
+  margin-right: 24rpx;
 }
 
 .class-detail {
@@ -39,40 +39,40 @@
 
 .class-title {
   display: block;
-  font-size: 15px;
+  font-size: 30rpx;
   font-weight: 600;
   color: var(--text-color);
-  margin-bottom: 4px;
+  margin-bottom: 8rpx;
 }
 
 .class-time,
 .class-location {
   display: block;
-  font-size: 12px;
+  font-size: 24rpx;
   color: var(--text-secondary);
-  margin-bottom: 4px;
+  margin-bottom: 8rpx;
 }
 
 .price-row {
   display: flex;
   align-items: baseline;
-  margin-top: 8px;
+  margin-top: 16rpx;
 }
 
 .price-symbol {
   color: var(--error-color);
-  font-size: 12px;
+  font-size: 24rpx;
 }
 
 .price-num {
   color: var(--error-color);
-  font-size: 20px;
+  font-size: 40rpx;
   font-weight: 600;
 }
 
 /* 表单 */
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 32rpx;
 }
 
 .form-group:last-child {
@@ -81,9 +81,9 @@
 
 .form-label {
   display: block;
-  font-size: 14px;
+  font-size: 28rpx;
   color: var(--text-color);
-  margin-bottom: 8px;
+  margin-bottom: 16rpx;
 }
 
 .form-label.required::before {
@@ -93,11 +93,11 @@
 
 .form-input {
   width: 100%;
-  height: 40px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 0 12px;
-  font-size: 14px;
+  height: 80rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: 16rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
   box-sizing: border-box;
 }
 
@@ -105,15 +105,15 @@
 .pay-options {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 24rpx;
 }
 
 .pay-option {
   display: flex;
   align-items: center;
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  padding: 24rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: 16rpx;
 }
 
 .pay-option.active {
@@ -122,15 +122,15 @@
 }
 
 .pay-radio {
-  width: 20px;
-  height: 20px;
+  width: 40rpx;
+  height: 40rpx;
   border-radius: 50%;
-  border: 1px solid var(--border-color);
+  border: 1rpx solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
-  font-size: 12px;
+  margin-right: 24rpx;
+  font-size: 24rpx;
   color: #fff;
 }
 
@@ -140,7 +140,7 @@
 }
 
 .pay-label {
-  font-size: 14px;
+  font-size: 28rpx;
   color: var(--text-color);
   font-weight: 500;
 }
@@ -148,7 +148,7 @@
 .pay-desc {
   flex: 1;
   text-align: right;
-  font-size: 12px;
+  font-size: 24rpx;
   color: var(--text-placeholder);
 }
 
@@ -157,21 +157,21 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 16rpx 0;
 }
 
 .fee-row.total {
-  padding-top: 16px;
-  border-top: 1px solid var(--border-color);
+  padding-top: 32rpx;
+  border-top: 1rpx solid var(--border-color);
 }
 
 .fee-label {
-  font-size: 14px;
+  font-size: 28rpx;
   color: var(--text-color);
 }
 
 .fee-value {
-  font-size: 20px;
+  font-size: 40rpx;
   font-weight: 600;
   color: var(--error-color);
 }
@@ -186,8 +186,8 @@
   align-items: center;
   justify-content: space-between;
   background: #fff;
-  padding: 8px 16px;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  padding: 16rpx 32rpx;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
 }
 
 .total-area {
@@ -196,12 +196,12 @@
 }
 
 .total-text {
-  font-size: 14px;
+  font-size: 28rpx;
   color: var(--text-color);
 }
 
 .total-price {
-  font-size: 20px;
+  font-size: 40rpx;
   font-weight: 600;
   color: var(--error-color);
 }
@@ -210,9 +210,9 @@
   background: var(--error-color);
   color: #fff;
   border: none;
-  border-radius: 20px;
-  font-size: 16px;
-  padding: 12px 32px;
+  border-radius: 40rpx;
+  font-size: 32rpx;
+  padding: 24rpx 64rpx;
 }
 
 .submit-btn.disabled {

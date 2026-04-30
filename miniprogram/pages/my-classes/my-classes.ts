@@ -1,10 +1,8 @@
 // pages/my-classes/my-classes.ts
 // 我的培训班页
 
-import { getDatabase } from '../../utils/cloudbase'
+import { getMyEnrollments } from '../../utils/http'
 import { checkLogin } from '../../utils/util'
-
-const db = getDatabase()
 
 Page({
   data: {
@@ -41,12 +39,9 @@ Page({
 
     try {
       const userId = wx.getStorageSync('userId')
-      const result = await db.collection('enrollments')
-        .where({ userId })
-        .orderBy('createdAt', 'desc')
-        .get()
+      const result = await getMyEnrollments(userId)
 
-      let classes = result.data
+      let classes = result.data || []
 
       // 根据 Tab 过滤
       if (this.data.currentTab !== 'all') {
@@ -85,5 +80,10 @@ Page({
   goToSchedule(e: any) {
     const id = e.currentTarget.dataset.id
     wx.navigateTo({ url: `/pages/my-schedule/my-schedule?classId=${id}` })
+  },
+
+  // 去培训班列表
+  goToClassList() {
+    wx.switchTab({ url: '/pages/class-list/class-list' })
   }
 })

@@ -3,6 +3,7 @@
 
 import { classApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
+import { dbGetList } from '../../utils/http'
 
 Page({
   data: {
@@ -26,15 +27,14 @@ Page({
       const classInfo = await classApi.getDetail(classId)
       
       // 获取排课
-      const db = wx.cloud.database()
-      const schedulesResult = await db.collection('class_schedules')
-        .where({ classId })
-        .orderBy('date', 'asc')
-        .get()
+      const schedulesResult = await dbGetList('class_schedules', {
+        where: { classId },
+        orderBy: 'date asc'
+      })
       
       this.setData({
         classInfo,
-        schedules: schedulesResult.data,
+        schedules: schedulesResult.data || [],
         loading: false
       })
     } catch (err) {
@@ -44,7 +44,6 @@ Page({
     }
   },
 
-  // 报名
   goToEnrollment() {
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
@@ -52,6 +51,28 @@ Page({
     }
     wx.navigateTo({
       url: `/pages/class-enrollment/class-enrollment?id=${this.data.classId}`
+    })
+  },
+
+  shareClass() {
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    })
+  },
+
+  contactService() {
+    wx.showModal({
+      title: '联系客服',
+      content: '如有疑问，请拨打客服电话：400-888-8888',
+      confirmText: '拨打',
+      success: (res) => {
+        if (res.confirm) {
+          wx.makePhoneCall({
+            phoneNumber: '4008888888'
+          })
+        }
+      }
     })
   },
 

@@ -105,7 +105,7 @@ export default function MyLearningPage() {
       lastStudyTime: cp.length > 0 ? cp[cp.length - 1]?.lastWatchTime : undefined,
       currentStudyDesc: desc, nextLesson: nextLesson,
       completed: pct >= 100,
-      category: course.category || '未分类', level: course.level || '初级',
+      category: course.category || '未分类', level: course.level || '初级工',
       source, ...extra,
     };
   };

@@ -155,5 +155,10 @@ Page({
     const urls = this.data.product?.images || []
     const current = e.currentTarget.dataset.src
     wx.previewImage({ urls, current })
+  },
+
+  // 去购物车
+  goToCart() {
+    wx.navigateTo({ url: '/pages/cart/cart' })
   }
 })

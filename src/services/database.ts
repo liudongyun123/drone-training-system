@@ -481,77 +481,36 @@ export const teacherService = {
    * 获取教师列表
    */
   async getList(params: PaginationParams & FilterParams): Promise<PaginatedResponse<Teacher>> {
-    // 使用 teacher_profiles 集合（与管理后台保持一致）
-    return paginatedQuery<Teacher>('teacher_profiles', params);
+    // 使用 teachers 集合（实际有 32 条数据）
+    return paginatedQuery<Teacher>('teachers', params);
   },
 
   /**
    * 获取教师详情
    */
   async getById(id: string): Promise<Teacher | null> {
-    return findById<Teacher>('teacher_profiles', id);
+    return findById<Teacher>('teachers', id);
   },
 
   /**
    * 创建教师
    */
   async create(data: Partial<Teacher>): Promise<Teacher> {
-    return create<Teacher>('teacher_profiles', data);
+    return create<Teacher>('teachers', data);
   },
 
   /**
    * 更新教师信息
    */
   async update(id: string, data: Partial<Teacher>): Promise<boolean> {
-    return update<Teacher>('teacher_profiles', id, data);
+    return update<Teacher>('teachers', id, data);
   },
 
   /**
    * 删除教师
    */
   async delete(id: string): Promise<boolean> {
-    return remove('teacher_profiles', id);
-  },
-};
-
-// ============================================================================
-// 排课相关操作
-// ============================================================================
-
-export const scheduleService = {
-  /**
-   * 获取排课列表
-   */
-  async getList(params: PaginationParams & FilterParams): Promise<PaginatedResponse<Schedule>> {
-    return paginatedQuery<Schedule>('schedules', params);
-  },
-
-  /**
-   * 获取排课详情
-   */
-  async getById(id: string): Promise<Schedule | null> {
-    return findById<Schedule>('schedules', id);
-  },
-
-  /**
-   * 创建排课
-   */
-  async create(data: Partial<Schedule>): Promise<Schedule> {
-    return create<Schedule>('schedules', data);
-  },
-
-  /**
-   * 更新排课
-   */
-  async update(id: string, data: Partial<Schedule>): Promise<boolean> {
-    return update<Schedule>('schedules', id, data);
-  },
-
-  /**
-   * 删除排课
-   */
-  async delete(id: string): Promise<boolean> {
-    return remove('schedules', id);
+    return remove('teachers', id);
   },
 };
 
@@ -564,28 +523,29 @@ export const attendanceService = {
    * 获取出勤记录列表
    */
   async getList(params: PaginationParams & FilterParams): Promise<PaginatedResponse<Attendance>> {
-    return paginatedQuery<Attendance>('attendance', params);
+    // 使用 attendance_records 集合（实际有 5 条数据）
+    return paginatedQuery<Attendance>('attendance_records', params);
   },
 
   /**
    * 创建出勤记录
    */
   async create(data: Partial<Attendance>): Promise<Attendance> {
-    return create<Attendance>('attendance', data);
+    return create<Attendance>('attendance_records', data);
   },
 
   /**
    * 更新出勤记录
    */
   async update(id: string, data: Partial<Attendance>): Promise<boolean> {
-    return update<Attendance>('attendance', id, data);
+    return update<Attendance>('attendance_records', id, data);
   },
 
   /**
    * 删除出勤记录
    */
   async delete(id: string): Promise<boolean> {
-    return remove('attendance', id);
+    return remove('attendance_records', id);
   },
 };
 
@@ -1169,7 +1129,6 @@ export default {
   user: userService,
   order: orderService,
   teacher: teacherService,
-  schedule: scheduleService,
   attendance: attendanceService,
   exam: examService,
   certificate: certificateService,

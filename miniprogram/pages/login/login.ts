@@ -2,6 +2,7 @@
 // 小程序登录页面
 
 import { showLoading, hideLoading, showToast, checkLogin } from '../../utils/util'
+import { callFunction } from '../../utils/http'
 
 Page({
   data: {
@@ -11,7 +12,6 @@ Page({
   },
 
   onLoad() {
-    // 检查登录状态
     if (checkLogin()) {
       this.setData({ isLoggedIn: true })
     }
@@ -30,23 +30,18 @@ Page({
       // 获取登录 code
       const { code } = await wx.login()
       
-      // 调用云函数登录
-      const res = await wx.cloud.callFunction({
-        name: 'login',
-        data: { code, userInfo }
-      })
+      // 通过 HTTP 调用云函数登录
+      const res = await callFunction('login', { code, userInfo })
       
-      if (res.result) {
-        // 存储用户信息
+      if (res) {
         wx.setStorageSync('userInfo', userInfo)
-        wx.setStorageSync('userId', res.result.userId)
-        wx.setStorageSync('openid', res.result.openid)
+        wx.setStorageSync('userId', res.userId)
+        wx.setStorageSync('openid', res.openid)
         
-        // 更新全局数据
         const app = getApp()
         app.globalData.isLoggedIn = true
         app.globalData.userInfo = userInfo
-        app.globalData.userId = res.result.userId
+        app.globalData.userId = res.userId
         
         this.setData({ 
           isLoggedIn: true,
@@ -56,7 +51,6 @@ Page({
         
         showToast('登录成功', 'success')
         
-        // 返回上一页
         setTimeout(() => {
           wx.navigateBack()
         }, 1500)
@@ -64,7 +58,7 @@ Page({
     } catch (err: any) {
       console.error('登录失败:', err)
       this.setData({ loading: false })
-      showToast(err.errMsg || '登录失败')
+      showToast(err.message || '登录失败')
     }
   },
 
@@ -78,16 +72,11 @@ Page({
     this.setData({ loading: true })
     
     try {
-      // 调用云函数获取手机号
-      const res = await wx.cloud.callFunction({
-        name: 'getPhoneNumber',
-        data: { code: e.detail.code }
-      })
+      const res = await callFunction('getPhoneNumber', { code: e.detail.code })
       
-      if (res.result) {
-        const phone = res.result.phoneNumber
+      if (res) {
+        const phone = res.phoneNumber
         
-        // 存储手机号
         wx.setStorageSync('phone', phone)
         
         const app = getApp()
@@ -99,18 +88,16 @@ Page({
     } catch (err: any) {
       console.error('获取手机号失败:', err)
       this.setData({ loading: false })
-      showToast(err.errMsg || '获取手机号失败')
+      showToast(err.message || '获取手机号失败')
     }
   },
 
-  // 已登录状态下的操作
   handleLogout() {
     wx.showModal({
       title: '提示',
       content: '确定要退出登录吗？',
       success: (res) => {
         if (res.confirm) {
-          // 清除登录状态
           wx.removeStorageSync('userInfo')
           wx.removeStorageSync('userId')
           wx.removeStorageSync('phone')

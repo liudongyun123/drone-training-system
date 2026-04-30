@@ -34,6 +34,27 @@ import AdminTablePagination from './AdminTablePagination'
 import ImageUpload from './ImageUpload'
 import type { Course } from '@/types/service'
 
+// 等级转换函数 - 将旧值转换为正确等级
+const getLevelLabel = (level: string) => {
+  // 已经是正确的等级
+  const validLevels = ['初级工', '中级工', '高级工', '技师', '高级技师']
+  if (validLevels.includes(level)) {
+    return level
+  }
+  // 旧值转换映射
+  const levelMap: Record<string, string> = {
+    'beginner': '初级工',
+    'intermediate': '中级工',
+    'advanced': '高级工',
+    '初级': '初级工',
+    '中级': '中级工',
+    '高级': '高级工',
+    '入门': '初级工',
+    '进阶': '中级工',
+  }
+  return levelMap[level] || '初级工'
+}
+
 export default function CourseManagement() {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,7 +64,7 @@ export default function CourseManagement() {
   const [courseForm, setCourseForm] = useState({
     title: '',
     description: '',
-    level: 'beginner' as const,
+    level: '初级工' as string,
     price: 0,
     originalPrice: 0,
     category: '',
@@ -81,6 +102,15 @@ export default function CourseManagement() {
       setCategories(result.data || [])
     } catch (error) {
       console.error('加载分类失败:', error)
+      // 使用默认分类（与 categories 集合一致）
+      setCategories([
+        { _id: '1', name: '植保无人机' },
+        { _id: '2', name: '安防无人机' },
+        { _id: '3', name: '航拍无人机' },
+        { _id: '4', name: '物流无人机' },
+        { _id: '5', name: '应急无人机' },
+        { _id: '6', name: '电力巡检无人机' },
+      ])
     }
   }
 
@@ -125,13 +155,13 @@ export default function CourseManagement() {
         duration: course.duration || 0,
         status: course.status || 'published',
       })
-    } else {
+} else {
       setEditMode(false)
       setSelectedCourse(null)
       setCourseForm({
         title: '',
         description: '',
-        level: 'beginner',
+        level: '初级工',
         price: 0,
         originalPrice: 0,
         category: '',
@@ -151,7 +181,7 @@ export default function CourseManagement() {
     setCourseForm({
       title: '',
       description: '',
-      level: 'beginner',
+      level: '初级工',
       price: 0,
       originalPrice: 0,
       category: '',
@@ -258,7 +288,10 @@ export default function CourseManagement() {
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Chip label={course.level} size="small" />
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Chip label={getLevelLabel(course.level)} size="small" color="primary" />
+                    <Chip label={course.category || '未分类'} size="small" color="secondary" />
+                  </Box>
                   <Box>
                     <IconButton size="small" onClick={() => handleOpenDialog(course)}>
                       <EditIcon />
@@ -269,12 +302,23 @@ export default function CourseManagement() {
                   </Box>
                 </Box>
                 <Typography variant="h6" gutterBottom>{course.title}</Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
+                <Typography variant="body2" color="text.secondary" gutterBottom sx={{ 
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical'
+                }}>
                   {course.description}
                 </Typography>
-                <Typography variant="body1" color="primary">
-                  ¥{course.price}
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                  <Typography variant="body1" color="primary" fontWeight="bold">
+                    ¥{course.price}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {course.salesCount || 0}人学习
+                  </Typography>
+                </Box>
               </CardContent>
             </Card>
           </Grid>
@@ -325,9 +369,11 @@ export default function CourseManagement() {
                     label="难度级别"
                     onChange={(e) => setCourseForm({ ...courseForm, level: e.target.value as any })}
                   >
-                    <MenuItem value="beginner">初级</MenuItem>
-                    <MenuItem value="intermediate">中级</MenuItem>
-                    <MenuItem value="advanced">高级</MenuItem>
+                    <MenuItem value="初级工">初级工</MenuItem>
+                    <MenuItem value="中级工">中级工</MenuItem>
+                    <MenuItem value="高级工">高级工</MenuItem>
+                    <MenuItem value="技师">技师</MenuItem>
+                    <MenuItem value="高级技师">高级技师</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>

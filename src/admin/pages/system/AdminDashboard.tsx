@@ -85,31 +85,34 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // 确保已登录（使用 checkLogin 防止并发请求）
+      // 确保已登录
       try {
         await checkLogin();
       } catch (authError) {
+        console.error('登录检查失败:', authError);
       }
 
-      const db = cloudbaseApp.database();
+      console.log('[Dashboard] 开始加载数据...');
 
-      // 1. 加载课程数据
-      const coursesResult = await courseService.getList({ page: 1, pageSize: 100 });
+      // 通过云函数获取数据（避免 CORS 问题）
+      const dashboardData = await cloudbaseApp.callFunction({
+        name: 'admin',
+        data: {
+          action: 'getDashboardStats'
+        }
+      });
 
-      // 2. 从数据库查询报名数据
-      const enrollmentsResult = await db.collection('enrollments').limit(1000).get();
+      const coursesResult = { list: dashboardData.data?.courses || [] };
+      const enrollmentsResult = { data: dashboardData.data?.enrollments || [] };
+      const ordersResult = { data: dashboardData.data?.orders || [] };
+      const membersResult = { data: dashboardData.data?.members || [] };
 
-      // 3. 查询订单数据
-      const ordersResult = await db.collection('orders').limit(1000).get();
-
-      // 4. 查询用户数据
-      const usersResult = await db.collection('users').limit(1000).get();
+      console.log('[Dashboard] 云函数返回数据:', dashboardData);
 
       // 计算基础统计数据
-      const totalStudents = enrollmentsResult.data?.length || 0;
+      const totalStudents = membersResult.data?.length || 0;
       const totalCourses = coursesResult.list?.length || 0;
       const totalOrders = ordersResult.data?.length || 0;
-      const totalUsers = usersResult.data?.length || 0;
 
       // ★ 计算会员来源统计（从 enrollments 和 members 集合）
       const memberSourceStats = {
@@ -152,8 +155,9 @@ export default function AdminDashboard() {
         return orderDate !== null && orderDate >= today;
       }) || [];
 
-      const todayNewUsers = usersResult.data?.filter((u: any) => {
-        const createDate = parseDate(u.createdAt);
+      // 今日新增学员：从 members 集合获取
+      const todayNewUsers = membersResult.data?.filter((m: any) => {
+        const createDate = parseDate(m.createdAt);
         return createDate !== null && createDate >= today;
       }) || [];
 
@@ -196,16 +200,12 @@ export default function AdminDashboard() {
         return sum + (order.totalAmount || order.amount || 0);
       }, 0);
 
-      // 7. 计算完成率（从学习进度）
-      const progressResult = await db.collection('studyProgress').limit(1000).get();
-      const completedCount = progressResult.data?.filter((p: any) => {
-        const totalChapters = p.totalChapters || 0;
-        const completedChapters = p.completedChapters || 0;
-        return totalChapters > 0 && completedChapters >= totalChapters;
+      // 7. 计算完成率（从 enrollments 的 status 字段）
+      const completedEnrollments = enrollmentsResult.data?.filter((e: any) => {
+        return e.status === 'completed' || e.status === 'graduated';
       })?.length || 0;
-      
-      const totalProgress = progressResult.data?.length || 0;
-      const completionRate = totalProgress > 0 ? Math.round((completedCount / totalProgress) * 100) : 0;
+      const totalEnrollments = enrollmentsResult.data?.length || 0;
+      const completionRate = totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0;
 
       setStats({
         totalStudents,
@@ -269,22 +269,22 @@ export default function AdminDashboard() {
           };
         }) || [];
 
-      // 从最近的用户生成活动
-      const recentUsers = usersResult.data
+      // 从最近的学员生成活动（从 members 集合）
+      const recentMembers = (membersResult.data || [])
         ?.slice(0, 2)
-        .map((user: any) => {
-          const time = getTimeAgo(user.createdAt);
+        .map((member: any) => {
+          const time = getTimeAgo(member.createdAt || member.updatedAt);
           return {
-            id: `user-${user._id}`,
+            id: `member-${member._id}`,
             type: 'user' as const,
-            title: '新用户注册',
-            description: `新学员 ${user.name || user.nickname || '用户'} 完成了注册`,
+            title: '新学员加入',
+            description: `学员 ${member.name || member.phone || '未知'} 加入了平台`,
             time,
           };
         }) || [];
 
       // 合并并去重
-      const allActivities = [...recentOrders, ...recentEnrollments, ...recentCourses, ...recentUsers];
+      const allActivities = [...recentOrders, ...recentEnrollments, ...recentCourses, ...recentMembers];
       setRecentActivities(allActivities.slice(0, 5));
 
       // 9. 热门课程（按报名人数排序）

@@ -2,7 +2,9 @@
 <view class="login-page">
   <!-- 未登录状态 -->
   <view wx:if="{{!isLoggedIn}}" class="login-container">
-    <image class="logo" src="/assets/logo.png" mode="aspectFit" />
+    <view class="logo">
+      <image class="logo-img" src="/assets/icons/logo.png" mode="aspectFit" />
+    </view>
     <text class="title">无人机培训</text>
     <text class="desc">登录后可享受更多服务</text>
     

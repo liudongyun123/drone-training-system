@@ -1,0 +1,9 @@
+{
+  "name": "fix-member-levels",
+  "version": "1.0.0",
+  "description": "批量修复 members 集合的等级字段",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

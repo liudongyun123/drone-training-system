@@ -3,11 +3,11 @@
 
 Page({
   data: {
-    cartItems: [] as any[],
-    allSelected: false,
+    cartList: [] as any[],
+    selectedAll: false,
     totalPrice: '0.00',
-    totalQty: 0,
-    isEmpty: false
+    selectedCount: 0,
+    loading: false
   },
 
   onShow() {
@@ -17,55 +17,55 @@ Page({
   loadCart() {
     const cart = wx.getStorageSync('cart') || []
     this.setData({
-      cartItems: cart,
-      isEmpty: cart.length === 0
+      cartList: cart,
+      loading: false
     })
     this.calcTotal()
   },
 
   // 全选/取消全选
-  toggleAll() {
-    const allSelected = !this.data.allSelected
-    const cartItems = this.data.cartItems.map((item: any) => ({
+  onSelectAll() {
+    const selectedAll = !this.data.selectedAll
+    const cartList = this.data.cartList.map((item: any) => ({
       ...item,
-      selected: allSelected
+      selected: selectedAll
     }))
-    this.setData({ cartItems, allSelected })
+    this.setData({ cartList, selectedAll })
     this.saveCart()
     this.calcTotal()
   },
 
   // 单选
-  toggleItem(e: any) {
+  onSelectItem(e: any) {
     const index = e.currentTarget.dataset.index
-    const cartItems = [...this.data.cartItems]
-    cartItems[index].selected = !cartItems[index].selected
-    const allSelected = cartItems.length > 0 && cartItems.every((item: any) => item.selected)
-    this.setData({ cartItems, allSelected })
+    const cartList = [...this.data.cartList]
+    cartList[index].selected = !cartList[index].selected
+    const selectedAll = cartList.length > 0 && cartList.every((item: any) => item.selected)
+    this.setData({ cartList, selectedAll })
     this.saveCart()
     this.calcTotal()
   },
 
   // 数量减
-  decreaseQty(e: any) {
+  onDecrease(e: any) {
     const index = e.currentTarget.dataset.index
-    const cartItems = [...this.data.cartItems]
-    if (cartItems[index].quantity > 1) {
-      cartItems[index].quantity--
-      this.setData({ cartItems })
+    const cartList = [...this.data.cartList]
+    if (cartList[index].quantity > 1) {
+      cartList[index].quantity--
+      this.setData({ cartList })
       this.saveCart()
       this.calcTotal()
     }
   },
 
   // 数量加
-  increaseQty(e: any) {
+  onIncrease(e: any) {
     const index = e.currentTarget.dataset.index
-    const cartItems = [...this.data.cartItems]
-    const stock = cartItems[index].sku?.stock || cartItems[index].product?.stock || 999
-    if (cartItems[index].quantity < stock) {
-      cartItems[index].quantity++
-      this.setData({ cartItems })
+    const cartList = [...this.data.cartList]
+    const stock = cartList[index].sku?.stock || cartList[index].product?.stock || 999
+    if (cartList[index].quantity < stock) {
+      cartList[index].quantity++
+      this.setData({ cartList })
       this.saveCart()
       this.calcTotal()
     } else {
@@ -74,17 +74,17 @@ Page({
   },
 
   // 删除商品
-  deleteItem(e: any) {
+  onDeleteItem(e: any) {
     const index = e.currentTarget.dataset.index
     wx.showModal({
       title: '确认删除',
       content: '确定要删除该商品吗？',
       success: (res) => {
         if (res.confirm) {
-          const cartItems = [...this.data.cartItems]
-          cartItems.splice(index, 1)
-          const allSelected = cartItems.length > 0 && cartItems.every((item: any) => item.selected)
-          this.setData({ cartItems, isEmpty: cartItems.length === 0, allSelected })
+          const cartList = [...this.data.cartList]
+          cartList.splice(index, 1)
+          const selectedAll = cartList.length > 0 && cartList.every((item: any) => item.selected)
+          this.setData({ cartList, selectedAll })
           this.saveCart()
           this.calcTotal()
         }
@@ -94,39 +94,63 @@ Page({
 
   // 计算总价
   calcTotal() {
-    const selectedItems = this.data.cartItems.filter((item: any) => item.selected)
+    const selectedItems = this.data.cartList.filter((item: any) => item.selected)
     let total = 0
-    let qty = 0
+    let count = 0
     selectedItems.forEach((item: any) => {
       const price = item.sku?.price || item.product?.price || 0
       total += price * item.quantity
-      qty += item.quantity
+      count += item.quantity
     })
     this.setData({
       totalPrice: total.toFixed(2),
-      totalQty: qty
+      selectedCount: count
     })
   },
 
   // 保存购物车到本地存储
   saveCart() {
-    wx.setStorageSync('cart', this.data.cartItems)
+    wx.setStorageSync('cart', this.data.cartList)
   },
 
-  // 跳转商品详情
-  goToDetail(e: any) {
-    const id = e.currentTarget.dataset.id
+  // 清空购物车
+  onClearCart() {
+    wx.showModal({
+      title: '确认清空',
+      content: '确定要清空购物车吗？',
+      success: (res) => {
+        if (res.confirm) {
+          wx.removeStorageSync('cart')
+          this.setData({
+            cartList: [],
+            selectedAll: false,
+            totalPrice: '0.00',
+            selectedCount: 0
+          })
+        }
+      }
+    })
+  },
+
+  // 返回
+  onBack() {
+    wx.navigateBack()
+  },
+
+  // 查看商品
+  onViewProduct(e: any) {
+    const id = e.currentTarget.dataset.productId
     wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${id}` })
   },
 
   // 去逛逛
-  goShopping() {
+  onContinueShopping() {
     wx.switchTab({ url: '/pages/shop/shop' })
   },
 
   // 结算
-  checkout() {
-    const selectedItems = this.data.cartItems.filter((item: any) => item.selected)
+  onCheckout() {
+    const selectedItems = this.data.cartList.filter((item: any) => item.selected)
     if (selectedItems.length === 0) {
       wx.showToast({ title: '请选择商品', icon: 'none' })
       return

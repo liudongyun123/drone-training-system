@@ -21,7 +21,7 @@
     "quality:strict": "tsc --noEmit && eslint src --ext .ts,.tsx --max-warnings=50 && vitest run --passWithNoTests && vite build"
   },
   "dependencies": {
-    "@cloudbase/js-sdk": "latest",
+    "@cloudbase/js-sdk": "^2.28.2",
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
     "@fullcalendar/core": "^6.1.20",

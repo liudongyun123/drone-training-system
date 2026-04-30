@@ -445,12 +445,14 @@ export const CloudCourseAdminService = {
           title: c.title,
           description: c.description,
           category: c.category,
+          categoryId: c.categoryId || '',
           level: c.level,
           price: c.price,
           originalPrice: c.originalPrice,
           coverImage: c.coverImage,
           instructor: c.instructor,
           duration: c.duration,
+          salesCount: c.salesCount || 0,
           studentCount: c.studentCount || 0,
           rating: c.rating || 0,
           status: c.status || 'draft',
@@ -1465,88 +1467,6 @@ export const CloudNoticeAdminService = {
       return {
         success: false,
         data: 0
-      }
-    }
-  },
-}
-
-// 课程表管理服务
-export const CloudScheduleAdminService = {
-  collection: 'schedules',
-
-  async getAll(params?: { offset?: number; limit?: number; search?: string }) {
-    try {
-      const { offset = 0, limit = 100, search } = params || {}
-      const query: any = {}
-      const options: any = { limit, skip: offset }
-
-      if (search) {
-        query.$or = [
-          { title: new RegExp(search, 'i') }
-        ]
-      }
-
-      const result = await adminService.list(this.collection, query, options)
-      return {
-        success: true,
-        data: result.data || []
-      }
-    } catch (error) {
-      console.error('获取课程表列表失败:', error)
-      return {
-        success: false,
-        message: '获取课程表列表失败',
-        data: []
-      }
-    }
-  },
-
-  async add(scheduleData: any) {
-    try {
-      const result = await adminService.add(this.collection, scheduleData)
-      return {
-        success: true,
-        data: result.data,
-        message: '课程表创建成功'
-      }
-    } catch (error) {
-      console.error('创建课程表失败:', error)
-      return {
-        success: false,
-        error: '创建课程表失败',
-        data: null
-      }
-    }
-  },
-
-  async update(id: string, scheduleData: any) {
-    try {
-      await adminService.update('schedules', id, scheduleData)
-      return {
-        success: true,
-        message: '课程表更新成功'
-      }
-    } catch (error) {
-      console.error('更新课程表失败:', error)
-      return {
-        success: false,
-        error: '更新课程表失败'
-      }
-    }
-  },
-
-  async delete(id: string) {
-    try {
-      await adminService.delete('schedules', id)
-      return {
-        success: true,
-        message: '课程表删除成功'
-      }
-    } catch (error) {
-      console.error('删除课程表失败:', error)
-      return {
-        success: false,
-        error: '删除课程表失败'
       }
     }
   },

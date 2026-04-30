@@ -102,19 +102,39 @@ export default function AdminTeachers() {
     setScheduleLoading(true);
     try {
       const db = cloudbaseApp.database();
-      const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
       
-      const { data } = await db.collection('schedules')
-        .where({
-          teacherId,
-          startTime: db.command.gte(startDate.toISOString()).and(db.command.lte(endDate.toISOString())),
-        })
-        .orderBy('startTime', 'asc')
+      // 1. 先找到该教师负责的培训班（classes）
+      const classesResult = await db.collection('classes')
+        .where({ teacherId })
+        .field({ _id: true, name: true })
+        .limit(100)
         .get();
-      setSchedules(data || []);
+      
+      const classIds = classesResult.data?.map((c: any) => c._id) || [];
+      const classNamesMap: Record<string, string> = {};
+      classesResult.data?.forEach((c: any) => {
+        classNamesMap[c._id] = c.name;
+      });
+      
+      // 2. 如果有培训班，再查询这些培训班的排课（class_schedules）
+      let schedules: any[] = [];
+      if (classIds.length > 0) {
+        const schedulesResult = await db.collection('class_schedules')
+          .where({
+            classId: db.command.in(classIds),
+            date: date,
+          })
+          .orderBy('startTime', 'asc')
+          .get();
+        
+        // 为排课添加班级名称
+        schedules = (schedulesResult.data || []).map((s: any) => ({
+          ...s,
+          className: classNamesMap[s.classId] || '未知班级'
+        }));
+      }
+      
+      setSchedules(schedules || []);
     } catch (error) {
       console.error('加载排课失败:', error);
       setSchedules([]);

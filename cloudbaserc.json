@@ -22,8 +22,8 @@
         "inputs": {
           "functions": [
             {
-              "name": "admin",
-              "timeout": 15,
+              "name": "admin-http",
+              "timeout": 60,
               "memorySize": 256,
               "runtime": "Nodejs18.15",
               "handler": "index.main",
@@ -58,6 +58,21 @@
                 "WX_API_KEY": "",
                 "WX_NOTIFY_URL": ""
               },
+              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "triggers": [
+                {
+                  "name": "http-trigger",
+                  "type": "http"
+                }
+              ]
+            },
+            {
+              "name": "db-init",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
               "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
               "triggers": [
                 {

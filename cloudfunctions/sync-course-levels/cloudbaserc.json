@@ -1,0 +1,9 @@
+{
+  "envId": "rcwljy-5ghmq2ex26764978",
+  "permissions": {
+    "declarePermissions": {
+      "databases": ["database:databaseR"]
+    }
+  },
+  "region": "ap-shanghai"
+}

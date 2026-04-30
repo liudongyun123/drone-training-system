@@ -554,39 +554,6 @@ export const attendanceService = {
         data: { list: [], total: 0, page, pageSize }
       }
     }
-  },
-
-  /**
-   * 导出出勤统计
-   */
-  async exportStatistics(scheduleId: string) {
-    // 获取排课信息
-    const schedule = await callAdminFunction('list', {
-      collection: 'course_schedules',
-      query: { _id: scheduleId },
-      options: { limit: 1 }
-    }) as { data: Schedule[] }
-
-    // 获取出勤记录
-    const attendanceList = await this.getScheduleAttendance(scheduleId) as { data: AttendanceRecord[] }
-    const records = attendanceList.data || []
-
-    // 统计数据
-    const statistics = {
-      schedule: schedule.data?.[0],
-      total: records.length,
-      present: records.filter(r => r.attendanceStatus === 'present').length,
-      absent: records.filter(r => r.attendanceStatus === 'absent').length,
-      late: records.filter(r => r.attendanceStatus === 'late').length,
-      leave: records.filter(r => r.attendanceStatus === 'leave').length,
-      records
-    }
-
-    return {
-      code: 0,
-      message: '导出成功',
-      data: statistics
-    }
   }
 }
 

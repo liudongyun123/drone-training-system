@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>清除所有缓存</title>
+    <style>
+        body { font-family: sans-serif; padding: 50px; text-align: center; }
+        .success { color: green; font-size: 24px; margin: 20px 0; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🧹 清除浏览器缓存</h1>
+    <p>点击下面的按钮清除所有缓存，然后重新加载网站</p>
+    <button onclick="clearAll()">清除所有缓存</button>
+    <div id="result"></div>
+    
+    <script>
+        async function clearAll() {
+            const result = document.getElementById('result');
+            result.innerHTML = '<p>正在清除...</p>';
+            
+            // 1. 清除 localStorage
+            localStorage.clear();
+            console.log('✅ localStorage 已清除');
+            
+            // 2. 清除 sessionStorage
+            sessionStorage.clear();
+            console.log('✅ sessionStorage 已清除');
+            
+            // 3. 清除 cookies
+            document.cookie.split(";").forEach(function(c) {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date(0).toUTCString() + ";path=/");
+            });
+            console.log('✅ Cookies 已清除');
+            
+            // 4. 清除 indexedDB
+            try {
+                const databases = await window.indexedDB.databases();
+                for (const db of databases) {
+                    window.indexedDB.deleteDatabase(db.name);
+                }
+                console.log('✅ IndexedDB 已清除');
+            } catch (e) {
+                console.log('⚠️ IndexedDB 清除失败:', e);
+            }
+            
+            // 5. 清除 cache storage
+            try {
+                const keys = await caches.keys();
+                for (const key of keys) {
+                    await caches.delete(key);
+                }
+                console.log('✅ Cache Storage 已清除');
+            } catch (e) {
+                console.log('⚠️ Cache Storage 清除失败:', e);
+            }
+            
+            result.innerHTML = `
+                <div class="success">✅ 所有缓存已清除！</div>
+                <p>3秒后自动跳转到首页...</p>
+            `;
+            
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

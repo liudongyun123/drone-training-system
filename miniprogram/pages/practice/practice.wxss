@@ -1,82 +1,82 @@
 /* pages/practice/practice.wxss */
 
 .page {
-  background: var(--bg-color);
   min-height: 100vh;
+  background: #f1f5f9;
 }
 
 .section {
-  padding: 16px;
-  margin-bottom: 8px;
+  padding: 32rpx;
+  margin-bottom: 16rpx;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 32rpx;
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: 36rpx;
   font-weight: 600;
-  color: var(--text-color);
+  color: #1e293b;
 }
 
 .section-desc {
-  font-size: 13px;
-  color: var(--text-placeholder);
+  font-size: 26rpx;
+  color: #94a3b8;
 }
 
 /* 题库网格 */
 .bank-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 24rpx;
 }
 
 .bank-card {
   background: #fff;
-  border-radius: 12px;
-  padding: 16px 12px;
+  border-radius: 24rpx;
+  padding: 32rpx 24rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .bank-icon {
-  font-size: 32px;
-  margin-bottom: 8px;
+  font-size: 64rpx;
+  margin-bottom: 16rpx;
 }
 
 .bank-title {
-  font-size: 13px;
+  font-size: 26rpx;
   font-weight: 500;
-  color: var(--text-color);
+  color: #1e293b;
   text-align: center;
-  margin-bottom: 4px;
+  margin-bottom: 8rpx;
 }
 
 .bank-count {
-  font-size: 12px;
-  color: var(--text-placeholder);
+  font-size: 24rpx;
+  color: #94a3b8;
 }
 
 /* 模拟考试列表 */
 .exam-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 24rpx;
 }
 
 .exam-card {
   display: flex;
   align-items: center;
   background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 16rpx;
+  padding: 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .exam-info {
@@ -85,42 +85,42 @@
 
 .exam-title {
   display: block;
-  font-size: 15px;
+  font-size: 30rpx;
   font-weight: 600;
-  color: var(--text-color);
-  margin-bottom: 4px;
+  color: #1e293b;
+  margin-bottom: 8rpx;
 }
 
 .exam-desc {
   display: block;
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
+  font-size: 24rpx;
+  color: #64748b;
+  margin-bottom: 16rpx;
 }
 
 .exam-meta {
   display: flex;
-  gap: 12px;
+  gap: 24rpx;
 }
 
 .meta-item {
-  font-size: 12px;
-  color: var(--text-placeholder);
+  font-size: 24rpx;
+  color: #94a3b8;
 }
 
 .exam-action {
   display: flex;
   align-items: center;
-  margin-left: 12px;
+  margin-left: 24rpx;
 }
 
 .start-text {
-  font-size: 14px;
-  color: var(--primary-color);
+  font-size: 28rpx;
+  color: #2563eb;
   font-weight: 500;
 }
 
 .arrow {
-  color: var(--primary-color);
-  margin-left: 4px;
+  color: #2563eb;
+  margin-left: 8rpx;
 }

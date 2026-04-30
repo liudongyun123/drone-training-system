@@ -3,6 +3,7 @@
 
 import { courseApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
+import { dbGetList } from '../../utils/http'
 
 Page({
   data: {
@@ -31,12 +32,11 @@ Page({
       // 检查是否已购买
       let hasPermission = false
       if (checkLogin()) {
-        const db = wx.cloud.database()
         const userId = getUserId()
-        const permResult = await db.collection('course_permissions')
-          .where({ userId, courseId })
-          .count()
-        hasPermission = permResult.total > 0
+        const result = await dbGetList('course_permissions', {
+          where: { userId, courseId }
+        })
+        hasPermission = (result.data || []).length > 0
       }
       
       this.setData({ course, lessons, hasPermission, loading: false })
@@ -47,7 +47,6 @@ Page({
     }
   },
 
-  // 开始学习
   startLearning(e: any) {
     if (!this.data.hasPermission) {
       showToast('请先购买课程')
@@ -60,7 +59,6 @@ Page({
     })
   },
 
-  // 购买课程
   buyCourse() {
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
@@ -69,6 +67,28 @@ Page({
     
     wx.navigateTo({
       url: `/pages/checkout/checkout?type=course&id=${this.data.courseId}`
+    })
+  },
+
+  shareCourse() {
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    })
+  },
+
+  contactService() {
+    wx.showModal({
+      title: '联系客服',
+      content: '如有疑问，请拨打客服电话：400-888-8888',
+      confirmText: '拨打',
+      success: (res) => {
+        if (res.confirm) {
+          wx.makePhoneCall({
+            phoneNumber: '4008888888'
+          })
+        }
+      }
     })
   },
 

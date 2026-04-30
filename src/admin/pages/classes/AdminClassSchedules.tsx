@@ -794,10 +794,10 @@ function AttendanceModal({ schedule, classInfo, onClose }: AttendanceModalProps)
   const handleSave = async () => {
     setSaving(true);
     try {
-      // ★ 保存出勤记录到 attendance 集合
+      // 保存出勤记录到 attendance_records 集合
       for (const record of records) {
         await CloudAdminService.add({
-          collection: 'attendance',
+          collection: 'attendance_records',
           data: {
             scheduleId: schedule._id,
             classId: classInfo?._id,

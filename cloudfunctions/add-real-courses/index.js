@@ -11,13 +11,21 @@ const app = cloudbase.init({
 
 const db = app.database()
 
+// 课程分类映射：将课程内容映射到 categories 集合中的分类名称
+const categoryMapping = {
+  '基础入门': '植保无人机',
+  '进阶提升': '航拍无人机',
+  '行业应用': '安防无人机',
+  '专业认证': '电力巡检无人机',
+}
+
 // 真实课程数据
 const realCourses = [
   {
     title: '多旋翼无人机基础入门',
     description: '本课程为零基础学员量身打造，系统讲解多旋翼无人机的基础知识、飞行原理、安全操作规范。通过理论学习与模拟训练相结合的方式，帮助学员快速掌握无人机基本操控技能，为后续进阶学习打下坚实基础。课程涵盖无人机发展历史、系统组成、飞行原理、气象知识、法律法规等核心内容。',
     category: '基础入门',
-    level: '初级',
+    level: '初级工',
     price: 999,
     originalPrice: 1999,
     duration: 480, // 8小时
@@ -50,7 +58,7 @@ const realCourses = [
     title: '多旋翼无人机飞行进阶',
     description: '本课程面向已掌握基础飞行的学员，进一步提升飞行技能与安全意识。课程涵盖复杂环境飞行、FPV第一人称视角飞行、智能飞行模式应用、高级航拍技巧等内容。通过大量实战训练，培养学员应对各种飞行场景的能力。',
     category: '进阶提升',
-    level: '中级',
+    level: '中级工',
     price: 2999,
     originalPrice: 4999,
     duration: 960, // 16小时
@@ -87,7 +95,7 @@ const realCourses = [
     title: 'AOPA无人机驾驶员认证培训',
     description: '本课程严格按照中国航空器拥有者及驾驶员协会（AOPA）认证标准设置，全面覆盖理论考试与实践考试内容。学员完成培训并通过考核后，可获得AOPA颁发的无人机驾驶员合格证。课程包含法规、气象、飞行原理、地面站操作、实践飞行等全部考试科目。',
     category: '专业认证',
-    level: '中级',
+    level: '中级工',
     price: 8800,
     originalPrice: 12800,
     duration: 1800, // 30小时
@@ -132,7 +140,7 @@ const realCourses = [
     title: '无人机农业植保应用技术',
     description: '本课程专注于农业植保无人机应用技术，培养学员掌握植保无人机操作、药剂配比、作业规划、故障处理等专业技能。课程结合实际农田作业场景，涵盖水稻、小麦、玉米、果树等多种作物的植保作业技术。',
     category: '行业应用',
-    level: '中级',
+    level: '中级工',
     price: 4999,
     originalPrice: 6999,
     duration: 960, // 16小时
@@ -167,7 +175,7 @@ const realCourses = [
     title: '无人机电力巡检技术培训',
     description: '本课程面向电力行业从业人员，系统讲解无人机电力巡检技术。课程涵盖输电线路巡检、杆塔巡检、变电站巡检、红外热成像检测等内容，培养学员掌握电力巡检无人机的专业操作技能与数据分析能力。',
     category: '行业应用',
-    level: '高级',
+    level: '高级工',
     price: 6800,
     originalPrice: 9800,
     duration: 1200, // 20小时
@@ -206,7 +214,7 @@ const realCourses = [
     title: '无人机测绘技术实战班',
     description: '本课程系统教授无人机测绘技术，包括航空摄影测量原理、像控点布设、航飞作业、数据处理、正射影像制作、数字高程模型生成等内容。学员将掌握完整的无人机测绘作业流程，能够独立完成中小型测绘项目。',
     category: '行业应用',
-    level: '高级',
+    level: '高级工',
     price: 7800,
     originalPrice: 10800,
     duration: 1440, // 24小时
@@ -264,6 +272,32 @@ async function findTeacher(name) {
 }
 
 /**
+ * 获取 categories 集合中的分类
+ */
+async function getCategories() {
+  try {
+    const result = await db.collection('categories').orderBy('sort', 'asc').get()
+    return result.data || []
+  } catch (error) {
+    console.log('获取分类失败:', error.message)
+    return []
+  }
+}
+
+/**
+ * 根据课程分类获取分类ID
+ */
+async function getCategoryInfo(categoryKey) {
+  const mappedCategory = categoryMapping[categoryKey] || categoryKey
+  const categories = await getCategories()
+  const cat = categories.find(c => c.name === mappedCategory)
+  return {
+    categoryId: cat?._id || '',
+    category: cat?.name || mappedCategory
+  }
+}
+
+/**
  * 添加课程数据
  */
 async function addCourses() {
@@ -280,11 +314,16 @@ async function addCourses() {
       // 查找对应教师
       const teacherId = await findTeacher(course.instructor)
       
+      // 获取分类信息
+      const { categoryId, category } = await getCategoryInfo(course.category)
+      console.log(`  分类映射: ${course.category} -> ${category} (ID: ${categoryId})`)
+      
       // 构建课程数据
       const courseData = {
         title: course.title,
         description: course.description,
-        category: course.category,
+        category: category, // 使用 categories 集合中的分类名称
+        categoryId: categoryId,
         level: course.level,
         price: course.price,
         originalPrice: course.originalPrice,

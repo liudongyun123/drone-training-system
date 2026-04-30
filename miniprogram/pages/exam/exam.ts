@@ -1,9 +1,7 @@
 // pages/exam/exam.ts
 // 考试/练习答题页
 
-import { getDatabase } from '../../utils/cloudbase'
-
-const db = getDatabase()
+import { getQuestions, dbQuery, dbGetList } from '../../utils/http'
 
 interface Question {
   _id: string
@@ -48,32 +46,32 @@ Page({
       const { type, bankId, examId } = this.data
 
       if (type === 'exam' && examId) {
-        // 模拟考试 - 加载考试题目
-        const examResult = await db.collection('mock_exams').doc(examId).get()
-        const exam = examResult.data
-        const questionsResult = await db.collection('questions')
-          .where({ _id: exam.questionIds ? { $in: exam.questionIds } : { examId } })
-          .get()
-        this.setData({
-          questions: questionsResult.data,
-          currentQuestion: questionsResult.data[0] || null,
-          timeLeft: exam.duration * 60
+        // 模拟考试 - 加载考试信息
+        const examResult = await dbGetList('mock_exams', {
+          where: { _id: examId }
         })
-        this.startTimer()
+        const exam = examResult.data?.[0]
+        
+        if (exam) {
+          const questionsResult = await getQuestions({ examId })
+          this.setData({
+            questions: questionsResult.data || [],
+            currentQuestion: questionsResult.data?.[0] || null,
+            timeLeft: (exam.duration || 30) * 60
+          })
+          this.startTimer()
+        }
       } else {
         // 练习模式 - 加载题库题目
-        const result = await db.collection('questions')
-          .where({ bankId })
-          .limit(50)
-          .get()
+        const result = await getQuestions({ bankId })
         this.setData({
-          questions: result.data,
-          currentQuestion: result.data[0] || null
+          questions: result.data || [],
+          currentQuestion: result.data?.[0] || null
         })
       }
     } catch (err) {
       console.error('加载题目失败:', err)
-      wx.showToast({ title: '加载题目失败', icon: 'error' })
+      wx.showToast({ title: '加载题目失败', icon: 'none' })
     }
   },
 
@@ -104,19 +102,15 @@ Page({
     const userAnswers = { ...this.data.userAnswers }
 
     if (question.type === 'multiple') {
-      // 多选题
       const current = userAnswers[questionId] || []
       const optionKey = String.fromCharCode(65 + optionIndex)
 
       if (current.includes(optionKey)) {
-        // 取消选择
         userAnswers[questionId] = current.filter((k: string) => k !== optionKey)
       } else {
-        // 添加选择
         userAnswers[questionId] = [...current, optionKey]
       }
     } else {
-      // 单选/判断
       userAnswers[questionId] = [String.fromCharCode(65 + optionIndex)]
     }
 
@@ -172,7 +166,6 @@ Page({
 
     const { questions, userAnswers } = this.data
 
-    // 计算得分
     let correctCount = 0
     const questionResults = questions.map((q: any) => {
       const userAnswer = (userAnswers[q._id] || []).sort().join(',')
@@ -189,14 +182,13 @@ Page({
 
     const score = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0
 
-    // 存储结果供 result 页面使用
     wx.setStorageSync('examResult', {
       type: this.data.type,
       totalQuestions: questions.length,
       correctCount,
       score,
       questionResults,
-      timeUsed: (this.data.type === 'exam' ? (this.data.timeLeft > 0 ? 0 : 0) : 0)
+      timeUsed: 0
     })
 
     wx.redirectTo({ url: '/pages/result/result' })

@@ -62,8 +62,7 @@
         <view class="detail-header">
           <text class="detail-num">第 {{currentAnalysisIndex + 1}} 题</text>
           <text class="detail-type">
-            {{questionResults[currentAnalysisIndex].question.type === 'single' ? '单选' : 
-              questionResults[currentAnalysisIndex].question.type === 'multiple' ? '多选' : '判断'}}
+            {{questionResults[currentAnalysisIndex].question.type === 'single' ? '单选' : questionResults[currentAnalysisIndex].question.type === 'multiple' ? '多选' : '判断'}}
           </text>
           <text class="detail-status {{questionResults[currentAnalysisIndex].isCorrect ? 'correct' : 'error'}}">
             {{questionResults[currentAnalysisIndex].isCorrect ? '正确' : '错误'}}
@@ -73,15 +72,12 @@
         <text class="detail-title">{{questionResults[currentAnalysisIndex].question.title}}</text>
 
         <view class="detail-options">
-          <view 
-            class="detail-option 
-              {{questionResults[currentAnalysisIndex].userAnswer.includes(String.fromCharCode(65 + index)) ? 'user-select' : ''}}
-              {{questionResults[currentAnalysisIndex].correctAnswer.includes(String.fromCharCode(65 + index)) || 
-                (questionResults[currentAnalysisIndex].correctAnswer.includes(String.fromCharCode(65 + index).toLowerCase())) ? 'correct-select' : ''}}"
+          <view class="detail-option {{item.isUserAnswer ? 'user-select' : ''}} {{item.isCorrectAnswer ? 'correct-select' : ''}}"
             wx:for="{{questionResults[currentAnalysisIndex].question.options}}"
-            wx:key="index"
+            wx:for-index="optIndex"
+            wx:key="optIndex"
           >
-            <text class="option-key">{{String.fromCharCode(65 + index)}}</text>
+            <text class="option-key">{{String.fromCharCode(65 + optIndex)}}</text>
             <text class="option-value">{{item}}</text>
           </view>
         </view>

@@ -20,15 +20,15 @@
 
   <!-- 日程列表 -->
   <view class="schedule-list" wx:if="{{!loading}}">
-    <block wx:for="{{schedule}}" wx:key="_id" wx:for-item="item">
-      <view wx:if="{{item.startTime.substring(5, 10) === currentDate}}" class="schedule-item">
+    <block wx:for="{{daySchedules}}" wx:key="_id" wx:for-item="item">
+      <view class="schedule-item">
         <view class="time-line">
           <view class="time-dot"></view>
           <view class="time-vertical"></view>
         </view>
         <view class="schedule-card">
           <view class="schedule-time">
-            <text>{{item.startTime.substring(11, 16)}} - {{item.endTime.substring(11, 16)}}</text>
+            <text>{{item.startTimeStr}} - {{item.endTimeStr}}</text>
           </view>
           <view class="schedule-content">
             <text class="schedule-title">{{item.title}}</text>
@@ -39,14 +39,14 @@
             </view>
           </view>
           <view class="schedule-status">
-            <text class="status-tag status-{{item.status}}">{{item.status === 'not_started' ? '未开始' : item.status === 'ongoing' ? '进行中' : '已结束'}}</text>
+            <text class="status-tag status-{{item.status}}">{{item.statusText}}</text>
           </view>
         </view>
       </view>
     </block>
 
     <!-- 当日无日程 -->
-    <view wx:if="{{schedule.filter(s => s.startTime.substring(5, 10) === currentDate).length === 0}}" class="empty-container">
+    <view wx:if="{{daySchedules.length === 0}}" class="empty-container">
       <text class="empty-icon">📅</text>
       <text>当天暂无安排</text>
     </view>

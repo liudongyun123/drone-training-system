@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>清除缓存</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>正在清除缓存...</h1>
+    <script>
+        // 清除所有存储
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // 清除所有 cookie
+        document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+        
+        // 清除 indexedDB
+        if (window.indexedDB) {
+            window.indexedDB.databases().then(dbs => {
+                dbs.forEach(db => {
+                    window.indexedDB.deleteDatabase(db.name);
+                });
+            });
+        }
+        
+        // 清除 cache storage
+        if (caches) {
+            caches.keys().then(names => {
+                names.forEach(name => caches.delete(name));
+            });
+        }
+        
+        document.body.innerHTML = '<h1>✅ 缓存已清除</h1><p>3秒后自动跳转到首页...</p>';
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 3000);
+    </script>
+</body>
+</html>

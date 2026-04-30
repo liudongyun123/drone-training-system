@@ -78,16 +78,18 @@ tcb login
 npx @cloudbase/cli surestatic --env-id 你的环境ID --upload-path ./dist
 ```
 
-### 环境变量
+### 环境变量配置
 
-在 `vite.config.ts` 中配置：
+项目支持多环境配置，创建 `.env.local` 或对应的环境文件：
 
-```typescript
-const ENV_ID = "你的环境ID";
-const PUBLISHABLE_KEY = "你的发布密钥";
+```bash
+# 云函数名称（支持多环境部署）
+VUE_APP_ADMIN_FUNCTION=admin-http
+
+# 其他配置参考 .env.example
 ```
 
-## 📁 项目结构
+### 部署到 CloudBase
 
 ```
 Claw/
@@ -140,3 +142,34 @@ npm run test:coverage
 ## 📝 License
 
 MIT License - 详见 [LICENSE](LICENSE) 文件
+
+## 🚀 部署信息
+
+### 环境信息
+- **环境ID**: rcwljy-5ghmq2ex26764978
+- **地域**: ap-shanghai (上海)
+
+### 已部署服务
+| 服务类型 | 地址/说明 |
+|---------|----------|
+| **前端访问** | https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/ |
+| **云函数** | admin-http (管理后台云函数) |
+
+### 数据库集合
+| 集合名 | 说明 | 记录数 |
+|--------|------|--------|
+| `courses` | 课程信息 | 34+ |
+| `members` | 会员信息 | 10+ |
+| `orders` | 订单记录 | 10+ |
+| `teachers` | 教练信息 | 10+ |
+| `course_schedules` | 排课信息 | 10+ |
+| `enrollments` | 报名记录 | 10+ |
+
+### API 版本
+- **当前版本**: v20260430-2250-api-v5
+- **模块化 API**: `{module}.{operation}` 格式
+- **通用 CRUD**: list/get/add/update/delete/count/upsert
+
+### 最近更新
+- **2026-04-30 v5**: 更新响应格式为生产规范（ISO时间戳、简洁分页）
+- **2026-04-30**: 修复admin云函数权限过滤问题

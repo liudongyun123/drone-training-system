@@ -1,111 +1,113 @@
+<!--pages/checkout/checkout.wxml-->
 <view class="page">
-  <!-- 课程结算 -->
-  <block wx:if="{{type === 'course' && courseInfo}}">
-    <view class="section">
-      <text class="section-title">课程信息</text>
-      <view class="order-item">
-        <image class="item-image" src="{{courseInfo.coverImage}}" mode="aspectFill" />
-        <view class="item-info">
-          <text class="item-title">{{courseInfo.title}}</text>
-          <text class="item-desc">{{courseInfo.description}}</text>
-          <text class="item-price">¥{{courseInfo.price}}</text>
-        </view>
-      </view>
+  <!-- 收货地址 -->
+  <view class="section address-section">
+    <view class="section-title">
+      <text class="title-text">收货信息</text>
     </view>
-  </block>
-
-  <!-- 商城结算 -->
-  <block wx:if="{{type === 'shop'}}">
-    <!-- 商品列表 -->
-    <view class="section">
-      <text class="section-title">商品清单 ({{cartItems.length}}件)</text>
-      <view class="order-item" wx:for="{{cartItems}}" wx:key="index">
-        <image class="item-image" src="{{item.product.images[0] || item.product.coverImage}}" mode="aspectFill" />
-        <view class="item-info">
-          <text class="item-title">{{item.product.title}}</text>
-          <text class="item-spec" wx:if="{{item.specs}}">{{item.selectedSku ? item.selectedSku.name : ''}}</text>
-          <view class="item-bottom">
-            <text class="item-price">¥{{item.sku.price || item.product.price}}</text>
-            <text class="item-qty">×{{item.quantity}}</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 自提信息 -->
-    <view class="section">
-      <text class="section-title">提货信息</text>
-      <view class="form-group">
-        <text class="form-label">联系人</text>
+    <view class="address-form">
+      <view class="form-item">
+        <text class="form-label">收货人</text>
         <input 
           class="form-input" 
-          placeholder="请输入联系人姓名" 
-          value="{{contactName}}"
+          placeholder="请输入收货人姓名"
+          value="{{address.name}}"
           bindinput="onNameInput"
         />
       </view>
-      <view class="form-group">
-        <text class="form-label">联系电话</text>
+      <view class="form-item">
+        <text class="form-label">手机号</text>
         <input 
           class="form-input" 
-          placeholder="请输入联系电话" 
           type="number"
-          value="{{contactPhone}}"
+          maxlength="11"
+          placeholder="请输入手机号"
+          value="{{address.phone}}"
           bindinput="onPhoneInput"
         />
       </view>
-      <view class="form-group">
-        <text class="form-label">自提门店</text>
-        <picker mode="selector" range="{{stores}}" value="{{storeIndex}}" bindchange="onStoreChange">
-          <view class="form-picker">
-            <text>{{stores[storeIndex]}}</text>
-            <text class="picker-arrow">></text>
+      <view class="form-item">
+        <text class="form-label">详细地址</text>
+        <textarea 
+          class="form-textarea" 
+          placeholder="请输入详细收货地址"
+          value="{{address.address}}"
+          bindinput="onAddressInput"
+        />
+      </view>
+      <button class="choose-address-btn" bindtap="onChooseAddress">使用微信收货地址</button>
+    </view>
+  </view>
+
+  <!-- 商品列表 -->
+  <view class="section goods-section">
+    <view class="section-title">
+      <text class="title-text">商品信息</text>
+      <text class="goods-count">共 {{items.length}} 件商品</text>
+    </view>
+    <view class="goods-list">
+      <view 
+        wx:for="{{items}}"
+        wx:key="_id"
+        class="goods-item"
+      >
+        <image 
+          class="goods-image" 
+          src="{{item.coverImage || '/assets/images/default-product.png'}}"
+          mode="aspectFill"
+        />
+        <view class="goods-info">
+          <text class="goods-name">{{item.name}}</text>
+          <view class="goods-bottom">
+            <text class="goods-price">¥{{item.price}}</text>
+            <text class="goods-quantity">x{{item.quantity}}</text>
           </view>
-        </picker>
+        </view>
       </view>
     </view>
-  </block>
+  </view>
 
   <!-- 备注 -->
-  <view class="section">
-    <text class="section-title">订单备注</text>
+  <view class="section remark-section">
+    <view class="section-title">
+      <text class="title-text">备注</text>
+    </view>
     <textarea 
       class="remark-input" 
-      placeholder="选填，请先和商家协商一致" 
+      placeholder="选填，可备注特殊需求"
       value="{{remark}}"
       bindinput="onRemarkInput"
-      maxlength="200"
     />
   </view>
 
-  <!-- 价格信息 -->
-  <view class="section">
+  <!-- 价格明细 -->
+  <view class="section price-section">
     <view class="price-row">
-      <text class="price-label">商品合计</text>
-      <text class="price-value">¥{{totalPrice}}</text>
+      <text class="price-label">商品总价</text>
+      <text class="price-value">¥{{totalAmount}}</text>
     </view>
     <view class="price-row">
       <text class="price-label">运费</text>
-      <text class="price-value text-success">免运费</text>
+      <text class="price-value">{{freight > 0 ? '¥' + freight : '包邮'}}</text>
     </view>
-    <view class="price-row total">
-      <text class="price-label">应付金额</text>
-      <text class="price-value">¥{{totalPrice}}</text>
+    <view class="price-row total-row">
+      <text class="total-label">合计</text>
+      <text class="total-value">¥{{finalAmount}}</text>
     </view>
   </view>
 
-  <!-- 提交按钮 -->
-  <view class="bottom-bar safe-area-bottom">
-    <view class="total-area">
-      <text class="total-text">合计: </text>
-      <text class="total-price">¥{{totalPrice}}</text>
+  <!-- 底部提交栏 -->
+  <view class="submit-bar">
+    <view class="submit-info">
+      <text class="submit-label">实付款：</text>
+      <text class="submit-price">¥{{finalAmount}}</text>
     </view>
     <button 
       class="submit-btn {{submitting ? 'disabled' : ''}}" 
-      bindtap="submitOrder"
+      bindtap="onWechatPay"
       disabled="{{submitting}}"
     >
-      {{submitting ? '提交中...' : '提交订单'}}
+      {{submitting ? '提交中...' : '微信支付'}}
     </button>
   </view>
 </view>

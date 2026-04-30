@@ -1,9 +1,7 @@
 // pages/practice/practice.ts
 // 练习中心页
 
-import { getDatabase } from '../../utils/cloudbase'
-
-const db = getDatabase()
+import { getQuestionBanks, getMockExams } from '../../utils/http'
 
 interface QuestionBank {
   _id: string
@@ -30,19 +28,13 @@ Page({
 
     try {
       const [bankResult, examResult] = await Promise.all([
-        db.collection('question_banks')
-          .orderBy('sort', 'asc')
-          .get(),
-        db.collection('mock_exams')
-          .where({ status: 'published' })
-          .orderBy('createdAt', 'desc')
-          .limit(5)
-          .get()
+        getQuestionBanks(),
+        getMockExams()
       ])
 
       this.setData({
-        questionBanks: bankResult.data,
-        mockExams: examResult.data,
+        questionBanks: bankResult.data || [],
+        mockExams: examResult.data || [],
         loading: false
       })
     } catch (err) {

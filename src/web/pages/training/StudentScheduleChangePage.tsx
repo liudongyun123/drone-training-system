@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { scheduleChangeService } from '@/services/enrollmentService'
-import { scheduleService } from '@/services/database'
+import { app as cloudbaseApp } from '@/utils/cloudbase'
 import { useAuthStore } from '@/store/authStore'
 
 interface ScheduleChange {
@@ -31,22 +31,23 @@ interface ScheduleChange {
   updatedAt: string
 }
 
-interface CourseSchedule {
+interface ClassSchedule {
   _id: string
-  courseId: string
+  classId: string
   title: string
   date: string
   startTime: string
   endTime: string
-  classroom: string
+  location: string
+  className?: string
 }
 
 export default function StudentScheduleChange() {
   const [changes, setChanges] = useState<ScheduleChange[]>([])
-  const [schedules, setSchedules] = useState<CourseSchedule[]>([])
+  const [schedules, setSchedules] = useState<ClassSchedule[]>([])
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
-  const [selectedSchedule, setSelectedSchedule] = useState<CourseSchedule | null>(null)
+  const [selectedSchedule, setSelectedSchedule] = useState<ClassSchedule | null>(null)
   const [formData, setFormData] = useState({
     scheduleId: '',
     changeType: 'reschedule',
@@ -74,24 +75,53 @@ export default function StudentScheduleChange() {
     }
   }
 
-  // 加载可调课的排课列表
+  // 加载培训班的排课列表（从 class_schedules）
   const loadSchedules = async () => {
     try {
+      const db = cloudbaseApp.database()
+      
+      // 获取当前用户的所有报名记录
       const { user } = useAuthStore.getState()
       const userId = user?.uid || ''
-
-      // 获取用户的所有报名记录
-      const enrollResult: any = await scheduleChangeService.getUserEnrollments?.(userId)
-      if (enrollResult && enrollResult.code === 0) {
-        // 获取所有报名的课程的排课
-        const allSchedules: CourseSchedule[] = []
-        for (const enrollment of enrollResult.data) {
-          const scheduleResult: any = await (scheduleService as any).getCourseSchedules?.(enrollment.courseId)
-          if (scheduleResult && scheduleResult.code === 0) {
-            allSchedules.push(...scheduleResult.data)
-          }
-        }
-        setSchedules(allSchedules)
+      
+      // 查询用户报名的班级
+      const enrollResult = await db.collection('enrollments')
+        .where({ _openid: userId, status: 'active' })
+        .field({ classId: true })
+        .limit(100)
+        .get()
+      
+      const classIds = enrollResult.data?.map((e: any) => e.classId) || []
+      
+      if (classIds.length > 0) {
+        // 从 class_schedules 获取排课
+        const schedulesResult = await db.collection('class_schedules')
+          .where({
+            classId: db.command.in(classIds)
+          })
+          .orderBy('date', 'asc')
+          .orderBy('startTime', 'asc')
+          .limit(100)
+          .get()
+        
+        // 获取班级名称
+        const classResult = await db.collection('classes')
+          .where({ _id: db.command.in(classIds) })
+          .field({ _id: true, name: true })
+          .limit(100)
+          .get()
+        
+        const classNameMap: Record<string, string> = {}
+        classResult.data?.forEach((c: any) => {
+          classNameMap[c._id] = c.name
+        })
+        
+        const schedulesWithClassName = (schedulesResult.data || []).map((s: any) => ({
+          ...s,
+          className: classNameMap[s.classId] || '未知班级'
+        }))
+        
+        setSchedules(schedulesWithClassName)
       }
     } catch (error) {
       console.error('加载排课列表失败:', error)
@@ -104,7 +134,7 @@ export default function StudentScheduleChange() {
   }, [])
 
   // 打开申请对话框
-  const openModal = (schedule: CourseSchedule) => {
+  const openModal = (schedule: ClassSchedule) => {
     setSelectedSchedule(schedule)
     setFormData({
       scheduleId: schedule._id,
@@ -130,12 +160,12 @@ export default function StudentScheduleChange() {
     }
 
     const currentEnrollmentId = selectedSchedule?._id || ''
-    const courseId = selectedSchedule?.courseId || ''
+    const classId = selectedSchedule?.classId || ''
 
     try {
       await scheduleChangeService.create({
         enrollmentId: currentEnrollmentId,
-        courseId,
+        classId,
         scheduleId: formData.scheduleId,
         userId: useAuthStore.getState().user?.uid || '',
         changeType: formData.changeType,

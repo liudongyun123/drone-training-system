@@ -15,9 +15,26 @@ Page({
     searchKeyword: ''
   },
 
-  onLoad() {
+  onLoad(options: any) {
+    // 如果有传入分类参数
+    if (options.category) {
+      const category = decodeURIComponent(options.category)
+      this.setData({ currentCategory: category })
+      // 清除 storage
+      wx.removeStorageSync('targetCategory')
+    }
     this.loadCategories()
     this.loadCourses()
+  },
+
+  onShow() {
+    // 检查是否有从首页跳转过来的分类
+    const targetCategory = wx.getStorageSync('targetCategory')
+    if (targetCategory && this.data.currentCategory !== targetCategory) {
+      this.setData({ currentCategory: targetCategory })
+      wx.removeStorageSync('targetCategory')
+      this.loadCourses()
+    }
   },
 
   onPullDownRefresh() {
@@ -28,11 +45,13 @@ Page({
   async loadCategories() {
     try {
       const categories = await courseApi.getCategories()
-      this.setData({ categories: ['全部', ...categories] })
+      // categories 可能是对象数组 {name: 'xxx'} 或字符串数组
+      const categoryNames = categories.map((c: any) => c.name || c)
+      this.setData({ categories: ['全部', ...categoryNames] })
     } catch (err) {
       console.error('加载分类失败:', err)
-      // 使用默认分类
-      this.setData({ categories: ['全部', '基础培训', '航拍技术', '行业应用', '维修技术'] })
+      // 使用默认分类（与 categories 集合一致）
+      this.setData({ categories: ['全部', '植保无人机', '安防无人机', '航拍无人机', '物流无人机', '应急无人机', '电力巡检无人机'] })
     }
   },
 

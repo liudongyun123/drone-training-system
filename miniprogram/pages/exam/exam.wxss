@@ -1,8 +1,8 @@
 /* pages/exam/exam.wxss */
 
 .page {
-  background: var(--bg-color);
   min-height: 100vh;
+  background: #f1f5f9;
   display: flex;
   flex-direction: column;
 }
@@ -11,9 +11,9 @@
 .header {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 24rpx 32rpx;
   background: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .progress-info {
@@ -21,142 +21,142 @@
 }
 
 .progress-text {
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-size: 26rpx;
+  color: #64748b;
 }
 
 .progress-bar {
-  height: 4px;
-  background: var(--border-color);
-  border-radius: 2px;
-  margin-top: 6px;
+  height: 8rpx;
+  background: #e2e8f0;
+  border-radius: 4rpx;
+  margin-top: 12rpx;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: var(--primary-color);
-  border-radius: 2px;
+  background: #2563eb;
+  border-radius: 4rpx;
   transition: width 0.3s;
 }
 
 .time-display {
-  margin: 0 16px;
+  margin: 0 32rpx;
 }
 
 .time-text {
-  font-size: 16px;
+  font-size: 32rpx;
   font-weight: 600;
-  color: var(--text-color);
+  color: #1e293b;
   font-variant-numeric: tabular-nums;
 }
 
 .time-text.warning {
-  color: var(--error-color);
+  color: #ef4444;
 }
 
 .question-nav {
-  padding: 6px 12px;
-  background: var(--bg-color);
-  border-radius: 16px;
-  font-size: 13px;
-  color: var(--primary-color);
+  padding: 12rpx 24rpx;
+  background: #f1f5f9;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  color: #2563eb;
 }
 
 /* 题目区域 */
 .question-area {
   flex: 1;
-  padding: 16px;
-  padding-bottom: 80px;
+  padding: 32rpx;
+  padding-bottom: 160rpx;
 }
 
 .question-type {
-  margin-bottom: 12px;
+  margin-bottom: 24rpx;
 }
 
 .type-tag {
   display: inline-block;
-  padding: 2px 8px;
-  font-size: 12px;
-  border-radius: 4px;
+  padding: 4rpx 16rpx;
+  font-size: 24rpx;
+  border-radius: 8rpx;
   color: #fff;
 }
 
 .type-tag.single {
-  background: var(--primary-color);
+  background: #2563eb;
 }
 
 .type-tag.multiple {
-  background: var(--warning-color);
+  background: #f59e0b;
 }
 
 .type-tag.judge {
-  background: var(--success-color);
+  background: #10b981;
 }
 
 .question-title {
   display: block;
-  font-size: 16px;
-  color: var(--text-color);
+  font-size: 32rpx;
+  color: #1e293b;
   font-weight: 500;
   line-height: 1.6;
-  margin-bottom: 20px;
+  margin-bottom: 40rpx;
 }
 
 /* 选项 */
 .options {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 24rpx;
 }
 
 .option-item {
   display: flex;
   align-items: flex-start;
-  padding: 14px 16px;
+  padding: 28rpx 32rpx;
   background: #fff;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  border-radius: 16rpx;
+  border: 1rpx solid #e2e8f0;
   transition: all 0.2s;
 }
 
 .option-item.selected {
-  border-color: var(--primary-color);
-  background: rgba(24, 144, 255, 0.05);
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.05);
 }
 
 .option-radio {
-  width: 20px;
-  height: 20px;
+  width: 40rpx;
+  height: 40rpx;
   border-radius: 50%;
-  border: 1px solid var(--border-color);
+  border: 1rpx solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
-  font-size: 12px;
+  margin-right: 24rpx;
+  font-size: 24rpx;
   color: #fff;
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 2rpx;
 }
 
 .option-item.selected .option-radio {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+  background: #2563eb;
+  border-color: #2563eb;
 }
 
 .option-label {
-  font-size: 14px;
-  color: var(--primary-color);
+  font-size: 28rpx;
+  color: #2563eb;
   font-weight: 600;
-  margin-right: 10px;
+  margin-right: 20rpx;
   flex-shrink: 0;
 }
 
 .option-text {
-  font-size: 14px;
-  color: var(--text-color);
-  line-height: 20px;
+  font-size: 28rpx;
+  color: #1e293b;
+  line-height: 40rpx;
 }
 
 /* 底部操作栏 */
@@ -166,27 +166,27 @@
   right: 0;
   bottom: 0;
   display: flex;
-  gap: 12px;
-  padding: 8px 16px;
+  gap: 24rpx;
+  padding: 16rpx 32rpx;
   background: #fff;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.04);
 }
 
 .nav-btn {
   flex: 1;
-  border-radius: 20px;
-  font-size: 14px;
-  padding: 12px 0;
-  border: 1px solid var(--border-color);
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  padding: 24rpx 0;
+  border: 1rpx solid #e2e8f0;
   background: #fff;
-  color: var(--text-color);
+  color: #64748b;
 }
 
 .nav-btn.next,
 .nav-btn.submit {
-  background: var(--primary-color);
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: #fff;
-  border-color: var(--primary-color);
+  border-color: transparent;
 }
 
 .nav-btn[disabled] {
@@ -218,25 +218,25 @@
   right: 0;
   bottom: 0;
   background: #fff;
-  border-radius: 16px 16px 0 0;
-  padding: 24px 16px;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 48rpx 32rpx;
   max-height: 60vh;
 }
 
 .sheet-title {
   display: block;
-  font-size: 16px;
+  font-size: 32rpx;
   font-weight: 600;
-  color: var(--text-color);
-  margin-bottom: 20px;
+  color: #1e293b;
+  margin-bottom: 40rpx;
   text-align: center;
 }
 
 .sheet-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 24rpx;
+  margin-bottom: 40rpx;
 }
 
 .sheet-item {
@@ -245,42 +245,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  background: var(--bg-color);
-  font-size: 14px;
-  color: var(--text-secondary);
+  border-radius: 16rpx;
+  background: #f1f5f9;
+  font-size: 28rpx;
+  color: #64748b;
 }
 
 .sheet-item.answered {
-  background: var(--primary-color);
+  background: #2563eb;
   color: #fff;
 }
 
 .sheet-item.current {
-  border: 2px solid var(--primary-color);
+  border: 4rpx solid #2563eb;
 }
 
 .sheet-legend {
   display: flex;
   justify-content: center;
-  gap: 24px;
+  gap: 48rpx;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 24rpx;
+  color: #64748b;
 }
 
 .legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-  background: var(--bg-color);
-  margin-right: 6px;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 8rpx;
+  background: #f1f5f9;
+  margin-right: 12rpx;
 }
 
 .legend-dot.answered {
-  background: var(--primary-color);
+  background: #2563eb;
 }

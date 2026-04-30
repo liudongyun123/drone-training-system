@@ -1,55 +1,86 @@
 <!--pages/index/index.wxml - 首页（小程序适配版）-->
 
 <view class="page">
-  <!-- ==================== Hero 区域（紧凑版） ==================== -->
+  <!-- ==================== Hero 区域（三块布局） ==================== -->
   <view class="hero-section">
-    <view class="hero-bg"></view>
+    <!-- 顶部左侧：文字内容 -->
+    <view class="hero-top">
+      <!-- 左侧：文字 -->
+      <view class="hero-left">
+        <!-- Logo -->
+        <view class="hero-logo">
+          <image class="logo-img" src="../../assets/icons/logo.png" mode="aspectFit"/>
+        </view>
+        
+        <!-- 标题 -->
+        <view class="hero-title">
+          <text class="title-main">翱翔蓝天</text>
+          <text class="title-sub">成就飞行梦想</text>
+        </view>
+        
+        <!-- 按钮 -->
+        <view class="hero-actions">
+          <view class="btn-primary" bindtap="goToCourseList">
+            <text class="btn-icon">📚</text>
+            <text class="btn-text">查看课程</text>
+          </view>
+          <view class="btn-secondary" bindtap="goToClassList">
+            <text class="btn-icon">▶️</text>
+            <text class="btn-text">预约试听</text>
+          </view>
+        </view>
+        
+        <!-- 信任标签 -->
+        <view class="hero-badges">
+          <view class="badge-item">
+            <text class="badge-icon">✓</text>
+            <text class="badge-text">官方认证</text>
+          </view>
+          <view class="badge-item">
+            <text class="badge-icon">✓</text>
+            <text class="badge-text">实操为主</text>
+          </view>
+          <view class="badge-item">
+            <text class="badge-icon">✓</text>
+            <text class="badge-text">推荐就业</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 右侧：轮播图 -->
+      <view class="hero-right">
+        <swiper 
+          class="hero-swiper" 
+          indicator-dots="{{heroBanners.length > 1}}"
+          autoplay="{{heroBanners.length > 1}}" 
+          interval="5000" 
+          circular
+          indicator-active-color="#ffffff"
+          wx:if="{{heroBanners.length > 0}}"
+        >
+          <swiper-item wx:for="{{heroBanners}}" wx:key="_id">
+            <image 
+              class="hero-banner-image" 
+              src="{{item.image}}" 
+              mode="aspectFill"
+              bindtap="onBannerTap"
+              data-banner="{{item}}"
+            />
+          </swiper-item>
+        </swiper>
+        <!-- 默认占位图 -->
+        <image 
+          wx:if="{{heroBanners.length === 0}}"
+          class="hero-banner-image" 
+          src="https://picsum.photos/400/300?random=1" 
+          mode="aspectFill"
+        />
+      </view>
+    </view>
     
-    <view class="hero-content">
-      <!-- Logo -->
-      <view class="hero-logo">
-        <view class="logo-box">
-          <text class="logo-icon">🛩️</text>
-        </view>
-        <text class="logo-text">无人机培训中心</text>
-      </view>
-      
-      <!-- 标题 -->
-      <view class="hero-title">
-        <text class="title-main">翱翔蓝天</text>
-        <text class="title-sub">成就飞行梦想</text>
-      </view>
-      
-      <!-- 描述 -->
-      <text class="hero-desc">中国航空运输协会认证培训机构，零基础到专业飞手的完整培训体系</text>
-      
-      <!-- 按钮 -->
-      <view class="hero-actions">
-        <view class="btn-primary" bindtap="goToCourseList">
-          <text class="btn-icon">📚</text>
-          <text class="btn-text">查看课程</text>
-        </view>
-        <view class="btn-secondary" bindtap="goToClassList">
-          <text class="btn-icon">▶️</text>
-          <text class="btn-text">预约试听</text>
-        </view>
-      </view>
-      
-      <!-- 信任标签 -->
-      <view class="hero-badges">
-        <view class="badge-item">
-          <text class="badge-icon">✓</text>
-          <text class="badge-text">官方认证</text>
-        </view>
-        <view class="badge-item">
-          <text class="badge-icon">✓</text>
-          <text class="badge-text">实操为主</text>
-        </view>
-        <view class="badge-item">
-          <text class="badge-icon">✓</text>
-          <text class="badge-text">推荐就业</text>
-        </view>
-      </view>
+    <!-- 底部：描述 -->
+    <view class="hero-bottom">
+      <text class="hero-desc">零基础到专业飞手的完整培训体系，涵盖植保，航拍，巡检等</text>
     </view>
   </view>
 
@@ -72,7 +103,7 @@
           <text class="section-title">学习路径</text>
           <text class="section-subtitle">系统化学习体验</text>
         </view>
-        <view class="section-more" bindtap="goToCourseList">
+        <view class="section-more" catchtap="goToCourseList">
           <text>全部</text>
           <text class="arrow">›</text>
         </view>
@@ -80,33 +111,33 @@
       
       <scroll-view class="scroll-x" scroll-x enhanced show-scrollbar="{{false}}">
         <view class="paths-scroll">
-          <view class="path-card" bindtap="goToCourseList" data-category="基础培训">
+          <view class="path-card" catchtap="goToPath" data-category="植保无人机">
             <view class="path-icon-box blue">
-              <text class="path-icon">🎓</text>
+              <text class="path-icon">🌾</text>
             </view>
-            <text class="path-name">基础入门</text>
-            <text class="path-desc">零基础学员首选</text>
+            <text class="path-name">植保无人机</text>
+            <text class="path-desc">农业植保应用</text>
           </view>
-          <view class="path-card" bindtap="goToCourseList" data-category="航拍技术">
+          <view class="path-card" catchtap="goToPath" data-category="航拍无人机">
             <view class="path-icon-box amber">
               <text class="path-icon">📷</text>
             </view>
-            <text class="path-name">航拍进阶</text>
-            <text class="path-desc">专业航拍技能</text>
+            <text class="path-name">航拍无人机</text>
+            <text class="path-desc">航拍摄影技术</text>
           </view>
-          <view class="path-card" bindtap="goToCourseList" data-category="行业应用">
+          <view class="path-card" catchtap="goToPath" data-category="安防无人机">
             <view class="path-icon-box purple">
-              <text class="path-icon">🚁</text>
+              <text class="path-icon">🛡️</text>
             </view>
-            <text class="path-name">行业应用</text>
-            <text class="path-desc">植保巡检测绘</text>
+            <text class="path-name">安防无人机</text>
+            <text class="path-desc">安防监控应用</text>
           </view>
-          <view class="path-card" bindtap="goToCourseList" data-category="维修技术">
+          <view class="path-card" catchtap="goToPath" data-category="电力巡检无人机">
             <view class="path-icon-box red">
-              <text class="path-icon">🔧</text>
+              <text class="path-icon">⚡</text>
             </view>
-            <text class="path-name">维修保养</text>
-            <text class="path-desc">故障排除维护</text>
+            <text class="path-name">电力巡检</text>
+            <text class="path-desc">电力线路巡检</text>
           </view>
         </view>
       </scroll-view>
@@ -122,7 +153,7 @@
           <text class="section-title">热门课程</text>
           <text class="section-subtitle">精选优质内容</text>
         </view>
-        <view class="section-more" bindtap="goToCourseList">
+        <view class="section-more" catchtap="goToCourseList">
           <text>更多</text>
           <text class="arrow">›</text>
         </view>
@@ -194,9 +225,9 @@
           >
             <view class="class-top">
               <text class="class-name">{{item.name}}</text>
-              <view class="class-status-badge enrolling">
-                <text>招生中</text>
-              </view>
+            </view>
+            <view class="class-status-badge enrolling">
+              <text>招生中</text>
             </view>
             <view class="class-info-row">
               <text class="info-icon">📅</text>
@@ -301,7 +332,7 @@
           <text class="section-title">配件商城</text>
           <text class="section-subtitle">正品保障</text>
         </view>
-        <view class="section-more" bindtap="goToShop">
+        <view class="section-more" catchtap="goToShop">
           <text>更多</text>
           <text class="arrow">›</text>
         </view>

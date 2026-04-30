@@ -140,20 +140,6 @@ export const teacherService = {
   },
 
   /**
-   * 获取教师排课列表
-   */
-  async getScheduleList(teacherId: string, query: Record<string, unknown> = {}, options: PaginationParams = {}) {
-    return await callAdminFunction('list', {
-      collection: 'course_schedules',
-      query: {
-        teacherId,
-        ...query
-      },
-      options
-    })
-  },
-
-  /**
    * 获取教师统计数据
    */
   async getStatistics(teacherId: string, year: number, month: number) {

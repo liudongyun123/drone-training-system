@@ -1,40 +1,50 @@
 # Dependencies
 node_modules/
-.pnp
-.pnp.js
 
-# Build
+# Build outputs
 dist/
-dist_tmp/
-build/
+dist-ssr/
+*.local
+*.zip
+dist-new.tar.gz
+dist-admin.zip
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
-
-# Environment
+# Environment files
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# Testing
-coverage/
-test-results/
-playwright-report/
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# CloudBase
+.cloudbase/
 
 # Temporary files
 *.tmp
 *.temp
 .cache/
 
-# CodeBuddy (AI assistant configs)
-.codebuddy/
+# Functions
+functions/
+
+# Generated images
+generated-images/
