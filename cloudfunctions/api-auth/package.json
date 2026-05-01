@@ -1,0 +1,10 @@
+{
+  "name": "api-auth",
+  "version": "1.0.0",
+  "description": "统一认证服务 - 支持小程序/Web/H5",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest",
+    "tcb-admin-node": "latest"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "init-uav-collections",
+  "version": "1.0.0",
+  "description": "初始化无人机培训系统集合",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^2.10.0"
+  }
+}

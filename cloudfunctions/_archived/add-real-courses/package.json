@@ -1,0 +1,12 @@
+{
+  "name": "add-real-courses",
+  "version": "1.0.0",
+  "description": "添加真实无人机培训课程数据",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@cloudbase/node-sdk": "^1.8.0"
+  }
+}

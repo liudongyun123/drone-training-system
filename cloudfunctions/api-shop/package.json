@@ -1,0 +1,10 @@
+{
+  "name": "api-shop",
+  "version": "1.0.0",
+  "description": "商城服务 - 商品/购物车/订单/支付",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest",
+    "tcb-admin-node": "latest"
+  }
+}

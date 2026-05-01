@@ -1,0 +1,10 @@
+{
+  "name": "api-course",
+  "version": "1.0.0",
+  "description": "课程服务 - 课程/学习进度/收藏",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest",
+    "tcb-admin-node": "latest"
+  }
+}

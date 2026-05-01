@@ -1,0 +1,9 @@
+{
+  "name": "submit-exam",
+  "version": "1.0.0",
+  "description": "Web端考试提交云函数",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^1.8.0"
+  }
+}

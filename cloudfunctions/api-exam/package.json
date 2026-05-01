@@ -1,0 +1,10 @@
+{
+  "name": "api-exam",
+  "version": "1.0.0",
+  "description": "考试服务 - 题库/考试/成绩",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest",
+    "tcb-admin-node": "latest"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "api-home",
+  "version": "1.0.0",
+  "description": "首页聚合服务 - 三端共用",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest",
+    "tcb-admin-node": "latest"
+  }
+}

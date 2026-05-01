@@ -1,0 +1,73 @@
+<!--pages/lesson-player/lesson-player.wxml-->
+<view class="lesson-player">
+  <!-- 视频播放器 -->
+  <view class="video-container">
+    <video
+      id="lessonVideo"
+      class="video-player"
+      src="{{currentVideoUrl}}"
+      poster=""
+      controls
+      show-progress
+      show-fullscreen-btn
+      enable-progress-gesture
+      bindplay="onVideoPlay"
+      bindpause="onVideoPause"
+      bindended="onVideoEnded"
+      bindtimeupdate="onTimeUpdate"
+      binderror="onError"
+    />
+  </view>
+
+  <!-- 课程信息 -->
+  <view class="lesson-info">
+    <view class="lesson-title">{{lesson?.title || '加载中...'}}</view>
+    <view class="lesson-meta">
+      <text class="meta-item">进度: {{progress}}%</text>
+      <text class="meta-item">时长: {{lesson?.duration ? formatTime(lesson.duration) : '--:--'}}</text>
+    </view>
+
+    <!-- 进度条 -->
+    <view class="progress-bar">
+      <view class="progress-fill" style="width: {{progress}}%"></view>
+    </view>
+  </view>
+
+  <!-- 课时列表 -->
+  <view class="lessons-section">
+    <view class="section-title">课时列表</view>
+    <scroll-view class="lessons-list" scroll-y>
+      <view
+        wx:for="{{lessons}}"
+        wx:key="_id"
+        class="lesson-item {{item._id === lessonId ? 'active' : ''}}"
+        data-id="{{item._id}}"
+        bindtap="switchLesson"
+      >
+        <view class="lesson-item-order">{{item.order || index + 1}}</view>
+        <view class="lesson-item-content">
+          <text class="lesson-item-title">{{item.title}}</text>
+          <text class="lesson-item-duration">{{item.duration ? formatTime(item.duration) : ''}}</text>
+        </view>
+        <view class="lesson-item-status">
+          <text wx:if="{{item.completed}}" class="status-completed">✓</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <button class="btn-back" bindtap="goBack">返回</button>
+    <button class="btn-next" bindtap="switchLesson" data-id="{{lessons[lessons.findIndex(l => l._id === lessonId) + 1]?._id}}">
+      下一课时
+    </button>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-mask">
+    <view class="loading-content">
+      <text class="loading-text">加载中...</text>
+    </view>
+  </view>
+</view>
