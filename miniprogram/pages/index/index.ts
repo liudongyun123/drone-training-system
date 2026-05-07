@@ -59,7 +59,7 @@ Page<IndexData>({
 
       // 并行加载五个模块数据
       const [courses, classes, products, banners, categories] = await Promise.all([
-        courseApi.getHotCourses(6),
+        courseApi.getHotCourses(6, currentSourceId),
         classApi.getList({ status: 'enrolling', sourceId: currentSourceId }),
         productApi.getList({ pageSize: 6 }),
         bannerApi.getList(10),
