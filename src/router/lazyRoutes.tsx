@@ -67,6 +67,7 @@ export const AdminLogs = lazy(() => import('@/admin/pages/system/AdminLogs'));
 export const AdminOfflineEnrollment = lazy(() => import('@/admin/pages/system/AdminOfflineEnrollment'));
 export const AdminDictionaries = lazy(() => import('@/admin/pages/system/AdminDictionaries'));
 export const AdminSiteConfig = lazy(() => import('@/admin/pages/system/AdminSiteConfig'));
+export const AdminSources = lazy(() => import('@/admin/pages/system/AdminSources'));
 
 // 课程管理
 export const AdminCourses = lazy(() => import('@/admin/pages/courses/AdminCourses'));

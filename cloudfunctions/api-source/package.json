@@ -1,0 +1,14 @@
+{
+  "name": "api-source",
+  "version": "1.0.0",
+  "description": "体系服务云函数",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "npm run upload",
+    "upload": "tcb fn deploy api-source --force"
+  },
+  "dependencies": {
+    "wx-server-sdk": "^2.6.3",
+    "tcb-admin-node": "^1.3.4"
+  }
+}

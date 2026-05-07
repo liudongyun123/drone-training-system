@@ -161,22 +161,34 @@ export const DEFAULT_DICTIONARIES: Record<string, any> = {
     suspended: { text: '停用', color: 'bg-red-100 text-red-700' },
   },
 
-  // 课程等级
+  // 课程等级 - 按体系分组
   courseLevels: [
-    { value: '初级工', label: '初级工', badgeColor: 'badge-success' },
-    { value: '中级工', label: '中级工', badgeColor: 'badge-warning' },
-    { value: '高级工', label: '高级工', badgeColor: 'badge-error' },
-    { value: '技师', label: '技师', badgeColor: 'badge-primary' },
-    { value: '高级技师', label: '高级技师', badgeColor: 'badge-secondary' },
+    // 人社培训等级
+    { value: '初级工', label: '初级工', badgeColor: 'badge-success', source: 'RENSHE' },
+    { value: '中级工', label: '中级工', badgeColor: 'badge-warning', source: 'RENSHE' },
+    { value: '高级工', label: '高级工', badgeColor: 'badge-error', source: 'RENSHE' },
+    { value: '技师', label: '技师', badgeColor: 'badge-primary', source: 'RENSHE' },
+    { value: '高级技师', label: '高级技师', badgeColor: 'badge-secondary', source: 'RENSHE' },
+    // CAAC证书等级
+    { value: '视距内驾驶员', label: '视距内驾驶员', badgeColor: 'badge-success', source: 'CAAC' },
+    { value: '超视距驾驶员', label: '超视距驾驶员(机长)', badgeColor: 'badge-warning', source: 'CAAC' },
+    { value: '教员', label: '教员', badgeColor: 'badge-error', source: 'CAAC' },
   ],
 
-  // 培训班等级
+  // 培训班等级 - 按体系分组
   classLevels: [
-    { value: '入门班', label: '入门班', badgeColor: 'badge-success' },
-    { value: '基础班', label: '基础班', badgeColor: 'badge-info' },
-    { value: '进阶班', label: '进阶班', badgeColor: 'badge-warning' },
-    { value: '高级班', label: '高级班', badgeColor: 'badge-error' },
-    { value: '考证班', label: '考证班', badgeColor: 'badge-primary' },
+    // 人社培训等级
+    { value: '入门班', label: '入门班', badgeColor: 'badge-success', source: 'RENSHE' },
+    { value: '基础班', label: '基础班', badgeColor: 'badge-info', source: 'RENSHE' },
+    { value: '进阶班', label: '进阶班', badgeColor: 'badge-warning', source: 'RENSHE' },
+    { value: '高级班', label: '高级班', badgeColor: 'badge-error', source: 'RENSHE' },
+    { value: '考证班', label: '考证班', badgeColor: 'badge-primary', source: 'RENSHE' },
+    // CAAC培训班等级
+    { value: 'CAAC入门班', label: 'CAAC入门班', badgeColor: 'badge-success', source: 'CAAC' },
+    { value: 'CAAC基础班', label: 'CAAC基础班', badgeColor: 'badge-info', source: 'CAAC' },
+    { value: 'CAAC进阶班', label: 'CAAC进阶班', badgeColor: 'badge-warning', source: 'CAAC' },
+    { value: 'CAAC高级班', label: 'CAAC高级班', badgeColor: 'badge-error', source: 'CAAC' },
+    { value: 'CAAC考证班', label: 'CAAC考证班', badgeColor: 'badge-primary', source: 'CAAC' },
   ],
 
   // 题库分类
@@ -292,6 +304,24 @@ export async function getLevelOptions(): Promise<LevelConfigItem[]> {
 export async function getClassLevels(): Promise<LevelConfigItem[]> {
   const levels = await getDictionary('classLevels');
   return (Array.isArray(levels) ? levels : DEFAULT_DICTIONARIES.classLevels) as LevelConfigItem[];
+}
+
+/**
+ * 按体系获取课程等级列表
+ * @param source 体系代码，如 'RENSHE' 或 'CAAC'
+ */
+export async function getCourseLevelsBySource(source: string): Promise<LevelConfigItem[]> {
+  const levels = await getLevelOptions();
+  return levels.filter((l: any) => l.source === source);
+}
+
+/**
+ * 按体系获取培训班等级列表
+ * @param source 体系代码，如 'RENSHE' 或 'CAAC'
+ */
+export async function getClassLevelsBySource(source: string): Promise<LevelConfigItem[]> {
+  const levels = await getClassLevels();
+  return levels.filter((l: any) => l.source === source);
 }
 
 /**
