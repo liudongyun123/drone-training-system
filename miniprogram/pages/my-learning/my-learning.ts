@@ -3,6 +3,8 @@
 
 import { checkLogin, getUserId, getPhone } from '../../utils/util'
 import { courseApi, orderApi } from '../../utils/api'
+import { dbGetList } from '../../utils/http'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -46,31 +48,99 @@ Page({
     this.setData({ loading: true })
     try {
       const userId = getUserId() || ''
-      
-      // 模拟学习数据（实际应该从服务器获取用户的学习进度）
-      // 这里用课程列表模拟
-      const allCourses = await courseApi.getList({ pageSize: 20 })
-      
-      // 筛选发布状态的课程
+      const openid = wx.getStorageSync('openid') || ''
+
+      if (!userId && !openid) {
+        this.setData({
+          learningCourses: [],
+          completedCourses: [],
+          learningCount: 0,
+          completedCount: 0,
+          loading: false
+        })
+        return
+      }
+
+      // 从 user_progress 表获取用户真实学习进度
+      const progressWhere: any = {}
+      if (userId) progressWhere.userId = userId
+      else if (openid) progressWhere.openid = openid
+
+      const progressResult = await dbGetList('user_progress', {
+        where: progressWhere,
+        orderBy: 'updatedAt desc'
+      })
+
+      const progressData = progressResult.data || []
+      logger.debug('我的学习', '进度数据', progressData)
+
+      // 按课程分组统计进度
+      const courseProgressMap = new Map<string, any>()
+
+      for (const p of progressData) {
+        const courseId = p.courseId
+        if (!courseProgressMap.has(courseId)) {
+          courseProgressMap.set(courseId, {
+            courseId,
+            progress: 0,
+            totalLessons: 0,
+            learnedLessons: 0,
+            lastLearnTime: '',
+            lessons: []
+          })
+        }
+        const cp = courseProgressMap.get(courseId)
+        if (p.completed) {
+          cp.learnedLessons++
+        }
+        if (p.watchedDuration > 0 && !cp.lastLearnTime) {
+          cp.lastLearnTime = p.updatedAt
+        }
+      }
+
+      // 获取课程详情并计算进度
+      const courseIds = Array.from(courseProgressMap.keys())
+      const allCourses = await courseApi.getList({ pageSize: 100 })
       const publishedCourses = allCourses.filter((c: any) => c.status === 'published')
-      
-      // 模拟数据：前3个是学习中，后3个是已完成
-      const learningCourses = publishedCourses.slice(0, 3).map((course: any, index: number) => ({
-        ...course,
-        progress: 30 + index * 20,
-        learnedLessons: Math.floor(course.lessons?.length || 0 * (30 + index * 20) / 100),
-        totalLessons: course.lessons?.length || 10,
-        lastLearnTime: '2024-01-15'
-      }))
-      
-      const completedCourses = publishedCourses.slice(3, 6).map((course: any) => ({
-        ...course,
-        progress: 100,
-        learnedLessons: course.lessons?.length || 10,
-        totalLessons: course.lessons?.length || 10,
-        completeTime: '2024-01-10'
-      }))
-      
+
+      // 获取每个课程的课时数
+      const learningCourses: any[] = []
+      const completedCourses: any[] = []
+
+      for (const course of publishedCourses) {
+        const lessonsResult = await dbGetList('lessons', {
+          where: { courseId: course._id },
+          limit: 100
+        })
+        const lessons = lessonsResult.data || []
+        const totalLessons = lessons.length
+
+        const cp = courseProgressMap.get(course._id)
+        if (!cp) {
+          // 该课程没有学习记录，跳过
+          continue
+        }
+
+        cp.totalLessons = totalLessons
+        cp.progress = totalLessons > 0 ? Math.round((cp.learnedLessons / totalLessons) * 100) : 0
+
+        const courseData = {
+          ...course,
+          progress: cp.progress,
+          learnedLessons: cp.learnedLessons,
+          totalLessons: totalLessons,
+          lastLearnTime: cp.lastLearnTime
+        }
+
+        if (cp.progress >= 100) {
+          completedCourses.push(courseData)
+        } else {
+          learningCourses.push(courseData)
+        }
+      }
+
+      logger.debug('我的学习', '课程统计', { learning: learningCourses.length, completed: completedCourses.length })
+
       this.setData({
         learningCourses,
         completedCourses,

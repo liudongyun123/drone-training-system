@@ -1,14 +1,24 @@
 // utils/cloudbase.ts
 // CloudBase 云开发工具函数
-// 小程序通过 HTTP API 连接腾讯云 CloudBase
+// 小程序通过云调用连接腾讯云 CloudBase
 
 const ENV_ID = 'rcwljy-5ghmq2ex26764978'
 
 /**
- * 初始化云开发（保留接口，HTTP 模式不需要）
+ * 初始化云开发（必须调用才能使用 wx.cloud.callFunction）
  */
 export function initCloud() {
-  console.log('CloudBase HTTP 模式已初始化，环境:', ENV_ID)
+  if (!wx.cloud) {
+    console.error('wx.cloud 不存在，请检查基础库版本')
+    return
+  }
+  
+  // 使用固定环境
+  wx.cloud.init({
+    env: 'rcwljy-5ghmq2ex26764978',
+    traceUser: true
+  })
+  console.log('CloudBase 云开发已初始化')
 }
 
 /**

@@ -3,6 +3,7 @@
 
 import { classApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -80,37 +81,40 @@ Page({
     this.setData({ submitting: true })
 
     try {
-      const userId = getUserId()!
-      const enrollmentData = {
-        userId,
-        classId: this.classId,
-        classInfo: {
-          id: this.classId,
-          title: this.data.classInfo?.title,
-          price: this.data.classInfo?.price,
-          startDate: this.data.classInfo?.startDate,
-          location: this.data.classInfo?.location
-        },
-        contactName: this.data.contactName,
-        contactPhone: this.data.contactPhone,
-        payMethod: this.data.payMethod,
-        remark: this.data.remark,
-        status: this.data.payMethod === 'online' ? 'paid' : 'pending',
-        createdAt: new Date().toISOString()
+      const userId = getUserId() || ''
+      const openid = wx.getStorageSync('openid') || ''
+
+      // 调用云函数创建报名记录
+      const res = await wx.cloud.callFunction({
+        name: 'web-api',
+        data: {
+          action: 'enrollClass',
+          data: {
+            classId: this.classId,
+            userId: userId,
+            userName: this.data.contactName,
+            phone: this.data.contactPhone,
+            notes: this.data.remark,
+            payMethod: this.data.payMethod
+          }
+        }
+      })
+
+      console.log('[培训班报名] 云函数返回:', res)
+
+      if (res.result && res.result.success) {
+        wx.showToast({ title: '报名成功', icon: 'success' })
+
+        setTimeout(() => {
+          wx.redirectTo({ url: '/pages/my-classes/my-classes' })
+        }, 1500)
+      } else {
+        throw new Error(res.result?.error || '报名失败')
       }
 
-      // 这里应该调用云函数创建报名记录
-      // await callFunction('createEnrollment', enrollmentData)
-
-      wx.showToast({ title: '报名成功', icon: 'success' })
-
-      setTimeout(() => {
-        wx.redirectTo({ url: '/pages/my-classes/my-classes' })
-      }, 1500)
-
-    } catch (err) {
+    } catch (err: any) {
       console.error('报名失败:', err)
-      showToast('报名失败，请重试')
+      showToast(err.message || '报名失败，请重试')
     } finally {
       this.setData({ submitting: false })
     }

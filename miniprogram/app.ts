@@ -23,7 +23,18 @@ App<IAppOption>({
   onLaunch() {
     // 初始化云开发
     initCloud()
+    
+    // 检查 Storage 状态
+    const userId = wx.getStorageSync('userId')
+    const loginInfo = wx.getStorageSync('loginInfo')
+    console.log('[App] onLaunch Storage userId:', userId)
+    console.log('[App] onLaunch Storage loginInfo:', JSON.stringify(loginInfo))
+    
     this.checkLoginStatus()
+  },
+
+  onError(err) {
+    console.error('[App] Error:', err)
   },
 
   onShow() {

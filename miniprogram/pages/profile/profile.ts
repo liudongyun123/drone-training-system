@@ -3,34 +3,65 @@
 
 import { userApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
+import logger from '../../utils/logger'
 
 Page({
   data: {
-    userInfo: null as any,
+    userInfo: {} as any,
     loading: true,
     cartCount: 0
   },
 
   onLoad() {
-    if (!checkLogin()) {
-      wx.navigateTo({ url: '/pages/login/login' })
-      return
+    logger.debug('个人中心', 'onLoad 被调用')
+    
+    // 优先从全局数据获取
+    const app = getApp()
+    let userId = app.globalData.userId
+    logger.debug('个人中心', '全局数据 userId', userId)
+    
+    // 如果全局数据没有，尝试 Storage
+    if (!userId) {
+      userId = wx.getStorageSync('userId')
+      logger.debug('个人中心', 'Storage userId', userId)
     }
-    this.loadUserInfo()
+    
+    if (userId) {
+      this.loadUserInfo()
+    } else {
+      logger.debug('个人中心', '没有 userId，跳转登录')
+      wx.navigateTo({ url: '/pages/login/login' })
+    }
   },
 
   async loadUserInfo() {
-    this.setData({ loading: true })
-
+    logger.debug('个人中心', 'loadUserInfo 开始')
     try {
-      const userId = getUserId()!
-      const userInfo = await userApi.getUser(userId)
-      this.setData({
-        userInfo,
-        loading: false
-      })
+      const userId = getUserId()
+      const result = await userApi.getUser(userId)
+      logger.debug('个人中心', 'result', result)
+      
+      if (result) {
+        // 从全局数据获取基本信息，合并数据库详细信息
+        const app = getApp()
+        const basicInfo = app.globalData.userInfo || {}
+        
+        this.setData({
+          userInfo: {
+            _id: result._id,
+            nickName: result.name || basicInfo.nickName || '用户' + userId.slice(-4),
+            phone: result.phone || basicInfo.phone || '',
+            avatarUrl: result.avatar || basicInfo.avatarUrl || '/assets/icons/profile.png',
+            createdAt: result.createdAt
+          },
+          loading: false
+        })
+        logger.debug('个人中心', '用户信息已更新')
+      } else {
+        this.setData({ loading: false })
+      }
     } catch (err) {
-      console.error('加载用户信息失败:', err)
+      logger.error('个人中心', '错误', err)
       this.setData({ loading: false })
     }
   },

@@ -19,18 +19,45 @@ async function request<T = any>(
       header: {
         'Content-Type': 'application/json'
       },
-      success: (res) => {
+      success: (res: any) => {
+        console.log('[HTTP] 响应:', JSON.stringify(res.data))
         if (res.statusCode === 200) {
-          resolve(res.data as T)
+          // 处理云函数 HTTP 触发器返回格式
+          let result = res.data
+          // 如果是云函数 HTTP 格式 { statusCode, headers, body }
+          if (result && typeof result === 'object' && 'body' in result) {
+            const bodyStr = result.body
+            if (typeof bodyStr === 'string') {
+              try {
+                result = JSON.parse(bodyStr)
+              } catch (e) {
+                reject(new Error(`解析响应失败: ${bodyStr}`))
+                return
+              }
+            } else {
+              result = bodyStr
+            }
+          }
+          // 如果是直接返回的 JSON 对象（{ code, data }）
+          resolve(result as T)
+        } else if (res.statusCode === 404) {
+          reject(new Error(`API不存在: ${path}`))
         } else {
           reject(new Error(`请求失败: ${res.statusCode}`))
         }
       },
       fail: (err) => {
-        reject(err)
+        reject(new Error(`网络请求失败: ${err?.errMsg || '未知错误'}`))
       }
     })
   })
+}
+
+/**
+ * 调用云函数
+ */
+export async function callFunction(name: string, data?: any) {
+  return request<any>(`/${name}`, 'POST', data)
 }
 
 /**
@@ -61,13 +88,6 @@ export async function dbGetList(
     collection,
     ...options
   })
-}
-
-/**
- * 调用云函数
- */
-export async function callFunction(name: string, data?: any) {
-  return request<any>(`/${name}`, 'POST', data)
 }
 
 /**
