@@ -177,7 +177,7 @@ Page({
     if (!product) return
     
     // 获取购物车
-    const cart = wx.getStorageSync('shop_cart') || []
+    const cart = wx.getStorageSync('cart') || []
     
     // 检查是否已存在
     const existIndex = cart.findIndex((item: any) => item._id === product._id)
@@ -195,7 +195,7 @@ Page({
       })
     }
     
-    wx.setStorageSync('shop_cart', cart)
+    wx.setStorageSync('cart', cart)
     wx.showToast({ title: '已加入购物车', icon: 'success' })
   },
 
