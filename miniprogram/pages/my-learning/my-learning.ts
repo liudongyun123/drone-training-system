@@ -15,9 +15,11 @@ Page({
     currentTab: 'learning',
     learningCount: 0,
     completedCount: 0,
+    notStartedCount: 0,
     // 课程列表
     learningCourses: [] as any[],
     completedCourses: [] as any[],
+    notStartedCourses: [] as any[],
     loading: false
   },
 
@@ -48,31 +50,54 @@ Page({
   async loadMyData() {
     this.setData({ loading: true })
     try {
-      const userId = getUserId() || ''
-      const openid = wx.getStorageSync('openid') || ''
+      const phone = wx.getStorageSync('phone') || ''
 
-      if (!userId && !openid) {
+      if (!phone) {
         this.setData({
           learningCourses: [],
           completedCourses: [],
+          notStartedCourses: [],
           learningCount: 0,
           completedCount: 0,
+          notStartedCount: 0,
           loading: false
         })
         return
       }
 
       // 从 user_progress 表获取用户真实学习进度
-      const progressWhere: any = {}
-      if (userId) progressWhere.userId = userId
-      else if (openid) progressWhere.openid = openid
-
-      const progressResult = await dbGetList('user_progress', {
-        where: progressWhere,
-        orderBy: 'updatedAt desc'
-      })
-
-      const progressData = progressResult.data || []
+      // 同时查询 phone 和 userId，确保兼容旧数据
+      const userId = getUserId() || ''
+      
+      // 构建查询条件：同时用 phone 和 userId 查询，然后合并结果
+      const progressResults: any[] = []
+      
+      if (phone) {
+        const r1 = await dbGetList('user_progress', {
+          where: { phone },
+          orderBy: 'updatedAt desc'
+        })
+        if (r1.data) progressResults.push(...r1.data)
+      }
+      
+      if (userId) {
+        const r2 = await dbGetList('user_progress', {
+          where: { userId },
+          orderBy: 'updatedAt desc'
+        })
+        if (r2.data) progressResults.push(...r2.data)
+      }
+      
+      // 去重（根据 courseId + lessonId）
+      const progressMap = new Map<string, any>()
+      for (const p of progressResults) {
+        const key = `${p.courseId}-${p.lessonId}`
+        if (!progressMap.has(key)) {
+          progressMap.set(key, p)
+        }
+      }
+      const progressData = Array.from(progressMap.values())
+      
       logger.debug('我的学习', '进度数据', progressData)
 
       // 按课程分组统计进度
@@ -99,16 +124,37 @@ Page({
         }
       }
 
+      // 获取用户已购买的课程（从 course_permissions 表 - 使用 phone 查询）
+      const permResult = await dbGetList('course_permissions', {
+        where: { phone },
+        orderBy: 'createdAt desc'
+      })
+      
+      const permData = permResult.data || []
+      const purchasedCourseIds = new Set<string>()
+      
+      for (const p of permData) {
+        if (p.courseId) {
+          purchasedCourseIds.add(p.courseId)
+        }
+      }
+      logger.debug('我的学习', '已购课程', Array.from(purchasedCourseIds))
+
       // 获取课程详情并计算进度
-      const courseIds = Array.from(courseProgressMap.keys())
       const allCourses = await courseApi.getList({ pageSize: 100 })
       const publishedCourses = allCourses.filter((c: any) => c.status === 'published')
 
       // 获取每个课程的课时数
       const learningCourses: any[] = []
       const completedCourses: any[] = []
+      const notStartedCourses: any[] = []
 
       for (const course of publishedCourses) {
+        // 只处理已购买的课程
+        if (!purchasedCourseIds.has(course._id)) {
+          continue
+        }
+
         const lessonsResult = await dbGetList('lessons', {
           where: { courseId: course._id },
           limit: 100
@@ -117,8 +163,16 @@ Page({
         const totalLessons = lessons.length
 
         const cp = courseProgressMap.get(course._id)
-        if (!cp) {
-          // 该课程没有学习记录，跳过
+
+        // 未开始：没有学习记录或没有任何课时被看完
+        if (!cp || (cp.learnedLessons === 0 && !cp.lastLearnTime)) {
+          notStartedCourses.push({
+            ...course,
+            progress: 0,
+            learnedLessons: 0,
+            totalLessons: totalLessons,
+            lastLearnTime: ''
+          })
           continue
         }
 
@@ -140,13 +194,15 @@ Page({
         }
       }
 
-      logger.debug('我的学习', '课程统计', { learning: learningCourses.length, completed: completedCourses.length })
+      logger.debug('我的学习', '课程统计', { learning: learningCourses.length, completed: completedCourses.length, notStarted: notStartedCourses.length })
 
       this.setData({
         learningCourses,
         completedCourses,
+        notStartedCourses,
         learningCount: learningCourses.length,
         completedCount: completedCourses.length,
+        notStartedCount: notStartedCourses.length,
         loading: false
       })
     } catch (err) {

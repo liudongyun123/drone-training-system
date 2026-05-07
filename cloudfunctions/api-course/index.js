@@ -704,17 +704,23 @@ async function getLessons(courseId) {
 
 /**
  * 保存学习进度
+ * 支持 phone 或 userId（优先使用 phone）
  */
 async function saveProgress(data) {
-  const { userId, courseId, lessonId, watchedDuration, duration, completed } = data
-  if (!userId || !courseId || !lessonId) {
+  const { phone, userId, courseId, lessonId, watchedDuration, duration, completed } = data
+  // 优先使用 phone，兼容 userId
+  const identity = phone || userId
+  if (!identity || !courseId || !lessonId) {
     return { success: false, error: '缺少必要参数' }
   }
 
   try {
-    // 查找已有记录
+    // 查找已有记录（支持 phone 或 userId）
     const existing = await db.collection('user_progress')
-      .where({ userId, courseId, lessonId })
+      .where(_.or(
+        { phone: identity, courseId, lessonId },
+        { userId: identity, courseId, lessonId }
+      ))
       .limit(1)
       .get()
 
@@ -728,14 +734,16 @@ async function saveProgress(data) {
           totalDuration: duration || existing.data[0].totalDuration,
           completed: completed || existing.data[0].completed,
           lastWatchAt: now,
-          updatedAt: now
+          updatedAt: now,
+          phone: phone || existing.data[0].phone // 确保有 phone
         }
       })
     } else {
       // 创建新记录
       await db.collection('user_progress').add({
         data: {
-          userId,
+          phone, // 使用 phone 作为主要标识
+          userId: userId || null, // 保留 userId 以备兼容
           courseId,
           lessonId,
           watchedDuration: watchedDuration || 0,
@@ -757,19 +765,25 @@ async function saveProgress(data) {
 
 /**
  * 标记课时完成
+ * 支持 phone 或 userId（优先使用 phone）
  */
 async function markCompleted(data) {
-  const { userId, courseId, lessonId } = data
-  if (!userId || !courseId || !lessonId) {
+  const { phone, userId, courseId, lessonId } = data
+  // 优先使用 phone，兼容 userId
+  const identity = phone || userId
+  if (!identity || !courseId || !lessonId) {
     return { success: false, error: '缺少必要参数' }
   }
 
   try {
     const now = new Date().toISOString()
 
-    // 更新进度为已完成
+    // 更新进度为已完成（支持 phone 或 userId）
     const existing = await db.collection('user_progress')
-      .where({ userId, courseId, lessonId })
+      .where(_.or(
+        { phone: identity, courseId, lessonId },
+        { userId: identity, courseId, lessonId }
+      ))
       .limit(1)
       .get()
 
@@ -784,7 +798,9 @@ async function markCompleted(data) {
     } else {
       await db.collection('user_progress').add({
         data: {
-          userId, courseId, lessonId,
+          phone, // 使用 phone 作为主要标识
+          userId: userId || null,
+          courseId, lessonId,
           watchedDuration: 0,
           completed: true,
           completedAt: now,

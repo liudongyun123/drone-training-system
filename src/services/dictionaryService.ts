@@ -170,6 +170,15 @@ export const DEFAULT_DICTIONARIES: Record<string, any> = {
     { value: '高级技师', label: '高级技师', badgeColor: 'badge-secondary' },
   ],
 
+  // 培训班等级
+  classLevels: [
+    { value: '入门班', label: '入门班', badgeColor: 'badge-success' },
+    { value: '基础班', label: '基础班', badgeColor: 'badge-info' },
+    { value: '进阶班', label: '进阶班', badgeColor: 'badge-warning' },
+    { value: '高级班', label: '高级班', badgeColor: 'badge-error' },
+    { value: '考证班', label: '考证班', badgeColor: 'badge-primary' },
+  ],
+
   // 题库分类
   questionBankCategories: [
     { value: '', label: '全部' },
@@ -278,6 +287,14 @@ export async function getLevelOptions(): Promise<LevelConfigItem[]> {
 }
 
 /**
+ * 获取培训班等级列表
+ */
+export async function getClassLevels(): Promise<LevelConfigItem[]> {
+  const levels = await getDictionary('classLevels');
+  return (Array.isArray(levels) ? levels : DEFAULT_DICTIONARIES.classLevels) as LevelConfigItem[];
+}
+
+/**
  * 获取选项列表（通用）
  */
 export async function getOptions(groupKey: string): Promise<OptionItem[]> {
@@ -351,6 +368,7 @@ export default {
   getDictionary,
   getStatusLabel,
   getLevelOptions,
+  getClassLevels,
   getOptions,
   clearDictionaryCache,
   getOrderStatusLabels,

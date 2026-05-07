@@ -378,7 +378,8 @@
   width: auto;
 }
 
-.course-level-badge {
+.course-level-badge,
+.class-level-badge {
   display: inline-block;
   padding: 4rpx 10rpx;
   background: linear-gradient(135deg, #dbeafe, #e0e7ff);
@@ -426,7 +427,7 @@
 
 /* ==================== 培训班卡片（横向滑动） ==================== */
 .class-card {
-  width: 190rpx;
+  width: 193rpx;
   flex-shrink: 0;
   background: #fff;
   border-radius: 16rpx;

@@ -54,10 +54,10 @@
         bindtap="goToDetail"
         data-id="{{item._id}}"
       >
-        <image class="course-cover" src="{{item.coverImage}}" mode="aspectFill" />
+        <image class="course-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
         <view class="course-info">
-          <view class="course-level-row" wx:if="{{item.level}}">
-            <text class="course-level">{{item.level}}</text>
+          <view class="course-level-row" wx:if="{{item.levelText}}">
+            <text class="course-level">{{item.levelText}}</text>
           </view>
           <text class="course-title">{{item.title}}</text>
           <text class="course-desc">{{item.description}}</text>

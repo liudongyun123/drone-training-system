@@ -53,7 +53,7 @@ Page({
           name: course.title,
           price: price,
           quantity: 1,
-          coverImage: course.coverImage
+          coverImage: course.coverImage || course.cover
         }],
         totalAmount: price.toFixed(2),
         freight: 0,
@@ -134,30 +134,34 @@ Page({
 
     if (this.data.submitting) return
 
-    // 校验收货信息
-    const nameResult = validateName(this.data.address.name)
-    if (!nameResult.valid) {
-      showToast(nameResult.message!)
-      return
-    }
+    // 校验收货信息（仅商城订单需要）
+    if (this.data.type === 'shop') {
+      const nameResult = validateName(this.data.address.name)
+      if (!nameResult.valid) {
+        showToast(nameResult.message!)
+        return
+      }
 
-    const phoneResult = validatePhone(this.data.address.phone)
-    if (!phoneResult.valid) {
-      showToast(phoneResult.message!)
-      return
-    }
+      const phoneResult = validatePhone(this.data.address.phone)
+      if (!phoneResult.valid) {
+        showToast(phoneResult.message!)
+        return
+      }
 
-    const addressResult = validateAddress(this.data.address.address)
-    if (!addressResult.valid) {
-      showToast(addressResult.message!)
-      return
+      const addressResult = validateAddress(this.data.address.address)
+      if (!addressResult.valid) {
+        showToast(addressResult.message!)
+        return
+      }
     }
 
     this.setData({ submitting: true })
 
     try {
-      const userId = getUserId()!
+      const userId = getUserId() || ''
+      const phone = wx.getStorageSync('phone') || this.data.address.phone
       let orderData: any = {
+        phone,  // 使用 phone 作为主要标识
         userId,
         orderType: this.data.type,
         status: 'pending',
@@ -188,7 +192,7 @@ Page({
           price: item.sku?.price || item.product?.price || item.price,
           quantity: item.quantity,
           specs: item.specs,
-          coverImage: item.coverImage || item.product?.coverImage
+          coverImage: item.coverImage || item.product?.coverImage || item.product?.cover
         }))
       }
 

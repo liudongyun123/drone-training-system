@@ -85,11 +85,13 @@
 }
 
 .class-level {
-  padding: 4rpx 12rpx;
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  display: inline-block;
+  padding: 4rpx 10rpx;
+  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
   color: #2563eb;
-  font-size: 20rpx;
+  font-size: 18rpx;
   border-radius: 6rpx;
+  margin-bottom: 6rpx;
 }
 
 .class-name {

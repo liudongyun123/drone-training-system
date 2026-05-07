@@ -1,15 +1,15 @@
 <!--pages/checkout/checkout.wxml-->
 <view class="page">
-  <!-- 收货地址 -->
-  <view class="section address-section">
+  <!-- 收货地址（仅商城实物订单显示） -->
+  <view class="section address-section" wx:if="{{type === 'shop'}}">
     <view class="section-title">
       <text class="title-text">收货信息</text>
     </view>
     <view class="address-form">
       <view class="form-item">
         <text class="form-label">收货人</text>
-        <input 
-          class="form-input" 
+        <input
+          class="form-input"
           placeholder="请输入收货人姓名"
           value="{{address.name}}"
           bindinput="onNameInput"
@@ -17,8 +17,8 @@
       </view>
       <view class="form-item">
         <text class="form-label">手机号</text>
-        <input 
-          class="form-input" 
+        <input
+          class="form-input"
           type="number"
           maxlength="11"
           placeholder="请输入手机号"
@@ -28,8 +28,8 @@
       </view>
       <view class="form-item">
         <text class="form-label">详细地址</text>
-        <textarea 
-          class="form-textarea" 
+        <textarea
+          class="form-textarea"
           placeholder="请输入详细收货地址"
           value="{{address.address}}"
           bindinput="onAddressInput"
@@ -42,8 +42,8 @@
   <!-- 商品列表 -->
   <view class="section goods-section">
     <view class="section-title">
-      <text class="title-text">商品信息</text>
-      <text class="goods-count">共 {{items.length}} 件商品</text>
+      <text class="title-text">{{type === 'course' ? '课程信息' : '商品信息'}}</text>
+      <text class="goods-count">共 {{items.length}} {{type === 'course' ? '门课程' : '件商品'}}</text>
     </view>
     <view class="goods-list">
       <view 
@@ -51,9 +51,9 @@
         wx:key="_id"
         class="goods-item"
       >
-        <image 
-          class="goods-image" 
-          src="{{item.coverImage || '/assets/images/default-product.png'}}"
+        <image
+          class="goods-image"
+          src="{{item.coverImage || item.cover || 'https://via.placeholder.com/200x200?text=商品'}}"
           mode="aspectFill"
         />
         <view class="goods-info">
@@ -83,10 +83,10 @@
   <!-- 价格明细 -->
   <view class="section price-section">
     <view class="price-row">
-      <text class="price-label">商品总价</text>
+      <text class="price-label">{{type === 'course' ? '课程总价' : '商品总价'}}</text>
       <text class="price-value">¥{{totalAmount}}</text>
     </view>
-    <view class="price-row">
+    <view class="price-row" wx:if="{{type === 'shop'}}">
       <text class="price-label">运费</text>
       <text class="price-value">{{freight > 0 ? '¥' + freight : '包邮'}}</text>
     </view>

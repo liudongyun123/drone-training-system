@@ -10,22 +10,22 @@ export interface LearningPath {
   id: string
   name: string
   description: string
-  category: string
-  categoryId?: string  // 兼容旧数据：单个分类ID
-  categoryIds?: string[]  // 多分类ID列表
-  classIds?: string[]     // 多班级ID列表
-  difficulty: 'beginner' | 'intermediate' | 'advanced'
-  estimatedHours: number
+  categoryId?: string  // 关联分类ID
+  cover?: string        // 封面图
   status: 'active' | 'draft'
-  items: PathItem[]
+  stages: PathStage[]   // 学习阶段列表
   createdAt: string
   updatedAt?: string
 }
 
-export interface PathItem {
-  courseId: string
-  courseTitle: string
-  order: number
+// 学习阶段接口
+export interface PathStage {
+  order: number         // 阶段顺序
+  level: string         // 等级名称（入门班/基础班/进阶班/高级班/考证班）
+  courseId?: string     // 关联课程ID
+  courseTitle?: string // 课程名称
+  classId?: string      // 关联培训班ID
+  className?: string    // 培训班名称
 }
 
 // 学习路径进度接口

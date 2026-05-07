@@ -5,6 +5,7 @@
 // ============================================================================
 import { useState, useEffect } from 'react';
 import { useConfirm } from '@/admin/hooks/useConfirm';
+import { useDictionary } from '@/admin/hooks/useDictionary';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { classService } from '@/services';
 import { courseService, teacherService } from '@/services/database';
@@ -78,6 +79,7 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
 const initialFormData: Partial<Class> = {
   name: '',
   description: '',
+  level: '',
   courseId: '',
   maxStudents: 20,
   startDate: '',
@@ -112,6 +114,9 @@ export default function AdminClasses() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCourse, setFilterCourse] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
+
+  // ★ 培训班等级选项
+  const { options: classLevelOptions, loading: classLevelsLoading } = useDictionary({ groupKey: 'classLevels' });
 
   // ★ 学员来源统计
   const [classMemberStats, setClassMemberStats] = useState<Record<string, {
@@ -276,6 +281,7 @@ export default function AdminClasses() {
     setFormData({
       name: cls.name,
       description: cls.description || '',
+      level: cls.level || '',
       courseId: cls.courseId,
       maxStudents: cls.maxStudents,
       startDate: cls.startDate,
@@ -744,6 +750,26 @@ export default function AdminClasses() {
                       rows={2}
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
                     />
+                  </div>
+
+                  {/* 培训班等级 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      班级等级
+                    </label>
+                    <select
+                      value={formData.level || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value }))}
+                      disabled={classLevelsLoading}
+                      className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    >
+                      <option value="">请选择等级</option>
+                      {classLevelOptions.map((opt: any) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>

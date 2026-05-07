@@ -3,7 +3,7 @@
   <view class="card-main" bindtap="onTap">
     <image 
       class="cover" 
-      src="{{product.coverImage || defaultCover}}" 
+      src="{{product.coverImage || product.cover || defaultCover}}" 
       mode="aspectFill"
       lazy-load
     />

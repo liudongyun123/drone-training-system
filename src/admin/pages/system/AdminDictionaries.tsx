@@ -23,6 +23,7 @@ const GROUP_META: Record<string, { label: string; icon: string; type: 'object' |
   memberStatus: { label: '会员状态', icon: '📊', type: 'object' },
   memberSource: { label: '会员来源', icon: '📥', type: 'object' },
   courseLevels: { label: '课程等级', icon: '📚', type: 'array' },
+  classLevels: { label: '培训班等级', icon: '🏢', type: 'array' },
   questionBankCategories: { label: '题库分类', icon: '📋', type: 'array' },
   questionBankLevels: { label: '题库难度', icon: '⚡', type: 'array' },
   messageTypes: { label: '消息类型', icon: '💬', type: 'array' },

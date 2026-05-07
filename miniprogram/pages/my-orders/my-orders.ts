@@ -40,9 +40,9 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const userId = getUserId() || ''
+      const phone = wx.getStorageSync('phone') || ''
       const orderType = this.data.currentTab === 'all' ? undefined : this.data.currentTab as 'course' | 'shop'
-      const orders = await orderApi.getByUserId(userId, orderType)
+      const orders = await orderApi.getByUserId('', orderType)
       this.setData({ orders, loading: false })
     } catch (err) {
       logger.error('订单', '加载订单失败', err)

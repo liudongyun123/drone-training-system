@@ -1,0 +1,129 @@
+<!--pages/learning-path/learning-path.wxml - 学习路径详情页-->
+
+<view class="page">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <text class="loading-spinner">⏳</text>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 内容区域 -->
+  <view wx:else>
+    <!-- 学习路径头部 -->
+    <view class="path-header">
+      <view class="path-icon-large">
+        <text class="icon-text">🗺️</text>
+      </view>
+      <view class="path-info">
+        <text class="path-title">{{categoryName}}</text>
+        <text class="path-subtitle">系统化学习路径 · 5级进阶体系</text>
+      </view>
+    </view>
+
+    <!-- 等级进度指示器 -->
+    <view class="level-progress">
+      <view class="progress-track">
+        <view
+          class="progress-step {{stage.courses.length > 0 || stage.classes.length > 0 ? 'active' : ''}}"
+          wx:for="{{stages}}"
+          wx:key="level"
+        >
+          <view class="step-dot"></view>
+          <view class="step-line" wx:if="{{index < stages.length - 1}}"></view>
+        </view>
+      </view>
+      <view class="progress-labels">
+        <text class="progress-label" wx:for="{{stages}}" wx:key="level">{{item.level}}</text>
+      </view>
+    </view>
+
+    <!-- 学习阶段列表 -->
+    <view class="stages-container">
+      <view
+        class="stage-section"
+        wx:for="{{stages}}"
+        wx:key="level"
+        wx:if="{{item.courses.length > 0 || item.classes.length > 0}}"
+      >
+        <!-- 阶段标题 -->
+        <view class="stage-header">
+          <view class="stage-level-badge level-{{item.levelIndex}}">
+            <text>{{item.level}}</text>
+          </view>
+          <view class="stage-divider"></view>
+        </view>
+
+        <!-- 课程列表 -->
+        <view class="section-sub" wx:if="{{item.courses.length > 0}}">
+          <view class="sub-header">
+            <text class="sub-title">📚 理论课程</text>
+          </view>
+          <view class="course-list">
+            <view
+              class="course-item"
+              wx:for="{{item.courses}}"
+              wx:key="_id"
+              bindtap="goToCourse"
+              data-id="{{item._id}}"
+            >
+              <image class="course-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill"/>
+              <view class="course-info">
+                <text class="course-title">{{item.title}}</text>
+                <view class="course-meta">
+                  <text class="course-price">{{item.price}}</text>
+                  <text class="course-sales">{{item.salesCount || 0}}人已学</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 培训班列表 -->
+        <view class="section-sub" wx:if="{{item.classes.length > 0}}">
+          <view class="sub-header">
+            <text class="sub-title">🎓 实操培训班</text>
+          </view>
+          <view class="class-list">
+            <view
+              class="class-item"
+              wx:for="{{item.classes}}"
+              wx:key="_id"
+              bindtap="goToClass"
+              data-id="{{item._id}}"
+            >
+              <view class="class-header">
+                <view class="class-level-badge">
+                  <text>{{item.levelText}}</text>
+                </view>
+                <text class="class-name">{{item.name}}</text>
+              </view>
+              <view class="class-status-badge enrolling" wx:if="{{item.status === 'enrolling'}}">
+                <text>招生中</text>
+              </view>
+              <view class="class-details">
+                <view class="detail-row" wx:if="{{item.startDate}}">
+                  <text class="detail-icon">📅</text>
+                  <text class="detail-text">{{item.startDate}}</text>
+                </view>
+                <view class="detail-row" wx:if="{{item.location}}">
+                  <text class="detail-icon">📍</text>
+                  <text class="detail-text">{{item.location}}</text>
+                </view>
+              </view>
+              <view class="class-footer">
+                <text class="class-price">{{item.price || '待定'}}</text>
+                <text class="class-count">{{item.enrolledStudents || 0}}/{{item.maxStudents}}人</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{isAllEmpty && stages.length > 0}}">
+        <text class="empty-icon">📭</text>
+        <text class="empty-text">该分类暂无课程和培训班</text>
+      </view>
+    </view>
+  </view>
+</view>

@@ -40,10 +40,36 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const userId = wx.getStorageSync('userId')
-      const result = await getMyEnrollments(userId)
+      const phone = wx.getStorageSync('phone') || ''
+      const userId = wx.getStorageSync('userId') || ''
 
-      let classes = result.data || []
+      // 同时查询 phone 和 userId，然后合并结果
+      const promises = []
+      if (phone) {
+        promises.push(
+          getMyEnrollments(phone)
+            .then(r => r.data || [])
+            .catch(() => [])
+        )
+      }
+      if (userId) {
+        promises.push(
+          getMyEnrollments(userId)
+            .then(r => r.data || [])
+            .catch(() => [])
+        )
+      }
+
+      const results = await Promise.all(promises)
+      let classes = results.flat()
+
+      // 去重
+      const seen = new Set()
+      classes = classes.filter((c: any) => {
+        if (seen.has(c._id)) return false
+        seen.add(c._id)
+        return true
+      })
 
       // 根据 Tab 过滤
       if (this.data.currentTab !== 'all') {

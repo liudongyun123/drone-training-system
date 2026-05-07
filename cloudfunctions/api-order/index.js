@@ -88,15 +88,15 @@ function isValidStatus(status) {
  * 创建订单
  *
  * @param {Object} data
- * @param {string} data.userId     - 用户 ID
- * @param {string} data.phone      - 用户手机号
+ * @param {string} data.phone      - 用户手机号（优先使用）
+ * @param {string} data.userId     - 用户 ID（兼容）
  * @param {string} data.type       - 订单类型 course / product / class
  * @param {Array}  data.items      - 订单项 [{ itemId, name, price, quantity, cover?, spec? }]
  * @param {string} data.remark     - 备注（可选）
  * @param {string} data.contactName- 联系人（可选，班级报名时常用）
  */
 async function createOrder(data, openid) {
-  const { userId, phone, type, items, remark = '', contactName = '' } = data
+  const { phone, userId, type, items, remark = '', contactName = '' } = data
 
   if (!type || !isValidType(type)) {
     return { success: false, error: `订单类型无效，可选值：${VALID_TYPES.join('/')}` }
@@ -109,7 +109,8 @@ async function createOrder(data, openid) {
   // 校验每个订单项
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
-    if (!item.itemId) {
+    // 兼容 itemId 和 productId
+    if (!item.itemId && !item.productId) {
       return { success: false, error: `第 ${i + 1} 个订单项缺少 itemId` }
     }
     if (typeof item.price !== 'number' || item.price < 0) {
@@ -130,17 +131,18 @@ async function createOrder(data, openid) {
 
   const orderData = {
     orderNo,
-    userId: userId || openid,
+    phone: phone || '',  // 使用 phone 作为主要标识
+    userId: userId || openid || null,  // 保留 userId 兼容
     _openid: openid,
-    phone: phone || '',
     type,
     items: items.map(item => ({
-      itemId: item.itemId,
-      name: item.name || '',
+      itemId: item.itemId || item.productId,  // 兼容 itemId 和 productId
+      productId: item.productId || item.itemId,  // 兼容
+      name: item.title || item.name || '',
       price: item.price || 0,
       quantity: item.quantity || 1,
-      cover: item.cover || '',
-      spec: item.spec || '',
+      cover: item.cover || item.coverImage || '',
+      spec: item.spec || item.specs || '',
       subtotal: (item.price || 0) * (item.quantity || 1)
     })),
     totalAmount,
@@ -167,11 +169,13 @@ async function createOrder(data, openid) {
 
 /**
  * 查询订单列表
+ * 优先使用 phone 作为用户标识，同时兼容 userId 和 openid
  *
  * @param {Object} params
  * @param {number} params.page       - 页码（默认 1）
  * @param {number} params.pageSize   - 每页条数（默认 10）
- * @param {string} params.userId     - 按用户筛选（可选）
+ * @param {string} params.phone      - 用户手机号（优先使用）
+ * @param {string} params.userId     - 用户 ID（兼容）
  * @param {string} params.status     - 按状态筛选（可选）
  * @param {string} params.type       - 按类型筛选（可选）
  * @param {string} params.orderNo    - 按订单号搜索（可选）
@@ -180,16 +184,22 @@ async function getOrderList(params, openid) {
   const {
     page = 1,
     pageSize = 10,
+    phone = '',
     userId = '',
     status = '',
     type = '',
     orderNo = ''
   } = params
 
+  // 优先使用 phone，兼容 userId 和 openid
+  const identity = phone || userId || openid || ''
+
   let where = {}
 
-  // 管理员可查看所有订单，普通用户只能看自己的
-  if (userId) {
+  // 使用 phone 作为主要标识
+  if (phone) {
+    where.phone = phone
+  } else if (userId) {
     where.userId = userId
   } else if (openid) {
     where._openid = openid

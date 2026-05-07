@@ -103,41 +103,27 @@
           <text class="section-title">学习路径</text>
           <text class="section-subtitle">系统化学习体验</text>
         </view>
-        <view class="section-more" catchtap="goToCourseList">
-          <text>全部</text>
-          <text class="arrow">›</text>
-        </view>
       </view>
-      
-      <scroll-view class="scroll-x" scroll-x enhanced show-scrollbar="{{false}}">
+
+      <view wx:if="{{learningPaths.length === 0}}" class="empty-card">
+        <text class="empty-icon">📭</text>
+        <text class="empty-text">暂无学习路径</text>
+      </view>
+
+      <scroll-view wx:else class="scroll-x" scroll-x enhanced show-scrollbar="{{false}}">
         <view class="paths-scroll">
-          <view class="path-card" catchtap="goToPath" data-category="植保无人机">
+          <view
+            class="path-card"
+            wx:for="{{learningPaths}}"
+            wx:key="_id"
+            catchtap="goToPath"
+            data-path="{{item}}"
+          >
             <view class="path-icon-box blue">
-              <text class="path-icon">🌾</text>
+              <text class="path-icon">{{item.icon}}</text>
             </view>
-            <text class="path-name">植保无人机</text>
-            <text class="path-desc">农业植保应用</text>
-          </view>
-          <view class="path-card" catchtap="goToPath" data-category="航拍无人机">
-            <view class="path-icon-box amber">
-              <text class="path-icon">📷</text>
-            </view>
-            <text class="path-name">航拍无人机</text>
-            <text class="path-desc">航拍摄影技术</text>
-          </view>
-          <view class="path-card" catchtap="goToPath" data-category="安防无人机">
-            <view class="path-icon-box purple">
-              <text class="path-icon">🛡️</text>
-            </view>
-            <text class="path-name">安防无人机</text>
-            <text class="path-desc">安防监控应用</text>
-          </view>
-          <view class="path-card" catchtap="goToPath" data-category="电力巡检无人机">
-            <view class="path-icon-box red">
-              <text class="path-icon">⚡</text>
-            </view>
-            <text class="path-name">电力巡检</text>
-            <text class="path-desc">电力线路巡检</text>
+            <text class="path-name">{{item.name}}</text>
+            <text class="path-desc">5级进阶体系</text>
           </view>
         </view>
       </scroll-view>
@@ -174,13 +160,13 @@
             data-id="{{item._id}}"
           >
             <image 
-              class="course-cover" 
-              src="{{item.coverImage}}" 
+              class="course-cover"
+              src="{{item.coverImage || item.cover}}" 
               mode="aspectFill"
             />
             <view class="course-body">
-              <view class="course-level-badge" wx:if="{{item.level}}">
-                <text>{{item.level}}</text>
+              <view class="course-level-badge" wx:if="{{item.levelText}}">
+                <text>{{item.levelText}}</text>
               </view>
               <text class="course-title">{{item.title}}</text>
               <view class="course-meta">
@@ -224,6 +210,7 @@
             data-id="{{item._id}}"
           >
             <view class="class-top">
+              <text class="class-level-badge" wx:if="{{item.levelText}}">{{item.levelText}}</text>
               <text class="class-name">{{item.name}}</text>
             </view>
             <view class="class-status-badge enrolling">
@@ -239,8 +226,8 @@
             </view>
             <view class="class-divider"></view>
             <view class="class-bottom">
-              <text class="class-price">{{item.price}}</text>
-              <text class="class-count">{{item.enrolledCount || 0}}/{{item.maxStudents}}人</text>
+              <text class="class-price">{{item.price || '待定'}}</text>
+              <text class="class-count">{{item.enrolledStudents || 0}}/{{item.maxStudents}}人</text>
             </view>
           </view>
         </view>
@@ -353,8 +340,8 @@
             data-id="{{item._id}}"
           >
             <image 
-              class="product-cover" 
-              src="{{item.coverImage}}" 
+              class="product-cover"
+              src="{{item.coverImage || item.cover}}" 
               mode="aspectFill"
             />
             <view class="product-body">

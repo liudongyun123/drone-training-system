@@ -51,10 +51,10 @@
         bindtap="goToDetail"
         data-id="{{item._id}}"
       >
-        <image class="class-cover" src="{{item.coverImage}}" mode="aspectFill" />
+        <image class="class-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
         <view class="class-info">
           <view class="class-header">
-            <text class="class-level" wx:if="{{item.level}}">{{item.level}}</text>
+            <text class="class-level" wx:if="{{item.levelText}}">{{item.levelText}}</text>
             <text class="class-name">{{item.name}}</text>
           </view>
           <view class="class-meta">
@@ -70,7 +70,7 @@
           <view class="class-footer">
             <view class="price">
               <text class="price-symbol">¥</text>
-              <text class="price-num">{{item.price}}</text>
+              <text class="price-num">{{item.price || '待定'}}</text>
             </view>
             <view class="status-tag {{item.status}}">
               <text wx:if="{{item.status === 'enrolling'}}">招生中</text>
@@ -79,7 +79,7 @@
             </view>
           </view>
           <view class="class-count" wx:if="{{item.status === 'enrolling'}}">
-            <text>{{item.enrolledCount || 0}}/{{item.maxStudents}}人</text>
+            <text>{{item.enrolledStudents || 0}}/{{item.maxStudents}}人</text>
           </view>
         </view>
       </view>

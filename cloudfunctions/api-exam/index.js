@@ -248,9 +248,11 @@ async function getExamDetail(examId) {
 
 /**
  * 开始考试（创建答题记录）
+ * 优先使用 phone 作为用户标识
  */
-async function startExam(examId, userId) {
-  const openid = userId || getOpenId({ userId })
+async function startExam(examId, data, userId) {
+  const phone = data.phone || ''
+  const openid = userId || getOpenId({ userId: data.userId })
 
   // 检查考试是否存在
   const exam = await db.collection('exams').doc(examId).get()
@@ -267,10 +269,17 @@ async function startExam(examId, userId) {
     return { success: false, error: '考试已结束' }
   }
 
-  // 检查已答题次数
-  const attempts = await db.collection('examAttempts')
-    .where({ examId, userId: openid })
-    .count()
+  // 检查已答题次数（使用 phone 或 userId 查询）
+  let attempts
+  if (phone) {
+    attempts = await db.collection('examAttempts')
+      .where({ examId, phone })
+      .count()
+  } else {
+    attempts = await db.collection('examAttempts')
+      .where({ examId, userId: openid })
+      .count()
+  }
 
   const attemptLimit = exam.data.attemptLimit || 1
   if (attempts.total >= attemptLimit) {
@@ -278,21 +287,29 @@ async function startExam(examId, userId) {
   }
 
   // 创建答题记录
-  const attemptId = `${examId}_${openid}_${Date.now()}`
+  const attemptId = `${examId}_${phone || openid}_${Date.now()}`
   const now2 = new Date().toISOString()
 
+  const attemptData: any = {
+    _id: attemptId,
+    examId,
+    courseId: exam.data.courseId,
+    status: 'in_progress',
+    startTime: now2,
+    score: 0,
+    answers: [],
+    createdAt: now2
+  }
+
+  if (phone) {
+    attemptData.phone = phone
+  }
+  if (openid) {
+    attemptData.userId = openid
+  }
+
   await db.collection('examAttempts').add({
-    data: {
-      _id: attemptId,
-      examId,
-      userId: openid,
-      courseId: exam.data.courseId,
-      status: 'in_progress',
-      startTime: now2,
-      score: 0,
-      answers: [],
-      createdAt: now2
-    }
+    data: attemptData
   })
 
   return {
@@ -308,10 +325,12 @@ async function startExam(examId, userId) {
 
 /**
  * 提交考试
+ * 优先使用 phone 作为用户标识
  */
 async function submitExam(data, userId) {
   const { attemptId, answers } = data
-  const openid = userId || getOpenId({ userId })
+  const phone = data.phone || ''
+  const openid = userId || getOpenId({ userId: data.userId })
 
   // 获取答题记录
   const attempt = await db.collection('examAttempts').doc(attemptId).get()
@@ -418,12 +437,19 @@ function checkAnswer(question, userAnswer) {
 
 /**
  * 获取答题记录
+ * 优先使用 phone 作为用户标识
  */
 async function getAttempts(params, userId) {
-  const openid = userId || getOpenId({ userId })
+  const phone = params.phone || ''
+  const openid = userId || getOpenId({ userId: params.userId })
   const { examId = '', page = 1, pageSize = 20 } = params
 
-  let where = { userId: openid }
+  let where: any = {}
+  if (phone) {
+    where.phone = phone
+  } else if (openid) {
+    where.userId = openid
+  }
   if (examId) {
     where.examId = examId
   }
@@ -544,7 +570,7 @@ exports.main = async (event, context) => {
         result = await getExamDetail(data.examId)
         break
       case 'startExam':
-        result = await startExam(data.examId, userId)
+        result = await startExam(data.examId, data, userId)
         break
       case 'submitExam':
         result = await submitExam(data, userId)

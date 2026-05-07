@@ -61,11 +61,13 @@
 }
 
 .level-tag {
-  padding: 6rpx 14rpx;
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-  color: #d97706;
-  font-size: 22rpx;
-  border-radius: 8rpx;
+  display: inline-block;
+  padding: 4rpx 10rpx;
+  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+  color: #2563eb;
+  font-size: 18rpx;
+  border-radius: 6rpx;
+  margin-bottom: 6rpx;
 }
 
 .class-name {

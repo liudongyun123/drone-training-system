@@ -19,7 +19,8 @@
     "pages/practice/practice",
     "pages/exam/exam",
     "pages/result/result",
-    "pages/my-certificates/my-certificates"
+    "pages/my-certificates/my-certificates",
+    "pages/learning-path/learning-path"
   ],
   "window": {
     "navigationBarTitleText": "无人机培训",

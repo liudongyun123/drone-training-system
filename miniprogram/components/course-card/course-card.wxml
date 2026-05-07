@@ -2,7 +2,7 @@
 <view class="course-card" bindtap="onTap">
   <image 
     class="cover" 
-    src="{{course.coverImage || defaultCover}}" 
+    src="{{course.coverImage || course.cover || defaultCover}}" 
     mode="aspectFill"
     lazy-load
   />

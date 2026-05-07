@@ -10,28 +10,28 @@
     <scroll-view class="content" scroll-y enhanced>
       <!-- 培训班封面 -->
       <view class="cover-section">
-        <image class="cover" src="{{classInfo.coverImage}}" mode="aspectFill" />
+        <image class="cover" src="{{classInfo.coverImage || classInfo.cover}}" mode="aspectFill" />
       </view>
 
       <!-- 培训班信息 -->
       <view class="info-section">
         <!-- 等级 + 名称 -->
         <view class="title-row">
-          <text class="level-tag" wx:if="{{classInfo.level}}">{{classInfo.level}}</text>
+          <text class="level-tag" wx:if="{{classInfo.levelText}}">{{classInfo.levelText}}</text>
           <text class="class-name">{{classInfo.name}}</text>
         </view>
 
         <!-- 价格 -->
         <view class="price-row">
           <text class="price-symbol">¥</text>
-          <text class="price-num">{{classInfo.price}}</text>
+          <text class="price-num">{{classInfo.price || '待定'}}</text>
           <text class="original-price" wx:if="{{classInfo.originalPrice}}">¥{{classInfo.originalPrice}}</text>
           <text class="price-unit">/人</text>
         </view>
 
         <!-- 报名人数 -->
         <view class="enroll-row">
-          <text class="enroll-count">{{classInfo.enrolledCount || 0}}/{{classInfo.maxStudents}}人已报名</text>
+          <text class="enroll-count">{{classInfo.enrolledStudents || 0}}/{{classInfo.maxStudents}}人已报名</text>
           <view class="share-btn" bindtap="shareClass">
             <text class="share-icon">↗️</text>
             <text class="share-text">分享</text>

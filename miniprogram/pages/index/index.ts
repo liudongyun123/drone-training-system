@@ -4,11 +4,17 @@
 import { courseApi, classApi, productApi, bannerApi } from '../../utils/api'
 import logger from '../../utils/logger'
 
+// 培训班等级映射
+const CLASS_LEVEL_MAP: Record<string, string> = {
+  '入门班': '入门班', '基础班': '基础班', '进阶班': '进阶班', '高级班': '高级班', '考证班': '考证班'
+}
+
 interface IndexData {
   hotCourses: any[]
   enrollingClasses: any[]
   featuredProducts: any[]
   heroBanners: any[]
+  learningPaths: any[]  // 学习路径分类
   loading: boolean
 }
 
@@ -18,6 +24,7 @@ Page<IndexData>({
     enrollingClasses: [],
     featuredProducts: [],
     heroBanners: [],
+    learningPaths: [],
     loading: true
   },
 
@@ -33,21 +40,29 @@ Page<IndexData>({
 
   async loadData() {
     this.setData({ loading: true })
-    
+
     try {
-      // 并行加载四个模块数据
-      const [courses, classes, products, banners] = await Promise.all([
+      // 并行加载五个模块数据
+      const [courses, classes, products, banners, categories] = await Promise.all([
         courseApi.getHotCourses(6),
         classApi.getList({ status: 'enrolling' }),
         productApi.getList({ pageSize: 6 }),
-        bannerApi.getList(10)
+        bannerApi.getList(10),
+        courseApi.getCategories()
       ])
-      
+
+      // 处理培训班等级显示
+      const processedClasses = (classes || []).map((cls: any) => ({
+        ...cls,
+        levelText: cls.level || CLASS_LEVEL_MAP[cls.name] || '入门班'
+      }))
+
       this.setData({
         hotCourses: courses,
-        enrollingClasses: classes,
+        enrollingClasses: processedClasses,
         featuredProducts: products,
         heroBanners: banners,
+        learningPaths: categories || [],
         loading: false
       })
     } catch (err) {
@@ -89,12 +104,14 @@ Page<IndexData>({
     wx.switchTab({ url: '/pages/course-list/course-list' })
   },
 
-  // 跳转学习路径
+  // 跳转学习路径详情页
   goToPath(e: any) {
-    const category = e.currentTarget.dataset.category || ''
-    // 保存分类到 storage，课程列表页面 onShow 时读取
-    wx.setStorageSync('targetCategory', category)
-    wx.switchTab({ url: '/pages/course-list/course-list' })
+    const path = e.currentTarget.dataset.path || {}
+    const categoryId = path._id || ''
+    const categoryName = path.name || ''
+    wx.navigateTo({
+      url: `/pages/learning-path/learning-path?id=${categoryId}&name=${encodeURIComponent(categoryName)}`
+    })
   },
 
   // 跳转培训班列表

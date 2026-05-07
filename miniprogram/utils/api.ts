@@ -3,6 +3,68 @@
 
 import { dbGetList, dbQuery, callFunction } from './http'
 
+// 等级中文映射（英文 -> 中文）
+const LEVEL_MAP: Record<string, string> = {
+  'beginner': '初级工',
+  'basic': '中级工',
+  'intermediate': '高级工',
+  'advanced': '技师',
+  'expert': '高级技师'
+}
+
+// 直接的中文等级映射（用于已经是中文的level字段）
+const LEVEL_TEXT_MAP: Record<string, string> = {
+  // 职业技能等级（课程用）
+  '初级工': '初级工',
+  '中级工': '中级工',
+  '高级工': '高级工',
+  '技师': '技师',
+  '高级技师': '高级技师',
+  // 培训班等级（兼容旧数据）
+  '入门班': '初级工',
+  '基础班': '中级工',
+  '进阶班': '高级工',
+  '高级班': '技师',
+  '考证班': '高级技师'
+}
+
+// 培训班等级中文映射
+const CLASS_LEVEL_MAP: Record<string, string> = {
+  '入门班': '入门班',
+  '基础班': '基础班',
+  '进阶班': '进阶班',
+  '高级班': '高级班',
+  '考证班': '考证班'
+}
+
+// 根据名称推断等级
+function inferClassLevel(name: string): string {
+  if (!name) return '入门班'
+  if (name.includes('CAAC') || name.includes('考证')) return '考证班'
+  if (name.includes('进阶') || name.includes('高级')) return '进阶班'
+  if (name.includes('基础')) return '基础班'
+  return '入门班'
+}
+
+// 转换课程等级
+function transformCourse(course: any) {
+  // 优先使用英文映射，否则直接使用level字段（可能是中文）
+  const levelText = LEVEL_MAP[course.level] || LEVEL_TEXT_MAP[course.level] || course.level || ''
+  return {
+    ...course,
+    levelText
+  }
+}
+
+// 转换培训班等级
+function transformClass(classItem: any) {
+  const level = classItem.level || inferClassLevel(classItem.name || '')
+  return {
+    ...classItem,
+    levelText: CLASS_LEVEL_MAP[level] || level || ''
+  }
+}
+
 /**
  * 轮播图 API
  */
@@ -22,24 +84,28 @@ export const bannerApi = {
  */
 export const courseApi = {
   async getList(filters: any = {}) {
-    const { status = 'published', category, page = 1, pageSize = 10 } = filters
+    const { status = 'published', category, categoryId, page = 1, pageSize = 10 } = filters
     const skip = (page - 1) * pageSize
-    
+
     const where: any = {}
     if (status) where.status = status
-    if (category) where.category = category
-    
+    if (category) where.category = category  // 按名称过滤
+    if (categoryId) where.categoryId = categoryId  // 按ID过滤
+
     const result = await dbGetList('courses', {
       where,
       orderBy: 'createdAt desc',
       skip,
       limit: pageSize
     })
-    return result.data || []
+    return (result.data || []).map(transformCourse)
   },
   
   async getDetail(courseId: string) {
     const result = await dbQuery('courses', { _id: courseId })
+    if (result.data) {
+      return transformCourse(result.data)
+    }
     return result.data
   },
   
@@ -57,7 +123,7 @@ export const courseApi = {
       orderBy: 'salesCount desc',
       limit
     })
-    return result.data || []
+    return (result.data || []).map(transformCourse)
   },
 
   async getCategories() {
@@ -73,23 +139,27 @@ export const courseApi = {
  */
 export const classApi = {
   async getList(filters: any = {}) {
-    const { status = 'enrolling', page = 1, pageSize = 10 } = filters
+    const { status, page = 1, pageSize = 100, category } = filters
     const skip = (page - 1) * pageSize
-    
+
     const where: any = {}
     if (status) where.status = status
-    
+    if (category) where.category = category  // 支持按分类过滤
+
     const result = await dbGetList('classes', {
       where,
       orderBy: 'startDate asc',
       skip,
       limit: pageSize
     })
-    return result.data || []
+    return (result.data || []).map(transformClass)
   },
-  
+
   async getDetail(classId: string) {
     const result = await dbQuery('classes', { _id: classId })
+    if (result.data) {
+      return transformClass(result.data)
+    }
     return result.data
   }
 }
@@ -99,27 +169,48 @@ export const classApi = {
  */
 export const productApi = {
   async getList(filters: any = {}) {
-    const { status = 'onsale', categoryId, page = 1, pageSize = 10 } = filters
+    const { status = 'active', categoryId, page = 1, pageSize = 10 } = filters
     const skip = (page - 1) * pageSize
-    
+
     const where: any = {}
     if (status) where.status = status
-    if (categoryId) where.categoryId = categoryId
-    
+    if (categoryId) where.category = categoryId  // 数据库用 category
+
     const result = await dbGetList('products', {
       where,
       orderBy: 'salesCount desc',
       skip,
       limit: pageSize
     })
-    return result.data || []
+
+    // 映射字段：数据库 title -> name, cover -> coverImage
+    const products = (result.data || []).map((p: any) => {
+      let cover = p.cover || p.coverImage
+      // 如果图片 URL 包含 unsplash（未配置合法域名），使用占位图
+      if (cover && cover.includes('unsplash.com')) {
+        cover = 'https://via.placeholder.com/400x320/2563eb/ffffff?text=' + encodeURIComponent(p.title || '商品')
+      }
+      return {
+        _id: p._id,
+        name: p.title || p.name,  // 数据库用 title
+        price: p.price,
+        coverImage: cover,
+        cover: cover,
+        categoryId: p.category || p.categoryId,
+        salesCount: p.sales || p.salesCount || 0,
+        stock: p.stock || 99,
+        description: p.description
+      }
+    })
+
+    return products
   },
-  
+
   async getDetail(productId: string) {
     const result = await dbQuery('products', { _id: productId })
     return result.data
   },
-  
+
   async getCategories() {
     const result = await dbGetList('product_categories', {
       orderBy: 'sort asc'
@@ -129,7 +220,7 @@ export const productApi = {
 
   async getFeatured(limit: number = 4) {
     const result = await dbGetList('products', {
-      where: { status: 'onsale', isFeatured: true },
+      where: { status: 'active', isFeatured: true },
       orderBy: 'salesCount desc',
       limit
     })
@@ -142,18 +233,27 @@ export const productApi = {
  */
 export const orderApi = {
   async getByUserId(userId: string, orderType?: 'course' | 'shop') {
-    const where: any = { userId }
+    const phone = wx.getStorageSync('phone') || ''
+    const where: any = phone ? { phone } : { userId }
     if (orderType) where.orderType = orderType
-    
+
     const result = await dbGetList('orders', {
       where,
       orderBy: 'createdAt desc'
     })
     return result.data || []
   },
-  
+
   async create(orderData: any) {
-    return await callFunction('createOrder', orderData)
+    // 确保传入 phone，使用 wx.cloud.callFunction 调用云函数
+    const phone = wx.getStorageSync('phone') || ''
+    return wx.cloud.callFunction({
+      name: 'api-order',
+      data: {
+        action: 'create',
+        data: { ...orderData, phone }
+      }
+    })
   },
 
   async createShopOrder(params: {
@@ -165,18 +265,19 @@ export const orderApi = {
   }) {
     const orderNo = `SHP${Date.now()}`
     const totalAmount = params.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-    
+    const phone = wx.getStorageSync('phone') || params.phone
+
     const order = {
       orderNo,
+      phone,  // 使用 phone 作为主要标识
       userId: params.userId,
-      phone: params.phone,
       orderType: 'shop',
       shopItems: params.items.map(item => ({
         productId: item._id || item.productId,
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        coverImage: item.coverImage || ''
+        coverImage: item.coverImage || item.cover || ''
       })),
       shippingAddress: params.shippingAddress,
       remark: params.remark || '',

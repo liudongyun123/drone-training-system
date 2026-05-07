@@ -9,7 +9,7 @@
     <!-- 课程订单 -->
     <block wx:if="{{order.orderType === 'course'}}">
       <view class="item" wx:for="{{order.items}}" wx:key="courseId">
-        <image class="item-cover" src="{{item.coverImage}}" mode="aspectFill" />
+        <image class="item-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
         <view class="item-info">
           <text class="item-title">{{item.courseName}}</text>
           <text class="item-price">¥{{item.price}}</text>
@@ -20,7 +20,7 @@
     <!-- 商城订单 -->
     <block wx:if="{{order.orderType === 'shop'}}">
       <view class="item" wx:for="{{order.shopItems}}" wx:key="productId">
-        <image class="item-cover" src="{{item.coverImage}}" mode="aspectFill" />
+        <image class="item-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
         <view class="item-info">
           <text class="item-title">{{item.name}} x{{item.quantity}}</text>
           <text class="item-price">¥{{item.price}}</text>

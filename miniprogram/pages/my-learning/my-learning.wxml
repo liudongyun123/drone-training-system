@@ -12,6 +12,10 @@
   <block wx:else>
     <!-- Tab 切换 -->
     <view class="tab-bar">
+      <view class="tab-item {{currentTab === 'notStarted' ? 'active' : ''}}" bindtap="switchTab" data-tab="notStarted">
+        <text>未开始</text>
+        <text class="tab-count" wx:if="{{notStartedCount > 0}}">{{notStartedCount}}</text>
+      </view>
       <view class="tab-item {{currentTab === 'learning' ? 'active' : ''}}" bindtap="switchTab" data-tab="learning">
         <text>学习中</text>
         <text class="tab-count" wx:if="{{learningCount > 0}}">{{learningCount}}</text>
@@ -27,6 +31,36 @@
       <text class="loading-spinner">⏳</text>
       <text class="loading-text">加载中...</text>
     </view>
+
+    <!-- 未开始 -->
+    <scroll-view wx:elif="{{currentTab === 'notStarted'}}" class="content" scroll-y enhanced>
+      <view wx:if="{{notStartedCourses.length === 0}}" class="empty-state">
+        <text class="empty-icon">📖</text>
+        <text class="empty-text">暂无未开始的课程</text>
+        <button class="btn-primary" bindtap="goToCourseList">去选课</button>
+      </view>
+      
+      <view wx:else class="course-list">
+        <view 
+          class="course-card not-started" 
+          wx:for="{{notStartedCourses}}" 
+          wx:key="_id"
+          bindtap="goToCourse"
+          data-id="{{item._id}}"
+        >
+          <image class="course-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
+          <view class="course-info">
+            <text class="course-title">{{item.title}}</text>
+            <text class="course-desc">{{item.description}}</text>
+            <view class="course-meta">
+              <text class="meta-item">共 {{item.totalLessons}} 节</text>
+              <text class="meta-item">购买时间：{{item.purchaseTime}}</text>
+            </view>
+            <button class="btn-start" bindtap="goToCourse" data-id="{{item._id}}">开始学习</button>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
 
     <!-- 学习中 -->
     <scroll-view wx:elif="{{currentTab === 'learning'}}" class="content" scroll-y enhanced>
@@ -44,7 +78,7 @@
           bindtap="goToCourse"
           data-id="{{item._id}}"
         >
-          <image class="course-cover" src="{{item.coverImage}}" mode="aspectFill" />
+          <image class="course-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
           <view class="course-info">
             <text class="course-title">{{item.title}}</text>
             <view class="progress-bar">
@@ -75,7 +109,7 @@
           bindtap="goToCourse"
           data-id="{{item._id}}"
         >
-          <image class="course-cover" src="{{item.coverImage}}" mode="aspectFill" />
+          <image class="course-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
           <view class="course-info">
             <view class="title-row">
               <text class="course-title">{{item.title}}</text>

@@ -28,36 +28,34 @@ import {
   Select,
   MenuItem,
 } from '@mui/material'
-import { Delete, Edit, Add, Link as LinkIcon, School as SchoolIcon } from '@mui/icons-material'
+import { Delete, Edit, Add, Link as LinkIcon } from '@mui/icons-material'
 import { CloudLearningPathAdminService } from '../../services/CloudAdminService'
 import { categoryService } from '../../services/categoryService'
 import { classService } from '../../services/classService'
 
 interface Course {
-  id: string
+  _id: string
   title: string
 }
 
-interface PathItem {
-  id: string
-  courseId: string
-  course: Course
+interface PathStage {
   order: number
+  level: string
+  courseId?: string
+  courseTitle?: string
+  classId?: string
+  className?: string
 }
 
 interface LearningPath {
-  id: string
+  _id: string
   name: string
   description: string
-  category: string
-  categoryIds?: string[]  // 绑定的课程分类ID列表
-  classIds?: string[]     // 绑定的开班信息（班级）ID列表
-  classNames?: string[]   // 绑定的开班信息名称列表
-  items: PathItem[]
-  estimatedHours: number
-  difficulty: 'beginner' | 'intermediate' | 'advanced'
+  categoryId?: string
+  stages: PathStage[]
   status: 'active' | 'draft'
   createdAt: string
+  updatedAt?: string
 }
 
 export default function LearningPathManagement() {
@@ -71,22 +69,17 @@ export default function LearningPathManagement() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // 路径表单状态
+  // 路径表单状态 - 新结构：按无人机类型分类，每个类型5个等级阶段
   const [pathForm, setPathForm] = useState({
     name: '',
     description: '',
-    category: '',
-    categoryIds: [] as string[],  // 绑定的课程分类ID列表
-    classIds: [] as string[],     // 绑定的开班信息ID列表
-    classNames: [] as string[],   // 绑定的开班信息名称列表
-    difficulty: 'beginner' as const,
-    estimatedHours: 0,
+    categoryId: '',  // 关联分类ID（无人机类型）
     status: 'active' as const,
-    items: [] as PathItem[],
+    stages: [] as PathStage[],  // 5个等级的阶段：入门班、基础班、进阶班、高级班、考证班
   })
 
-  // 新增课程项
-  const [selectedCourseId, setSelectedCourseId] = useState('')
+  // 培训班等级选项
+  const CLASS_LEVELS = ['入门班', '基础班', '进阶班', '高级班', '考证班']
 
   const [loading, setLoading] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
@@ -142,23 +135,12 @@ export default function LearningPathManagement() {
       if (result.success) {
         // ✅ 数据映射：确保字段兼容（支持新旧格式）
         const mappedData = (result.data || []).map((item: any) => ({
-          id: item._id || item.id,
+          _id: item._id || item.id,
           name: item.name || '',
           description: item.description || '',
-          category: item.category || '',
-          // 兼容新旧格式：单选 → 多选
-          categoryIds: item.categoryIds || (item.categoryId ? [item.categoryId] : []),
-          classIds: item.classIds || (item.classId ? [item.classId] : []),
-          classNames: item.classNames || (item.className ? [item.className] : []),
-          difficulty: item.difficulty || 'beginner',
-          estimatedHours: item.estimatedHours || item.estimated_hours || 0,
+          categoryId: item.categoryId || '',
           status: item.status || 'draft',
-          items: (item.items || []).map((it: any, index: number) => ({
-            id: it._id || `item-${index}`,
-            courseId: it.courseId || it.course_id || '',
-            course: it.course || { id: it.courseId, title: it.courseTitle || '' },
-            order: it.order || index + 1,
-          })),
+          stages: item.stages || [],
           createdAt: item.createdAt || item.created_at || '',
           updatedAt: item.updatedAt || item.updated_at || '',
         }))
@@ -197,16 +179,9 @@ export default function LearningPathManagement() {
       setPathForm({
         name: path.name,
         description: path.description,
-        category: path.category,
-        categoryIds: path.categoryIds || [],
-        classIds: path.classIds || [],
-        classNames: path.classNames || [],
-        // @ts-ignore
-        difficulty: path.difficulty,
-        estimatedHours: path.estimatedHours,
-        // @ts-ignore
+        categoryId: path.categoryId || '',
         status: path.status,
-        items: [...path.items],
+        stages: [...path.stages],
       })
     } else {
       setEditMode(false)
@@ -214,20 +189,14 @@ export default function LearningPathManagement() {
       setPathForm({
         name: '',
         description: '',
-        category: '',
-        categoryIds: [],
-        classIds: [],
-        classNames: [],
-        difficulty: 'beginner',
-        estimatedHours: 0,
+        categoryId: '',
         status: 'active',
-        items: [],
+        stages: [],
       })
     }
     setDialogOpen(true)
     setError('')
     setSuccess('')
-    setSelectedCourseId('')
   }
 
   const handleCloseDialog = () => {
@@ -237,60 +206,47 @@ export default function LearningPathManagement() {
     setPathForm({
       name: '',
       description: '',
-      category: '',
-      categoryIds: [],
-      classIds: [],
-      classNames: [],
-      difficulty: 'beginner',
-      estimatedHours: 0,
+      categoryId: '',
       status: 'active',
-      items: [],
+      stages: [],
     })
-    setSelectedCourseId('')
   }
 
-  const handleAddCourse = () => {
-    if (!selectedCourseId) return
-
-    const course = availableCourses.find(c => c.id === selectedCourseId)
-    if (!course) return
-
-    const newItem: PathItem = {
-      id: `item_${Date.now()}`,
-      courseId: selectedCourseId,
-      course,
-      order: pathForm.items.length + 1,
+  // 添加阶段
+  const handleAddStage = (level: string) => {
+    if (pathForm.stages.find(s => s.level === level)) {
+      setError(`已存在${level}阶段`)
+      return
     }
-
-    setPathForm(prev => ({
-      ...prev,
-      items: [...prev.items, newItem],
-    }))
-    setSelectedCourseId('')
-  }
-
-  const handleRemoveCourse = (itemId: string) => {
-    setPathForm(prev => ({
-      ...prev,
-      items: prev.items
-        .filter(item => item.id !== itemId)
-        .map((item, index) => ({ ...item, order: index + 1 })),
-    }))
-  }
-
-  const handleMoveCourse = (itemId: string, direction: 'up' | 'down') => {
-    const items = [...pathForm.items]
-    const index = items.findIndex(item => item.id === itemId)
-
-    if (direction === 'up' && index > 0) {
-      [items[index], items[index - 1]] = [items[index - 1], items[index]]
-    } else if (direction === 'down' && index < items.length - 1) {
-      [items[index], items[index + 1]] = [items[index + 1], items[index]]
+    const newStage: PathStage = {
+      order: pathForm.stages.length + 1,
+      level,
+      courseId: '',
+      courseTitle: '',
+      classId: '',
+      className: '',
     }
-
     setPathForm(prev => ({
       ...prev,
-      items: items.map((item, idx) => ({ ...item, order: idx + 1 })),
+      stages: [...prev.stages, newStage],
+    }))
+    setError('')
+  }
+
+  // 更新阶段
+  const handleUpdateStage = (index: number, updates: Partial<PathStage>) => {
+    setPathForm(prev => ({
+      ...prev,
+      stages: prev.stages.map((s, i) => i === index ? { ...s, ...updates } : s),
+    }))
+  }
+
+  // 删除阶段
+  const handleRemoveStage = (index: number) => {
+    setPathForm(prev => ({
+      ...prev,
+      stages: prev.stages.filter((_, i) => i !== index)
+        .map((s, i) => ({ ...s, order: i + 1 })),
     }))
   }
 
@@ -304,51 +260,31 @@ export default function LearningPathManagement() {
       setError('请输入路径描述')
       return
     }
-    if (!pathForm.category.trim()) {
-      setError('请输入路径分类')
+    if (!pathForm.categoryId) {
+      setError('请选择无人机类型分类')
       return
     }
-    // 如果选择了分类绑定，自动填充分类名称
-    if (pathForm.categoryIds.length > 0 && !pathForm.category) {
-      const selectedCats = categories.filter(c => pathForm.categoryIds.includes(c.id))
-      if (selectedCats.length > 0) {
-        setPathForm(prev => ({ ...prev, category: selectedCats.map(c => c.name).join('、') }))
-      }
-    }
 
-    // 准备保存的数据
+    // 获取分类名称
+    const selectedCat = categories.find(c => c.id === pathForm.categoryId)
+    const categoryName = selectedCat?.name || ''
+
+    // 准备保存的数据 - 新结构
     const pathData: any = {
       name: pathForm.name,
       description: pathForm.description,
-      category: pathForm.category,
-      difficulty: pathForm.difficulty,
-      estimatedHours: pathForm.estimatedHours,
+      categoryId: pathForm.categoryId,
+      category: categoryName,
       status: pathForm.status,
-      items: pathForm.items.map((item, index) => ({
-        courseId: item.courseId,
-        courseTitle: item.course?.title || '',
+      stages: pathForm.stages.map((stage, index) => ({
         order: index + 1,
+        level: stage.level,
+        courseId: stage.courseId || '',
+        courseTitle: stage.courseTitle || '',
+        classId: stage.classId || '',
+        className: stage.className || '',
       })),
       updatedAt: new Date().toISOString(),
-    }
-
-    // 如果选择了多个分类绑定，添加到数据中
-    if (pathForm.categoryIds.length > 0) {
-      pathData.categoryIds = pathForm.categoryIds
-      // 自动填充分类名称（多个用顿号分隔）
-      const selectedCats = categories.filter(c => pathForm.categoryIds.includes(c.id))
-      if (selectedCats.length > 0 && !pathForm.category) {
-        pathData.category = selectedCats.map(c => c.name).join('、')
-      }
-    }
-
-    // 如果选择了多个开班信息绑定，添加到数据中
-    if (pathForm.classIds.length > 0) {
-      pathData.classIds = pathForm.classIds
-      const selectedClasses = classes.filter(c => pathForm.classIds.includes(c._id))
-      if (selectedClasses.length > 0) {
-        pathData.classNames = selectedClasses.map(c => c.name)
-      }
     }
 
     if (editMode && editingPath) {
@@ -465,7 +401,7 @@ export default function LearningPathManagement() {
 
       <Grid container spacing={2}>
         {paths.map((path) => (
-          <Grid item xs={12} md={6} lg={4} key={path.id}>
+          <Grid item xs={12} md={6} lg={4} key={path._id}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -479,7 +415,7 @@ export default function LearningPathManagement() {
                     <IconButton
                       size="small"
                       color="error"
-                      onClick={() => handleDeletePath(path.id)}
+                      onClick={() => handleDeletePath(path._id)}
                     >
                       <Delete fontSize="small" />
                     </IconButton>
@@ -491,12 +427,6 @@ export default function LearningPathManagement() {
                 </Typography>
 
                 <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                  <Chip label={path.category} size="small" variant="outlined" />
-                  <Chip
-                    label={getDifficultyText(path.difficulty)}
-                    color={getDifficultyColor(path.difficulty) as any}
-                    size="small"
-                  />
                   <Chip
                     label={getStatusText(path.status)}
                     color={getStatusColor(path.status) as any}
@@ -504,68 +434,16 @@ export default function LearningPathManagement() {
                   />
                 </Box>
 
-                {/* 绑定的分类信息 */}
-                {path.categoryIds && path.categoryIds.length > 0 && (
-                  <Box sx={{ mb: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      绑定分类:
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
-                      {path.categoryIds.map((catId, idx) => {
-                        const cat = categories.find(c => c.id === catId)
-                        return cat ? (
-                          <Chip key={idx} label={cat.name} size="small" color="primary" variant="outlined" />
-                        ) : null
-                      })}
-                    </Box>
-                  </Box>
-                )}
-
-                {/* 关联的班级信息 */}
-                {path.classIds && path.classIds.length > 0 && (
-                  <Box sx={{ mb: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      关联班级:
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
-                      {path.classIds.map((clsId, idx) => {
-                        const cls = classes.find(c => c._id === clsId)
-                        return cls ? (
-                          <Chip key={idx} label={cls.name} size="small" color="secondary" variant="outlined" />
-                        ) : null
-                      })}
-                    </Box>
-                  </Box>
-                )}
-
+                {/* 学习阶段 */}
                 <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    包含课程: {path.items.length} 门
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    预计时长: {path.estimatedHours} 小时
-                  </Typography>
-                </Box>
-
-                <Box sx={{ mt: 2 }}>
                   <Typography variant="subtitle2" gutterBottom>
-                    课程列表:
+                    学习阶段 ({path.stages?.length || 0}个)
                   </Typography>
-                  {path.items.map((item, index) => (
-                    <Box
-                      key={item.id}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        py: 0.5,
-                        borderBottom: '1px solid #eee',
-                      }}
-                    >
-                      <Typography variant="caption" sx={{ mr: 1, minWidth: 20 }}>
-                        {index + 1}.
-                      </Typography>
+                  {path.stages?.map((stage, index) => (
+                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', py: 0.5, borderBottom: '1px solid #eee' }}>
+                      <Chip label={`第${stage.order}阶段`} size="small" sx={{ mr: 1 }} />
                       <Typography variant="body2" noWrap sx={{ flex: 1 }}>
-                        {item.course.title}
+                        {stage.level}
                       </Typography>
                     </Box>
                   ))}
@@ -614,41 +492,18 @@ export default function LearningPathManagement() {
             />
             <Grid container spacing={2}>
               <Grid item xs={6}>
-                <TextField
-                  margin="dense"
-                  label="路径分类"
-                  fullWidth
-                  variant="outlined"
-                  value={pathForm.category}
-                  onChange={(e) => setPathForm(prev => ({ ...prev, category: e.target.value }))}
-                />
-              </Grid>
-              <Grid item xs={6}>
                 <FormControl fullWidth margin="dense">
-                  <InputLabel>难度等级</InputLabel>
+                  <InputLabel>无人机类型</InputLabel>
                   <Select
-                    value={pathForm.difficulty}
-                    label="难度等级"
-                    onChange={(e) => setPathForm(prev => ({ ...prev, difficulty: e.target.value as any }))}
+                    value={pathForm.categoryId}
+                    label="无人机类型"
+                    onChange={(e) => setPathForm(prev => ({ ...prev, categoryId: e.target.value }))}
                   >
-                    <MenuItem value="beginner">入门</MenuItem>
-                    <MenuItem value="intermediate">进阶</MenuItem>
-                    <MenuItem value="advanced">高级</MenuItem>
+                    {categories.map(cat => (
+                      <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
-              </Grid>
-            </Grid>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  margin="dense"
-                  label="预计时长(小时)"
-                  fullWidth
-                  type="number"
-                  variant="outlined"
-                  value={pathForm.estimatedHours}
-                  onChange={(e) => setPathForm(prev => ({ ...prev, estimatedHours: Number(e.target.value) }))}
-                />
               </Grid>
               <Grid item xs={6}>
                 <FormControl fullWidth margin="dense">
@@ -665,201 +520,110 @@ export default function LearningPathManagement() {
               </Grid>
             </Grid>
 
-            {/* 课程分类绑定 - 支持多选 */}
+            {/* 学习阶段配置 - 5个等级 */}
             <Box sx={{ mt: 3, mb: 2, p: 2, bgcolor: 'primary.light', borderRadius: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                 <LinkIcon color="primary" />
                 <Typography variant="subtitle1" fontWeight="bold">
-                  绑定课程分类（支持多选）
+                  学习阶段配置（5个等级）
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                选择课程分类后，该学习路径将自动展示各分类下的所有课程，可同时绑定多个分类
+                每个阶段可关联理论课程和实操培训班，阶段按等级顺序排列
               </Typography>
-              
-              {/* 分类多选 */}
-              <Autocomplete
-                multiple
-                options={categories}
-                getOptionLabel={(option) => option.name}
-                value={categories.filter(c => pathForm.categoryIds.includes(c.id))}
-                onChange={(_, newValue) => {
-                  const selectedIds = newValue.map(c => c.id)
-                  const selectedCats = newValue
-                  setPathForm(prev => ({
-                    ...prev,
-                    categoryIds: selectedIds,
-                    category: selectedCats.map(c => c.name).join('、'),
-                  }))
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} placeholder="选择课程分类" size="small" />
-                )}
-                renderOption={(props, option) => {
-                  // @ts-ignore
-                  const { key, ...other } = props
-                  return (
-                    <li key={key} {...other}>
-                      {option.name}
-                    </li>
-                  )
-                }}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
+
+              {/* 已配置的阶段 */}
+              {pathForm.stages.map((stage, index) => (
+                <Box key={stage.level} sx={{ mb: 2, p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid #ddd' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                     <Chip
-                      key={option.id}
-                      label={option.name}
-                      size="small"
-                      {...getTagProps({ index })}
+                      label={`第${stage.order}阶段: ${stage.level}`}
                       color="primary"
-                      variant="outlined"
-                    />
-                  ))
-                }
-              />
-              
-              {pathForm.categoryIds.length > 0 && (
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  已选择 {pathForm.categoryIds.length} 个分类
-                  <br />
-                  学习路径将自动展示各分类下的所有已发布课程
-                </Alert>
-              )}
-            </Box>
-
-            {/* 开班信息绑定 - 支持多选 */}
-            <Box sx={{ mt: 2, mb: 2, p: 2, bgcolor: 'secondary.light', borderRadius: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <SchoolIcon color="secondary" />
-                <Typography variant="subtitle1" fontWeight="bold">
-                  关联开班信息（支持多选）
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                选择开班班级后，学员可从班级入口进入学习路径，适用于线下培训场景
-              </Typography>
-              
-              {/* 班级多选 */}
-              <Autocomplete
-                multiple
-                options={classes}
-                getOptionLabel={(option) => `${option.name} (${option.status === 'enrolling' ? '招募中' : '进行中'})`}
-                value={classes.filter(c => pathForm.classIds.includes(c._id))}
-                onChange={(_, newValue) => {
-                  const selected = newValue
-                  setPathForm(prev => ({
-                    ...prev,
-                    classIds: selected.map(c => c._id),
-                    classNames: selected.map(c => c.name),
-                  }))
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} placeholder="选择开班班级" size="small" />
-                )}
-                renderOption={(props, option) => {
-                  // @ts-ignore
-                  const { key, ...other } = props
-                  return (
-                    <li key={key} {...other}>
-                      {option.name} ({option.status === 'enrolling' ? '招募中' : '进行中'})
-                    </li>
-                  )
-                }}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      key={option._id}
-                      label={option.name}
                       size="small"
-                      {...getTagProps({ index })}
-                      color="secondary"
-                      variant="outlined"
                     />
-                  ))
-                }
-              />
-              
-              {pathForm.classIds.length > 0 && (
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  已关联 {pathForm.classIds.length} 个班级
-                  <br />
-                  学员可从各班级页面直接进入此学习路径
-                </Alert>
+                    <IconButton size="small" color="error" onClick={() => handleRemoveStage(index)}>
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>关联课程</InputLabel>
+                        <Select
+                          value={stage.courseId || ''}
+                          label="关联课程"
+                          onChange={(e) => {
+                            const course = availableCourses.find(c => c.id === e.target.value)
+                            handleUpdateStage(index, {
+                              courseId: e.target.value,
+                              courseTitle: course?.title || ''
+                            })
+                          }}
+                        >
+                          <MenuItem value="">无</MenuItem>
+                          {availableCourses.map(course => (
+                            <MenuItem key={course.id} value={course.id}>{course.title}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>关联培训班</InputLabel>
+                        <Select
+                          value={stage.classId || ''}
+                          label="关联培训班"
+                          onChange={(e) => {
+                            const cls = classes.find(c => c._id === e.target.value)
+                            handleUpdateStage(index, {
+                              classId: e.target.value,
+                              className: cls?.name || ''
+                            })
+                          }}
+                        >
+                          <MenuItem value="">无</MenuItem>
+                          {classes.map(cls => (
+                            <MenuItem key={cls._id} value={cls._id}>{cls.name}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </Grid>
+                  {stage.courseTitle && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      课程: {stage.courseTitle}
+                    </Typography>
+                  )}
+                  {stage.className && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      培训班: {stage.className}
+                    </Typography>
+                  )}
+                </Box>
+              ))}
+
+              {/* 添加阶段按钮 */}
+              {pathForm.stages.length < 5 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    添加阶段（可选剩余等级）
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {CLASS_LEVELS.filter(level => !pathForm.stages.find(s => s.level === level)).map(level => (
+                      <Chip
+                        key={level}
+                        label={`+ ${level}`}
+                        onClick={() => handleAddStage(level)}
+                        variant="outlined"
+                        color="primary"
+                        size="small"
+                        sx={{ cursor: 'pointer' }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
               )}
             </Box>
-
-            <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-              添加课程
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel>选择课程</InputLabel>
-                <Select
-                  value={selectedCourseId}
-                  label="选择课程"
-                  onChange={(e) => setSelectedCourseId(e.target.value)}
-                >
-                  {availableCourses.map(course => (
-                    <MenuItem key={course.id} value={course.id}>
-                      {course.title}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Button
-                variant="contained"
-                onClick={handleAddCourse}
-                disabled={!selectedCourseId}
-              >
-                添加
-              </Button>
-            </Box>
-
-            <Typography variant="subtitle2" gutterBottom>
-              课程列表:
-            </Typography>
-            {pathForm.items.map((item, index) => (
-              <Box
-                key={item.id}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  p: 1,
-                  bgcolor: 'grey.50',
-                  borderRadius: 1,
-                  mb: 1,
-                }}
-              >
-                <Typography variant="caption" sx={{ minWidth: 24 }}>
-                  {index + 1}.
-                </Typography>
-                <Typography variant="body2" noWrap sx={{ flex: 1 }}>
-                  {item.course.title}
-                </Typography>
-                <IconButton
-                  size="small"
-                  onClick={() => handleMoveCourse(item.id, 'up')}
-                  disabled={index === 0}
-                >
-                  ↑
-                </IconButton>
-                <IconButton
-                  size="small"
-                  onClick={() => handleMoveCourse(item.id, 'down')}
-                  disabled={index === pathForm.items.length - 1}
-                >
-                  ↓
-                </IconButton>
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => handleRemoveCourse(item.id)}
-                >
-                  <Delete fontSize="small" />
-                </IconButton>
-              </Box>
-            ))}
           </Box>
         </DialogContent>
         <DialogActions>

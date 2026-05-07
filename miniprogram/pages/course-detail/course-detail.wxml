@@ -10,14 +10,14 @@
     <scroll-view class="content" scroll-y enhanced>
       <!-- 课程封面 -->
       <view class="cover-section">
-        <image class="cover" src="{{course.coverImage}}" mode="aspectFill" />
+        <image class="cover" src="{{course.coverImage || course.cover}}" mode="aspectFill" />
       </view>
 
       <!-- 课程信息 -->
       <view class="info-section">
         <!-- 等级标签 + 标题 -->
         <view class="title-row">
-          <text class="level-tag" wx:if="{{course.level}}">{{course.level}}</text>
+          <text class="level-tag" wx:if="{{course.levelText}}">{{course.levelText}}</text>
           <text class="course-title">{{course.title}}</text>
         </view>
 

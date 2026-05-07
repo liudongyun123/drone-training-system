@@ -10,7 +10,7 @@ Component({
   },
 
   data: {
-    defaultCover: '/assets/default-product.png'
+    defaultCover: 'https://via.placeholder.com/200x200?text=商品'
   },
 
   methods: {
@@ -40,7 +40,7 @@ Component({
           productId: product._id,
           name: product.name,
           price: product.price,
-          coverImage: product.coverImage,
+          coverImage: product.coverImage || product.cover || '',
           quantity: 1
         })
       }

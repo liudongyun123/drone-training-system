@@ -31,14 +31,15 @@ Page({
         courseApi.getLessons(courseId)
       ])
       
-      // 检查是否已购买
+      // 检查是否已购买 - 使用 phone 查询（购买时用手机号绑定）
       let hasPermission = false
-      if (checkLogin()) {
-        const userId = getUserId()
-        const result = await dbGetList('course_permissions', {
-          where: { userId, courseId }
+      const phone = wx.getStorageSync('phone') || ''
+      
+      if (phone) {
+        const permResult = await dbGetList('course_permissions', {
+          where: { phone, courseId }
         })
-        hasPermission = (result.data || []).length > 0
+        hasPermission = (permResult.data || []).length > 0
       }
       
       this.setData({ course, lessons, hasPermission, loading: false })
@@ -50,14 +51,23 @@ Page({
   },
 
   startLearning(e: any) {
+    const lessonId = e.currentTarget.dataset.id
+    
     if (!this.data.hasPermission) {
       showToast('请先购买课程')
       return
     }
     
-    const lessonId = e.currentTarget.dataset.id
+    // 如果没有传入 lessonId，使用第一个课时
+    const targetLessonId = lessonId || (this.data.lessons[0]?._id)
+    
+    if (!targetLessonId) {
+      showToast('课时信息加载中，请重试')
+      return
+    }
+    
     wx.navigateTo({
-      url: `/pages/lesson-player/lesson-player?courseId=${this.data.courseId}&lessonId=${lessonId}`
+      url: `/pages/lesson-player/lesson-player?courseId=${this.data.courseId}&lessonId=${targetLessonId}`
     })
   },
 

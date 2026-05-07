@@ -40,14 +40,53 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const userId = wx.getStorageSync('userId')
+      const phone = wx.getStorageSync('phone') || ''
+      const userId = wx.getStorageSync('userId') || ''
 
-      // 尝试加载证书数据（可能集合不存在）
-      const [externalResult, trainingResult, certResult] = await Promise.all([
-        getExternalCertificates(userId).catch(() => ({ data: [] })),
-        getTrainingCertificates(userId).catch(() => ({ data: [] })),
-        getCertificates(userId).catch(() => ({ data: [] }))
-      ])
+      // 尝试加载证书数据（可能集合不存在）- 同时查询 phone 和 userId
+      const queryPromises = []
+      
+      if (phone) {
+        queryPromises.push(
+          getExternalCertificates(phone).catch(() => ({ data: [] })),
+          getTrainingCertificates(phone).catch(() => ({ data: [] })),
+          getCertificates(phone).catch(() => ({ data: [] }))
+        )
+      }
+      
+      if (userId) {
+        queryPromises.push(
+          getExternalCertificates(userId).catch(() => ({ data: [] })),
+          getTrainingCertificates(userId).catch(() => ({ data: [] })),
+          getCertificates(userId).catch(() => ({ data: [] }))
+        )
+      }
+
+      const results = await Promise.all(queryPromises)
+      
+      // 合并结果并去重
+      const allExternal = []
+      const allTraining = []
+      
+      for (let i = 0; i < results.length; i += 3) {
+        if (results[i]?.data) allExternal.push(...results[i].data)
+        if (results[i + 1]?.data) allTraining.push(...results[i + 1].data)
+        if (results[i + 2]?.data) allExternal.push(...results[i + 2].data)
+      }
+      
+      // 去重
+      const seen = new Set()
+      const uniqueExternal = allExternal.filter(c => {
+        if (seen.has(c._id)) return false
+        seen.add(c._id)
+        return true
+      })
+      
+      this.setData({
+        externalCerts: uniqueExternal,
+        trainingCerts: allTraining,
+        loading: false
+      })
 
       this.setData({
         externalCerts: externalResult.data || certResult.data || [],

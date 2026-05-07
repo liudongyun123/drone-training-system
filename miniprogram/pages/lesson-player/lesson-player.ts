@@ -150,11 +150,11 @@ Page({
   // 加载学习进度
   async loadProgress(courseId: string, lessonId: string) {
     try {
-      const userId = wx.getStorageSync('userId')
-      if (!userId) return null
+      const phone = wx.getStorageSync('phone')
+      if (!phone) return null
 
       const result = await dbGetList('user_progress', {
-        where: { userId, courseId, lessonId }
+        where: { phone, courseId, lessonId }
       })
 
       return result.data?.[0] || null
@@ -175,9 +175,9 @@ Page({
   // 保存学习进度
   async saveProgress() {
     const { courseId, lessonId, currentTime, duration, watchedDuration, _completed } = this.data
-    const userId = wx.getStorageSync('userId')
+    const phone = wx.getStorageSync('phone')
 
-    if (!userId || !courseId || !lessonId || currentTime === 0) return
+    if (!phone || !courseId || !lessonId || currentTime === 0) return
 
     // 更新本地观看时长（取较大值）
     const newWatchedDuration = Math.max(watchedDuration, currentTime)
@@ -186,7 +186,7 @@ Page({
     try {
       await callFunction('api-course', {
         action: 'saveProgress',
-        userId,
+        phone,
         courseId,
         lessonId,
         watchedDuration: newWatchedDuration,
@@ -233,15 +233,15 @@ Page({
   // 标记课时完成
   async markLessonCompleted() {
     const { courseId, lessonId, lessons } = this.data
-    const userId = wx.getStorageSync('userId')
+    const phone = wx.getStorageSync('phone')
 
-    if (!userId) return
+    if (!phone) return
 
     try {
       // 记录完成
       await callFunction('api-course', {
         action: 'markCompleted',
-        userId,
+        phone,
         courseId,
         lessonId
       })
@@ -249,10 +249,10 @@ Page({
       showToast('本课时学习完成', 'success')
 
       // 检查是否全部完成
-      const completedCount = await this.getCompletedCount(courseId, userId)
+      const completedCount = await this.getCompletedCount(courseId, phone)
       if (completedCount >= lessons.length) {
         // 课程全部完成，检查是否需要颁发证书
-        this.checkCertificate(courseId, userId)
+        this.checkCertificate(courseId, phone)
       }
 
     } catch (e) {
@@ -261,10 +261,10 @@ Page({
   },
 
   // 获取已完成课时数
-  async getCompletedCount(courseId: string, userId: string) {
+  async getCompletedCount(courseId: string, phone: string) {
     try {
       const result = await dbGetList('user_progress', {
-        where: { userId, courseId, completed: true }
+        where: { phone, courseId, completed: true }
       })
       return result.data?.length || 0
     } catch (e) {
@@ -273,7 +273,7 @@ Page({
   },
 
   // 检查是否需要颁发证书
-  async checkCertificate(courseId: string, userId: string) {
+  async checkCertificate(courseId: string, phone: string) {
     try {
       // 检查课程是否配置了证书
       const course = this.data.course
@@ -282,7 +282,7 @@ Page({
       // 调用证书颁发逻辑
       const result = await callFunction('api-course', {
         action: 'issueCertificate',
-        userId,
+        phone,
         courseId
       })
 

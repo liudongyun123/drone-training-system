@@ -37,7 +37,7 @@
         <!-- 商品图片 -->
         <image 
           class="item-image" 
-          src="{{item.coverImage || '/assets/images/default-product.png'}}"
+          src="{{item.coverImage || item.cover || 'https://via.placeholder.com/200x200?text=商品'}}"
           mode="aspectFill"
           bindtap="onViewProduct"
           data-product-id="{{item._id}}"

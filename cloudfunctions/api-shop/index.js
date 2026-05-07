@@ -126,15 +126,27 @@ async function getProducts(params = {}) {
 
 /**
  * 获取购物车
+ * 优先使用 phone 作为用户标识，同时兼容 _openid
  */
-async function getCart(userId) {
-  const openid = userId || getOpenId({})
-  if (!openid) return { success: true, data: [] }
+async function getCart(data) {
+  const phone = data.phone || ''
+  const openid = data.userId || data._openid || getOpenId(data)
 
-  const cart = await db.collection('cart')
-    .where({ _openid: openid })
-    .orderBy('createdAt', 'desc')
-    .get()
+  if (!phone && !openid) return { success: true, data: [] }
+
+  // 使用 phone 或 _openid 查询
+  let cart
+  if (phone) {
+    cart = await db.collection('cart')
+      .where({ phone })
+      .orderBy('createdAt', 'desc')
+      .get()
+  } else {
+    cart = await db.collection('cart')
+      .where({ _openid: openid })
+      .orderBy('createdAt', 'desc')
+      .get()
+  }
 
   if (!cart.data || cart.data.length === 0) {
     return { success: true, data: [] }
@@ -168,17 +180,22 @@ async function getCart(userId) {
 /**
  * 添加到购物车
  */
-async function addToCart(productId, quantity = 1, userId) {
-  const openid = userId || getOpenId({})
-  if (!openid) return { success: false, error: '请先登录' }
+async function addToCart(data) {
+  const { productId, quantity = 1, phone = '', userId = '' } = data
+  const openid = userId || getOpenId(data)
+
+  if (!phone && !openid) return { success: false, error: '请先登录' }
 
   // 检查商品是否存在
   const product = await db.collection('courses').doc(productId).get()
   if (!product.data) return { success: false, error: '商品不存在' }
 
+  // 使用 phone 或 _openid 查询
+  const query = phone ? { phone, productId } : { _openid: openid, productId }
+
   // 检查购物车是否已有
   const existing = await db.collection('cart')
-    .where({ _openid: openid, productId })
+    .where(query)
     .limit(1)
     .get()
 
@@ -189,14 +206,15 @@ async function addToCart(productId, quantity = 1, userId) {
     })
   } else {
     // 添加新项
-    await db.collection('cart').add({
-      data: {
-        _openid: openid,
-        productId,
-        quantity,
-        createdAt: new Date().toISOString()
-      }
-    })
+    const addData: any = {
+      productId,
+      quantity,
+      createdAt: new Date().toISOString()
+    }
+    if (phone) addData.phone = phone
+    if (openid) addData._openid = openid
+
+    await db.collection('cart').add({ data: addData })
   }
 
   return { success: true }
@@ -205,11 +223,15 @@ async function addToCart(productId, quantity = 1, userId) {
 /**
  * 从购物车移除
  */
-async function removeFromCart(itemId, userId) {
-  const openid = userId || getOpenId({})
-  await db.collection('cart')
-    .where({ _openid: openid, _id: itemId })
-    .remove()
+async function removeFromCart(data) {
+  const { itemId, phone = '', userId = '' } = data
+  const openid = userId || getOpenId(data)
+
+  const query: any = { _id: itemId }
+  if (phone) query.phone = phone
+  else if (openid) query._openid = openid
+
+  await db.collection('cart').where(query).remove()
   return { success: true }
 }
 
@@ -217,9 +239,11 @@ async function removeFromCart(itemId, userId) {
 
 /**
  * 创建订单
+ * 优先使用 phone 作为用户标识
  */
 async function createOrder(data, userId) {
-  const openid = userId || getOpenId({})
+  const phone = data.phone || ''
+  const openid = userId || getOpenId(data)
   const { productId, couponId, quantity = 1 } = data
 
   // 如果从购物车创建，productId 可以是数组
@@ -238,16 +262,26 @@ async function createOrder(data, userId) {
     return { success: false, error: '商品不存在' }
   }
 
-  // 过滤已购买的商品
-  const existingOrders = await db.collection('orders')
-    .where({
-      _openid: openid,
-      status: 'paid'
-    })
-    .get()
+  // 过滤已购买的商品（使用 phone 或 _openid 查询）
+  let existingOrders
+  if (phone) {
+    existingOrders = await db.collection('orders')
+      .where({
+        phone,
+        status: 'paid'
+      })
+      .get()
+  } else {
+    existingOrders = await db.collection('orders')
+      .where({
+        _openid: openid,
+        status: 'paid'
+      })
+      .get()
+  }
 
   const purchasedIds = new Set(
-    existingOrders.data.flatMap(o => 
+    existingOrders.data.flatMap(o =>
       (o.items || []).map(i => i.courseId || i.productId)
     )
   )
@@ -275,10 +309,8 @@ async function createOrder(data, userId) {
   const now = new Date().toISOString()
   const expiredAt = new Date(Date.now() + 30 * 60 * 1000).toISOString()
 
-  const order = {
+  const order: any = {
     orderNo,
-    _openid: openid,
-    userId: openid,
     items,
     totalAmount,
     status: 'pending',
@@ -287,11 +319,24 @@ async function createOrder(data, userId) {
     expiredAt
   }
 
+  // 使用 phone 作为主要标识
+  if (phone) {
+    order.phone = phone
+  }
+  if (openid) {
+    order._openid = openid
+    order.userId = openid
+  }
+
   const result = await db.collection('orders').add({ data: order })
 
   // 清空购物车
   if (data.clearCart) {
-    await db.collection('cart').where({ _openid: openid }).remove()
+    if (phone) {
+      await db.collection('cart').where({ phone }).remove()
+    } else {
+      await db.collection('cart').where({ _openid: openid }).remove()
+    }
   }
 
   return {
@@ -308,12 +353,19 @@ async function createOrder(data, userId) {
 
 /**
  * 获取订单列表
+ * 优先使用 phone 作为用户标识
  */
 async function getOrders(params, userId) {
-  const openid = userId || getOpenId({})
+  const phone = params.phone || ''
+  const openid = userId || getOpenId(params)
   const { page = 1, pageSize = 10, status = '' } = params
 
-  let where = { _openid: openid }
+  let where: any = {}
+  if (phone) {
+    where.phone = phone
+  } else if (openid) {
+    where._openid = openid
+  }
   if (status) where.status = status
 
   const countResult = await db.collection('orders').where(where).count()

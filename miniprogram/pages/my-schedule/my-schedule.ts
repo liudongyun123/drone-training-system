@@ -49,21 +49,41 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const userId = wx.getStorageSync('userId')
-      const openid = wx.getStorageSync('openid')
-      const uid = userId || openid
+      const phone = wx.getStorageSync('phone') || ''
+      const userId = wx.getStorageSync('userId') || ''
 
-      if (!uid) {
+      if (!phone && !userId) {
         this.setData({ loading: false, schedule: [], daySchedules: [] })
         return
       }
 
-      const result = await getMySchedules({
-        userId: uid,
-        classId: this.data.classId || undefined
-      })
+      // 同时查询 phone 和 userId，然后合并结果
+      const promises = []
+      if (phone) {
+        promises.push(
+          getMySchedules({ userId: phone, classId: this.data.classId || undefined })
+            .then(r => r.data || [])
+            .catch(() => [])
+        )
+      }
+      if (userId) {
+        promises.push(
+          getMySchedules({ userId, classId: this.data.classId || undefined })
+            .then(r => r.data || [])
+            .catch(() => [])
+        )
+      }
 
-      const schedule = result.data || []
+      const results = await Promise.all(promises)
+      const allSchedules = results.flat()
+      
+      // 去重
+      const seen = new Set()
+      const schedule = allSchedules.filter((s: any) => {
+        if (seen.has(s._id)) return false
+        seen.add(s._id)
+        return true
+      })
       
       this.setData({
         schedule,

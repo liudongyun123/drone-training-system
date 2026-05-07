@@ -85,10 +85,13 @@ export async function dbGetList(
     skip?: number
   } = {}
 ) {
+  // 将 where 重命名为 query，因为 db-init 云函数期望 query 参数
+  const { where, ...rest } = options
   return request<{ data: any[] }>('/db-init', 'POST', {
     action: 'getList',
     collection,
-    ...options
+    query: where,
+    ...rest
   })
 }
 
