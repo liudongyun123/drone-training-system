@@ -3,6 +3,8 @@
 
 import { orderApi, courseApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
+import { validatePhone, validateName, validateAddress } from '../../utils/validation'
+import { parseError } from '../../utils/error'
 import logger from '../../utils/logger'
 
 Page({
@@ -133,16 +135,21 @@ Page({
     if (this.data.submitting) return
 
     // 校验收货信息
-    if (!this.data.address.name.trim()) {
-      showToast('请输入收货人姓名')
+    const nameResult = validateName(this.data.address.name)
+    if (!nameResult.valid) {
+      showToast(nameResult.message!)
       return
     }
-    if (!this.data.address.phone.trim()) {
-      showToast('请输入收货人电话')
+
+    const phoneResult = validatePhone(this.data.address.phone)
+    if (!phoneResult.valid) {
+      showToast(phoneResult.message!)
       return
     }
-    if (!this.data.address.address.trim()) {
-      showToast('请输入详细收货地址')
+
+    const addressResult = validateAddress(this.data.address.address)
+    if (!addressResult.valid) {
+      showToast(addressResult.message!)
       return
     }
 
@@ -209,7 +216,8 @@ Page({
 
     } catch (err) {
       logger.error('结算', '创建订单失败', err)
-      showToast('下单失败，请重试')
+      const { message } = parseError(err)
+      showToast(message)
     } finally {
       this.setData({ submitting: false })
     }

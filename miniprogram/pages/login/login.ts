@@ -2,6 +2,7 @@
 // 小程序登录页面
 
 import { showToast } from '../../utils/util'
+import { parseError } from '../../utils/error'
 import logger from '../../utils/logger'
 
 // 腾讯云 CloudBase HTTP API 地址
@@ -219,7 +220,8 @@ Page({
     } catch (err: any) {
       logger.error('登录', '获取手机号失败', err)
       this.setData({ loading: false })
-      showToast(err.message || '获取手机号失败')
+      const { message } = parseError(err)
+      showToast(message)
     }
   },
 

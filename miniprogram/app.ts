@@ -11,6 +11,8 @@ interface IAppOption {
     userId?: string
     phone?: string
     envId: string
+    networkType?: string
+    isConnected?: boolean
   }
   userInfoReadyCallback?: WechatMiniprogram.UserInfoReadyCallback
 }
@@ -18,7 +20,8 @@ interface IAppOption {
 App<IAppOption>({
   globalData: {
     isLoggedIn: false,
-    envId: 'rcwljy-5ghmq2ex26764978'
+    envId: 'rcwljy-5ghmq2ex26764978',
+    isConnected: true
   },
 
   onLaunch() {
@@ -29,6 +32,9 @@ App<IAppOption>({
     const userId = wx.getStorageSync('userId')
     const loginInfo = wx.getStorageSync('loginInfo')
     logger.debug('App', 'onLaunch Storage', { userId, hasLoginInfo: !!loginInfo })
+    
+    // 初始化网络状态
+    this.initNetworkStatus()
     
     this.checkLoginStatus()
   },
@@ -43,6 +49,36 @@ App<IAppOption>({
 
   onHide() {
     // 小程序隐藏时的逻辑
+  },
+
+  initNetworkStatus() {
+    // 获取当前网络状态
+    wx.getNetworkType({
+      success: (res) => {
+        this.globalData.networkType = res.networkType
+        this.globalData.isConnected = res.networkType !== 'none'
+      }
+    })
+    
+    // 监听网络状态变化
+    wx.onNetworkStatusChange((res) => {
+      this.globalData.networkType = res.networkType
+      this.globalData.isConnected = res.isConnected
+      
+      if (!res.isConnected) {
+        wx.showToast({
+          title: '网络已断开',
+          icon: 'none',
+          duration: 3000
+        })
+      } else {
+        wx.showToast({
+          title: '网络已恢复',
+          icon: 'success',
+          duration: 2000
+        })
+      }
+    })
   },
 
   checkLoginStatus() {

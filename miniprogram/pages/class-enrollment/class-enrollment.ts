@@ -3,6 +3,8 @@
 
 import { classApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
+import { validatePhone, validateName } from '../../utils/validation'
+import { parseError } from '../../utils/error'
 import logger from '../../utils/logger'
 
 Page({
@@ -65,17 +67,16 @@ Page({
 
     if (this.data.submitting) return
 
-    // 校验
-    if (!this.data.contactName.trim()) {
-      showToast('请输入联系人姓名')
+    // 表单验证
+    const nameResult = validateName(this.data.contactName)
+    if (!nameResult.valid) {
+      showToast(nameResult.message!)
       return
     }
-    if (!this.data.contactPhone.trim()) {
-      showToast('请输入联系电话')
-      return
-    }
-    if (!/^1\d{10}$/.test(this.data.contactPhone)) {
-      showToast('请输入正确的手机号')
+
+    const phoneResult = validatePhone(this.data.contactPhone)
+    if (!phoneResult.valid) {
+      showToast(phoneResult.message!)
       return
     }
 
@@ -115,7 +116,8 @@ Page({
 
     } catch (err: any) {
       logger.error('培训班', '报名失败', err)
-      showToast(err.message || '报名失败，请重试')
+      const { message } = parseError(err)
+      showToast(message)
     } finally {
       this.setData({ submitting: false })
     }
