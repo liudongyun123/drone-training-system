@@ -86,7 +86,7 @@ Page({
     this.setData({ loading: true })
     
     try {
-      const filters: any = { page: 1, pageSize: 10 }
+      const filters: any = { page: 1, pageSize: 10, sourceId: this.data.currentSource }
       
       // 分类筛选
       if (this.data.currentCategory && this.data.currentCategory !== '全部') {
@@ -137,7 +137,7 @@ Page({
     const nextPage = this.data.page + 1
     
     try {
-      const filters: any = { page: nextPage, pageSize: 10 }
+      const filters: any = { page: nextPage, pageSize: 10, sourceId: this.data.currentSource }
       
       if (this.data.currentCategory && this.data.currentCategory !== '全部') {
         filters.category = this.data.currentCategory
