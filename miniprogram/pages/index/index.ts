@@ -1,18 +1,18 @@
 // pages/index/index.ts
 // 小程序首页
 
-import { courseApi, classApi, productApi, bannerApi } from '../../utils/api'
+import { courseApi, classApi, productApi, bannerApi, systemConfigApi } from '../../utils/api'
 import logger from '../../utils/logger'
+
+// 体系配置映射 - 用于获取体系 ID
+const SOURCE_CONFIG = {
+  RENSHE: { id: 'RENSHE', name: '人社培训' },
+  CAAC: { id: 'CAAC', name: 'CAAC培训' },
+} as const
 
 // 培训班等级映射
 const CLASS_LEVEL_MAP: Record<string, string> = {
   '入门班': '入门班', '基础班': '基础班', '进阶班': '进阶班', '高级班': '高级班', '考证班': '考证班'
-}
-
-// 体系配置
-const SOURCE_CONFIG = {
-  'RENSHE': { id: 'e35392d069fc521f0152e2c14dbb4a18', name: '人社培训', icon: '🏛️' },
-  'CAAC': { id: 'e35392d069fc521f0152e2c2537e32ad', name: 'CAAC培训', icon: '✈️' }
 }
 
 interface IndexData {
@@ -42,7 +42,7 @@ Page<IndexData>({
   },
 
   onLoad() {
-    this.loadData()
+    this.loadSources()
   },
 
   onPullDownRefresh() {
@@ -51,20 +51,54 @@ Page<IndexData>({
     })
   },
 
+  // 加载体系配置
+  async loadSources() {
+    try {
+      const sources = await systemConfigApi.getSources()
+      if (sources && sources.length > 0) {
+        const sourceList = sources.map((s: any) => ({
+          key: s.code,
+          name: s.name,
+          icon: s.icon || '📚'
+        }))
+        this.setData({
+          sourceList,
+          currentSource: sources[0].code || 'RENSHE'
+        })
+      }
+    } catch (err) {
+      logger.error('首页', '加载体系配置失败', err)
+    }
+    this.loadData()
+  },
+
   async loadData() {
     this.setData({ loading: true })
 
     try {
-      const currentSourceId = SOURCE_CONFIG[this.data.currentSource as keyof typeof SOURCE_CONFIG]?.id || ''
-
-      // 并行加载五个模块数据
+      // 按当前体系过滤分类
+      const currentSource = this.data.currentSource
+      
+      // 并行加载数据
       const [courses, classes, products, banners, categories] = await Promise.all([
-        courseApi.getHotCourses(6, currentSourceId),
-        classApi.getList({ status: 'enrolling', sourceId: currentSourceId }),
+        courseApi.getHotCourses(6, currentSource),  // 按体系过滤
+        classApi.getList({ status: 'enrolling', sourceId: currentSource }),  // 按体系过滤
         productApi.getList({ pageSize: 6 }),
         bannerApi.getList(10),
-        courseApi.getCategories({ sourceId: currentSourceId })
+        systemConfigApi.getCategories()
       ])
+
+      // 按体系过滤分类
+      const filteredCategories = (categories || []).filter((cat: any) => {
+        // RENSHE 的 sourceId 是 "RENSHE"，CAAC 的 sourceId 是 _id
+        if (currentSource === 'RENSHE') {
+          return cat.sourceId === 'RENSHE'
+        } else if (currentSource === 'CAAC') {
+          // CAAC 分类的 sourceId 是 _id，需要特殊处理
+          return cat.sourceId !== 'RENSHE'
+        }
+        return true
+      })
 
       // 处理培训班等级显示
       const processedClasses = (classes || []).map((cls: any) => ({
@@ -77,7 +111,7 @@ Page<IndexData>({
         enrollingClasses: processedClasses,
         featuredProducts: products,
         heroBanners: banners,
-        learningPaths: categories || [],
+        learningPaths: filteredCategories || [],
         loading: false
       })
     } catch (err) {

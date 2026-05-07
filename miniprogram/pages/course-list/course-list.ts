@@ -1,7 +1,7 @@
 // pages/course-list/course-list.ts
 // 课程列表页
 
-import { courseApi } from '../../utils/api'
+import { courseApi, systemConfigApi } from '../../utils/api'
 import logger from '../../utils/logger'
 
 Page({
@@ -13,7 +13,12 @@ Page({
     categories: [] as string[],
     currentCategory: '',
     currentSort: 'newest',
-    searchKeyword: ''
+    searchKeyword: '',
+    currentSource: 'RENSHE',
+    sourceList: [
+      { key: 'RENSHE', name: '人社培训', icon: '🏛️' },
+      { key: 'CAAC', name: 'CAAC培训', icon: '✈️' }
+    ]
   },
 
   onLoad(options: any) {
@@ -25,8 +30,7 @@ Page({
       // 清除 storage
       wx.removeStorageSync('targetCategory')
     }
-    this.loadCategories()
-    this.loadCourses()
+    this.loadSources()
   },
 
   onShow() {
@@ -44,17 +48,38 @@ Page({
     this.loadCourses().then(() => wx.stopPullDownRefresh())
   },
 
+  // 加载体系配置
+  async loadSources() {
+    try {
+      const sources = await systemConfigApi.getSources()
+      if (sources && sources.length > 0) {
+        const sourceList = sources.map((s: any) => ({
+          key: s.code,
+          name: s.name,
+          icon: s.icon || '📚'
+        }))
+        this.setData({
+          sourceList,
+          currentSource: sources[0].code || 'RENSHE'
+        })
+      }
+    } catch (err) {
+      logger.error('课程', '加载体系配置失败', err)
+    }
+    this.loadCategories()
+  },
+
+  // 加载分类
   async loadCategories() {
     try {
-      const categories = await courseApi.getCategories()
-      // categories 可能是对象数组 {name: 'xxx'} 或字符串数组
+      const categories = await systemConfigApi.getCategories(this.data.currentSource)
       const categoryNames = categories.map((c: any) => c.name || c)
       this.setData({ categories: ['全部', ...categoryNames] })
     } catch (err) {
       logger.error('课程', '加载分类失败', err)
-      // 使用默认分类（与 categories 集合一致）
-      this.setData({ categories: ['全部', '植保无人机', '安防无人机', '航拍无人机', '物流无人机', '应急无人机', '电力巡检无人机'] })
+      this.setData({ categories: ['全部'] })
     }
+    this.loadCourses()
   },
 
   async loadCourses() {
@@ -165,6 +190,23 @@ Page({
     const sort = e.currentTarget.dataset.sort
     this.setData({ currentSort: sort })
     this.loadCourses()
+  },
+
+  // 切换体系
+  switchSource(e: any) {
+    const source = e.currentTarget.dataset.source
+    if (source !== this.data.currentSource) {
+      this.setData({ 
+        currentSource: source,
+        currentCategory: '',
+        page: 1,
+        hasMore: true,
+        courses: []
+      }, () => {
+        this.loadCategories()
+        this.loadCourses()
+      })
+    }
   },
 
   // 搜索

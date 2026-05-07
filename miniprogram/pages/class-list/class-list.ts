@@ -1,7 +1,7 @@
 // pages/class-list/class-list.ts
 // 培训班列表页
 
-import { classApi } from '../../utils/api'
+import { classApi, systemConfigApi } from '../../utils/api'
 import logger from '../../utils/logger'
 
 Page({
@@ -11,17 +11,43 @@ Page({
     page: 1,
     hasMore: true,
     currentStatus: '',
-    searchKeyword: ''
+    searchKeyword: '',
+    currentSource: 'RENSHE',
+    sourceList: [
+      { key: 'RENSHE', name: '人社培训', icon: '🏛️' },
+      { key: 'CAAC', name: 'CAAC培训', icon: '✈️' }
+    ]
   },
 
   onLoad() {
     wx.setNavigationBarTitle({ title: '培训班' })
-    this.loadClassList()
+    this.loadSources()
   },
 
   onPullDownRefresh() {
     this.setData({ page: 1, hasMore: true, classList: [] })
     this.loadClassList().then(() => wx.stopPullDownRefresh())
+  },
+
+  // 加载体系配置
+  async loadSources() {
+    try {
+      const sources = await systemConfigApi.getSources()
+      if (sources && sources.length > 0) {
+        const sourceList = sources.map((s: any) => ({
+          key: s.code,
+          name: s.name,
+          icon: s.icon || '📚'
+        }))
+        this.setData({
+          sourceList,
+          currentSource: sources[0].code || 'RENSHE'
+        })
+      }
+    } catch (err) {
+      logger.error('培训班', '加载体系配置失败', err)
+    }
+    this.loadClassList()
   },
 
   async loadClassList() {
@@ -85,6 +111,22 @@ Page({
     const status = e.currentTarget.dataset.status
     this.setData({ currentStatus: status })
     this.loadClassList()
+  },
+
+  // 切换体系
+  switchSource(e: any) {
+    const source = e.currentTarget.dataset.source
+    if (source !== this.data.currentSource) {
+      this.setData({ 
+        currentSource: source,
+        currentStatus: '',
+        page: 1,
+        hasMore: true,
+        classList: []
+      }, () => {
+        this.loadClassList()
+      })
+    }
   },
 
   // 搜索

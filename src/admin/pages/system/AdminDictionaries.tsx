@@ -9,7 +9,7 @@ import { DEFAULT_DICTIONARIES } from '@/services/dictionaryService';
 import type { LabelConfig, OptionItem } from '@/services/dictionaryService';
 
 // 字典分组元信息
-const GROUP_META: Record<string, { label: string; icon: string; type: 'object' | 'array' }> = {
+const GROUP_META: Record<string, { label: string; icon: string; type: 'object' | 'array' | 'learningPath' }> = {
   orderStatus: { label: '订单状态', icon: '📦', type: 'object' },
   paymentStatus: { label: '支付状态', icon: '💳', type: 'object' },
   enrollmentStatus: { label: '报名状态', icon: '📝', type: 'object' },
@@ -28,6 +28,7 @@ const GROUP_META: Record<string, { label: string; icon: string; type: 'object' |
   questionBankLevels: { label: '题库难度', icon: '⚡', type: 'array' },
   messageTypes: { label: '消息类型', icon: '💬', type: 'array' },
   messagePriorities: { label: '消息优先级', icon: '🔔', type: 'array' },
+  learningPathCategories: { label: '学习路径等级', icon: '🛤️', type: 'learningPath' },
 };
 
 export default function AdminDictionaries() {
@@ -166,6 +167,12 @@ export default function AdminDictionaries() {
                     setEditForm={setEditForm}
                     setHasChanges={setHasChanges}
                     onDelete={handleDelete}
+                  />
+                ) : meta?.type === 'learningPath' ? (
+                  <LearningPathConfigList
+                    data={raw}
+                    setHasChanges={setHasChanges}
+                    setEditForm={setEditForm}
                   />
                 ) : (
                   <ArrayConfigList
@@ -367,6 +374,186 @@ function ArrayConfigList({
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+// 学习路径分类等级配置列表
+function LearningPathConfigList({
+  data,
+  setHasChanges,
+}: {
+  data: any;
+  setHasChanges: (v: boolean) => void;
+}) {
+  const [expandedSources, setExpandedSources] = useState<string[]>([]);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editLevels, setEditLevels] = useState<string[]>([]);
+
+  if (!data) return <div className="text-slate-400">暂无数据</div>;
+
+  const sources = Object.keys(data);
+
+  const toggleSource = (source: string) => {
+    setExpandedSources(prev =>
+      prev.includes(source)
+        ? prev.filter(s => s !== source)
+        : [...prev, source]
+    );
+  };
+
+  const startEdit = (source: string, category: string, levels: string[]) => {
+    setEditingCategory(`${source}:${category}`);
+    setEditLevels([...levels]);
+  };
+
+  const cancelEdit = () => {
+    setEditingCategory(null);
+    setEditLevels([]);
+  };
+
+  const saveEdit = async () => {
+    setHasChanges(true);
+    setEditingCategory(null);
+    setEditLevels([]);
+  };
+
+  const handleLevelChange = (index: number, value: string) => {
+    const newLevels = [...editLevels];
+    newLevels[index] = value;
+    setEditLevels(newLevels);
+    setHasChanges(true);
+  };
+
+  const addLevel = () => {
+    setEditLevels([...editLevels, '']);
+    setHasChanges(true);
+  };
+
+  const removeLevel = (index: number) => {
+    const newLevels = editLevels.filter((_, i) => i !== index);
+    setEditLevels(newLevels);
+    setHasChanges(true);
+  };
+
+  return (
+    <div className="space-y-4">
+      {sources.map(source => {
+        const categories = data[source] || {};
+        const categoryList = Object.entries(categories);
+        const isExpanded = expandedSources.includes(source);
+
+        return (
+          <div key={source} className="border border-slate-200 rounded-lg overflow-hidden">
+            {/* 体系头部 */}
+            <button
+              onClick={() => toggleSource(source)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-slate-100 hover:bg-slate-200 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">{source === 'RENSHE' ? '🏛️' : '✈️'}</span>
+                <span className="font-semibold text-slate-800">
+                  {source === 'RENSHE' ? '人社培训' : source === 'CAAC' ? 'CAAC培训' : source}
+                </span>
+                <span className="text-sm text-slate-500">({categoryList.length} 个分类)</span>
+              </div>
+              <ChevronRight className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+            </button>
+
+            {/* 分类列表 */}
+            {isExpanded && (
+              <div className="divide-y divide-slate-100">
+                {categoryList.map(([category, levels]) => {
+                  const editKey = `${source}:${category}`;
+                  const isEditing = editingCategory === editKey;
+
+                  return (
+                    <div key={category} className="px-4 py-3 hover:bg-slate-50">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium text-slate-700 mb-2">{category}</div>
+
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              {editLevels.map((level, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={level}
+                                    onChange={(e) => handleLevelChange(idx, e.target.value)}
+                                    className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    placeholder="输入等级名称"
+                                  />
+                                  <button
+                                    onClick={() => removeLevel(idx)}
+                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ))}
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={addLevel}
+                                  className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                                >
+                                  <Plus className="w-4 h-4" /> 添加等级
+                                </button>
+                              </div>
+                              <div className="flex gap-2 mt-3">
+                                <button
+                                  onClick={saveEdit}
+                                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                >
+                                  保存
+                                </button>
+                                <button
+                                  onClick={cancelEdit}
+                                  className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
+                                >
+                                  取消
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {((levels as string[]) || []).map((level, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center px-2.5 py-1 rounded-full text-sm bg-blue-100 text-blue-700"
+                                >
+                                  {level}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {!isEditing && (
+                          <button
+                            onClick={() => startEdit(source, category, levels as string[])}
+                            className="ml-3 p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* 提示信息 */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+        <p className="text-sm text-blue-800">
+          <strong>配置说明：</strong>学习路径页面的等级显示按分类配置。每个分类可以设置不同的等级序列。
+          例如：RENSHE体系下，植保分类可以设置为初级工→高级技师，CAAC体系下，多旋翼分类可以设置为视距内驾驶员→教员。
+        </p>
+      </div>
     </div>
   );
 }

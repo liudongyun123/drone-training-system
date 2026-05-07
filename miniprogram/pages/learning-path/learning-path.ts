@@ -1,13 +1,8 @@
 // pages/learning-path/learning-path.ts
 // 学习路径详情页 - 按无人机类型展示5个等级的课程和培训班
 
-import { courseApi, classApi } from '../../utils/api'
+import { courseApi, classApi, systemConfigApi } from '../../utils/api'
 import logger from '../../utils/logger'
-
-// 等级顺序 - 人社培训体系
-const RENSHE_LEVELS = ['初级工', '中级工', '高级工', '技师', '高级技师']
-// 等级顺序 - CAAC培训体系
-const CAAC_LEVELS = ['视距内驾驶员', '超视距驾驶员', '教员']
 
 interface LearningPathStage {
   level: string
@@ -24,6 +19,8 @@ interface PageData {
   stages: LearningPathStage[]
   isAllEmpty: boolean
   loading: boolean
+  courseLevels: string[]
+  classLevels: string[]
 }
 
 Page<PageData>({
@@ -34,7 +31,9 @@ Page<PageData>({
     sourceId: '',
     stages: [],
     isAllEmpty: true,
-    loading: true
+    loading: true,
+    courseLevels: [],
+    classLevels: []
   },
 
   onLoad(options: any) {
@@ -52,6 +51,69 @@ Page<PageData>({
     if (sourceId) {
       this.setData({ sourceId })
     }
+    this.loadLevels()
+  },
+
+  // 加载等级配置 - 从 learningPathCategories 获取
+  async loadLevels() {
+    try {
+      const dictionaries = await systemConfigApi.getDictionaries()
+      let courseLevels: string[] = []
+      
+      console.log('=== 学习路径等级加载 ===')
+      console.log('source:', this.data.source)
+      console.log('categoryName:', this.data.categoryName)
+      
+      if (dictionaries) {
+        // 优先从 learningPathCategories 获取该分类的等级
+        const learningPathCategories = dictionaries.learningPathCategories || {}
+        const sourceCategories = learningPathCategories[this.data.source] || {}
+        
+        console.log('sourceCategories:', sourceCategories)
+        console.log('配置中包含的分类:', Object.keys(sourceCategories))
+        
+        // 尝试精确匹配
+        if (sourceCategories[this.data.categoryName]) {
+          courseLevels = sourceCategories[this.data.categoryName]
+          console.log('精确匹配到等级:', courseLevels)
+        } else {
+          // 尝试模糊匹配（忽略空格差异）
+          const categoryName = this.data.categoryName
+          for (const key of Object.keys(sourceCategories)) {
+            if (key.trim() === categoryName.trim() || key.includes(categoryName) || categoryName.includes(key)) {
+              courseLevels = sourceCategories[key]
+              console.log('模糊匹配到等级:', key, courseLevels)
+              break
+            }
+          }
+        }
+        
+        // 兜底：从 courseLevels 按体系获取
+        if (courseLevels.length === 0) {
+          const allCourseLevels = (dictionaries.courseLevels || [])
+            .filter((l: any) => l.source === this.data.source)
+            .map((l: any) => l.value)
+          console.log('使用 courseLevels 兜底:', allCourseLevels)
+          courseLevels = allCourseLevels
+        }
+        
+        // 兜底：使用默认值
+        if (courseLevels.length === 0) {
+          courseLevels = this.data.source === 'CAAC' 
+            ? ['视距内驾驶员', '超视距驾驶员', '教员']
+            : ['初级工', '中级工', '高级工', '技师', '高级技师']
+          console.log('使用默认值:', courseLevels)
+        }
+        
+        // 获取培训班等级（统一使用课程等级）
+        const classLevels = courseLevels
+        
+        this.setData({ courseLevels, classLevels })
+        console.log('最终等级:', courseLevels)
+      }
+    } catch (err) {
+      logger.error('学习路径', '加载等级配置失败', err)
+    }
     this.loadData()
   },
 
@@ -64,13 +126,17 @@ Page<PageData>({
     this.setData({ loading: true })
 
     try {
-      // 根据体系选择等级顺序
-      const levelOrder = this.data.source === 'CAAC' ? CAAC_LEVELS : RENSHE_LEVELS
+      // 获取等级顺序
+      const levelOrder = this.data.courseLevels.length > 0 
+        ? this.data.courseLevels 
+        : (this.data.source === 'CAAC' 
+          ? ['视距内驾驶员', '超视距驾驶员', '教员'] 
+          : ['初级工', '中级工', '高级工', '技师', '高级技师'])
 
-      // 并行加载该分类的课程和培训班
+      // 并行加载该分类的课程和培训班（用 category 名称查询更可靠）
       const [courses, classes] = await Promise.all([
-        courseApi.getList({ categoryId: this.data.categoryId, sourceId: this.data.sourceId, pageSize: 100 }),
-        classApi.getList({ sourceId: this.data.sourceId, pageSize: 100 })
+        courseApi.getList({ category: this.data.categoryName, pageSize: 100 }),
+        classApi.getList({ category: this.data.categoryName, pageSize: 100 })
       ])
 
       // 构建等级的阶段数据

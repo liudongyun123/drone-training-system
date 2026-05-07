@@ -1,61 +1,18 @@
-// ============================================================================
-// 字典配置服务 - 统一管理所有状态标签、类型配置、等级定义等
-// ============================================================================
-// 
-// 所有业务状态的文案和颜色配置统一从此服务读取，
-// 后台管理员可在 systemConfig 中修改。
-//
-// 数据来源: systemConfig 集合的 dictionaries 字段
-// ============================================================================
+/**
+ * 初始化字典配置云函数
+ * 用于设置 systemConfig 集合中的 dictionaries 数据
+ */
 
-import { app } from '@/utils/cloudbase';
+const cloud = require('wx-server-sdk')
 
-const CONFIG_COLLECTION = 'systemConfig';
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV
+})
 
-// ============================================================================
-// 类型定义
-// ============================================================================
+const db = cloud.database()
 
-/** 通用标签配置 */
-export interface LabelConfig {
-  text: string;
-  color: string;
-}
-
-/** 等级配置项 */
-export interface LevelConfigItem {
-  value: string;
-  label: string;
-  badgeColor: string;
-}
-
-/** 通用选项 */
-export interface OptionItem {
-  value: string;
-  label: string;
-  [key: string]: any;
-}
-
-/** 消息类型配置 */
-export interface MessageTypeConfig {
-  key: string;
-  label: string;
-  icon?: string;
-  color: string;
-}
-
-/** 字典分组 */
-export interface DictionaryGroup {
-  key: string;
-  label: string;
-  items: Record<string, LabelConfig> | LabelConfig[] | OptionItem[] | LevelConfigItem[];
-}
-
-// ============================================================================
-// 默认字典数据（仅作初始化和兜底，不会作为最终数据源）
-// ============================================================================
-
-export const DEFAULT_DICTIONARIES: Record<string, any> = {
+// 默认字典配置
+const DEFAULT_DICTIONARIES = {
   // 订单状态
   orderStatus: {
     pending: { text: '待支付', color: 'bg-yellow-100 text-yellow-700' },
@@ -154,13 +111,6 @@ export const DEFAULT_DICTIONARIES: Record<string, any> = {
     wechat: { text: '微信注册', color: 'bg-green-100 text-green-700' },
   },
 
-  // 教师状态
-  teacherStatus: {
-    active: { text: '在职', color: 'bg-green-100 text-green-700' },
-    inactive: { text: '离职', color: 'bg-gray-100 text-gray-600' },
-    suspended: { text: '停用', color: 'bg-red-100 text-red-700' },
-  },
-
   // 课程等级 - 按体系分组
   courseLevels: [
     // 人社培训等级
@@ -225,7 +175,6 @@ export const DEFAULT_DICTIONARIES: Record<string, any> = {
   ],
 
   // 学习路径分类等级映射 - 按体系配置每个分类的等级
-  // 结构: { source: { category: [levels] } }
   learningPathCategories: {
     RENSHE: {
       '植保无人机': ['初级工', '中级工', '高级工', '技师', '高级技师'],
@@ -243,189 +192,76 @@ export const DEFAULT_DICTIONARIES: Record<string, any> = {
       '垂直起降固定翼': ['视距内驾驶员', '超视距驾驶员', '教员'],
     },
   },
-};
+}
 
-// ============================================================================
-// 服务缓存
-// ============================================================================
-
-let cachedDictionaries: Record<string, any> | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
-
-// ============================================================================
-// 核心方法
-// ============================================================================
-
-/**
- * 获取完整的字典配置（带缓存）
- */
-export async function getDictionaries(): Promise<Record<string, any>> {
-  const now = Date.now();
-  if (cachedDictionaries && now - cacheTimestamp < CACHE_TTL) {
-    return cachedDictionaries;
-  }
+exports.main = async (event, context) => {
+  console.log('[init-dictionaries] 开始初始化字典配置...')
 
   try {
-    const db = app.database();
-    const { data } = await db.collection(CONFIG_COLLECTION)
+    // 查询是否已存在 dictionaries 配置
+    const existing = await db.collection('systemConfig')
       .where({ type: 'dictionaries' })
       .limit(1)
-      .get();
+      .get()
 
-    if (data && data.length > 0 && data[0].dictionaries) {
-      cachedDictionaries = data[0].dictionaries;
-      cacheTimestamp = now;
-      return cachedDictionaries;
+    const now = new Date().toISOString()
+
+    if (existing.data && existing.data.length > 0) {
+      // 已存在，更新配置（保留现有数据，只添加缺失的字段）
+      const existingDicts = existing.data[0].dictionaries || {}
+      const mergedDicts = {
+        ...DEFAULT_DICTIONARIES,
+        ...existingDicts,
+        // 合并 learningPathCategories
+        learningPathCategories: {
+          ...DEFAULT_DICTIONARIES.learningPathCategories,
+          ...(existingDicts.learningPathCategories || {}),
+        },
+        // 合并 courseLevels
+        courseLevels: existingDicts.courseLevels?.length > 0 
+          ? existingDicts.courseLevels 
+          : DEFAULT_DICTIONARIES.courseLevels,
+        // 合并 classLevels
+        classLevels: existingDicts.classLevels?.length > 0 
+          ? existingDicts.classLevels 
+          : DEFAULT_DICTIONARIES.classLevels,
+      }
+
+      await db.collection('systemConfig').doc(existing.data[0]._id).update({
+        dictionaries: mergedDicts,
+        updatedAt: now,
+      })
+
+      console.log('[init-dictionaries] 字典配置已更新')
+      return {
+        code: 0,
+        message: '字典配置已更新',
+        data: mergedDicts,
+      }
+    } else {
+      // 不存在，创建新配置
+      await db.collection('systemConfig').add({
+        data: {
+          type: 'dictionaries',
+          dictionaries: DEFAULT_DICTIONARIES,
+          createdAt: now,
+          updatedAt: now,
+        },
+      })
+
+      console.log('[init-dictionaries] 字典配置已创建')
+      return {
+        code: 0,
+        message: '字典配置已创建',
+        data: DEFAULT_DICTIONARIES,
+      }
     }
   } catch (error) {
-    console.error('[DictionaryService] 获取字典配置失败，使用默认值:', error);
+    console.error('[init-dictionaries] 初始化失败:', error)
+    return {
+      code: -1,
+      message: '初始化失败: ' + error.message,
+      error: error.message,
+    }
   }
-
-  // 兜底返回默认值
-  return DEFAULT_DICTIONARIES;
 }
-
-/**
- * 获取指定字典分组
- */
-export async function getDictionary(groupKey: string): Promise<any> {
-  const dicts = await getDictionaries();
-  return dicts[groupKey] || DEFAULT_DICTIONARIES[groupKey] || null;
-}
-
-/**
- * 获取状态标签（通用）
- */
-export async function getStatusLabel(
-  groupKey: string,
-  statusKey: string,
-  fallback?: { text: string; color: string }
-): Promise<{ text: string; color: string }> {
-  const group = await getDictionary(groupKey);
-  if (group && typeof group === 'object' && !Array.isArray(group)) {
-    const config = (group as Record<string, any>)[statusKey];
-    if (config) return config as { text: string; color: string };
-  }
-  return fallback || { text: statusKey, color: 'bg-gray-100 text-gray-700' };
-}
-
-/**
- * 获取等级列表
- */
-export async function getLevelOptions(): Promise<LevelConfigItem[]> {
-  const levels = await getDictionary('courseLevels');
-  return (Array.isArray(levels) ? levels : DEFAULT_DICTIONARIES.courseLevels) as LevelConfigItem[];
-}
-
-/**
- * 获取培训班等级列表
- */
-export async function getClassLevels(): Promise<LevelConfigItem[]> {
-  const levels = await getDictionary('classLevels');
-  return (Array.isArray(levels) ? levels : DEFAULT_DICTIONARIES.classLevels) as LevelConfigItem[];
-}
-
-/**
- * 按体系获取课程等级列表
- * @param source 体系代码，如 'RENSHE' 或 'CAAC'
- */
-export async function getCourseLevelsBySource(source: string): Promise<LevelConfigItem[]> {
-  const levels = await getLevelOptions();
-  return levels.filter((l: any) => l.source === source);
-}
-
-/**
- * 按体系获取培训班等级列表
- * @param source 体系代码，如 'RENSHE' 或 'CAAC'
- */
-export async function getClassLevelsBySource(source: string): Promise<LevelConfigItem[]> {
-  const levels = await getClassLevels();
-  return levels.filter((l: any) => l.source === source);
-}
-
-/**
- * 获取选项列表（通用）
- */
-export async function getOptions(groupKey: string): Promise<OptionItem[]> {
-  const group = await getDictionary(groupKey);
-  if (Array.isArray(group)) return group as OptionItem[];
-  if (typeof group === 'object' && group !== null) {
-    return Object.entries(group).map(([key, val]) => {
-      const item = val as Record<string, any>;
-      return { value: key, label: item.text || item.label || key, ...item };
-    });
-  }
-  return DEFAULT_DICTIONARIES[groupKey] || [];
-}
-
-/**
- * 清除缓存（管理员修改字典后调用）
- */
-export function clearDictionaryCache(): void {
-  cachedDictionaries = null;
-  cacheTimestamp = 0;
-}
-
-// ============================================================================
-// 便捷导出：供现有代码直接导入（读取数据库后返回）
-// ============================================================================
-
-/**
- * 获取订单状态标签配置
- */
-export async function getOrderStatusLabels(): Promise<Record<string, LabelConfig>> {
-  return getDictionary('orderStatus') as Promise<Record<string, LabelConfig>>;
-}
-
-/**
- * 获取报名来源标签配置
- */
-export async function getSourceLabels(): Promise<Record<string, LabelConfig>> {
-  return getDictionary('enrollmentSource') as Promise<Record<string, LabelConfig>>;
-}
-
-/**
- * 获取调课类型配置
- */
-export async function getTransferTypes(): Promise<Record<string, { label: string; color: string; bg: string }>> {
-  return getDictionary('transferTypes');
-}
-
-/**
- * 获取题库分类列表
- */
-export async function getQuestionBankCategories(): Promise<OptionItem[]> {
-  return getOptions('questionBankCategories');
-}
-
-/**
- * 获取消息类型列表
- */
-export async function getMessageTypes(): Promise<OptionItem[]> {
-  return getOptions('messageTypes');
-}
-
-/**
- * 获取消息优先级列表
- */
-export async function getMessagePriorities(): Promise<OptionItem[]> {
-  return getOptions('messagePriorities');
-}
-
-export default {
-  getDictionaries,
-  getDictionary,
-  getStatusLabel,
-  getLevelOptions,
-  getClassLevels,
-  getOptions,
-  clearDictionaryCache,
-  getOrderStatusLabels,
-  getSourceLabels,
-  getTransferTypes,
-  getQuestionBankCategories,
-  getMessageTypes,
-  getMessagePriorities,
-  DEFAULT_DICTIONARIES,
-};

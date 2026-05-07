@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, Plus, Edit, Trash2, X, Check, AlertCircle } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
-import { callFunction } from '@/utils/cloudbase';
+import { cloudbaseApp } from '@/utils/cloudbase';
 
 interface Source {
   _id?: string;
@@ -48,14 +48,16 @@ export default function AdminSources() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await callFunction({
-        name: 'api-source',
-        action: 'getAll'
-      });
-      if (res.success && res.data) {
-        setSources(res.data);
+      // 尝试从数据库直接查询
+      const db = cloudbaseApp.database();
+      const result = await db.collection('sources')
+        .orderBy('sortOrder', 'asc')
+        .get();
+      
+      if (result.data && result.data.length > 0) {
+        setSources(result.data);
       } else {
-        // 如果云函数还没部署，使用默认值
+        // 如果数据库为空，使用默认值
         setSources(DEFAULT_SOURCES);
       }
     } catch (error) {
@@ -79,24 +81,38 @@ export default function AdminSources() {
 
     setSaving(true);
     try {
-      // 这里应该调用云函数保存
-      // 由于云函数可能未部署，暂时使用 localStorage 模拟
+      const db = cloudbaseApp.database();
+      
       if (editingId === 'new') {
-        const newSource: Source = {
-          _id: `source_${Date.now()}`,
-          code: editForm.code!,
-          name: editForm.name!,
-          icon: editForm.icon || '📚',
-          description: editForm.description,
-          sortOrder: editForm.sortOrder || sources.length + 1,
-          status: editForm.status || 'active'
-        };
-        setSources([...sources, newSource]);
+        // 新增
+        await db.collection('sources').add({
+          data: {
+            code: editForm.code,
+            name: editForm.name,
+            icon: editForm.icon || '📚',
+            description: editForm.description || '',
+            sortOrder: editForm.sortOrder || sources.length + 1,
+            status: editForm.status || 'active',
+            createdAt: new Date().toISOString()
+          }
+        });
       } else if (editingId) {
-        setSources(sources.map(s =>
-          s._id === editingId ? { ...s, ...editForm } : s
-        ));
+        // 更新
+        await db.collection('sources').doc(editingId).update({
+          data: {
+            code: editForm.code,
+            name: editForm.name,
+            icon: editForm.icon || '📚',
+            description: editForm.description || '',
+            sortOrder: editForm.sortOrder,
+            status: editForm.status || 'active',
+            updatedAt: new Date().toISOString()
+          }
+        });
       }
+      
+      // 重新加载数据
+      await loadData();
       setEditingId(null);
       setEditForm({});
     } catch (error) {
@@ -116,7 +132,14 @@ export default function AdminSources() {
     });
     if (!ok) return;
 
-    setSources(sources.filter(s => s._id !== id));
+    try {
+      const db = cloudbaseApp.database();
+      await db.collection('sources').doc(id).remove();
+      setSources(sources.filter(s => s._id !== id));
+    } catch (error) {
+      console.error('删除失败:', error);
+      alert('删除失败');
+    }
   };
 
   // 开始编辑

@@ -10,12 +10,19 @@ import {
 import { adminService } from '@/services/adminService';
 import { CourseCategory } from '@/services/categoryService';
 import { toast } from '@/components/Toast';
+import { cloudbaseApp } from '@/utils/cloudbase';
 
-// 来源选项（硬编码，可后续改为从 sources 表加载）
-const SOURCE_OPTIONS = [
-  { value: '', label: '全部体系' },
-  { value: 'e35392d069fc521f0152e2c14dbb4a18', label: '人社培训' },
-  { value: 'e35392d069fc521f0152e2c2537e32ad', label: 'CAAC培训' },
+// 来源选项（从 sources 表动态加载）
+interface Source {
+  _id?: string;
+  code: string;
+  name: string;
+  icon?: string;
+}
+
+const DEFAULT_SOURCES: Source[] = [
+  { code: 'RENSHE', name: '人社培训' },
+  { code: 'CAAC', name: 'CAAC培训' },
 ];
 
 const DEFAULT_CATEGORY: {
@@ -38,6 +45,7 @@ const DEFAULT_CATEGORY: {
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState<CourseCategory[]>([]);
+  const [sources, setSources] = useState<Source[]>(DEFAULT_SOURCES);
   const [stats, setStats] = useState({ total: 0, active: 0, disabled: 0 });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,9 +58,29 @@ export default function AdminCategories() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // 加载体系列表
+  useEffect(() => {
+    loadSources();
+  }, []);
+
   useEffect(() => {
     loadData();
   }, [statusFilter, sourceFilter]);
+
+  const loadSources = async () => {
+    try {
+      const db = cloudbaseApp.database();
+      const result = await db.collection('sources')
+        .where({ status: 'active' })
+        .orderBy('sortOrder', 'asc')
+        .get();
+      if (result.data && result.data.length > 0) {
+        setSources(result.data);
+      }
+    } catch (error) {
+      console.error('加载体系列表失败:', error);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -278,8 +306,9 @@ export default function AdminCategories() {
             onChange={e => setSourceFilter(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           >
-            {SOURCE_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option value="">全部体系</option>
+            {sources.map(opt => (
+              <option key={opt.code} value={opt.code}>{opt.name}</option>
             ))}
           </select>
           <div className="flex gap-1.5 bg-gray-100 rounded-lg p-1">
@@ -386,11 +415,11 @@ export default function AdminCategories() {
                   </td>
                   <td className="px-5 py-4">
                     <span className={`px-2 py-1 rounded text-xs ${
-                      (category as any).sourceId === 'e35392d069fc521f0152e2c2537e32ad'
+                      (category as any).sourceId === 'CAAC'
                         ? 'bg-blue-50 text-blue-700'
                         : 'bg-amber-50 text-amber-700'
                     }`}>
-                      {(category as any).sourceId === 'e35392d069fc521f0152e2c2537e32ad' ? 'CAAC' : '人社'}
+                      {sources.find(s => s.code === (category as any).sourceId)?.name || (category as any).sourceId || '-'}
                     </span>
                   </td>
                   <td className="px-5 py-4">
@@ -465,8 +494,9 @@ export default function AdminCategories() {
                   className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 >
                   <option value="">请选择体系</option>
-                  <option value="e35392d069fc521f0152e2c14dbb4a18">人社培训</option>
-                  <option value="e35392d069fc521f0152e2c2537e32ad">CAAC培训</option>
+                  {sources.map(opt => (
+                    <option key={opt.code} value={opt.code}>{opt.name}</option>
+                  ))}
                 </select>
               </div>
 

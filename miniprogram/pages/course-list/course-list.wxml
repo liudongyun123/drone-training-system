@@ -9,6 +9,26 @@
     </view>
   </view>
 
+  <!-- 体系切换 Tab -->
+  <view class="source-tabs">
+    <view 
+      class="source-tab {{currentSource === 'RENSHE' ? 'active' : ''}}"
+      bindtap="switchSource"
+      data-source="RENSHE"
+    >
+      <text class="source-icon">🏛️</text>
+      <text class="source-name">人社培训</text>
+    </view>
+    <view 
+      class="source-tab {{currentSource === 'CAAC' ? 'active' : ''}}"
+      bindtap="switchSource"
+      data-source="CAAC"
+    >
+      <text class="source-icon">✈️</text>
+      <text class="source-name">CAAC培训</text>
+    </view>
+  </view>
+
   <!-- 分类筛选 -->
   <scroll-view class="category-bar" scroll-x enhanced show-scrollbar="{{false}}">
     <view class="category-scroll">

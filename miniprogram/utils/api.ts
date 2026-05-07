@@ -92,6 +92,39 @@ export const bannerApi = {
 }
 
 /**
+ * 系统配置 API - 获取字典配置
+ */
+export const systemConfigApi = {
+  async getDictionaries() {
+    const result = await dbGetList('systemConfig', {
+      where: { type: 'dictionaries' }
+    })
+    if (result.data && result.data.length > 0) {
+      return result.data[0].dictionaries || {}
+    }
+    return null
+  },
+
+  async getSources() {
+    const result = await dbGetList('sources', {
+      where: { status: 'active' },
+      orderBy: 'sortOrder asc'
+    })
+    return result.data || []
+  },
+
+  async getCategories(sourceId?: string) {
+    const where: any = {}
+    if (sourceId) where.sourceId = sourceId
+    const result = await dbGetList('categories', {
+      where,
+      orderBy: 'sortOrder asc'
+    })
+    return result.data || []
+  }
+}
+
+/**
  * 课程 API
  */
 export const courseApi = {

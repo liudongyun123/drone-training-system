@@ -29,6 +29,44 @@
   color: #94a3b8;
 }
 
+/* ==================== 体系切换 Tab ==================== */
+.source-tabs {
+  display: flex;
+  background: #fff;
+  padding: 16rpx 24rpx;
+  gap: 24rpx;
+  border-bottom: 1rpx solid #e2e8f0;
+}
+
+.source-tab {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 24rpx;
+  border-radius: 32rpx;
+  background: #f1f5f9;
+  transition: all 0.2s;
+}
+
+.source-tab.active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+}
+
+.source-tab.active .source-icon,
+.source-tab.active .source-name {
+  color: #fff;
+}
+
+.source-icon {
+  font-size: 28rpx;
+  margin-right: 8rpx;
+}
+
+.source-name {
+  font-size: 26rpx;
+  color: #64748b;
+  font-weight: 500;
+}
+
 /* ==================== 分类筛选 ==================== */
 .category-bar {
   background: #fff;
