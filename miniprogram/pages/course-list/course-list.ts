@@ -17,6 +17,7 @@ Page({
   },
 
   onLoad(options: any) {
+    wx.setNavigationBarTitle({ title: '课程列表' })
     // 如果有传入分类参数
     if (options.category) {
       const category = decodeURIComponent(options.category)

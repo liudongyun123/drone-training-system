@@ -32,6 +32,7 @@ Page({
 
   onLoad(options: any) {
     const { type, bankId, examId } = options
+    wx.setNavigationBarTitle({ title: type === 'exam' ? '模拟考试' : '答题练习' })
     this.setData({ type, bankId: bankId || '', examId: examId || '' })
     this.loadQuestions()
   },

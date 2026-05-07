@@ -18,6 +18,7 @@ Page({
   },
 
   onLoad() {
+    wx.setNavigationBarTitle({ title: '我的证书' })
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
       return

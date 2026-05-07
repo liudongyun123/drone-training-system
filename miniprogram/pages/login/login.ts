@@ -16,6 +16,7 @@ Page({
   },
 
   onLoad() {
+    wx.setNavigationBarTitle({ title: '登录' })
     this.checkLoginStatus()
   },
 

@@ -15,6 +15,7 @@ Page({
   },
 
   onLoad() {
+    wx.setNavigationBarTitle({ title: '培训班' })
     this.loadClassList()
   },
 

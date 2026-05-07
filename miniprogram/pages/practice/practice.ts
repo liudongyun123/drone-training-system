@@ -21,6 +21,7 @@ Page({
   },
 
   onLoad() {
+    wx.setNavigationBarTitle({ title: '练习中心' })
     this.loadData()
   },
 

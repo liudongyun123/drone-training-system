@@ -11,6 +11,7 @@ Page({
   },
 
   onShow() {
+    wx.setNavigationBarTitle({ title: '购物车' })
     this.loadCart()
   },
 

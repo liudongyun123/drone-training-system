@@ -17,6 +17,7 @@ Page({
   },
 
   onLoad(options: any) {
+    wx.setNavigationBarTitle({ title: '我的日程' })
     this.data.classId = options.classId || ''
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })

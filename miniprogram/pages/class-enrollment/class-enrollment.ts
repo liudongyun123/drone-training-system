@@ -19,6 +19,7 @@ Page({
   classId: '',
 
   onLoad(options: any) {
+    wx.setNavigationBarTitle({ title: '培训班报名' })
     this.classId = options.id
     this.loadClassInfo()
   },

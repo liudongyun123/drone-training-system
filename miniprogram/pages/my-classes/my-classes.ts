@@ -18,6 +18,7 @@ Page({
   },
 
   onLoad() {
+    wx.setNavigationBarTitle({ title: '我的培训班' })
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
       return

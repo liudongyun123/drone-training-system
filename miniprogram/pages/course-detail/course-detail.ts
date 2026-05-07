@@ -18,6 +18,7 @@ Page({
   onLoad(options: any) {
     if (options.id) {
       this.setData({ courseId: options.id })
+      wx.setNavigationBarTitle({ title: '课程详情' })
       this.loadCourse(options.id)
     }
   },

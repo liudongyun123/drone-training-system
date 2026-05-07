@@ -22,6 +22,7 @@ Page({
   },
 
   onLoad() {
+    wx.setNavigationBarTitle({ title: '我的学习' })
     this.checkStatus()
     if (checkLogin()) {
       this.loadMyData()

@@ -19,6 +19,7 @@ Page({
   productId: '',
 
   onLoad(options: any) {
+    wx.setNavigationBarTitle({ title: '商品详情' })
     this.productId = options.id
     this.loadProduct()
   },

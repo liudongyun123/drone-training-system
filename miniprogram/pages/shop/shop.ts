@@ -20,6 +20,7 @@ Page({
   },
 
   onLoad() {
+    wx.setNavigationBarTitle({ title: '商城' })
     this.loadProducts()
   },
 

@@ -13,6 +13,7 @@ Page({
   },
 
   onLoad() {
+    wx.setNavigationBarTitle({ title: '答题结果' })
     const result = wx.getStorageSync('examResult')
     if (result) {
       this.setData({

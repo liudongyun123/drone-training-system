@@ -43,6 +43,7 @@ Page({
 
   onLoad(options: any) {
     const { courseId, lessonId } = options
+    wx.setNavigationBarTitle({ title: '课程学习' })
     if (!courseId || !lessonId) {
       showToast('参数错误')
       setTimeout(() => wx.navigateBack(), 1500)

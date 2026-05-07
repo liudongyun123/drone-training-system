@@ -18,6 +18,7 @@ Page({
   onLoad(options: any) {
     if (options.id) {
       this.setData({ classId: options.id })
+      wx.setNavigationBarTitle({ title: '培训班详情' })
       this.loadClass(options.id)
     }
   },

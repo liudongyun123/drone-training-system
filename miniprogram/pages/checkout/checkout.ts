@@ -29,6 +29,7 @@ Page({
 
   onLoad(options: any) {
     const type = options.type || 'shop'
+    wx.setNavigationBarTitle({ title: '确认订单' })
     this.setData({ type })
 
     if (type === 'course') {

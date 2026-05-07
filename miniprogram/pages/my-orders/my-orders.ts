@@ -18,6 +18,7 @@ Page({
   },
 
   onLoad() {
+    wx.setNavigationBarTitle({ title: '我的订单' })
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
       return

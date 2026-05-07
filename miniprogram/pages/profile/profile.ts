@@ -13,6 +13,7 @@ Page({
   },
 
   onLoad() {
+    wx.setNavigationBarTitle({ title: '个人中心' })
     logger.debug('个人中心', 'onLoad 被调用')
     
     // 优先从全局数据获取
