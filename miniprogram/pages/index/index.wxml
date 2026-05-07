@@ -93,6 +93,26 @@
   <!-- 内容区域 -->
   <scroll-view wx:else class="content" scroll-y enable-back-to-top>
     
+    <!-- ==================== 体系切换 Tab ==================== -->
+    <view class="source-tabs">
+      <view 
+        class="source-tab {{currentSource === 'RENSHE' ? 'active' : ''}}"
+        bindtap="switchSource"
+        data-source="RENSHE"
+      >
+        <text class="source-icon">🏛️</text>
+        <text class="source-name">人社培训</text>
+      </view>
+      <view 
+        class="source-tab {{currentSource === 'CAAC' ? 'active' : ''}}"
+        bindtap="switchSource"
+        data-source="CAAC"
+      >
+        <text class="source-icon">✈️</text>
+        <text class="source-name">CAAC培训</text>
+      </view>
+    </view>
+
     <!-- ==================== 学习路径（横向滑动） ==================== -->
     <view class="section">
       <view class="section-header">
