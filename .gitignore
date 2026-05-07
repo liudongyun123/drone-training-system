@@ -9,11 +9,14 @@ dist-ssr/
 dist-new.tar.gz
 dist-admin.zip
 
-# Environment files
+# Environment files - 敏感信息不要提交！
 .env
 .env.local
+.env.production
+.env.production.local
 .env.*.local
 !.env.example
+!.env.production.example
 
 # Logs
 logs

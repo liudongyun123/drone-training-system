@@ -1,13 +1,19 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+
 // Sentry Vite Plugin - 暂时禁用，避免导入警告
 // import * as SentryVitePlugin from "@sentry/vite-plugin";
 const SentryVitePlugin = null;
 
-// 直接读取环境变量 - 使用 rcwljy 环境
-const ENV_ID = "rcwljy-5ghmq2ex26764978";
-const PUBLISHABLE_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY2M2M2Q4MTQ5OCJ9.eyJpc3MiOiJodHRwczovL3Jjd2xqeS01Z2htcTJleDI2NzY0OTc4LmFwLXNoYW5naGFpLnRjYi1hcGkudGVuY2VudGNsb3VkYXBpLmNvbSIsInN1YiI6ImFub24iLCJhdWQiOiJyY3dsanktNWdobXEyZXgyNjc2NDk3OCIsImV4cCI6NDA3NzU5NTUxNCwiaWF0IjoxNzczOTEyMzE0LCJub25jZSI6Ik5ta1U4MXRaUTdHTnFvT2kxY3hrOHciLCJhdF9oYXNoIjoiTm1rVTgxdFpRN0dOcW9PaTFjeGs4dyIsIm5hbWUiOiJBbm9ueW1vdXMiLCJzY29wZSI6ImFub255bW91cyIsInByb2plY3RfaWQiOiJyY3dsanktNWdobXEyZXgyNjc2NDk3OCIsInVzZXJfdHlwZSI6IiIsImNsaWVudF90eXBlIjoiY2xpZW50X3VzZXIiLCJpc19zeXN0ZW1fYWRtaW4iOmZhbHNlfQ.QBOkGCaryupFFhFuxDIwDljwC5PRan_zMneIjlaa9_UJLz1ajlBumYCmaFA5IAYQ97yC5fuxmH36HjhBoegA3XY1gE_BNL0aRcD-Gwu5Tmk57IrPzXKKkXN3eSCbJmD3aLVDeHguRyUO1Qc3oSIiUVlVox77BGj7GFw9TdQzJaWnrRWSmhsPaQoiSqI7HjhdDhIpVoMBZfSpAY1kqEjUvZ8r54e6vHgGm6XmeQXFQQ9141SUAt839J45rkhrRWS28Yxt6Rlbrk7nGllYV-q_uuTzdCaBw0aUYdoRJAHoyaPyTz2rIPexk36Ox8Ai9pQpmn9RcrTpm0MXJIoQrrwNLw";
+// 加载环境变量
+const env = loadEnv("production", process.cwd(), "");
+
+// 从环境变量读取配置
+const ENV_ID = env.VITE_ENV_ID || "rcwljy-5ghmq2ex26764978";
+const PUBLISHABLE_KEY = env.VITE_PUBLISHABLE_KEY || "";
+const API_TIMEOUT = parseInt(env.VITE_API_TIMEOUT || "30000", 10);
+const DEBUG_MODE = env.VITE_DEBUG_MODE === "true";
 
 // 构建版本号
 const BUILD_VERSION = 'v20260506-1033-fix';
@@ -71,13 +77,20 @@ export default defineConfig({
     exclude: [],
   },
   build: {
+    // 生产环境禁用 sourcemap
     sourcemap: false,
+    // 目标浏览器
     target: 'es2015',
-    cssCodeSplit: true, // 启用 CSS 代码分割
+    // 启用 CSS 代码分割
+    cssCodeSplit: true,
+    // 启用 CSS 代码压缩
+    cssMinify: true,
+    // Rollup 选项
     rollupOptions: {
       onwarn(warning, warn) {
         if (warning.code === 'THIS_IS_UNDEFINED') return;
         if (warning.code === 'CIRCULAR_DEPENDENCY') return;
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
         warn(warning);
       },
       output: {
@@ -108,6 +121,8 @@ export default defineConfig({
           const ext = info[info.length - 1];
           return `assets/[name]-${BUILD_VERSION}[extname]`;
         },
+        // 静态资源内联阈值（小于 4KB 的资源内联）
+        inlineDynamicImports: false,
       },
     },
     // CloudBase SDK 整体约 640KB 无法进一步拆分，设为 700 避免误报
@@ -116,13 +131,32 @@ export default defineConfig({
     minify: 'esbuild',
     esbuild: {
       drop: ['console', 'debugger'], // 生产环境移除 console 和 debugger
+      // 压缩级别
+      compress: {
+        // 移除未使用的代码
+        dead_code: true,
+        // 移除 console.log（保留 console.error）
+        drop_console: false, // 保留 console 以便生产环境调试
+        drop_debugger: true,
+      },
+      // 压缩比例
+      treeShaking: true,
     },
     // 报告压缩后的文件大小
     reportCompressedSize: true,
+    // 启用 terser 详细日志
+    // terserOptions: {
+    //   compress: {
+    //     drop_console: true,
+    //     drop_debugger: true,
+    //   },
+    // },
   },
   define: {
     'import.meta.env.VITE_ENV_ID': JSON.stringify(ENV_ID),
     'import.meta.env.VITE_PUBLISHABLE_KEY': JSON.stringify(PUBLISHABLE_KEY),
+    'import.meta.env.VITE_API_TIMEOUT': JSON.stringify(API_TIMEOUT),
+    'import.meta.env.VITE_DEBUG_MODE': JSON.stringify(DEBUG_MODE),
     'import.meta.env.VITE_SENTRY_DSN': JSON.stringify(process.env.VITE_SENTRY_DSN || ''),
     'import.meta.env.VITE_BUILD_VERSION': JSON.stringify(BUILD_VERSION),
     'import.meta.env.PROD': JSON.stringify(process.env.NODE_ENV === 'production'),
