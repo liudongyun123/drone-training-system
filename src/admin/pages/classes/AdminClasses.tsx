@@ -19,6 +19,19 @@ import {
   Link as LinkIcon, ExternalLink, Copy, Check, Monitor, Smartphone
 } from 'lucide-react';
 
+// 体系ID到体系代码的映射
+const SOURCE_ID_TO_CODE: Record<string, string> = {
+  'e35392d069fc521f0152e2c14dbb4a18': 'RENSHE',
+  'e35392d069fc521f0152e2c2537e32ad': 'CAAC',
+};
+
+// 体系选项
+const SOURCE_OPTIONS = [
+  { value: '', label: '全部体系' },
+  { value: 'e35392d069fc521f0152e2c14dbb4a18', label: '人社培训' },
+  { value: 'e35392d069fc521f0152e2c2537e32ad', label: 'CAAC培训' },
+];
+
 // 班级状态标签
 const STATUS_LABELS: Record<string, { text: string; color: string }> = {
   draft: { text: '草稿', color: 'bg-gray-100 text-gray-700' },
@@ -76,7 +89,7 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
 };
 
 // 初始表单数据
-const initialFormData: Partial<Class> = {
+const initialFormData: Partial<Class> & { sourceId?: string } = {
   name: '',
   description: '',
   level: '',
@@ -86,6 +99,7 @@ const initialFormData: Partial<Class> = {
   endDate: '',
   location: '',
   teacherId: '',
+  sourceId: '',
   // 班级介绍
   intro: {
     videoUrl: undefined,
@@ -113,6 +127,7 @@ export default function AdminClasses() {
   // 筛选状态
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCourse, setFilterCourse] = useState('');
+  const [filterSource, setFilterSource] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
 
   // ★ 培训班等级选项
@@ -137,6 +152,19 @@ export default function AdminClasses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const { confirm, ConfirmDialog } = useConfirm();
+
+  // 根据体系过滤课程和等级
+  const sourceCode = SOURCE_ID_TO_CODE[formData.sourceId || ''] || '';
+  const filteredCourses = courses.filter(course => {
+    // 如果课程没有 sourceId 字段，视为兼容旧数据，显示
+    if (!('sourceId' in course) || !course.sourceId) return true;
+    return course.sourceId === formData.sourceId;
+  });
+
+  const filteredClassLevels = classLevelOptions.filter(level => {
+    if (!('source' in level) || !level.source) return true;
+    return level.source === sourceCode;
+  });
   
   // 安全提取列表数据(兼容多种返回格式)
   const extractList = <T,>(result: any): T[] => {
@@ -288,6 +316,7 @@ export default function AdminClasses() {
       endDate: cls.endDate,
       location: cls.location,
       teacherId: cls.teacherId,
+      sourceId: (cls as any).sourceId || '',
       intro: cls.intro || initialFormData.intro,
       enrollmentConfig: cls.enrollmentConfig || initialFormData.enrollmentConfig
     });
@@ -296,8 +325,8 @@ export default function AdminClasses() {
 
   // 提交表单
   const handleSubmit = async () => {
-    if (!formData.name || !formData.courseId || !formData.teacherId) {
-      await confirm({ title: '提示', message: '请填写必填项', variant: 'info' });
+    if (!formData.name || !formData.sourceId || !formData.courseId || !formData.teacherId) {
+      await confirm({ title: '提示', message: '请填写必填项（包含所属体系）', variant: 'info' });
       return;
     }
 
@@ -307,7 +336,7 @@ export default function AdminClasses() {
       const course = courses.find(c => c._id === formData.courseId);
       const teacher = teachers.find(t => t._id === formData.teacherId);
 
-      const submitData = {
+      const submitData: any = {
         ...formData,
         courseName: course?.title,
         teacherName: teacher?.name
@@ -610,6 +639,16 @@ export default function AdminClasses() {
           </select>
 
           <select
+            value={filterSource}
+            onChange={(e) => setFilterSource(e.target.value)}
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+          >
+            <option value="">全部体系</option>
+            <option value="e35392d069fc521f0152e2c14dbb4a18">人社培训</option>
+            <option value="e35392d069fc521f0152e2c2537e32ad">CAAC培训</option>
+          </select>
+
+          <select
             value={filterCourse}
             onChange={(e) => setFilterCourse(e.target.value)}
             className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -752,6 +791,22 @@ export default function AdminClasses() {
                     />
                   </div>
 
+                  {/* 所属体系 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      所属体系 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.sourceId || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, sourceId: e.target.value, courseId: '', level: '' }))}
+                      className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    >
+                      <option value="">请选择体系</option>
+                      <option value="e35392d069fc521f0152e2c14dbb4a18">人社培训</option>
+                      <option value="e35392d069fc521f0152e2c2537e32ad">CAAC培训</option>
+                    </select>
+                  </div>
+
                   {/* 培训班等级 */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -760,15 +815,21 @@ export default function AdminClasses() {
                     <select
                       value={formData.level || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value }))}
-                      disabled={classLevelsLoading}
+                      disabled={classLevelsLoading || !formData.sourceId}
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     >
                       <option value="">请选择等级</option>
-                      {classLevelOptions.map((opt: any) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
+                      {!formData.sourceId ? (
+                        <option value="">请先选择体系</option>
+                      ) : filteredClassLevels.length > 0 ? (
+                        filteredClassLevels.map((opt: any) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="">该体系下暂无等级</option>
+                      )}
                     </select>
                   </div>
 
@@ -779,12 +840,19 @@ export default function AdminClasses() {
                     <select
                       value={formData.courseId}
                       onChange={(e) => setFormData(prev => ({ ...prev, courseId: e.target.value }))}
+                      disabled={!formData.sourceId}
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     >
                       <option value="">请选择课程</option>
-                      {(courses || []).map(course => (
-                        <option key={course._id} value={course._id}>{course.title}</option>
-                      ))}
+                      {!formData.sourceId ? (
+                        <option value="">请先选择体系</option>
+                      ) : filteredCourses.length > 0 ? (
+                        filteredCourses.map(course => (
+                          <option key={course._id} value={course._id}>{course.title}</option>
+                        ))
+                      ) : (
+                        <option value="">该体系下暂无课程</option>
+                      )}
                     </select>
                   </div>
 

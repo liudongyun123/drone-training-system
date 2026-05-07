@@ -1,10 +1,15 @@
-// ============================================================================
 // CourseForm - 课程表单弹窗
 // ============================================================================
 import { X, Save, ImageIcon, XCircle } from 'lucide-react';
 import type { CourseFormData } from '../hooks/useCourses';
 import type { Teacher } from '@/types';
 import type { OptionItem } from '@/services/dictionaryService';
+
+// 体系ID到体系代码的映射
+const SOURCE_ID_TO_CODE: Record<string, string> = {
+  'e35392d069fc521f0152e2c14dbb4a18': 'RENSHE',
+  'e35392d069fc521f0152e2c2537e32ad': 'CAAC',
+};
 
 interface CourseFormProps {
   isOpen: boolean;
@@ -14,7 +19,7 @@ interface CourseFormProps {
   submitting: boolean;
   teachers: Teacher[];
   teachersLoading: boolean;
-  categories: Array<{ _id: string; name: string; code: string }>;
+  categories: Array<{ _id: string; name: string; code: string; sourceId?: string }>;
   categoriesLoading: boolean;
   levelOptions: OptionItem[];
   levelsLoading: boolean;
@@ -60,6 +65,21 @@ export default function CourseForm({
   onTeacherChange,
 }: CourseFormProps) {
   if (!isOpen) return null;
+
+  // 根据体系过滤分类
+  const filteredCategories = categories.filter(cat => {
+    // 如果没有 sourceId 字段，返回所有分类（兼容旧数据）
+    if (!('sourceId' in cat) || !cat.sourceId) return true;
+    return cat.sourceId === formData.sourceId;
+  });
+
+  // 根据体系过滤等级
+  const sourceCode = SOURCE_ID_TO_CODE[formData.sourceId] || '';
+  const filteredLevels = levelOptions.filter(level => {
+    // 如果没有 source 字段，返回所有等级（兼容旧数据）
+    if (!('source' in level) || !level.source) return true;
+    return level.source === sourceCode;
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -110,6 +130,25 @@ export default function CourseForm({
               />
             </div>
 
+            {/* 所属体系 */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">所属体系 *</span>
+              </label>
+              <select
+                className="select select-bordered"
+                value={formData.sourceId}
+                onChange={(e) => {
+                  setFormData({ ...formData, sourceId: e.target.value, category: '', categoryId: '' })
+                }}
+                required
+              >
+                <option value="">请选择体系</option>
+                <option value="e35392d069fc521f0152e2c14dbb4a18">人社培训</option>
+                <option value="e35392d069fc521f0152e2c2537e32ad">CAAC培训</option>
+              </select>
+            </div>
+
             {/* 分类 */}
             <div className="form-control">
               <label className="label">
@@ -118,27 +157,25 @@ export default function CourseForm({
               <select
                 className="select select-bordered"
                 value={formData.category}
-                onChange={(e) =>
-                  setFormData({ ...formData, category: e.target.value })
-                }
+                onChange={(e) => {
+                  const selectedCat = filteredCategories.find(c => c.name === e.target.value)
+                  setFormData({ ...formData, category: e.target.value, categoryId: selectedCat?._id || '' })
+                }}
                 required
-                disabled={categoriesLoading}
+                disabled={categoriesLoading || !formData.sourceId}
               >
                 {categoriesLoading ? (
                   <option value="">加载中...</option>
-                ) : categories.length > 0 ? (
-                  categories.map((cat) => (
+                ) : !formData.sourceId ? (
+                  <option value="">请先选择体系</option>
+                ) : filteredCategories.length > 0 ? (
+                  filteredCategories.map((cat) => (
                     <option key={cat._id} value={cat.name}>
                       {cat.name}
                     </option>
                   ))
                 ) : (
-                  <>
-                    <option value="基础入门">基础入门</option>
-                    <option value="进阶提升">进阶提升</option>
-                    <option value="专业认证">专业认证</option>
-                    <option value="行业应用">行业应用</option>
-                  </>
+                  <option value="">该体系下暂无分类</option>
                 )}
               </select>
             </div>
@@ -154,14 +191,20 @@ export default function CourseForm({
                 onChange={(e) =>
                   setFormData({ ...formData, level: e.target.value })
                 }
-                disabled={levelsLoading}
+                disabled={levelsLoading || !formData.sourceId}
               >
                 <option value="">不选</option>
-                {levelOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                {!formData.sourceId ? (
+                  <option value="">请先选择体系</option>
+                ) : filteredLevels.length > 0 ? (
+                  filteredLevels.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">该体系下暂无等级</option>
+                )}
               </select>
             </div>
 

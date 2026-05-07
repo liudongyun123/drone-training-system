@@ -9,12 +9,20 @@ const CLASS_LEVEL_MAP: Record<string, string> = {
   '入门班': '入门班', '基础班': '基础班', '进阶班': '进阶班', '高级班': '高级班', '考证班': '考证班'
 }
 
+// 体系配置
+const SOURCE_CONFIG = {
+  'RENSHE': { id: 'e35392d069fc521f0152e2c14dbb4a18', name: '人社培训', icon: '🏛️' },
+  'CAAC': { id: 'e35392d069fc521f0152e2c2537e32ad', name: 'CAAC培训', icon: '✈️' }
+}
+
 interface IndexData {
   hotCourses: any[]
   enrollingClasses: any[]
   featuredProducts: any[]
   heroBanners: any[]
   learningPaths: any[]  // 学习路径分类
+  currentSource: string  // 当前体系
+  sourceList: Array<{ key: string; name: string; icon: string }>
   loading: boolean
 }
 
@@ -25,6 +33,11 @@ Page<IndexData>({
     featuredProducts: [],
     heroBanners: [],
     learningPaths: [],
+    currentSource: 'RENSHE',
+    sourceList: [
+      { key: 'RENSHE', name: '人社培训', icon: '🏛️' },
+      { key: 'CAAC', name: 'CAAC培训', icon: '✈️' }
+    ],
     loading: true
   },
 
@@ -42,13 +55,15 @@ Page<IndexData>({
     this.setData({ loading: true })
 
     try {
+      const currentSourceId = SOURCE_CONFIG[this.data.currentSource as keyof typeof SOURCE_CONFIG]?.id || ''
+
       // 并行加载五个模块数据
       const [courses, classes, products, banners, categories] = await Promise.all([
         courseApi.getHotCourses(6),
-        classApi.getList({ status: 'enrolling' }),
+        classApi.getList({ status: 'enrolling', sourceId: currentSourceId }),
         productApi.getList({ pageSize: 6 }),
         bannerApi.getList(10),
-        courseApi.getCategories()
+        courseApi.getCategories({ sourceId: currentSourceId })
       ])
 
       // 处理培训班等级显示
@@ -109,9 +124,20 @@ Page<IndexData>({
     const path = e.currentTarget.dataset.path || {}
     const categoryId = path._id || ''
     const categoryName = path.name || ''
+    const sourceId = SOURCE_CONFIG[this.data.currentSource as keyof typeof SOURCE_CONFIG]?.id || ''
     wx.navigateTo({
-      url: `/pages/learning-path/learning-path?id=${categoryId}&name=${encodeURIComponent(categoryName)}`
+      url: `/pages/learning-path/learning-path?id=${categoryId}&name=${encodeURIComponent(categoryName)}&source=${this.data.currentSource}&sourceId=${sourceId}`
     })
+  },
+
+  // 切换体系
+  switchSource(e: any) {
+    const source = e.currentTarget.dataset.source
+    if (source !== this.data.currentSource) {
+      this.setData({ currentSource: source }, () => {
+        this.loadData()
+      })
+    }
   },
 
   // 跳转培训班列表

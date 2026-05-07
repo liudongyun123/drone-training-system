@@ -25,7 +25,14 @@ const LEVEL_TEXT_MAP: Record<string, string> = {
   '基础班': '中级工',
   '进阶班': '高级工',
   '高级班': '技师',
-  '考证班': '高级技师'
+  '考证班': '高级技师',
+  // CAAC等级
+  '视距内驾驶员': '视距内驾驶员',
+  '超视距驾驶员': '超视距驾驶员',
+  '教员': '教员',
+  'CAAC入门班': '视距内驾驶员',
+  'CAAC基础班': '超视距驾驶员',
+  'CAAC进阶班': '教员'
 }
 
 // 培训班等级中文映射
@@ -34,7 +41,12 @@ const CLASS_LEVEL_MAP: Record<string, string> = {
   '基础班': '基础班',
   '进阶班': '进阶班',
   '高级班': '高级班',
-  '考证班': '考证班'
+  '考证班': '考证班',
+  'CAAC入门班': 'CAAC入门班',
+  'CAAC基础班': 'CAAC基础班',
+  'CAAC进阶班': 'CAAC进阶班',
+  'CAAC高级班': 'CAAC高级班',
+  'CAAC考证班': 'CAAC考证班'
 }
 
 // 根据名称推断等级
@@ -84,13 +96,14 @@ export const bannerApi = {
  */
 export const courseApi = {
   async getList(filters: any = {}) {
-    const { status = 'published', category, categoryId, page = 1, pageSize = 10 } = filters
+    const { status = 'published', category, categoryId, sourceId, page = 1, pageSize = 10 } = filters
     const skip = (page - 1) * pageSize
 
     const where: any = {}
     if (status) where.status = status
     if (category) where.category = category  // 按名称过滤
     if (categoryId) where.categoryId = categoryId  // 按ID过滤
+    if (sourceId) where.sourceId = sourceId  // 按体系过滤
 
     const result = await dbGetList('courses', {
       where,
@@ -100,7 +113,7 @@ export const courseApi = {
     })
     return (result.data || []).map(transformCourse)
   },
-  
+
   async getDetail(courseId: string) {
     const result = await dbQuery('courses', { _id: courseId })
     if (result.data) {
@@ -108,7 +121,7 @@ export const courseApi = {
     }
     return result.data
   },
-  
+
   async getLessons(courseId: string) {
     const result = await dbGetList('lessons', {
       where: { courseId },
@@ -117,17 +130,22 @@ export const courseApi = {
     return result.data || []
   },
 
-  async getHotCourses(limit: number = 6) {
+  async getHotCourses(limit: number = 6, sourceId?: string) {
+    const where: any = { status: 'published' }
+    if (sourceId) where.sourceId = sourceId
     const result = await dbGetList('courses', {
-      where: { status: 'published' },
+      where,
       orderBy: 'salesCount desc',
       limit
     })
     return (result.data || []).map(transformCourse)
   },
 
-  async getCategories() {
+  async getCategories(sourceId?: string) {
+    const where: any = {}
+    if (sourceId) where.sourceId = sourceId
     const result = await dbGetList('categories', {
+      where,
       orderBy: 'sort asc'
     })
     return result.data || []
@@ -139,11 +157,12 @@ export const courseApi = {
  */
 export const classApi = {
   async getList(filters: any = {}) {
-    const { status, page = 1, pageSize = 100, category } = filters
+    const { status, sourceId, page = 1, pageSize = 100, category } = filters
     const skip = (page - 1) * pageSize
 
     const where: any = {}
     if (status) where.status = status
+    if (sourceId) where.sourceId = sourceId  // 按体系过滤
     if (category) where.category = category  // 支持按分类过滤
 
     const result = await dbGetList('classes', {

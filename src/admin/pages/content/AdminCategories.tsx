@@ -11,6 +11,13 @@ import { adminService } from '@/services/adminService';
 import { CourseCategory } from '@/services/categoryService';
 import { toast } from '@/components/Toast';
 
+// 来源选项（硬编码，可后续改为从 sources 表加载）
+const SOURCE_OPTIONS = [
+  { value: '', label: '全部体系' },
+  { value: 'e35392d069fc521f0152e2c14dbb4a18', label: '人社培训' },
+  { value: 'e35392d069fc521f0152e2c2537e32ad', label: 'CAAC培训' },
+];
+
 const DEFAULT_CATEGORY: {
   name: string;
   code: string;
@@ -18,6 +25,7 @@ const DEFAULT_CATEGORY: {
   description: string;
   sort: number;
   status: 'active' | 'disabled';
+  sourceId: string;
 } = {
   name: '',
   code: '',
@@ -25,6 +33,7 @@ const DEFAULT_CATEGORY: {
   description: '',
   sort: 0,
   status: 'active',
+  sourceId: '',
 };
 
 export default function AdminCategories() {
@@ -33,6 +42,7 @@ export default function AdminCategories() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('');  // 体系筛选
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -42,7 +52,7 @@ export default function AdminCategories() {
 
   useEffect(() => {
     loadData();
-  }, [statusFilter]);
+  }, [statusFilter, sourceFilter]);
 
   const loadData = async () => {
     try {
@@ -89,12 +99,17 @@ export default function AdminCategories() {
       description: category.description || '',
       sort: category.sort || 0,
       status: category.status,
+      sourceId: (category as any).sourceId || '',
     });
     setEditingId(category._id || null);
     setShowModal(true);
   };
 
   const handleSave = async () => {
+    if (!formData.sourceId) {
+      toast.error('请选择所属体系');
+      return;
+    }
     if (!formData.name.trim()) {
       toast.error('请输入分类名称');
       return;
@@ -197,9 +212,11 @@ export default function AdminCategories() {
   };
 
   // 过滤分类
-  const filteredCategories = categories.filter(c =>
-    !searchQuery || c.name.includes(searchQuery) || c.code.includes(searchQuery)
-  );
+  const filteredCategories = categories.filter(c => {
+    const matchSearch = !searchQuery || c.name.includes(searchQuery) || c.code.includes(searchQuery)
+    const matchSource = !sourceFilter || c.sourceId === sourceFilter
+    return matchSearch && matchSource
+  })
 
   // 统计卡片
   const statCards = [
@@ -255,6 +272,16 @@ export default function AdminCategories() {
               className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
           </div>
+          {/* 体系筛选 */}
+          <select
+            value={sourceFilter}
+            onChange={e => setSourceFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          >
+            {SOURCE_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
           <div className="flex gap-1.5 bg-gray-100 rounded-lg p-1">
             {[
               { value: 'all', label: '全部' },
@@ -304,6 +331,7 @@ export default function AdminCategories() {
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-12">排序</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">分类信息</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-24">编码</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-24">体系</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-20">状态</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-24">排序值</th>
                 <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-36">操作</th>
@@ -355,6 +383,15 @@ export default function AdminCategories() {
                   </td>
                   <td className="px-5 py-4">
                     <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-mono">{category.code}</span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      (category as any).sourceId === 'e35392d069fc521f0152e2c2537e32ad'
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'bg-amber-50 text-amber-700'
+                    }`}>
+                      {(category as any).sourceId === 'e35392d069fc521f0152e2c2537e32ad' ? 'CAAC' : '人社'}
+                    </span>
                   </td>
                   <td className="px-5 py-4">
                     <button
@@ -417,6 +454,22 @@ export default function AdminCategories() {
             </div>
 
             <div className="px-6 py-5 space-y-4">
+              {/* 所属体系 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  所属体系 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.sourceId}
+                  onChange={e => setFormData({ ...formData, sourceId: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                >
+                  <option value="">请选择体系</option>
+                  <option value="e35392d069fc521f0152e2c14dbb4a18">人社培训</option>
+                  <option value="e35392d069fc521f0152e2c2537e32ad">CAAC培训</option>
+                </select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   分类名称 <span className="text-red-500">*</span>

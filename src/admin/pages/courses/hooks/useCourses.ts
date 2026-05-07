@@ -20,6 +20,8 @@ export interface CourseFormData {
   title: string;
   description: string;
   category: string;
+  categoryId: string;  // 新增：分类ID
+  sourceId: string;     // 新增：体系ID
   level: string;
   price: number;
   originalPrice: number;
@@ -53,6 +55,8 @@ export const initialCourseFormData: CourseFormData = {
   title: '',
   description: '',
   category: '基础入门',
+  categoryId: '',
+  sourceId: '',
   level: '初级工',
   price: 0,
   originalPrice: 0,
