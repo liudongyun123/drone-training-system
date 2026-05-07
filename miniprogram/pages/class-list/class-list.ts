@@ -11,6 +11,8 @@ Page({
     page: 1,
     hasMore: true,
     currentStatus: '',
+    currentCategory: '',
+    categories: [] as string[],
     searchKeyword: '',
     currentSource: 'RENSHE',
     sourceList: [
@@ -47,6 +49,19 @@ Page({
     } catch (err) {
       logger.error('培训班', '加载体系配置失败', err)
     }
+    this.loadCategories()
+  },
+
+  // 加载分类
+  async loadCategories() {
+    try {
+      const categories = await systemConfigApi.getCategories(this.data.currentSource)
+      const categoryNames = categories.map((c: any) => c.name || c)
+      this.setData({ categories: categoryNames })
+    } catch (err) {
+      logger.error('培训班', '加载分类失败', err)
+      this.setData({ categories: [] })
+    }
     this.loadClassList()
   },
 
@@ -54,11 +69,16 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const filters: any = { page: 1, pageSize: 10 }
+      const filters: any = { page: 1, pageSize: 10, sourceId: this.data.currentSource }
       
       // 状态筛选
       if (this.data.currentStatus) {
         filters.status = this.data.currentStatus
+      }
+      
+      // 分类筛选
+      if (this.data.currentCategory) {
+        filters.category = this.data.currentCategory
       }
       
       // 搜索关键词
@@ -85,10 +105,14 @@ Page({
     const nextPage = this.data.page + 1
 
     try {
-      const filters: any = { page: nextPage, pageSize: 10 }
+      const filters: any = { page: nextPage, pageSize: 10, sourceId: this.data.currentSource }
       
       if (this.data.currentStatus) {
         filters.status = this.data.currentStatus
+      }
+      
+      if (this.data.currentCategory) {
+        filters.category = this.data.currentCategory
       }
       
       if (this.data.searchKeyword) {
@@ -106,6 +130,16 @@ Page({
     }
   },
 
+  // 切换分类
+  switchCategory(e: any) {
+    const category = e.currentTarget.dataset.category
+    this.setData({ 
+      currentCategory: category,
+      currentStatus: ''  // 切换分类时重置状态
+    })
+    this.loadClassList()
+  },
+
   // 切换状态筛选
   switchStatus(e: any) {
     const status = e.currentTarget.dataset.status
@@ -119,12 +153,13 @@ Page({
     if (source !== this.data.currentSource) {
       this.setData({ 
         currentSource: source,
+        currentCategory: '',
         currentStatus: '',
         page: 1,
         hasMore: true,
         classList: []
       }, () => {
-        this.loadClassList()
+        this.loadCategories()
       })
     }
   },

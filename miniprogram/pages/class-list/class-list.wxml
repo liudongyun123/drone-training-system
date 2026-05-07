@@ -29,8 +29,30 @@
     </view>
   </view>
 
-  <!-- 状态筛选 -->
-  <view class="status-bar">
+  <!-- 分类筛选 -->
+  <scroll-view class="category-bar" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="category-scroll">
+      <view 
+        class="category-item {{currentCategory === '' ? 'active' : ''}}"
+        bindtap="switchCategory"
+        data-category=""
+      >
+        全部
+      </view>
+      <view 
+        class="category-item {{currentCategory === item ? 'active' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="*this"
+        bindtap="switchCategory"
+        data-category="{{item}}"
+      >
+        {{item}}
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 状态筛选（选中分类后显示） -->
+  <view class="status-bar" wx:if="{{currentCategory !== ''}}">
     <view 
       class="status-item {{currentStatus === '' ? 'active' : ''}}"
       bindtap="switchStatus"

@@ -67,6 +67,35 @@
   font-weight: 500;
 }
 
+/* ==================== 分类筛选 ==================== */
+.category-bar {
+  background: #fff;
+  border-bottom: 1rpx solid #e2e8f0;
+}
+
+.category-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  padding: 16rpx 24rpx;
+  gap: 16rpx;
+}
+
+.category-item {
+  padding: 12rpx 28rpx;
+  font-size: 26rpx;
+  color: #64748b;
+  border-radius: 32rpx;
+  background: #f1f5f9;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.category-item.active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+  font-weight: 500;
+}
+
 /* ==================== 状态筛选 ==================== */
 .status-bar {
   display: flex;
