@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Loading } from '@/components';
-import { app } from '@/utils/cloudbase';
+import { scheduleApi } from '@/services/webApi';
 
 // 课程颜色配置
 const COURSE_COLORS = [
@@ -59,79 +59,51 @@ export default function MySchedulePage() {
   const loadSchedules = async () => {
     setLoading(true);
     try {
-      const db = app.database();
-      if (!db) {
-        console.error('数据库未初始化');
-        setSchedules([]);
-        return;
-      }
-
       const userPhone = user?.phone || localStorage.getItem('user_phone') || '';
       const isAdmin = user?.role === 'admin';
       
       console.log('[MySchedulePage] 查询课表, phone:', userPhone, ', isAdmin:', isAdmin);
 
-      let allSchedules: any[] = [];
-
-      // ★ 管理员：显示所有排课
-      if (isAdmin) {
-        const result = await db.collection('class_schedules')
-          .orderBy('date', 'asc')
-          .orderBy('startTime', 'asc')
-          .limit(200)
-          .get();
-        allSchedules = result.data || [];
-      } else {
-        // ★ 普通用户：通过 class_members 查询已加入的班级
-        if (!userPhone) {
-          setSchedules([]);
-          setLoading(false);
-          return;
-        }
-
-        // 1. 查询 class_members
-        const membersResult = await db.collection('class_members')
-          .where({ phone: userPhone, status: 'active' })
-          .get();
-        
-        const members = membersResult.data || [];
-        console.log('[MySchedulePage] 班级成员:', members);
-
-        if (members.length === 0) {
-          setSchedules([]);
-          setLoading(false);
-          return;
-        }
-
-        // 2. 获取班级ID
-        const classIds = members.map((m: any) => m.classId).filter(Boolean);
-
-        // 3. 查询排课
-        if (classIds.length > 0) {
-          const result = await db.collection('class_schedules')
-            .where(db.command.in(classIds.map((id: string) => id)))
-            .orderBy('date', 'asc')
-            .orderBy('startTime', 'asc')
-            .limit(200)
-            .get();
-          allSchedules = result.data || [];
-        }
-      }
-
-      console.log('[MySchedulePage] 排课数量:', allSchedules.length);
-      
-      // ★ 按日期+班级+时间去重（避免同一课程重复显示）
-      const seen = new Map<string, any>();
-      allSchedules.forEach((s: any) => {
-        const key = `${s.classId}_${s.date}_${s.startTime}`;
-        if (!seen.has(key)) {
-          seen.set(key, s);
-        }
+      // 使用云函数获取排课列表
+      const res = await scheduleApi.getSchedules({
+        pageSize: 200
       });
-      const uniqueSchedules = Array.from(seen.values());
-      console.log('[MySchedulePage] 去重后数量:', uniqueSchedules.length);
-      
-      setSchedules(uniqueSchedules);
+
+      if (res.success && res.data) {
+        // 转换数据格式
+        const allSchedules: any[] = (res.data.list || []).map((s: any) => ({
+          _id: s._id,
+          classId: s.classId,
+          courseId: s.courseId,
+          title: s.title || s.class?.name || s.course?.name || '课程',
+          content: s.content || '',
+          date: s.scheduleDate || s.date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          location: s.location || s.class?.location || '',
+          teacherId: s.teacherId,
+          teacherName: s.teacher?.name || s.teacherName || '',
+          status: s.status || 'scheduled',
+        }));
+
+        console.log('[MySchedulePage] 排课数量:', allSchedules.length);
+        
+        // ★ 按日期+班级+时间去重（避免同一课程重复显示）
+        const seen = new Map<string, any>();
+        allSchedules.forEach((s: any) => {
+          const key = `${s.classId}_${s.date}_${s.startTime}`;
+          if (!seen.has(key)) {
+            seen.set(key, s);
+          }
+        });
+        const uniqueSchedules = Array.from(seen.values());
+        console.log('[MySchedulePage] 去重后数量:', uniqueSchedules.length);
+        
+        setSchedules(uniqueSchedules);
+      } else {
+        console.error('[MySchedulePage] 获取排课失败:', res.error);
+        setSchedules([]);
+      }
     } catch (error) {
       console.error('加载课表失败:', error);
       setSchedules([]);

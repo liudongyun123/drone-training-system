@@ -2,6 +2,7 @@
 // 商城首页
 
 import { productApi } from '../../utils/api'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -38,7 +39,7 @@ Page({
       const categories = await productApi.getCategories()
       this.setData({ categories: [{ _id: '', name: '全部' }, ...categories] })
     } catch (err) {
-      console.error('加载分类失败:', err)
+      logger.error('商城', '加载分类失败', err)
     }
   },
 
@@ -64,7 +65,7 @@ Page({
         loading: false
       })
     } catch (err) {
-      console.error('加载商品失败:', err)
+      logger.error('商城', '加载商品失败', err)
       // 使用模拟数据
       this.setData({
         products: this.getMockProducts(),
@@ -153,7 +154,7 @@ Page({
         hasMore: newProducts.length >= 10
       })
     } catch (err) {
-      console.error('加载更多失败:', err)
+      logger.error('商城', '加载更多失败', err)
     }
   },
 

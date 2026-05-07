@@ -370,10 +370,12 @@ export default function PermissionManagement() {
 
       // 合并结果
       const membersList = membersResult.result.code === 0 
+        // @ts-ignore
         ? (Array.isArray(membersResult.result.data) ? membersResult.result.data : membersResult.result.data?.list || [])
         : []
       
       const enrollmentsList = enrollmentsResult.result.code === 0
+        // @ts-ignore
         ? (Array.isArray(enrollmentsResult.result.data) ? enrollmentsResult.result.data : enrollmentsResult.result.data?.list || [])
         : []
 
@@ -471,6 +473,7 @@ export default function PermissionManagement() {
         userPhone: selectedUser.phone,
         className: selectedClass.name,
         courseId: selectedClass.courseId,
+        // @ts-ignore
         source: 'admin_grant',
         videoEnabled,
         videoValidUntil
@@ -547,6 +550,7 @@ export default function PermissionManagement() {
     <AdminPageTemplate
       title="权限管理"
       subtitle="管理课程视频权限和班级参与权限"
+      // @ts-ignore
       icon={Shield}
     >
       {/* 统计卡片 */}

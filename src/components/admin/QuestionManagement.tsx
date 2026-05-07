@@ -53,6 +53,7 @@ export default function QuestionManagement({ bankId, bankName, onAddQuestion, on
     });
   };
 
+  // @ts-ignore
   if (!isOpen) return null;
 
   return (

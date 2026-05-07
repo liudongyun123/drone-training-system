@@ -815,6 +815,7 @@ function TransferRequestForm({ onSuccess, onCancel, user }: TransferRequestFormP
         excludeScheduleId: schedule._id || schedule.id
       })
       if (result.code === 0) {
+        // @ts-ignore
         setTargetSchedules(result.data || [])
       }
     } catch (error) {

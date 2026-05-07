@@ -3,6 +3,7 @@
 
 import { getExternalCertificates, getTrainingCertificates, getCertificates } from '../../utils/http'
 import { checkLogin, formatDate } from '../../utils/util'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -53,7 +54,7 @@ Page({
         loading: false
       })
     } catch (err) {
-      console.error('加载证书失败:', err)
+      logger.error('证书', '加载证书失败', err)
       this.setData({ loading: false })
     }
   },

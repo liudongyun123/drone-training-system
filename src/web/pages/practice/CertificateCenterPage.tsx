@@ -235,6 +235,7 @@ export default function CertificateCenter() {
             icon={<Award className="w-16 h-16 text-gray-300" />}
             title="暂无证书"
             description={searchQuery ? '没有找到匹配的证书' : '您还没有获得任何证书，参加考试获取证书吧'}
+            // @ts-ignore
             actionText="去考试"
             onAction={() => window.location.href = '/exam-center'}
           />

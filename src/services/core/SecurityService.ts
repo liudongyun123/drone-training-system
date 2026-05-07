@@ -325,6 +325,7 @@ export const VALIDATION_RULES = {
 
   password: (message?: string): ValidationRule => ({
     validate: (value) => validatePasswordStrength(value || '').valid,
+    // @ts-ignore
     message: message || validatePasswordStrength(value || '').message
   })
 }

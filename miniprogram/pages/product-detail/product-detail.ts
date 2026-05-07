@@ -2,6 +2,7 @@
 // 商品详情页
 
 import { productApi } from '../../utils/api'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -31,7 +32,7 @@ Page({
         skuList: product.skus || []
       })
     } catch (err) {
-      console.error('加载商品失败:', err)
+      logger.error('商品', '加载商品失败', err)
       this.setData({ loading: false })
       wx.showToast({ title: '加载失败', icon: 'error' })
     }

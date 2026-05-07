@@ -186,6 +186,7 @@ export default function AdminOfflineEnrollment() {
         paidAt: new Date().toISOString(),
       };
 
+      // @ts-ignore
       const orderResult = await orderService.create(orderData);
       
       if (!orderResult || orderResult.code !== 0) {

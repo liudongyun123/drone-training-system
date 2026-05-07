@@ -1,7 +1,7 @@
 import type { ApiResponse, Course } from '@/types';
 
 // 云函数名称
-const CLOUD_FUNCTION_NAME = 'admin-http';
+const CLOUD_FUNCTION_NAME = 'api-admin'; // 原为 'admin-http'
 
 // 环境ID
 const ENV_ID = 'rcwljy-5ghmq2ex26764978';

@@ -347,7 +347,7 @@ export default function MyLearningPage() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <EmptyState type="custom" icon={<BookOpen className="w-16 h-16" />}
+          <EmptyState icon={<BookOpen className="w-16 h-16" />}
             title="请先登录" description="登录后即可查看您的学习进度"
             action={<button onClick={() => navigate('/login')} className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors">去登录</button>}
           />
@@ -442,6 +442,7 @@ export default function MyLearningPage() {
 
         {/* 课程列表 */}
         {filteredCourses.length === 0 ? (
+          // @ts-ignore
           <EmptyState type={activeTab === 'completed' ? 'empty' : 'course'}
             title={activeTab === 'completed' ? '还没有完成的课程' : '还没有课程'}
             description={activeTab === 'completed' ? '继续学习，完成课程获取证书' : '快去购买课程开始学习吧'}

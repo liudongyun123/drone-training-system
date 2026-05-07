@@ -31,11 +31,12 @@ import {
   BookOpen,
   AlertCircle,
   User,
+  Search
 } from 'lucide-react';
-import { app } from '@/utils/cloudbase';
 import { useAuthStore } from '@/store/authStore';
 import { Loading, EmptyState, Card, Modal } from '@/components';
 import { formatDateStr } from '@/utils/dateUtils';
+import { classApi } from '@/services/webApi';
 
 interface ClassInfo {
   _id: string;
@@ -125,60 +126,50 @@ export default function ClassEnrollmentPage() {
   const loadClasses = async () => {
     setLoading(true);
     try {
-      const db = app.database();
+      // 使用云函数获取班级列表
+      const res = await classApi.getClasses({
+        status: ['enrolling', 'upcoming', 'open'],
+        pageSize: 50
+      });
       
-      // 查询可报名的班级
-      // 状态：enrolling（报名中）、upcoming（即将开班）
-      const res = await db.collection('classes')
-        .where({
-          status: db.command.in(['enrolling', 'upcoming', 'open'])
-        })
-        .orderBy('startDate', 'asc')
-        .get();
-      
-      console.log('[ClassEnrollmentPage] 加载班级:', res.data?.length || 0);
-      
-      // 补充课程信息
-      const classList: ClassInfo[] = [];
-      for (const cls of (res.data || [])) {
-        // 计算已报名人数
-        const memberCountRes = await db.collection('class_members')
-          .where({
-            classId: cls._id,
-            status: db.command.in(['enrolled', 'learning'])
-          })
-          .count();
+      if (res.success && res.data) {
+        console.log('[ClassEnrollmentPage] 加载班级:', res.data.list?.length || 0);
         
-        // 获取关联课程信息
-        let courseName = '';
-        let coursePrice = 0;
-        let hasVideoGrant = false;
-        let videoGrantCourseName = '';
+        const classList: ClassInfo[] = (res.data.list || []).map((cls: any) => ({
+          _id: cls._id,
+          name: cls.name,
+          courseId: cls.courseId,
+          courseName: cls.courseName || '',
+          teacherName: cls.teacherName || cls.teacher?.name || '',
+          teacherId: cls.teacherId,
+          description: cls.description,
+          startDate: cls.startDate,
+          endDate: cls.endDate,
+          location: cls.location,
+          maxStudents: cls.maxStudents,
+          enrolledCount: cls.enrolledCount || cls.enrolledStudents || 0,
+          price: cls.price || cls.coursePrice || 0,
+          originalPrice: cls.originalPrice,
+          hasVideoGrant: cls.hasVideoGrant,
+          videoGrantCourseId: cls.videoGrantCourseId,
+          videoGrantCourseName: cls.videoGrantCourseName,
+          coverImage: cls.coverImage,
+          status: cls.status,
+          requirements: cls.requirements,
+          schedule: cls.schedule,
+        }));
         
-        if (cls.courseId) {
-          try {
-            const courseRes = await db.collection('courses').doc(cls.courseId).get();
-            if (courseRes.data) {
-              courseName = courseRes.data.title || '';
-              coursePrice = courseRes.data.price || 0;
-            }
-          } catch (e) {
-            console.log('[ClassEnrollmentPage] 获取课程信息失败:', e);
-          }
-        }
-        
-        classList.push({
-          ...cls,
-          courseName: cls.courseName || courseName,
-          price: cls.price || coursePrice,
-          enrolledCount: memberCountRes.total || cls.enrolledCount || 0,
-        });
+        setClasses(classList);
+        setFilteredClasses(classList);
+      } else {
+        console.error('[ClassEnrollmentPage] 加载班级失败:', res.error);
+        setClasses([]);
+        setFilteredClasses([]);
       }
-      
-      setClasses(classList);
-      setFilteredClasses(classList);
     } catch (error) {
       console.error('[ClassEnrollmentPage] 加载班级失败:', error);
+      setClasses([]);
+      setFilteredClasses([]);
     } finally {
       setLoading(false);
     }
@@ -221,7 +212,7 @@ export default function ClassEnrollmentPage() {
     setEnrollmentStep('info');
     setEnrollmentForm({
       name: user?.name || '',
-      phone: phone || user?.phone || '',
+      phone: user?.phone || '',
       idCard: '',
       emergencyContact: '',
       emergencyPhone: '',
@@ -250,44 +241,25 @@ export default function ClassEnrollmentPage() {
     setEnrolling(true);
     
     try {
-      // 1. 调用云函数完成报名流程
-      const result = await app.callFunction({
-        name: 'admin',
-        data: {
-          action: 'enrollment',
-          data: {
-            classId: selectedClass?._id,
-            className: selectedClass?.name,
-            courseId: selectedClass?.courseId,
-            studentName: enrollmentForm.name,
-            phone: enrollmentForm.phone,
-            idCard: enrollmentForm.idCard,
-            emergencyContact: enrollmentForm.emergencyContact,
-            emergencyPhone: enrollmentForm.emergencyPhone,
-            notes: enrollmentForm.notes,
-            source: 'online',  // 线上报名
-            hasVideoGrant: selectedClass?.hasVideoGrant,
-            videoGrantCourseId: selectedClass?.videoGrantCourseId,
-          }
-        }
+      // 使用云函数完成报名流程
+      const result = await classApi.enroll({
+        classId: selectedClass?._id || '',
+        userName: enrollmentForm.name,
+        phone: enrollmentForm.phone,
+        idCard: enrollmentForm.idCard,
+        emergencyContact: enrollmentForm.emergencyContact,
+        emergencyPhone: enrollmentForm.emergencyPhone,
+        notes: enrollmentForm.notes,
       });
       
       console.log('[ClassEnrollmentPage] 报名结果:', result);
       
-      if ((result.result as any)?.code === 0) {
-        const data = (result.result as any)?.data;
-        
-        // 2. 如果有费用，创建订单并跳转支付
-        if (selectedClass?.price && selectedClass.price > 0 && data?.orderId) {
-          setEnrollmentStep('pay');
-          setEnrolling(false);
-        } else {
-          // 免费班级，直接报名成功
-          setEnrollmentStep('success');
-          setEnrolling(false);
-        }
+      if (result.success) {
+        // 报名成功
+        setEnrollmentStep('success');
+        setEnrolling(false);
       } else {
-        setError((result.result as any)?.message || '报名失败，请重试');
+        setError(result.error || '报名失败，请重试');
         setEnrolling(false);
       }
     } catch (e: any) {
@@ -435,7 +407,6 @@ export default function ClassEnrollmentPage() {
         {/* 班级列表 */}
         {filteredClasses.length === 0 ? (
           <EmptyState
-            type="custom"
             icon={<Users className="w-16 h-16 text-gray-300" />}
             title="暂无可报名的班级"
             description="目前没有开放报名的班级，请稍后再来"

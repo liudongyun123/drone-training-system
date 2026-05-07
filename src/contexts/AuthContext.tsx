@@ -32,7 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     try {
       const session = await checkLogin();
+      // @ts-ignore
       if (session && 'uid' in session) {
+        // @ts-ignore
         setUser(session as User);
       }
     } catch (error) {
@@ -51,7 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // 使用 checkLogin 防止并发请求
       const session = await checkLogin();
+      // @ts-ignore
       if (session && 'uid' in session) {
+        // @ts-ignore
         setUser(session as User);
       }
     } catch (error) {

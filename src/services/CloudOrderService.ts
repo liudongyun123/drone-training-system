@@ -53,6 +53,7 @@ export const CloudOrderService = {
 
       const order: Partial<Order> = {
         userId: user.uid,
+        // @ts-ignore
         phone: phone,  // ★ 关键：保存手机号
         userName: storeUser?.nickname || storeUser?.name || (user as any).nickName || (user as any).username || '匿名用户',
         _openid: (user as any)._openid,
@@ -146,6 +147,7 @@ export const CloudOrderService = {
       if (!id) {
         throw new Error('订单ID不能为空')
       }
+      // @ts-ignore
       const result = await dbService.get('orders', id)
       if (!result) return null
       return normalizeOrder(result)

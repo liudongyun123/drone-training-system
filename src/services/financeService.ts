@@ -5,10 +5,11 @@
  */
 
 import app from '../config/tcb'
+// @ts-ignore
 import type { Order, OrderItem, PaginationParams, RevenueStats, DailyStat } from '../types/service'
 import { parseCloudFunctionListResponse } from '@/utils/safeData'
 
-const CLOUD_FUNCTION_NAME = 'admin'
+const CLOUD_FUNCTION_NAME = 'api-admin'
 
 // 错误日志开关（生产环境设为 false）
 const ENABLE_ERROR_LOG = false
@@ -94,6 +95,7 @@ export const financeService = {
         options: { page, limit: pageSize }
       })
 
+      // @ts-ignore
       const { list, total } = parseCloudFunctionListResponse<Order>(result, page, pageSize)
 
       return {

@@ -2,6 +2,7 @@
 // 小程序首页
 
 import { courseApi, classApi, productApi, bannerApi } from '../../utils/api'
+import logger from '../../utils/logger'
 
 interface IndexData {
   hotCourses: any[]
@@ -50,7 +51,7 @@ Page<IndexData>({
         loading: false
       })
     } catch (err) {
-      console.error('加载首页数据失败:', err)
+      logger.error('首页', '加载首页数据失败', err)
       this.setData({ loading: false })
     }
   },

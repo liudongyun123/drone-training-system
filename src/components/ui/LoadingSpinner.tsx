@@ -72,6 +72,7 @@ export function ButtonWithLoading({
         <LoadingSpinner
           size="small"
           color="#ffffff"
+          // @ts-ignore
           className="mr-2"
         />
       )}

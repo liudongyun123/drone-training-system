@@ -266,7 +266,7 @@ export default function AdminClassOrders() {
       if (result.success && result.data) {
         setOfflineEnrollForm(prev => ({
           ...prev,
-          memberId: result.data._id || result.data.userId || '',
+          memberId: result.data._id || '',
           memberName: result.data.name || '',
         }));
       } else {

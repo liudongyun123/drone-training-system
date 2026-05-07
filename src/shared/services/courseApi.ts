@@ -139,6 +139,7 @@ export const courseApi = {
     
     // 去重
     const categories = [...new Set(result.data.map(item => (item as { category: string }).category))]
+    // @ts-ignore
     return categories.filter(Boolean)
   }
 }

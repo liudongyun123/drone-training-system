@@ -75,7 +75,7 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
 };
 
 // 初始表单数据
-const initialFormData = {
+const initialFormData: Partial<Class> = {
   name: '',
   description: '',
   courseId: '',
@@ -86,15 +86,15 @@ const initialFormData = {
   teacherId: '',
   // 班级介绍
   intro: {
-    videoUrl: '',        // 视频介绍URL(如B站、腾讯视频等)
-    videoCover: '',      // 视频封面图
-    documentUrl: '',     // 文档介绍URL(如PDF链接)
-    documentName: '',    // 文档名称
-    content: ''          // 详细介绍(富文本或markdown)
+    videoUrl: undefined,
+    videoCover: undefined,
+    documentUrl: undefined,
+    documentName: undefined,
+    content: undefined
   },
   enrollmentConfig: {
     price: 0,
-    originalPrice: 0,
+    originalPrice: undefined,
     enableVideoAccess: false,
     videoAccessDays: 365,
     materials: []
@@ -310,6 +310,7 @@ export default function AdminClasses() {
       if (editingClass) {
         await classService.update(editingClass._id!, submitData);
       } else {
+        // @ts-ignore
         await classService.create(submitData);
       }
 

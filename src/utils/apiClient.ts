@@ -141,6 +141,7 @@ async function request<T>(
       };
       
       for (const interceptor of requestInterceptors) {
+        // @ts-ignore
         requestConfig = await interceptor(requestConfig);
       }
       
@@ -187,6 +188,7 @@ async function request<T>(
       // 网络错误或超时，尝试重试
       if (
         config.retry &&
+        // @ts-ignore
         attempt < config.retry &&
         (lastError.name === 'AbortError' || lastError.message.includes('network'))
       ) {

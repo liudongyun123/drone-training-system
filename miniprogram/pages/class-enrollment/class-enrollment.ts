@@ -28,7 +28,7 @@ Page({
       const classInfo = await classApi.getDetail(this.classId)
       this.setData({ classInfo, loading: false })
     } catch (err) {
-      console.error('加载培训班失败:', err)
+      logger.error('培训班', '加载培训班失败', err)
       this.setData({ loading: false })
       showToast('加载失败')
     }
@@ -100,7 +100,7 @@ Page({
         }
       })
 
-      console.log('[培训班报名] 云函数返回:', res)
+      logger.debug('培训班', '云函数返回', res)
 
       if (res.result && res.result.success) {
         wx.showToast({ title: '报名成功', icon: 'success' })
@@ -113,7 +113,7 @@ Page({
       }
 
     } catch (err: any) {
-      console.error('报名失败:', err)
+      logger.error('培训班', '报名失败', err)
       showToast(err.message || '报名失败，请重试')
     } finally {
       this.setData({ submitting: false })

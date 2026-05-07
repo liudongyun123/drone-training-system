@@ -2,6 +2,8 @@
 // CloudBase 云开发工具函数
 // 小程序通过云调用连接腾讯云 CloudBase
 
+import logger from './logger'
+
 const ENV_ID = 'rcwljy-5ghmq2ex26764978'
 
 /**
@@ -9,7 +11,7 @@ const ENV_ID = 'rcwljy-5ghmq2ex26764978'
  */
 export function initCloud() {
   if (!wx.cloud) {
-    console.error('wx.cloud 不存在，请检查基础库版本')
+    logger.error('CloudBase', 'wx.cloud 不存在，请检查基础库版本')
     return
   }
   
@@ -18,7 +20,7 @@ export function initCloud() {
     env: 'rcwljy-5ghmq2ex26764978',
     traceUser: true
   })
-  console.log('CloudBase 云开发已初始化')
+  logger.debug('CloudBase', '云开发已初始化')
 }
 
 /**

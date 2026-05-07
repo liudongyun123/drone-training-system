@@ -64,6 +64,7 @@ export function getPerformanceMetrics(): PerformanceMetrics {
   const firstInputDelay = fidEntry?.processingStart - fidEntry?.startTime || 0;
   
   // 累积布局偏移
+  // @ts-ignore
   const clsEntry = (performance as any).getEntriesByType('layout-shift') as LayoutShift[];
   const cumulativeLayoutShift = clsEntry?.reduce((sum, entry) => sum + entry.value, 0) || 0;
   
@@ -205,6 +206,7 @@ class PerformanceMonitor {
 
     // 监控 CLS
     this.observe('layout-shift', (entries) => {
+      // @ts-ignore
       const cls = entries.reduce((sum, entry) => sum + (entry as LayoutShift).value, 0);
       this.metrics.cumulativeLayoutShift = cls;
     });

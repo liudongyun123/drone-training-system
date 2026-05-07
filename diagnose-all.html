@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据调用诊断 - 无人机培训系统</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: #0f172a; color: #e2e8f0; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { color: #60a5fa; margin-bottom: 30px; }
+    h2 { color: #38bdf8; margin-top: 30px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+    .test-item { display: flex; align-items: flex-start; padding: 15px; background: #0f172a; border-radius: 8px; margin: 10px 0; }
+    .status { width: 12px; height: 12px; border-radius: 50%; margin-right: 15px; margin-top: 3px; flex-shrink: 0; }
+    .pending { background: #fbbf24; }
+    .success { background: #22c55e; }
+    .error { background: #ef4444; }
+    .test-name { font-weight: 500; min-width: 250px; }
+    .test-result { font-size: 13px; color: #94a3b8; flex: 1; word-break: break-all; }
+    button { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 5px; }
+    button:hover { background: #2563eb; }
+    button:disabled { background: #475569; cursor: not-allowed; }
+    pre { background: #1e293b; padding: 10px; border-radius: 6px; font-size: 11px; overflow-x: auto; max-height: 150px; color: #94a3b8; margin-top: 8px; }
+    .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
+    .summary-item { background: #1e293b; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #334155; }
+    .summary-num { font-size: 36px; font-weight: bold; }
+    .summary-label { color: #94a3b8; margin-top: 5px; }
+    .pass { color: #22c55e; }
+    .fail { color: #ef4444; }
+    .running { color: #fbbf24; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>数据调用诊断</h1>
+    
+    <div class="summary">
+      <div class="summary-item">
+        <div class="summary-num" id="total">0</div>
+        <div class="summary-label">总测试数</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-num pass" id="passed">0</div>
+        <div class="summary-label">通过</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-num fail" id="failed">0</div>
+        <div class="summary-label">失败</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-num" id="pending">0</div>
+        <div class="summary-label">待测试</div>
+      </div>
+    </div>
+
+    <button onclick="runAllTests()" id="runBtn">运行全部测试</button>
+
+    <h2>1. SDK 初始化</h2>
+    <div id="tests-sdk"></div>
+
+    <h2>2. 云函数 (api-admin)</h2>
+    <div id="tests-functions"></div>
+
+    <h2>3. 数据库直接查询</h2>
+    <div id="tests-database"></div>
+
+    <h2>4. 认证</h2>
+    <div id="tests-auth"></div>
+  </div>
+
+  <script src="https://resources.tencent.com/publicResources/tcb/js/cloudbase-app-sdk/2.14.0/cloudbase.js"></script>
+  <script>
+    const ENV_ID = 'rcwljy-5ghmq2ex26764978';
+    let app = null;
+    let passed = 0, failed = 0;
+
+    const tests = [
+      { id: 'sdk', name: 'CloudBase SDK 初始化', cat: 'sdk', fn: async () => { app = cloudbase.init({ env: ENV_ID }); return { success: true, msg: 'SDK 初始化成功' }; }},
+      { id: 'fn-courses', name: 'api-admin list(courses)', cat: 'functions', fn: async () => callFn('api-admin', { action: 'list', collection: 'courses', limit: 3 })},
+      { id: 'fn-banners', name: 'api-admin list(banners)', cat: 'functions', fn: async () => callFn('api-admin', { action: 'list', collection: 'banners', limit: 3 })},
+      { id: 'fn-classes', name: 'api-admin list(classes)', cat: 'functions', fn: async () => callFn('api-admin', { action: 'list', collection: 'classes', limit: 3 })},
+      { id: 'fn-members', name: 'api-admin list(members)', cat: 'functions', fn: async () => callFn('api-admin', { action: 'list', collection: 'members', limit: 3 })},
+      { id: 'fn-enroll', name: 'api-admin list(enrollments)', cat: 'functions', fn: async () => callFn('api-admin', { action: 'list', collection: 'enrollments', limit: 3 })},
+      { id: 'db-courses', name: '数据库 courses', cat: 'database', fn: async () => dbQuery('courses')},
+      { id: 'db-banners', name: '数据库 banners', cat: 'database', fn: async () => dbQuery('banners')},
+      { id: 'db-classes', name: '数据库 classes', cat: 'database', fn: async () => dbQuery('classes')},
+      { id: 'db-members', name: '数据库 members', cat: 'database', fn: async () => dbQuery('members')},
+      { id: 'db-enroll', name: '数据库 enrollments', cat: 'database', fn: async () => dbQuery('enrollments')},
+      { id: 'db-cat', name: '数据库 categories', cat: 'database', fn: async () => dbQuery('categories')},
+      { id: 'auth', name: '获取登录状态', cat: 'auth', fn: async () => { const s = await app.auth().getLoginState(); return { success: true, msg: s ? '已登录' : '未登录' };}},
+    ];
+
+    async function callFn(name, data) {
+      try {
+        const r = await app.callFunction({ name, data });
+        const res = r.result;
+        if (res && res.code === 0) return { success: true, msg: `成功`, data: res };
+        return { success: false, msg: `错误[${res?.code}]: ${res?.message || '未知'}` };
+      } catch (e) { return { success: false, msg: e.message }; }
+    }
+
+    async function dbQuery(col) {
+      try {
+        const r = await app.database().collection(col).limit(3).get();
+        return { success: true, msg: `查询成功, ${r.data?.length}条`, data: r };
+      } catch (e) { return { success: false, msg: e.message }; }
+    }
+
+    function init() {
+      ['sdk', 'functions', 'database', 'auth'].forEach(cat => {
+        const el = document.getElementById('tests-' + cat);
+        tests.filter(t => t.cat === cat).forEach(t => {
+          el.innerHTML += `<div class="test-item"><div class="status pending" id="s-${t.id}"></div><div class="test-name">${t.name}</div><div class="test-result" id="r-${t.id}">等待...</div></div>`;
+        });
+      });
+    }
+
+    async function runTest(t) {
+      document.getElementById('s-' + t.id).className = 'status pending';
+      document.getElementById('r-' + t.id).innerHTML = '测试中...';
+      try {
+        const r = await t.fn();
+        if (r.success) {
+          document.getElementById('s-' + t.id).className = 'status success';
+          passed++;
+        } else {
+          document.getElementById('s-' + t.id).className = 'status error';
+          failed++;
+        }
+        document.getElementById('r-' + t.id).innerHTML = `<span class="${r.success?'pass':'fail'}">${r.msg}</span>`;
+        if (r.data && r.data.data) document.getElementById('r-' + t.id).innerHTML += `<pre>${JSON.stringify(r.data.data).substring(0,200)}</pre>`;
+      } catch (e) {
+        document.getElementById('s-' + t.id).className = 'status error';
+        document.getElementById('r-' + t.id).innerHTML = `<span class="fail">异常: ${e.message}</span>`;
+        failed++;
+      }
+      document.getElementById('total').textContent = tests.length;
+      document.getElementById('passed').textContent = passed;
+      document.getElementById('failed').textContent = failed;
+      document.getElementById('pending').textContent = tests.length - passed - failed;
+    }
+
+    async function runAllTests() {
+      passed = 0; failed = 0;
+      document.getElementById('runBtn').disabled = true;
+      document.getElementById('runBtn').textContent = '测试中...';
+      for (const t of tests) { await runTest(t); await new Promise(r => setTimeout(r, 150)); }
+      document.getElementById('runBtn').disabled = false;
+      document.getElementById('runBtn').textContent = '运行全部测试';
+    }
+
+    init();
+    setTimeout(runAllTests, 500);
+  </script>
+</body>
+</html>

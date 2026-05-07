@@ -216,7 +216,7 @@ Page({
         throw new Error(res.errMsg || '获取手机号失败')
       }
     } catch (err: any) {
-      console.error('获取手机号失败:', err)
+      logger.error('登录', '获取手机号失败', err)
       this.setData({ loading: false })
       showToast(err.message || '获取手机号失败')
     }

@@ -55,29 +55,42 @@ function getCorsHeaders(origin = '') {
  * 格式化课程数据
  */
 function formatCourse(course, teacher = null) {
+  // 处理 stats 对象中的统计数据（兼容新旧格式）
+  const stats = course.stats || {}
+  
   return {
     _id: course._id,
-    title: course.title,
-    cover: course.cover || course.coverImage || '',
-    coverImage: course.cover || course.coverImage || '',
-    description: course.description?.slice(0, 100) || '',
+    title: course.title || '',
+    cover: course.cover || course.coverImage || course.thumbnail || '',
+    coverImage: course.cover || course.coverImage || course.thumbnail || '',
+    thumbnail: course.cover || course.coverImage || course.thumbnail || '',
+    description: (course.description || '').slice(0, 200),
+    shortDescription: (course.description || '').slice(0, 100),
     price: course.price || 0,
     originalPrice: course.originalPrice || course.price || 0,
-    category: course.category,
-    level: course.level,
+    category: course.category || course.type || '',
+    level: course.level || 'beginner',
     duration: course.duration || 0,
-    studentCount: course.studentCount || 0,
-    rating: course.rating || 4.5,
+    lessonCount: course.lessonCount || course.lessons || 0,
+    lessons: course.lessonCount || course.lessons || 0,
+    studentCount: stats.studentCount || course.studentCount || 0,
+    reviewCount: stats.reviewCount || course.reviewCount || 0,
+    rating: stats.rating || course.rating || 4.5,
     tags: course.tags || [],
-    isFree: course.isFree || false,
+    isFree: course.isFree || course.price === 0,
     isFeatured: course.isFeatured || false,
+    status: course.status || 'draft',
+    type: course.type || 'online',
     teacher: teacher ? {
       _id: teacher._id,
       name: teacher.name,
       avatar: teacher.avatar,
       title: teacher.title
-    } : null,
-    createdAt: course.createdAt
+    } : (course.teacherId ? { _id: course.teacherId } : null),
+    teacherId: course.teacherId,
+    createdAt: course.createdAt,
+    updatedAt: course.updatedAt,
+    publishedAt: course.publishedAt
   }
 }
 
@@ -635,10 +648,14 @@ async function getBanners(limit = 5) {
     success: true,
     data: banners.data.map(b => ({
       _id: b._id,
-      image: b.image,
-      link: b.link || '',
+      image: b.image || b.imageUrl || b.url || '',
+      imageUrl: b.image || b.imageUrl || b.url || '',
+      url: b.image || b.imageUrl || b.url || '',
+      link: b.link || b.url || '',
       courseId: b.courseId || '',
-      title: b.title || ''
+      title: b.title || '',
+      subtitle: b.subtitle || '',
+      order: b.order || 0
     }))
   }
 }

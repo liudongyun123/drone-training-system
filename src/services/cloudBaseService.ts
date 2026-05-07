@@ -1,16 +1,128 @@
 // 统一从 utils/cloudbase 导入 app 实例，避免重复初始化
-import { app } from '@/utils/cloudbase'
+import { ensureInit, getAuth } from '@/utils/cloudbase'
 
-export const db = app.database()
-export const auth = app.auth()
+// 懒加载的数据库实例
+let _db: any = null
+let _auth: any = null
+
+// 获取数据库实例（确保初始化）
+async function getDb() {
+  await ensureInit()
+  const { getCloudbaseApp } = await import('@/utils/cloudbase')
+  const app = getCloudbaseApp()
+  if (app && !_db) {
+    _db = app.database()
+  }
+  return _db
+}
+
+// 获取 auth 实例（确保初始化）
+async function getAuthInstance() {
+  await ensureInit()
+  const { getCloudbaseApp } = await import('@/utils/cloudbase')
+  const app = getCloudbaseApp()
+  if (app && !_auth) {
+    _auth = app.auth()
+  }
+  return _auth
+}
+
+// 同步获取（可能在初始化前调用）
+export const db = {
+  collection(name: string) {
+    // 返回一个代理对象，延迟获取 collection
+    return {
+      get: async () => {
+        const database = await getDb()
+        return database.collection(name).get()
+      },
+      doc: (id: string) => ({
+        get: async () => {
+          const database = await getDb()
+          return database.collection(name).doc(id).get()
+        },
+        update: async (params: any) => {
+          const database = await getDb()
+          return database.collection(name).doc(id).update(params)
+        },
+        remove: async () => {
+          const database = await getDb()
+          return database.collection(name).doc(id).remove()
+        }
+      }),
+      add: async (params: any) => {
+        const database = await getDb()
+        return database.collection(name).add(params)
+      },
+      where: (query: any) => ({
+        get: async () => {
+          const database = await getDb()
+          return database.collection(name).where(query).get()
+        },
+        update: async (params: any) => {
+          const database = await getDb()
+          return database.collection(name).where(query).update(params)
+        },
+        remove: async () => {
+          const database = await getDb()
+          return database.collection(name).where(query).remove()
+        },
+        limit: (n: number) => ({
+          get: async () => {
+            const database = await getDb()
+            return database.collection(name).where(query).limit(n).get()
+          }
+        })
+      }),
+      orderBy: (field: string, order: string) => ({
+        limit: (n: number) => ({
+          get: async () => {
+            const database = await getDb()
+            return database.collection(name).orderBy(field, order).limit(n).get()
+          }
+        })
+      }),
+      limit: (n: number) => ({
+        get: async () => {
+          const database = await getDb()
+          return database.collection(name).limit(n).get()
+        },
+        skip: (n: number) => ({
+          get: async () => {
+            const database = await getDb()
+            return database.collection(name).limit(n).skip(n).get()
+          }
+        })
+      }),
+      count: async () => {
+        const database = await getDb()
+        return database.collection(name).count()
+      }
+    }
+  }
+}
+
+export const auth = {
+  get currentUser() {
+    return _auth?.currentUser
+  },
+  async getCurrentUser() {
+    await getAuthInstance()
+    return _auth?.getCurrentUser()
+  },
+  async signOut() {
+    await getAuthInstance()
+    return _auth?.signOut()
+  },
+  anonymousAuthProvider() {
+    return _auth?.anonymousAuthProvider()
+  }
+}
 
 // 用户缓存
 let cachedUser: any = null
 let cachedUserTime = 0
 const CACHE_TTL = 60000 // 1分钟
-
-let isCheckingSession = false
-let sessionPromise: Promise<any> | null = null
 
 // 限流错误处理
 const handleRateLimitError = (error: any): string => {
@@ -27,7 +139,8 @@ export const authService = {
   // 匿名登录
   async anonymousLogin() {
     try {
-      await auth.anonymousAuthProvider().signIn()
+      const authIns = await getAuthInstance()
+      await authIns.anonymousAuthProvider().signIn()
       const user = await this.getCurrentUser()
       return user
     } catch (error: any) {
@@ -44,7 +157,8 @@ export const authService = {
     }
     
     try {
-      const user = await auth.getCurrentUser()
+      const authIns = await getAuthInstance()
+      const user = await authIns?.getCurrentUser()
       cachedUser = user
       cachedUserTime = Date.now()
       return user
@@ -65,25 +179,12 @@ export const authService = {
       return { isAuthenticated: true }
     }
 
-    // 如果正在检查中，返回等待中的 Promise
-    if (isCheckingSession && sessionPromise) {
-      return sessionPromise
+    try {
+      const user = await this.getCurrentUser()
+      return { isAuthenticated: !!user }
+    } catch (error) {
+      return { isAuthenticated: false }
     }
-
-    isCheckingSession = true
-    sessionPromise = (async () => {
-      try {
-        const user = await this.getCurrentUser()
-        return { isAuthenticated: !!user }
-      } catch (error) {
-        return { isAuthenticated: false }
-      } finally {
-        isCheckingSession = false
-        sessionPromise = null
-      }
-    })()
-
-    return sessionPromise
   },
 
   // 获取缓存的用户（同步方法）
@@ -103,7 +204,8 @@ export const authService = {
   // 退出登录
   async logout() {
     try {
-      await auth.signOut()
+      const authIns = await getAuthInstance()
+      await authIns?.signOut()
       this.clearCache()
     } catch (error: any) {
       console.error('退出登录失败:', error)
@@ -233,4 +335,7 @@ export const dbService = {
   }
 }
 
-export default app
+// 确保模块初始化
+ensureInit()
+
+export default { db, auth, dbService, authService }

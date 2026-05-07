@@ -149,7 +149,7 @@ Page({
         loading: false
       })
     } catch (err) {
-      console.error('加载我的数据失败:', err)
+      logger.error('我的学习', '加载数据失败', err)
       this.setData({ loading: false })
     }
   },

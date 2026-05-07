@@ -3,6 +3,7 @@
 
 import { orderApi, courseApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -56,7 +57,7 @@ Page({
         finalAmount: price.toFixed(2)
       })
     } catch (err) {
-      console.error('加载课程失败:', err)
+      logger.error('结算', '加载课程失败', err)
       showToast('加载失败')
     }
   },
@@ -206,7 +207,7 @@ Page({
       }, 1500)
 
     } catch (err) {
-      console.error('创建订单失败:', err)
+      logger.error('结算', '创建订单失败', err)
       showToast('下单失败，请重试')
     } finally {
       this.setData({ submitting: false })

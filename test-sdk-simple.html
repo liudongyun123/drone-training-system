@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDK 测试 - 无人机培训系统</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+    h1 { color: #333; }
+    .result { margin: 20px 0; padding: 15px; background: #f9fafb; border-radius: 6px; }
+    .success { color: #059669; }
+    .error { color: #dc2626; }
+    .info { color: #2563eb; }
+    pre { background: #1f2937; color: #e5e7eb; padding: 15px; border-radius: 6px; overflow-x: auto; max-height: 300px; }
+    button { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 5px; }
+    button:hover { background: #1d4ed8; }
+    input, select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; margin: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>CloudBase SDK 测试</h1>
+    
+    <div class="result">
+      <h3>当前页面信息</h3>
+      <p>环境ID: <strong id="envId">rcwljy-5ghmq2ex26764978</strong></p>
+      <p>SDK 加载状态: <strong id="sdkStatus">检测中...</strong></p>
+    </div>
+    
+    <div class="result">
+      <h3>SDK 初始化测试</h3>
+      <div id="initResult">
+        <button onclick="testInit1()">测试方式1: env + appAccessKeyId</button>
+        <button onclick="testInit2()">测试方式2: 仅 env</button>
+      </div>
+    </div>
+    
+    <div class="result">
+      <h3>云函数调用测试</h3>
+      <select id="fnName">
+        <option value="api-course">api-course</option>
+        <option value="api-admin">api-admin</option>
+      </select>
+      <br>
+      <input type="text" id="fnData" value='{"action":"list","page":1,"pageSize":2}' style="width:400px">
+      <br>
+      <button onclick="testCallFunction()">调用云函数</button>
+      <div id="fnResult"></div>
+    </div>
+    
+    <div class="result">
+      <h3>控制台输出</h3>
+      <pre id="console" style="max-height:400px">等待测试...</pre>
+    </div>
+  </div>
+
+  <!-- CloudBase SDK v1.8.0 -->
+  <script src="https://img.cache.tencent-cloud.com/cloudbase-js-sdk/1.8.0/cloudbase.js"></script>
+  
+  <script>
+    const ENV_ID = 'rcwljy-5ghmq2ex26764978';
+    let app = null;
+    
+    function log(msg, type) {
+      const console = document.getElementById('console');
+      const time = new Date().toLocaleTimeString();
+      const colorClass = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+      console.innerHTML += '<span class="' + colorClass + '">[' + time + '] ' + msg + '</span>\n';
+      console.scrollTop = console.scrollHeight;
+      console.log(msg);
+    }
+    
+    function checkSDK() {
+      const status = document.getElementById('sdkStatus');
+      if (typeof cloudbase !== 'undefined') {
+        const version = cloudbase.VERSION || '已加载';
+        status.innerHTML = '<span class="success">已加载 (版本: ' + version + ')</span>';
+        log('SDK 加载成功, 版本: ' + version, 'success');
+        return true;
+      } else {
+        status.innerHTML = '<span class="error">未找到 cloudbase 全局对象</span>';
+        log('SDK 加载失败 - cloudbase 全局对象不存在', 'error');
+        return false;
+      }
+    }
+    
+    async function testInit1() {
+      const result = document.getElementById('initResult');
+      result.innerHTML = '正在测试方式1...';
+      log('测试初始化方式1: env + appAccessKeyId');
+      
+      try {
+        app = cloudbase.initialize({
+          env: ENV_ID,
+          appAccessKeyId: 'rcwljy-5ghmq2ex26764978'
+        });
+        result.innerHTML = '<span class="success">方式1 初始化成功!</span><br><button onclick="testInit1()">重新测试</button>';
+        log('方式1 成功', 'success');
+      } catch (e) {
+        result.innerHTML = '<span class="error">方式1 失败: ' + e.message + '</span><br><button onclick="testInit1()">重试</button>';
+        log('方式1 失败: ' + e.message, 'error');
+      }
+    }
+    
+    async function testInit2() {
+      const result = document.getElementById('initResult');
+      result.innerHTML = '正在测试方式2...';
+      log('测试初始化方式2: 仅 env');
+      
+      try {
+        app = cloudbase.initialize({
+          env: ENV_ID
+        });
+        result.innerHTML = '<span class="success">方式2 初始化成功!</span><br><button onclick="testInit2()">重新测试</button>';
+        log('方式2 成功', 'success');
+      } catch (e) {
+        result.innerHTML = '<span class="error">方式2 失败: ' + e.message + '</span><br><button onclick="testInit2()">重试</button>';
+        log('方式2 失败: ' + e.message, 'error');
+      }
+    }
+    
+    async function testCallFunction() {
+      if (!app) {
+        document.getElementById('fnResult').innerHTML = '<span class="error">请先初始化 SDK!</span>';
+        return;
+      }
+      
+      const fnName = document.getElementById('fnName').value;
+      const fnDataStr = document.getElementById('fnData').value;
+      let fnData;
+      
+      try {
+        fnData = JSON.parse(fnDataStr);
+      } catch (e) {
+        document.getElementById('fnResult').innerHTML = '<span class="error">JSON 格式错误</span>';
+        return;
+      }
+      
+      const resultDiv = document.getElementById('fnResult');
+      resultDiv.innerHTML = '正在调用...';
+      log('调用云函数 ' + fnName);
+      
+      try {
+        const res = await app.callFunction({
+          name: fnName,
+          data: fnData
+        });
+        
+        if (res.result) {
+          if (res.result.success) {
+            resultDiv.innerHTML = '<span class="success">调用成功!</span><pre>' + JSON.stringify(res.result, null, 2).substring(0, 500) + '</pre>';
+            log('调用成功', 'success');
+          } else {
+            resultDiv.innerHTML = '<span class="info">调用完成</span><pre>' + JSON.stringify(res.result, null, 2) + '</pre>';
+            log('调用完成但 success=false');
+          }
+        } else {
+          resultDiv.innerHTML = '<pre>' + JSON.stringify(res, null, 2) + '</pre>';
+          log('收到响应但无 result');
+        }
+      } catch (e) {
+        resultDiv.innerHTML = '<span class="error">调用失败: ' + e.message + '</span>';
+        log('调用失败: ' + e.message, 'error');
+      }
+    }
+    
+    // 页面加载时检查 SDK
+    window.onload = function() {
+      setTimeout(checkSDK, 1000);
+    };
+  </script>
+</body>
+</html>

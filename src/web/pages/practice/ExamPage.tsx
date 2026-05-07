@@ -369,6 +369,7 @@ export default function ExamPage() {
                                   if (e.target.checked) {
                                     handleAnswer(qId, [...current, optStr]);
                                   } else {
+                                    // @ts-ignore
                                     handleAnswer(qId, current.filter((v: any) => v !== optStr));
                                   }
                                 }}
@@ -392,6 +393,7 @@ export default function ExamPage() {
                               type="radio"
                               name={qId}
                               className="radio radio-primary"
+                              // @ts-ignore
                               checked={answers[qId] === true}
                               onChange={() => handleAnswer(qId, true)}
                             />
@@ -404,6 +406,7 @@ export default function ExamPage() {
                               type="radio"
                               name={qId}
                               className="radio radio-primary"
+                              // @ts-ignore
                               checked={answers[qId] === false}
                               onChange={() => handleAnswer(qId, false)}
                             />

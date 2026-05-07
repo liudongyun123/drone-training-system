@@ -52,6 +52,7 @@ export default function AdminShopOrders() {
     try {
       setLoading(true)
       const filters = statusFilter !== 'all' ? { orderType: 'shop', status: statusFilter } : { orderType: 'shop' }
+      // @ts-ignore
       const data = await unifiedOrderApi.getList(filters)
       setOrders(data.orders)
     } catch (err) {

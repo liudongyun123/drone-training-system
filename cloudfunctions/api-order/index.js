@@ -374,6 +374,46 @@ async function cancelOrder(data, openid) {
 }
 
 /**
+ * 删除订单（仅允许删除已取消的订单）
+ *
+ * @param {Object} data
+ * @param {string} data.orderId - 订单 ID
+ */
+async function deleteOrder(data, openid) {
+  const { orderId } = data
+
+  if (!orderId) {
+    return { success: false, error: '缺少订单 ID' }
+  }
+
+  // 获取订单
+  const res = await db.collection('orders').doc(orderId).get()
+  if (!res.data) {
+    return { success: false, error: '订单不存在' }
+  }
+
+  const order = res.data
+
+  // 仅允许删除已取消的订单
+  if (order.status !== 'cancelled' && order.status !== 'refunded') {
+    return { success: false, error: '仅允许删除已取消或已退款的订单' }
+  }
+
+  await db.collection('orders').doc(orderId).remove()
+
+  console.log('[api-order] 删除订单:', orderId)
+
+  return {
+    success: true,
+    data: {
+      orderId,
+      orderNo: order.orderNo
+    },
+    message: '订单已删除'
+  }
+}
+
+/**
  * 格式化订单数据（去掉 _openid 等内部字段）
  */
 function formatOrder(order) {
@@ -453,6 +493,11 @@ exports.main = async (event, context) => {
       // 取消订单
       case 'cancel':
         result = await cancelOrder(data, openid)
+        break
+
+      // 删除订单
+      case 'delete':
+        result = await deleteOrder(data, openid)
         break
 
       default:

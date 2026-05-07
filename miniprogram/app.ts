@@ -2,6 +2,7 @@
 // 无人机培训小程序入口
 
 import { initCloud } from './utils/cloudbase'
+import logger from './utils/logger'
 
 interface IAppOption {
   globalData: {
@@ -27,14 +28,13 @@ App<IAppOption>({
     // 检查 Storage 状态
     const userId = wx.getStorageSync('userId')
     const loginInfo = wx.getStorageSync('loginInfo')
-    console.log('[App] onLaunch Storage userId:', userId)
-    console.log('[App] onLaunch Storage loginInfo:', JSON.stringify(loginInfo))
+    logger.debug('App', 'onLaunch Storage', { userId, hasLoginInfo: !!loginInfo })
     
     this.checkLoginStatus()
   },
 
   onError(err) {
-    console.error('[App] Error:', err)
+    logger.error('App', 'Error', err)
   },
 
   onShow() {

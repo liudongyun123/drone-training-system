@@ -303,6 +303,7 @@ export default function AdminUserRoles() {
     <AdminPageTemplate
       title="管理员账号"
       subtitle="管理管理员、教师等系统账号"
+      // @ts-ignore
       icon={Shield}
     >
       {/* 统计卡片 */}

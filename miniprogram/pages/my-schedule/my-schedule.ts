@@ -4,6 +4,7 @@
 import { getMySchedules } from '../../utils/http'
 import { formatDate } from '../../utils/util'
 import { checkLogin } from '../../utils/util'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -70,7 +71,7 @@ Page({
       
       this.calculateDaySchedules()
     } catch (err) {
-      console.error('加载日程失败:', err)
+      logger.error('日程', '加载日程失败', err)
       this.setData({ loading: false })
     }
   },

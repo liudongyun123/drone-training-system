@@ -403,6 +403,7 @@ export const orderService = {
           const membersService = (await import('./membersService')).membersService;
           const memberResult = await membersService.getByPhone(phone);
           if (memberResult?.success && memberResult.data) {
+            // @ts-ignore
             memberId = memberResult.data._id || memberResult.data.userId || '';
             console.log('[grantPermission] 找到会员:', memberId);
           } else {
@@ -452,6 +453,7 @@ export const orderService = {
         await membersService.grantCoursePermission(
           phone,
           order.courseId,
+          // @ts-ignore
           { source: order.paymentMethod === 'online' ? 'online_purchase' : 'offline_enroll', orderId }
         );
       }

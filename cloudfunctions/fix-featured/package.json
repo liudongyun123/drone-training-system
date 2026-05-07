@@ -1,0 +1,10 @@
+{
+  "name": "fix-featured",
+  "version": "1.0.0",
+  "description": "修复首页配置",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest",
+    "tcb-admin-node": "latest"
+  }
+}

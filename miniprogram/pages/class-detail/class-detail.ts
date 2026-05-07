@@ -4,6 +4,7 @@
 import { classApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
 import { dbGetList } from '../../utils/http'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -38,7 +39,7 @@ Page({
         loading: false
       })
     } catch (err) {
-      console.error('加载培训班失败:', err)
+      logger.error('培训班', '加载培训班失败', err)
       this.setData({ loading: false })
       showToast('加载失败')
     }

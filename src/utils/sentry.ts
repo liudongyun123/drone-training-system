@@ -26,6 +26,7 @@ export function initSentry() {
     integrations: [
       browserTracingIntegration({
         // 追踪页面加载性能
+        // @ts-ignore
         startTransactionOnLocationChange: true,
       }),
     ],
@@ -67,6 +68,7 @@ export function initSentry() {
     ],
     
     // 是否开启面包屑追踪
+    // @ts-ignore
     enableBreadcrumbHints: true,
     
     // 最大已有面包屑数

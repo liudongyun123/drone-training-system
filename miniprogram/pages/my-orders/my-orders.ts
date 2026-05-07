@@ -2,7 +2,8 @@
 // 我的订单页
 
 import { orderApi } from '../../utils/api'
-import { checkLogin, getUserId } from '../../utils/util'
+import { checkLogin, getUserId, showToast } from '../../utils/util'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -38,12 +39,12 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const userId = getUserId()!
+      const userId = getUserId() || ''
       const orderType = this.data.currentTab === 'all' ? undefined : this.data.currentTab as 'course' | 'shop'
       const orders = await orderApi.getByUserId(userId, orderType)
       this.setData({ orders, loading: false })
     } catch (err) {
-      console.error('加载订单失败:', err)
+      logger.error('订单', '加载订单失败', err)
       this.setData({ loading: false })
     }
   },
@@ -58,7 +59,7 @@ Page({
   // 支付订单
   payOrder(e: any) {
     const order = e.currentTarget.dataset.order
-    // TODO: 调用支付接口
+    // 微信支付功能需要商户号配置，暂时显示提示
     wx.showToast({ title: '支付功能开发中', icon: 'none' })
   },
 
@@ -70,9 +71,28 @@ Page({
       content: '确定要取消该订单吗？',
       success: async (res) => {
         if (res.confirm) {
-          // TODO: 调用取消订单接口
-          wx.showToast({ title: '已取消', icon: 'success' })
-          this.loadOrders()
+          try {
+            // 调用云函数取消订单
+            const result = await wx.cloud.callFunction({
+              name: 'api-order',
+              data: {
+                action: 'cancel',
+                orderId
+              }
+            })
+
+            logger.debug('订单', '取消订单云函数返回', result)
+
+            if (result.result && result.result.success) {
+              wx.showToast({ title: '已取消', icon: 'success' })
+              this.loadOrders()
+            } else {
+              throw new Error(result.result?.error || '取消失败')
+            }
+          } catch (err: any) {
+            logger.error('订单', '取消订单失败', err)
+            wx.showToast({ title: err.message || '取消失败', icon: 'none' })
+          }
         }
       }
     })
@@ -86,9 +106,28 @@ Page({
       content: '确定要删除该订单吗？',
       success: async (res) => {
         if (res.confirm) {
-          // TODO: 调用删除订单接口
-          wx.showToast({ title: '已删除', icon: 'success' })
-          this.loadOrders()
+          try {
+            // 调用云函数删除订单
+            const result = await wx.cloud.callFunction({
+              name: 'api-order',
+              data: {
+                action: 'delete',
+                orderId
+              }
+            })
+
+            logger.debug('订单', '删除订单云函数返回', result)
+
+            if (result.result && result.result.success) {
+              wx.showToast({ title: '已删除', icon: 'success' })
+              this.loadOrders()
+            } else {
+              throw new Error(result.result?.error || '删除失败')
+            }
+          } catch (err: any) {
+            logger.error('订单', '删除订单失败', err)
+            wx.showToast({ title: err.message || '删除失败', icon: 'none' })
+          }
         }
       }
     })

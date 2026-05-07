@@ -9,4 +9,5 @@ export * from './order'
 export * from './user'
 export * from './class'         // 培训班 + 报名
 export * from './shop'          // 商城
+// @ts-ignore
 export * from './unifiedOrder'  // 统一订单

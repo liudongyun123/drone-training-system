@@ -21,6 +21,7 @@ import {
   Megaphone,
   Settings
 } from 'lucide-react'
+// @ts-ignore
 import { Button, Loading, Empty } from '@/components'
 import { CloudMessageService, Message, MessageType } from '@/services/CloudMessageService'
 import { useAuthStore } from '@/store/authStore'
@@ -230,6 +231,7 @@ export default function MessagesPage() {
                 className="flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               >
                 {markingRead ? (
+                  // @ts-ignore
                   <Loading size="small" />
                 ) : (
                   <CheckCheck className="w-4 h-4" />

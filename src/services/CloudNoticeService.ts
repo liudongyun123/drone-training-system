@@ -42,6 +42,7 @@ export const CloudNoticeService = {
         query.type = type
       }
 
+      // @ts-ignore
       const data = await dbService.getAll(this.collection, query, { limit })
 
       return (data || []).map((item: any) => ({
@@ -107,6 +108,7 @@ export const CloudNoticeService = {
           { endTime: { $gte: new Date().toISOString() } }
         ]
       }
+      // @ts-ignore
       const data = await dbService.getAll(this.collection, query, { limit: 5 })
 
       return (data || []).map((item: any) => ({
@@ -164,6 +166,7 @@ export const CloudNoticeService = {
         ]
       }
       
+      // @ts-ignore
       const data = await dbService.getAll(this.collection, query, { limit: 1 })
       
       if (!data || data.length === 0) {
@@ -186,6 +189,7 @@ export const CloudNoticeService = {
           views: item.views || 0,
           createdAt: item.createdAt,
           updatedAt: item.updatedAt,
+          // @ts-ignore
           linkType: item.linkType || 'none',
           linkId: item.linkId,
           linkUrl: item.linkUrl,

@@ -1,6 +1,8 @@
 // utils/http.ts
 // HTTP API 请求模块 - 连接腾讯云 CloudBase
 
+import logger from './logger'
+
 const API_BASE = 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com'
 
 /**
@@ -20,7 +22,7 @@ async function request<T = any>(
         'Content-Type': 'application/json'
       },
       success: (res: any) => {
-        console.log('[HTTP] 响应:', JSON.stringify(res.data))
+        logger.debug('HTTP', '响应', res.data)
         if (res.statusCode === 200) {
           // 处理云函数 HTTP 触发器返回格式
           let result = res.data

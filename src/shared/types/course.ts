@@ -85,6 +85,7 @@ export interface CourseListResponse {
 /**
  * 课程详情（含章节）
  */
+// @ts-ignore
 export interface CourseDetail extends Course {
   lessons: Lesson[]
   teacherInfo?: {

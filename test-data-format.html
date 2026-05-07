@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据格式验证 - 无人机培训系统</title>
+  <script src="https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@1.4.1/tcb.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { color: #333; margin-bottom: 20px; }
+    .section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .section h2 { color: #2563eb; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+    .test-btn { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .test-btn:hover { background: #1d4ed8; }
+    .test-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+    .result { margin-top: 15px; padding: 15px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; max-height: 400px; overflow-y: auto; }
+    .result pre { white-space: pre-wrap; word-break: break-all; font-size: 13px; line-height: 1.5; }
+    .success { color: #059669; }
+    .error { color: #dc2626; }
+    .loading { color: #d97706; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { text-align: left; padding: 10px; border: 1px solid #e5e7eb; font-size: 13px; }
+    th { background: #f3f4f6; font-weight: 600; }
+    .field-match { color: #059669; }
+    .field-mismatch { color: #dc2626; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+    .stat-card.success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .stat-card.error { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+    .stat-value { font-size: 32px; font-weight: bold; }
+    .stat-label { font-size: 14px; opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>数据格式验证工具</h1>
+    
+    <div class="summary" id="summary"></div>
+    
+    <div class="section">
+      <h2>1. SDK 初始化状态</h2>
+      <button class="test-btn" id="startBtn" onclick="runTests()">开始测试</button>
+      <div id="initResult" class="result"></div>
+    </div>
+    
+    <div class="section">
+      <h2>2. 课程数据 (api-course)</h2>
+      <button class="test-btn" onclick="testCourse()">测试</button>
+      <div id="courseResult" class="result"></div>
+    </div>
+    
+    <div class="section">
+      <h2>3. 轮播图数据 (banners)</h2>
+      <button class="test-btn" onclick="testBanners()">测试</button>
+      <div id="bannersResult" class="result"></div>
+    </div>
+    
+    <div class="section">
+      <h2>4. 教师数据 (teachers)</h2>
+      <button class="test-btn" onclick="testTeachers()">测试</button>
+      <div id="teachersResult" class="result"></div>
+    </div>
+  </div>
+
+  <script>
+    // 配置信息
+    const ENV_ID = 'rcwljy-5ghmq2ex26764978';
+    const PUBLISHABLE_KEY = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY2M2M2Q4MTQ5OCJ9.eyJpc3MiOiJodHRwczovL3Jjd2xqeS01Z2htcTJleDI2NzY0OTc4LmFwLXNoYW5naGFpLnRjYi1hcGkudGVuY2VudGNsb3VkYXBpLmNvbSIsInN1YiI6ImFub24iLCJhdWQiOiJyY3dsanktNWdobXEyZXgyNjc2NDk3OCIsImV4cCI6NDA3NzU5NTUxNCwiaWF0IjoxNzczOTEyMzE0LCJub25jZSI6Ik5ta1U4MXRaUTdHTnFvT2kxY3hrOHciLCJhdF9oYXNoIjoiTm1rVTgxdFpRN0dOcW9PaTFjeGs4dyIsIm5hbWUiOiJBbm9ueW1vdXMiLCJzY29wZSI6ImFub255bW91cyIsInByb2plY3RfaWQiOiJyY3dsanktNWdobXEyZXgyNjc2NDk3OCIsInVzZXJfdHlwZSI6IiIsImNsaWVudF90eXBlIjoiY2xpZW50X3VzZXIiLCJpc19zeXN0ZW1fYWRtaW4iOmZhbHNlfQ.QBOkGCaryupFFhFuxDIwDljwC5PRan_zMneIjlaa9_UJLz1ajlBumYCmaFA5IAYQ97yC5fuxmH36HjhBoegA3XY1gE_BNL0aRcD-Gwu5Tmk57IrPzXKKkXN3eSCbJmD3aLVDeHguRyUO1Qc3oSIiUVlVox77BGj7GFw9TdQzJaWnrRWSmhsPaQoiSqI7HjhdDhIpVoMBZfSpAY1kqEjUvZ8r54e6vHgGm6XmeQXFQQ9141SUAt839J45rkhrRWS28Yxt6Rlbrk7nGllYV-q_uuTzdCaBw0aUYdoRJAHoyaPyTz2rIPexk36Ox8Ai9pQpmn9RcrTpm0MXJIoQrrwNLw';
+    
+    let app = null;
+    let results = { init: null, course: null, banners: null, teachers: null };
+
+    async function initSDK() {
+      const resultDiv = document.getElementById('initResult');
+      resultDiv.innerHTML = '<span class="loading">正在初始化 SDK...</span>';
+      
+      return new Promise((resolve) => {
+        try {
+          // 创建应用实例
+          app = cloudbase.initialize({
+            env: ENV_ID,
+            appAccessKeyId: PUBLISHABLE_KEY
+          });
+          
+          resultDiv.innerHTML = '<span class="success">SDK 实例创建成功</span><br>环境ID: ' + ENV_ID + '<br>正在验证连接...';
+          results.init = { success: true };
+          
+          // 测试云函数调用来验证连接
+          app.callFunction({
+            name: 'api-course',
+            data: { action: 'list', page: 1, pageSize: 1 }
+          }).then(res => {
+            if (res.result) {
+              resultDiv.innerHTML += '<br><span class="success">云函数连接验证成功!</span>';
+              results.init.verified = true;
+            } else {
+              resultDiv.innerHTML += '<br><span class="error">云函数返回异常</span>';
+              results.init.verified = false;
+            }
+            resolve(true);
+          }).catch(err => {
+            resultDiv.innerHTML += '<br><span class="error">云函数调用失败: ' + err.message + '</span>';
+            results.init.verified = false;
+            resolve(true);
+          });
+          
+        } catch (e) {
+          resultDiv.innerHTML = '<span class="error">SDK 初始化失败: ' + e.message + '</span>';
+          results.init = { success: false, error: e.message };
+          resolve(false);
+        }
+      });
+    }
+
+    async function testCourse() {
+      const resultDiv = document.getElementById('courseResult');
+      if (!app) {
+        resultDiv.innerHTML = '<span class="error">请先初始化 SDK</span>';
+        return;
+      }
+      
+      resultDiv.innerHTML = '<span class="loading">正在调用 api-course...</span>';
+      
+      try {
+        const res = await app.callFunction({
+          name: 'api-course',
+          data: { action: 'list', page: 1, pageSize: 3 }
+        });
+        
+        const data = res.result;
+        results.course = data;
+        
+        if (data && data.success) {
+          const courses = data.data?.list || [];
+          let html = `<span class="success">调用成功，获取 ${courses.length} 条课程</span>`;
+          
+          if (courses.length > 0) {
+            const course = courses[0];
+            html += '<table><tr><th>字段</th><th>值</th><th>状态</th></tr>';
+            
+            const checks = [
+              { field: '_id', value: course._id },
+              { field: 'title', value: course.title },
+              { field: 'cover', value: course.cover },
+              { field: 'price', value: course.price },
+              { field: 'rating', value: course.rating, important: true },
+              { field: 'studentCount', value: course.studentCount, important: true },
+              { field: 'level', value: course.level },
+              { field: 'description', value: course.description },
+            ];
+            
+            checks.forEach(check => {
+              const hasValue = check.value !== undefined && check.value !== null && check.value !== '';
+              html += `<tr>
+                <td><strong>${check.field}</strong>${check.important ? ' *' : ''}</td>
+                <td>${hasValue ? JSON.stringify(check.value) : '(空)'}</td>
+                <td class="${hasValue ? 'field-match' : 'field-mismatch'}">${hasValue ? '正常' : '缺失'}</td>
+              </tr>`;
+            });
+            
+            html += '</table>';
+          }
+          
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = '<span class="error">调用失败: ' + (data?.error || '未知错误') + '</span>';
+        }
+      } catch (e) {
+        resultDiv.innerHTML = '<span class="error">调用异常: ' + e.message + '</span>';
+        results.course = { success: false, error: e.message };
+      }
+    }
+
+    async function testBanners() {
+      const resultDiv = document.getElementById('bannersResult');
+      if (!app) {
+        resultDiv.innerHTML = '<span class="error">请先初始化 SDK</span>';
+        return;
+      }
+      
+      resultDiv.innerHTML = '<span class="loading">正在调用 banners...</span>';
+      
+      try {
+        const res = await app.callFunction({
+          name: 'api-course',
+          data: { action: 'banners', limit: 3 }
+        });
+        
+        const data = res.result;
+        results.banners = data;
+        
+        if (data && data.success) {
+          const banners = data.data || [];
+          let html = `<span class="success">调用成功，获取 ${banners.length} 条轮播图</span>`;
+          
+          if (banners.length > 0) {
+            const banner = banners[0];
+            html += '<table><tr><th>字段</th><th>值</th><th>状态</th></tr>';
+            
+            const checks = [
+              { field: '_id', value: banner._id },
+              { field: 'image', value: banner.image, important: true },
+              { field: 'title', value: banner.title },
+              { field: 'subtitle', value: banner.subtitle },
+              { field: 'link', value: banner.link },
+            ];
+            
+            checks.forEach(check => {
+              const isValid = check.value !== undefined && check.value !== null;
+              html += `<tr>
+                <td><strong>${check.field}</strong>${check.important ? ' *' : ''}</td>
+                <td>${check.value || '(空)'}</td>
+                <td class="${isValid ? 'field-match' : 'field-mismatch'}">${isValid ? '正常' : '缺失'}</td>
+              </tr>`;
+            });
+            
+            html += '</table>';
+          }
+          
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = '<span class="error">调用失败: ' + (data?.error || '未知错误') + '</span>';
+        }
+      } catch (e) {
+        resultDiv.innerHTML = '<span class="error">调用异常: ' + e.message + '</span>';
+      }
+    }
+
+    async function testTeachers() {
+      const resultDiv = document.getElementById('teachersResult');
+      if (!app) {
+        resultDiv.innerHTML = '<span class="error">请先初始化 SDK</span>';
+        return;
+      }
+      
+      resultDiv.innerHTML = '<span class="loading">正在调用 teachers...</span>';
+      
+      try {
+        const res = await app.callFunction({
+          name: 'api-course',
+          data: { action: 'teachers' }
+        });
+        
+        const data = res.result;
+        results.teachers = data;
+        
+        if (data && data.success) {
+          const teachers = data.data || [];
+          let html = `<span class="success">调用成功，获取 ${teachers.length} 位教师</span>`;
+          
+          if (teachers.length > 0) {
+            const teacher = teachers[0];
+            html += '<table><tr><th>字段</th><th>值</th><th>状态</th></tr>';
+            
+            const checks = [
+              { field: '_id', value: teacher._id },
+              { field: 'name', value: teacher.name },
+              { field: 'title', value: teacher.title },
+              { field: 'avatar', value: teacher.avatar },
+              { field: 'specialty', value: teacher.specialty },
+            ];
+            
+            checks.forEach(check => {
+              const isValid = check.value !== undefined && check.value !== null;
+              html += `<tr>
+                <td><strong>${check.field}</strong></td>
+                <td>${check.value || '(空)'}</td>
+                <td class="${isValid ? 'field-match' : 'field-mismatch'}">${isValid ? '正常' : '缺失'}</td>
+              </tr>`;
+            });
+            
+            html += '</table>';
+          }
+          
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = '<span class="error">调用失败: ' + (data?.error || '未知错误') + '</span>';
+        }
+      } catch (e) {
+        resultDiv.innerHTML = '<span class="error">调用异常: ' + e.message + '</span>';
+      }
+    }
+
+    function updateSummary() {
+      const summaryDiv = document.getElementById('summary');
+      const testResults = [
+        { name: 'SDK初始化', result: results.init },
+        { name: '课程接口', result: results.course },
+        { name: '轮播图接口', result: results.banners },
+        { name: '教师接口', result: results.teachers }
+      ];
+      
+      let html = '';
+      testResults.forEach(test => {
+        const isSuccess = test.result && test.result.success !== false;
+        html += `
+          <div class="stat-card ${isSuccess ? 'success' : 'error'}">
+            <div class="stat-value">${isSuccess ? 'OK' : 'FAIL'}</div>
+            <div class="stat-label">${test.name}</div>
+          </div>
+        `;
+      });
+      
+      summaryDiv.innerHTML = html;
+    }
+
+    async function runTests() {
+      const btn = document.getElementById('startBtn');
+      btn.disabled = true;
+      btn.textContent = '测试中...';
+      
+      const initialized = await initSDK();
+      if (initialized) {
+        await testCourse();
+        await testBanners();
+        await testTeachers();
+        updateSummary();
+      }
+      
+      btn.disabled = false;
+      btn.textContent = '重新测试';
+    }
+  </script>
+</body>
+</html>

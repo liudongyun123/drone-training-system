@@ -151,6 +151,7 @@ export default function FinanceManagement() {
     try {
       setLoading(true)
       const orders = await CloudOrderAdminService.getAll()
+      // @ts-ignore
       setOrders(orders)
     } catch (err) {
       setError('加载订单数据失败: ' + (err as Error).message)

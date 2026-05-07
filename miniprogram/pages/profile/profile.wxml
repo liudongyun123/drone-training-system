@@ -15,12 +15,12 @@
         <view class="avatar-box" bindtap="chooseAvatar">
           <image 
             class="avatar" 
-            src="{{userInfo.avatar || 'https://via.placeholder.com/100?text=头像'}}" 
+            src="{{userInfo.avatarUrl || 'https://via.placeholder.com/100?text=头像'}}" 
             mode="aspectFill" 
           />
         </view>
         <view class="user-detail">
-          <text class="user-name">{{userInfo.nickname || '未登录'}}</text>
+          <text class="user-name">{{userInfo.nickName || '未登录'}}</text>
           <view class="user-phone-row">
             <text class="user-phone">{{userInfo.phone || '未绑定手机'}}</text>
             <text wx:if="{{!userInfo.phone}}" class="bind-btn" bindtap="bindPhone">去绑定</text>

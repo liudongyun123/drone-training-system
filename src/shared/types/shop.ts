@@ -52,6 +52,10 @@ export interface Product {
   stock: number            // 总库存
   salesCount: number       // 销量
   
+  // 详情和规格
+  detail?: string          // 商品详情
+  specifications?: string  // 规格参数
+  
   // 规格
   specList: ProductSpec[]  // 规格列表
   skuList?: ProductSKU[]   // SKU列表

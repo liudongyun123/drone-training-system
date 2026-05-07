@@ -2,6 +2,7 @@
 // 培训班列表页
 
 import { classApi } from '../../utils/api'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -46,7 +47,7 @@ Page({
         loading: false
       })
     } catch (err) {
-      console.error('加载培训班列表失败:', err)
+      logger.error('培训班', '加载培训班列表失败', err)
       this.setData({ loading: false })
     }
   },
@@ -74,7 +75,7 @@ Page({
         hasMore: newClasses.length >= 10
       })
     } catch (err) {
-      console.error('加载更多失败:', err)
+      logger.error('培训班', '加载更多失败', err)
     }
   },
 

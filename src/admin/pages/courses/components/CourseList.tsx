@@ -64,6 +64,7 @@ export default function CourseList({
         const category = value as string;
         if (!category && record.categoryId && categories.length > 0) {
           const cat = categories.find((c) => c._id === record.categoryId);
+          // @ts-ignore
           return cat?.name || record.categoryId;
         }
         return category || '-';

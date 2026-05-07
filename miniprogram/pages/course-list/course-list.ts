@@ -2,6 +2,7 @@
 // 课程列表页
 
 import { courseApi } from '../../utils/api'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -49,7 +50,7 @@ Page({
       const categoryNames = categories.map((c: any) => c.name || c)
       this.setData({ categories: ['全部', ...categoryNames] })
     } catch (err) {
-      console.error('加载分类失败:', err)
+      logger.error('课程', '加载分类失败', err)
       // 使用默认分类（与 categories 集合一致）
       this.setData({ categories: ['全部', '植保无人机', '安防无人机', '航拍无人机', '物流无人机', '应急无人机', '电力巡检无人机'] })
     }
@@ -99,7 +100,7 @@ Page({
         loading: false
       })
     } catch (err) {
-      console.error('加载课程失败:', err)
+      logger.error('课程', '加载课程失败', err)
       this.setData({ loading: false })
     }
   },
@@ -147,7 +148,7 @@ Page({
         hasMore: newCourses.length >= 10
       })
     } catch (err) {
-      console.error('加载更多失败:', err)
+      logger.error('课程', '加载更多失败', err)
     }
   },
 

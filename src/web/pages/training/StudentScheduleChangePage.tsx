@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from 'react'
 import { scheduleChangeService } from '@/services/enrollmentService'
-import { app as cloudbaseApp } from '@/utils/cloudbase'
 import { useAuthStore } from '@/store/authStore'
+import { scheduleApi, classApi } from '@/services/webApi'
 
 interface ScheduleChange {
   _id: string
@@ -78,47 +78,27 @@ export default function StudentScheduleChange() {
   // 加载培训班的排课列表（从 class_schedules）
   const loadSchedules = async () => {
     try {
-      const db = cloudbaseApp.database()
-      
-      // 获取当前用户的所有报名记录
       const { user } = useAuthStore.getState()
       const userId = user?.uid || ''
+      const userPhone = user?.phone || localStorage.getItem('user_phone') || ''
       
-      // 查询用户报名的班级
-      const enrollResult = await db.collection('enrollments')
-        .where({ _openid: userId, status: 'active' })
-        .field({ classId: true })
-        .limit(100)
-        .get()
+      // 使用云函数获取我的排课
+      const res = await scheduleApi.getMySchedules({
+        userId,
+        phone: userPhone,
+        pageSize: 100
+      })
       
-      const classIds = enrollResult.data?.map((e: any) => e.classId) || []
-      
-      if (classIds.length > 0) {
-        // 从 class_schedules 获取排课
-        const schedulesResult = await db.collection('class_schedules')
-          .where({
-            classId: db.command.in(classIds)
-          })
-          .orderBy('date', 'asc')
-          .orderBy('startTime', 'asc')
-          .limit(100)
-          .get()
-        
-        // 获取班级名称
-        const classResult = await db.collection('classes')
-          .where({ _id: db.command.in(classIds) })
-          .field({ _id: true, name: true })
-          .limit(100)
-          .get()
-        
-        const classNameMap: Record<string, string> = {}
-        classResult.data?.forEach((c: any) => {
-          classNameMap[c._id] = c.name
-        })
-        
-        const schedulesWithClassName = (schedulesResult.data || []).map((s: any) => ({
-          ...s,
-          className: classNameMap[s.classId] || '未知班级'
+      if (res.success && res.data) {
+        const schedulesWithClassName = (res.data.list || []).map((s: any) => ({
+          _id: s._id,
+          classId: s.classId,
+          title: s.title || s.class?.name || s.course?.name || '课程',
+          date: s.scheduleDate || s.date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          location: s.location || s.class?.location || '',
+          className: s.class?.name || '未知班级'
         }))
         
         setSchedules(schedulesWithClassName)
@@ -260,7 +240,7 @@ export default function StudentScheduleChange() {
                       <div className="text-sm text-gray-600">
                         <div>日期：{schedule.date}</div>
                         <div>时间：{schedule.startTime} - {schedule.endTime}</div>
-                        <div>场地：{schedule.classroom}</div>
+                        <div>场地：{schedule.location || '未指定'}</div>
                       </div>
                     </div>
                   </div>
@@ -361,7 +341,8 @@ export default function StudentScheduleChange() {
                 <div>课程：{selectedSchedule.title}</div>
                 <div>日期：{selectedSchedule.date}</div>
                 <div>时间：{selectedSchedule.startTime} - {selectedSchedule.endTime}</div>
-                <div>场地：{selectedSchedule.classroom}</div>
+                // @ts-ignore
+                <div>场地：{selectedSchedule.location}</div>
               </div>
             </div>
 

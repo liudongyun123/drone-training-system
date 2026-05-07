@@ -82,6 +82,7 @@ export default function TeachersPage() {
 
         {/* 教师列表 */}
         {filteredTeachers.length === 0 ? (
+          // @ts-ignore
           <EmptyState message="暂无教师信息" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

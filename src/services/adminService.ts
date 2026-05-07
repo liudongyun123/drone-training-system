@@ -1,41 +1,26 @@
 /**
- * 管理后台服务 - 生产规范 v5.0
+ * 管理后台服务 - 简化版 v7.0
  * 
- * 使用统一的模块化 action 格式: {module}.{operation}
- * 同时提供通用 CRUD 方法供其他服务层使用
- * 
- * 模块列表:
- * - course: 课程管理 (list/get/create/update/delete)
- * - schedule: 排课管理 (list/get/create/update/delete)
- * - transfer: 调课申请 (list/get/create/review/cancel/statistics)
- * - dashboard: 仪表板 (stats/enrollmentTrend/courseRanking)
- * 
- * 通用 CRUD:
- * - list(collection, query, options): 列表查询
- * - get(collection, id): 单条查询
- * - add(collection, data): 创建
- * - update(collection, id, data): 更新
- * - delete(collection, id): 删除
- * - count(collection, query): 计数
- * - upsert(collection, id, data): 存在则更新，不存在则创建
+ * 使用 api-admin 云函数的基本 CRUD 操作
+ * 支持: list, get, add, update, delete, count
  */
 
-import { app } from '@/utils/cloudbase'
+import { ensureInit } from '@/utils/cloudbase'
 
-// ==================== 配置 ====================
+const CLOUD_FUNCTION_NAME = 'api-admin'
 
-const CLOUD_FUNCTION_NAME = import.meta.env.VUE_APP_ADMIN_FUNCTION || 'admin-http'
-
-// ==================== 核心调用 ====================
-
-async function callAdminFunction(action, params = {}) {
+async function callAdminFunction(action: string, params: Record<string, unknown> = {}) {
   try {
+    await ensureInit()
+    const { getCloudbaseApp } = await import('@/utils/cloudbase')
+    const app = getCloudbaseApp()
+    
     const result = await app.callFunction({
       name: CLOUD_FUNCTION_NAME,
       data: { action, ...params }
     })
 
-    const response = result.result
+    const response = result.result as { code: number; message?: string; data?: unknown }
 
     if (response.code !== 0) {
       throw new Error(response.message || '操作失败')
@@ -48,145 +33,194 @@ async function callAdminFunction(action, params = {}) {
   }
 }
 
-// ==================== 通用 CRUD 方法 ====================
-
-/**
- * 通用 CRUD 操作 - 供其他服务层使用
- * 支持所有集合的通用增删改查操作
- */
 export const adminService = {
   // ==================== 通用 CRUD ====================
   
-  /**
-   * 列表查询
-   * @param collection 集合名称
-   * @param query 查询条件 (可选)
-   * @param options 选项 { limit, skip, page, orderBy, order } (可选)
-   */
-  list: (collection: string, query: Record<string, any> = {}, options: Record<string, any> = {}) => {
+  list: (collection: string, query: Record<string, unknown> = {}, options: Record<string, unknown> = {}) => {
     return callAdminFunction('list', { collection, query, ...options })
   },
 
-  /**
-   * 单条查询
-   * @param collection 集合名称
-   * @param id 文档ID
-   */
   get: (collection: string, id: string) => {
     return callAdminFunction('get', { collection, id })
   },
 
-  /**
-   * 创建记录
-   * @param collection 集合名称
-   * @param data 文档数据
-   */
-  add: (collection: string, data: Record<string, any>) => {
+  add: (collection: string, data: Record<string, unknown>) => {
     return callAdminFunction('add', { collection, data })
   },
 
-  /**
-   * 更新记录
-   * @param collection 集合名称
-   * @param id 文档ID
-   * @param data 更新数据
-   */
-  update: (collection: string, id: string, data: Record<string, any>) => {
+  update: (collection: string, id: string, data: Record<string, unknown>) => {
     return callAdminFunction('update', { collection, id, data })
   },
 
-  /**
-   * 删除记录
-   * @param collection 集合名称
-   * @param id 文档ID
-   */
   delete: (collection: string, id: string) => {
     return callAdminFunction('delete', { collection, id })
   },
 
-  /**
-   * 计数查询
-   * @param collection 集合名称
-   * @param query 查询条件 (可选)
-   */
-  count: (collection: string, query: Record<string, any> = {}) => {
+  count: (collection: string, query: Record<string, unknown> = {}) => {
     return callAdminFunction('count', { collection, query })
   },
 
-  /**
-   * 存在则更新，不存在则创建
-   * @param collection 集合名称
-   * @param id 文档ID
-   * @param data 文档数据
-   */
-  upsert: (collection: string, id: string, data: Record<string, any>) => {
-    return callAdminFunction('upsert', { collection, id, data })
+  // ==================== 便捷方法 ====================
+  
+  // 课程
+  listCourses: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'courses', ...options })
   },
 
-  // ==================== 课程管理 ====================
-  
-  /** 课程列表 */
-  listCourses: (params = {}) => callAdminFunction('course.list', params),
+  getCourse: (id: string) => {
+    return callAdminFunction('get', { collection: 'courses', id })
+  },
 
-  /** 课程详情 */
-  getCourse: (courseId) => callAdminFunction('course.get', { id: courseId }),
+  createCourse: (data: Record<string, unknown>) => {
+    return callAdminFunction('add', { collection: 'courses', data })
+  },
 
-  /** 创建课程 */
-  createCourse: (data) => callAdminFunction('course.create', { data }),
+  updateCourse: (id: string, data: Record<string, unknown>) => {
+    return callAdminFunction('update', { collection: 'courses', id, data })
+  },
 
-  /** 更新课程 */
-  updateCourse: (courseId, data) => callAdminFunction('course.update', { id: courseId, data }),
+  deleteCourse: (id: string) => {
+    return callAdminFunction('delete', { collection: 'courses', id })
+  },
 
-  /** 删除课程 */
-  deleteCourse: (courseId) => callAdminFunction('course.delete', { id: courseId }),
+  // 班级
+  listClasses: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'classes', ...options })
+  },
 
-  // ==================== 排课管理 ====================
-  
-  /** 排课列表 */
-  listSchedules: (params = {}) => callAdminFunction('schedule.list', params),
+  getClass: (id: string) => {
+    return callAdminFunction('get', { collection: 'classes', id })
+  },
 
-  /** 排课详情 */
-  getSchedule: (scheduleId) => callAdminFunction('schedule.get', { id: scheduleId }),
+  createClass: (data: Record<string, unknown>) => {
+    return callAdminFunction('add', { collection: 'classes', data })
+  },
 
-  /** 创建排课 */
-  createSchedule: (data) => callAdminFunction('schedule.create', { data }),
+  updateClass: (id: string, data: Record<string, unknown>) => {
+    return callAdminFunction('update', { collection: 'classes', id, data })
+  },
 
-  /** 更新排课 */
-  updateSchedule: (scheduleId, data) => callAdminFunction('schedule.update', { id: scheduleId, data }),
+  deleteClass: (id: string) => {
+    return callAdminFunction('delete', { collection: 'classes', id })
+  },
 
-  /** 删除排课 */
-  deleteSchedule: (scheduleId) => callAdminFunction('schedule.delete', { id: scheduleId }),
+  // 排课
+  listSchedules: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'class_schedules', ...options })
+  },
 
-  // ==================== 调课申请 ====================
-  
-  /** 调课申请列表 */
-  listTransfers: (params = {}) => callAdminFunction('transfer.list', params),
+  getSchedule: (id: string) => {
+    return callAdminFunction('get', { collection: 'class_schedules', id })
+  },
 
-  /** 调课申请详情 */
-  getTransfer: (transferId) => callAdminFunction('transfer.get', { id: transferId }),
+  createSchedule: (data: Record<string, unknown>) => {
+    return callAdminFunction('add', { collection: 'class_schedules', data })
+  },
 
-  /** 创建调课申请 */
-  createTransfer: (data) => callAdminFunction('transfer.create', { data }),
+  updateSchedule: (id: string, data: Record<string, unknown>) => {
+    return callAdminFunction('update', { collection: 'class_schedules', id, data })
+  },
 
-  /** 审核调课申请 */
-  reviewTransfer: (transferId, data) => callAdminFunction('transfer.review', { id: transferId, data }),
+  deleteSchedule: (id: string) => {
+    return callAdminFunction('delete', { collection: 'class_schedules', id })
+  },
 
-  /** 取消调课申请 */
-  cancelTransfer: (transferId) => callAdminFunction('transfer.cancel', { id: transferId }),
+  // 报名
+  listEnrollments: (query: Record<string, unknown> = {}, options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'enrollments', query, ...options })
+  },
 
-  /** 调课统计 */
-  getTransferStats: () => callAdminFunction('transfer.statistics'),
+  getEnrollment: (id: string) => {
+    return callAdminFunction('get', { collection: 'enrollments', id })
+  },
 
-  // ==================== 仪表板 ====================
-  
-  /** 仪表板统计 */
-  getDashboardStats: () => callAdminFunction('dashboard.stats'),
+  createEnrollment: (data: Record<string, unknown>) => {
+    return callAdminFunction('add', { collection: 'enrollments', data })
+  },
 
-  /** 报名趋势 */
-  getEnrollmentTrend: (params = {}) => callAdminFunction('dashboard.enrollmentTrend', params),
+  updateEnrollment: (id: string, data: Record<string, unknown>) => {
+    return callAdminFunction('update', { collection: 'enrollments', id, data })
+  },
 
-  /** 课程排名 */
-  getCourseRanking: (limit = 10) => callAdminFunction('dashboard.courseRanking', { limit })
+  // 学员
+  listMembers: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'members', ...options })
+  },
+
+  getMember: (id: string) => {
+    return callAdminFunction('get', { collection: 'members', id })
+  },
+
+  createMember: (data: Record<string, unknown>) => {
+    return callAdminFunction('add', { collection: 'members', data })
+  },
+
+  updateMember: (id: string, data: Record<string, unknown>) => {
+    return callAdminFunction('update', { collection: 'members', id, data })
+  },
+
+  // 教师
+  listTeachers: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'teachers', ...options })
+  },
+
+  getTeacher: (id: string) => {
+    return callAdminFunction('get', { collection: 'teachers', id })
+  },
+
+  createTeacher: (data: Record<string, unknown>) => {
+    return callAdminFunction('add', { collection: 'teachers', data })
+  },
+
+  updateTeacher: (id: string, data: Record<string, unknown>) => {
+    return callAdminFunction('update', { collection: 'teachers', id, data })
+  },
+
+  // 订单
+  listOrders: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'orders', ...options })
+  },
+
+  getOrder: (id: string) => {
+    return callAdminFunction('get', { collection: 'orders', id })
+  },
+
+  // 优惠券
+  listCoupons: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'coupons', ...options })
+  },
+
+  getCoupon: (id: string) => {
+    return callAdminFunction('get', { collection: 'coupons', id })
+  },
+
+  createCoupon: (data: Record<string, unknown>) => {
+    return callAdminFunction('add', { collection: 'coupons', data })
+  },
+
+  updateCoupon: (id: string, data: Record<string, unknown>) => {
+    return callAdminFunction('update', { collection: 'coupons', id, data })
+  },
+
+  // 轮播图
+  listBanners: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'banners', ...options })
+  },
+
+  // 分类
+  listCategories: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'categories', ...options })
+  },
+
+  // 考试
+  listExams: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'exams', ...options })
+  },
+
+  // 题库
+  listBankQuestions: (options: Record<string, unknown> = {}) => {
+    return callAdminFunction('list', { collection: 'bankQuestions', ...options })
+  },
 }
 
 export default adminService

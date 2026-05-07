@@ -24,7 +24,7 @@ import type {
 } from '../types/permission'
 import type { MemberSource } from '../types/member'
 
-const CLOUD_FUNCTION_NAME = 'admin'
+const CLOUD_FUNCTION_NAME = 'api-admin'
 
 /**
  * 调用管理后台云函数
@@ -148,6 +148,7 @@ export const permissionService = {
                 if (validUntil > new Date()) {
                   return {
                     allowed: true,
+                    // @ts-ignore
                     source: 'class',
                     validUntil: member.videoValidUntil,
                     memberSource: 'online_enroll' // 或 offline_enroll
@@ -157,6 +158,7 @@ export const permissionService = {
                 // 无有效期限制，永久有效
                 return {
                   allowed: true,
+                  // @ts-ignore
                   source: 'class',
                   memberSource: 'online_enroll'
                 }
@@ -561,6 +563,7 @@ export const permissionService = {
       status: 'enrolled' as const,
       attendance: { total: 0, present: 0, absent: 0, late: 0 },
       videoEnabled: m.videoEnabled ?? true,
+      // @ts-ignore
       videoValidUntil: m.videoValidUntil,
       enrolledAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),

@@ -3,6 +3,7 @@
 
 import { showToast } from '../../utils/util'
 import { callFunction, dbGetList } from '../../utils/http'
+import logger from '../../utils/logger'
 
 interface Lesson {
   _id: string
@@ -35,7 +36,9 @@ Page({
     // 进度保存定时器
     _progressTimer: null as any,
     // 是否已记录完成
-    _completed: false
+    _completed: false,
+    // 下一课时ID
+    nextLessonId: ''
   },
 
   onLoad(options: any) {
@@ -102,8 +105,19 @@ Page({
         currentVideoUrl: lesson.videoUrl,
         watchedDuration,
         progress,
-        loading: false
+        loading: false,
+        // 计算下一课时ID
+        nextLessonId: ''
       })
+
+      // 计算下一课时ID
+      setTimeout(() => {
+        const currentIndex = lessons.findIndex((l: Lesson) => l._id === lessonId)
+        const nextLesson = lessons[currentIndex + 1]
+        if (nextLesson) {
+          this.setData({ nextLessonId: nextLesson._id })
+        }
+      }, 0)
 
       // 启动进度保存定时器（每10秒保存一次）
       this.startProgressTimer()
@@ -126,7 +140,7 @@ Page({
       }
 
     } catch (err) {
-      console.error('加载课程失败:', err)
+      logger.error('播放', '加载课程失败', err)
       this.setData({ loading: false })
       showToast('加载失败')
     }
@@ -179,7 +193,7 @@ Page({
         completed: _completed
       })
     } catch (e) {
-      console.error('保存进度失败:', e)
+      logger.error('播放', '保存进度失败', e)
     }
   },
 
@@ -211,7 +225,7 @@ Page({
   },
 
   onError(e: any) {
-    console.error('视频播放错误:', e.detail)
+    logger.error('播放', '视频播放错误', e.detail)
     showToast('视频加载失败')
   },
 
@@ -241,7 +255,7 @@ Page({
       }
 
     } catch (e) {
-      console.error('标记完成失败:', e)
+      logger.error('播放', '标记完成失败', e)
     }
   },
 
@@ -283,12 +297,12 @@ Page({
         })
       }
     } catch (e) {
-      console.error('证书颁发失败:', e)
+      logger.error('播放', '证书颁发失败', e)
     }
   },
 
-  // 切换课时
-  switchLesson(e: any) {
+    // 切换课时
+    switchLesson(e: any) {
     const lessonId = e.currentTarget.dataset.id
     const lesson = this.data.lessons.find(l => l._id === lessonId)
 
@@ -300,6 +314,11 @@ Page({
     // 保存当前课时进度
     this.saveProgress()
 
+    // 计算下一课时ID
+    const currentIndex = this.data.lessons.findIndex(l => l._id === lessonId)
+    const nextLesson = this.data.lessons[currentIndex + 1]
+    const nextLessonId = nextLesson ? nextLesson._id : ''
+
     // 切换到新课时
     this.setData({
       lessonId,
@@ -308,7 +327,8 @@ Page({
       currentTime: 0,
       watchedDuration: 0,
       progress: 0,
-      _completed: false
+      _completed: false,
+      nextLessonId
     })
 
     // 加载新课时进度

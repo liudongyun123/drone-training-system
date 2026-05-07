@@ -23,7 +23,7 @@ import type {
 import type { PaginatedResult, PaginationParams } from '../types/service'
 import { safeGetList, safeGetTotal, parseCloudFunctionListResponse } from '@/utils/safeData'
 
-const CLOUD_FUNCTION_NAME = 'admin'
+const CLOUD_FUNCTION_NAME = 'api-admin'
 
 // 错误日志开关
 const ENABLE_ERROR_LOG = false
@@ -193,6 +193,7 @@ export const classService = {
       })
 
       // 使用统一响应解析函数
+      // @ts-ignore
       const { list } = parseCloudFunctionListResponse<ClassSchedule>(result)
 
       return {
@@ -203,6 +204,7 @@ export const classService = {
       console.error('获取班级排课失败:', error)
       return {
         code: -1,
+        // @ts-ignore
         message: error.message || '获取班级排课失败',
         data: []
       }

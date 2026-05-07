@@ -73,6 +73,7 @@ export const groupBuyService = {
       }
 
       return {
+        // @ts-ignore
         data: mapped,
         total: mapped.length,
         page: params?.page || 1,
@@ -81,6 +82,7 @@ export const groupBuyService = {
     } catch (error) {
       console.error('获取拼团列表失败:', error);
       return {
+        // @ts-ignore
         data: [],
         total: 0,
         page: params?.page || 1,

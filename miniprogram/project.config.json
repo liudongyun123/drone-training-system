@@ -40,7 +40,13 @@
     "minifyWXML": true,
     "useCompilerPlugins": [
       "typescript"
-    ]
+    ],
+    "compileWorklet": false,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
   },
   "compileType": "miniprogram",
   "libVersion": "2.32.3",
@@ -49,9 +55,19 @@
     "tabIndent": "insertSpaces",
     "tabSize": 2
   },
-  "cloudfunctionRoot": "../cloudfunctions/",
+  "cloudfunctionRoot": "cloudfunctions/",
   "cloudbaseRoot": "../",
   "simulatorType": "wechat",
   "simulatorPluginLibVersion": {},
-  "conditionFile": "condition.json"
+  "conditionFile": "condition.json",
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "/minitest"
+      }
+    ],
+    "include": []
+  },
+  "testRoot": "minitest/"
 }

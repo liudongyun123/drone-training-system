@@ -163,6 +163,7 @@ export default function UserManagement() {
         },
       })
       
+      // @ts-ignore
       if (result.code === 0) {
         setSnackbar({ open: true, message: '用户添加成功', severity: 'success' })
         setAddDialogOpen(false)

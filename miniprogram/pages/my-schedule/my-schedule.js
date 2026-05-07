@@ -1,108 +1,66 @@
 // pages/my-schedule/my-schedule.js
-// 我的日程页面
-
-const app = getApp()
-import { dbGetList } from '../../utils/http'
-
 Page({
+
+  /**
+   * 页面的初始数据
+   */
   data: {
-    dates: [],
-    currentDate: '',
-    schedule: [],
-    dayScheduleCount: 0,
-    loading: false
+
   },
 
+  /**
+   * 生命周期函数--监听页面加载
+   */
   onLoad(options) {
-    this.initDates()
-    this.loadSchedule()
+
   },
 
+  /**
+   * 生命周期函数--监听页面初次渲染完成
+   */
+  onReady() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面显示
+   */
   onShow() {
-    // this.loadSchedule()
+
   },
 
-  initDates() {
-    const dates = []
-    const today = new Date()
-    
-    for (let i = -3; i <= 3; i++) {
-      const date = new Date(today)
-      date.setDate(today.getDate() + i)
-      const month = date.getMonth() + 1
-      const day = date.getDate()
-      dates.push(`${month}/${day}`)
-    }
-    
-    const currentDate = dates[3]
-    
-    this.setData({ dates, currentDate })
+  /**
+   * 生命周期函数--监听页面隐藏
+   */
+  onHide() {
+
   },
 
-  selectDate(e) {
-    const date = e.currentTarget.dataset.date
-    this.setData({ currentDate: date })
-    this.calculateDayScheduleCount()
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload() {
+
   },
 
-  async loadSchedule() {
-    this.setData({ loading: true })
-    
-    try {
-      const userId = wx.getStorageSync('userId') || ''
-      const openid = wx.getStorageSync('openid') || ''
-      const uid = userId || openid
-      
-      if (!uid) {
-        this.setData({ loading: false, schedule: [] })
-        return
-      }
-      
-      const result = await dbGetList('schedules', {
-        where: { userId: uid },
-        orderBy: 'startTime asc'
-      })
-      
-      this.setData({ 
-        loading: false,
-        schedule: result.data || []
-      })
-      
-      this.calculateDayScheduleCount()
-      
-    } catch (err) {
-      console.error('加载日程失败:', err)
-      this.setData({ loading: false })
-      wx.showToast({ title: '加载失败', icon: 'none' })
-    }
-  },
-
-  calculateDayScheduleCount() {
-    const { schedule, currentDate } = this.data
-    const todayStr = currentDate
-    
-    const daySchedule = schedule.filter(item => {
-      const itemDate = item.startTime?.substring(5, 10)
-      return itemDate === todayStr
-    })
-    
-    this.setData({ dayScheduleCount: daySchedule.length })
-  },
-
+  /**
+   * 页面相关事件处理函数--监听用户下拉动作
+   */
   onPullDownRefresh() {
-    this.loadSchedule().finally(() => {
-      wx.stopPullDownRefresh()
-    })
+
   },
 
+  /**
+   * 页面上拉触底事件的处理函数
+   */
   onReachBottom() {
-    // 可实现分页加载
+
   },
 
+  /**
+   * 用户点击右上角分享
+   */
   onShareAppMessage() {
-    return {
-      title: '我的日程',
-      path: '/pages/my-schedule/my-schedule'
-    }
+
   }
 })

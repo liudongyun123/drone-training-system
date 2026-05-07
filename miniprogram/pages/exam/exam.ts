@@ -2,6 +2,7 @@
 // 考试/练习答题页
 
 import { getQuestions, dbQuery, dbGetList } from '../../utils/http'
+import logger from '../../utils/logger'
 
 interface Question {
   _id: string
@@ -70,7 +71,7 @@ Page({
         })
       }
     } catch (err) {
-      console.error('加载题目失败:', err)
+      logger.error('考试', '加载题目失败', err)
       wx.showToast({ title: '加载题目失败', icon: 'none' })
     }
   },

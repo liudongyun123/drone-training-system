@@ -3,6 +3,7 @@
 
 import { getMyEnrollments } from '../../utils/http'
 import { checkLogin } from '../../utils/util'
+import logger from '../../utils/logger'
 
 Page({
   data: {
@@ -58,7 +59,7 @@ Page({
 
       this.setData({ classes, loading: false })
     } catch (err) {
-      console.error('加载我的培训班失败:', err)
+      logger.error('培训班', '加载我的培训班失败', err)
       this.setData({ loading: false })
     }
   },

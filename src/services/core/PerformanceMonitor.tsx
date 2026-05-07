@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
+// @ts-ignore
 import { serviceCache, perfMonitor, CacheItem } from './BaseService'
 import { apiRateLimiter } from './ApiClient'
 

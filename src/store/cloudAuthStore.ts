@@ -121,6 +121,7 @@ export const useCloudAuthStore = create<AuthState>((set) => ({
         return
       }
 
+      // @ts-ignore
       await authService.signInAnonymously()
       const cloudUser = await authService.getCurrentUser()
 

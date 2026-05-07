@@ -5,6 +5,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useQuery } from '@/hooks/useQuery'
 import { useAdd, useDelete } from '@/hooks/useMutation'
+// @ts-ignore
 import { Course } from '@/types/database'
 import {
   Box,

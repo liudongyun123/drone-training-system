@@ -1,14 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import * as SentryVitePlugin from "@sentry/vite-plugin";
+// Sentry Vite Plugin - 暂时禁用，避免导入警告
+// import * as SentryVitePlugin from "@sentry/vite-plugin";
+const SentryVitePlugin = null;
 
-// 直接读取环境变量
-const ENV_ID = "rcwl-d2gu92btga6de8ca1";
-const PUBLISHABLE_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY2M2M2Q4MTQ5OCJ9.eyJpc3MiOiJodHRwczovL3Jjd2wtZDJndTkyYnRnYTZkZThjYTEuYXAtc2hhbmdoYWkudGNiLWFwaS50ZW5jZW50Y2xvdWRhcGkuY29tIiwic3ViIjoiYW5vbiIsImF1ZCI6InJjd2wtZDJndTkyYnRnYTZkZThjYTEiLCJleHAiOjQwODEwMjY0NTMsImlhdCI6MTc3NzM0MzI1Mywibm9uY2UiOiJDRlhuUUlYclI0V2ZmOVhDMVhvcGRRIiwiYXRfaGFzaCI6IkNGWG5RSVhyUjRXZmY5WEMxWG9wZFEiLCJuYW1lIjoiQW5vbnltb3VzIiwic2NvcGUiOiJhbm9ueW1vdXMiLCJwcm9qZWN0X2lkIjoicmN3bC1kMmd1OTJidGdhNmRlOGNhMSIsIm1ldGEiOnsicGxhdGZvcm0iOiJQdWJsaXNoYWJsZUtleSJ9LCJ1c2VyX3R5cGUiOiIiLCJjbGllbnRfdHlwZSI6ImNsaWVudF91c2VyIiwiaXNfc3lzdGVtX2FkbWluIjpmYWxzZX0.qwqnftrE8v3ULRCoV_n_hCmOY5UVeOcTNfi3kmtow8MWehWmX3QXNXyqOkvlnftJKu2q-ErrwpgzujfvR9AUoFG-R3Q28WN5ZvwCD7XbketM3G6-nr6kpZfHcXoyGW-Y5p0PMzULHZgROzzHu456riMtTMdKY6RuDma85CDSnE3C42pjWnfGGOAgytgWtGasC2mR2RgcLa2Y7eWbBE50uVpY8hXIsXjgSPh8wq_sCdL5ZAa231DF_SPNmXGJFwT8HgjRfPm3M_fe9LjBWM4TOSoaAzlqbzthmfY8_Tp1ajaZjLWwCIpzedRT7mzEuZJQArivQNYjAFprsJYfdp0veA";
+// 直接读取环境变量 - 使用 rcwljy 环境
+const ENV_ID = "rcwljy-5ghmq2ex26764978";
+const PUBLISHABLE_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY2M2M2Q4MTQ5OCJ9.eyJpc3MiOiJodHRwczovL3Jjd2xqeS01Z2htcTJleDI2NzY0OTc4LmFwLXNoYW5naGFpLnRjYi1hcGkudGVuY2VudGNsb3VkYXBpLmNvbSIsInN1YiI6ImFub24iLCJhdWQiOiJyY3dsanktNWdobXEyZXgyNjc2NDk3OCIsImV4cCI6NDA3NzU5NTUxNCwiaWF0IjoxNzczOTEyMzE0LCJub25jZSI6Ik5ta1U4MXRaUTdHTnFvT2kxY3hrOHciLCJhdF9oYXNoIjoiTm1rVTgxdFpRN0dOcW9PaTFjeGs4dyIsIm5hbWUiOiJBbm9ueW1vdXMiLCJzY29wZSI6ImFub255bW91cyIsInByb2plY3RfaWQiOiJyY3dsanktNWdobXEyZXgyNjc2NDk3OCIsInVzZXJfdHlwZSI6IiIsImNsaWVudF90eXBlIjoiY2xpZW50X3VzZXIiLCJpc19zeXN0ZW1fYWRtaW4iOmZhbHNlfQ.QBOkGCaryupFFhFuxDIwDljwC5PRan_zMneIjlaa9_UJLz1ajlBumYCmaFA5IAYQ97yC5fuxmH36HjhBoegA3XY1gE_BNL0aRcD-Gwu5Tmk57IrPzXKKkXN3eSCbJmD3aLVDeHguRyUO1Qc3oSIiUVlVox77BGj7GFw9TdQzJaWnrRWSmhsPaQoiSqI7HjhdDhIpVoMBZfSpAY1kqEjUvZ8r54e6vHgGm6XmeQXFQQ9141SUAt839J45rkhrRWS28Yxt6Rlbrk7nGllYV-q_uuTzdCaBw0aUYdoRJAHoyaPyTz2rIPexk36Ox8Ai9pQpmn9RcrTpm0MXJIoQrrwNLw";
 
 // 构建版本号
-const BUILD_VERSION = 'v20260430-2250-api-v5';
+const BUILD_VERSION = 'v20260506-1033-fix';
 
 // Sentry 配置
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
@@ -21,18 +23,18 @@ export default defineConfig({
     }),
     // Sentry 插件（生产环境构建时自动上传 source maps）
     ...(SENTRY_DSN ? [
-      SentryVitePlugin({
-        dsn: SENTRY_DSN,
-        org: process.env.SENTRY_ORG || '',
-        project: process.env.SENTRY_PROJECT || 'drone-training-system',
-        authToken: process.env.SENTRY_AUTH_TOKEN || '',
-        // 上传哪些文件
-        include: './dist',
-        // 忽略哪些文件
-        ignore: ['node_modules', 'vite.config.ts'],
-        // 部署前删除 source maps（已上传到 Sentry）
-        deleteOldAssets: true,
-      })
+      // SentryVitePlugin({
+      //   dsn: SENTRY_DSN,
+      //   org: process.env.SENTRY_ORG || '',
+      //   project: process.env.SENTRY_PROJECT || 'drone-training-system',
+      //   authToken: process.env.SENTRY_AUTH_TOKEN || '',
+      //   // 上传哪些文件
+      //   include: './dist',
+      //   // 忽略哪些文件
+      //   ignore: ['node_modules', 'vite.config.ts'],
+      //   // 部署前删除 source maps（已上传到 Sentry）
+      //   deleteOldAssets: true,
+      // })
     ] : []),
   ],
   base: "/",
@@ -41,7 +43,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/__auth": {
-        target: "https://envId-appid.tcloudbaseapp.com/",
+        target: `https://${ENV_ID}.tcloudbaseapp.com/`,
         changeOrigin: true,
       },
     },
@@ -63,7 +65,8 @@ export default defineConfig({
       'react-router-dom',
       'zustand',
       'dayjs',
-      'axios'
+      'axios',
+      '@cloudbase/js-sdk'
     ],
     exclude: [],
   },
@@ -84,7 +87,7 @@ export default defineConfig({
         manualChunks: {
           // React Router
           'vendor-router': ['react-router-dom'],
-          // MUI 核心库（不包含 emotion 和 icons，约 478KB）
+          // UI 核心库（不包含 emotion 和 icons，约 478KB）
           'vendor-mui-core': ['@mui/material'],
           // Emotion 样式引擎（MUI 依赖，约 26KB）
           'vendor-emotion': ['@emotion/react', '@emotion/styled'],

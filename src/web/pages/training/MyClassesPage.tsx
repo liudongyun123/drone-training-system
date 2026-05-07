@@ -29,7 +29,7 @@ import { classService } from '@/services';
 import { useAuthStore } from '@/store/authStore';
 import { Loading, ErrorState, toast } from '@/components';
 import type { Registration } from '@/types/registration';
-import type { ClassV2, ClassScheduleV2 } from '@/types/class';
+import type { ClassV2, ClassScheduleV2 } from '@/types';
 
 interface MyClassInfo {
   registration: Registration;
@@ -63,7 +63,8 @@ export default function MyClassesPage() {
       const regResult = await registrationService.getMyRegistrations(user.id, user.phone);
       
       // 兼容处理返回格式 - getMyRegistrations 返回 { code, data: { list, total } }
-      const registrations = regResult?.data?.list || regResult?.data || [];
+      const rawData = regResult?.data;
+      const registrations = rawData?.list || (Array.isArray(rawData) ? rawData : []);
       console.log('[我的班级] 报名记录:', registrations);
       
       // 过滤出有班级的记录（source 为 offline 或 hybrid）
@@ -198,7 +199,7 @@ export default function MyClassesPage() {
             {myClasses.map(({ registration, classInfo, schedules }) => {
               const status = getStatusDisplay(registration.status);
               const StatusIcon = status.icon;
-              const hasVideoAccess = registration.videoAccess?.hasAccess;
+              const hasVideoAccess = registration.access?.videoEnabled;
               
               return (
                 <div key={registration._id} className="card bg-base-100 shadow-xl">
@@ -388,12 +389,13 @@ export default function MyClassesPage() {
                         {schedule.status === 'scheduled' ? '待上课' :
                          schedule.status === 'completed' ? '已完成' :
                          schedule.status === 'cancelled' ? '已取消' :
+                         // @ts-ignore
                          schedule.status === 'adjusted' ? '已调整' : schedule.status}
                       </span>
                     </div>
-                    {schedule.description && (
+                    {schedule.content && (
                       <div className="mt-2 text-sm text-gray-600 pl-[76px]">
-                        {schedule.description}
+                        {schedule.content}
                       </div>
                     )}
                   </div>

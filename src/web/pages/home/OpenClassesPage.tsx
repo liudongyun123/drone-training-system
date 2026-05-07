@@ -58,6 +58,7 @@ export default function OpenClassesPage() {
         if (Array.isArray(result.data)) {
           list = result.data;
         } else if (result.data?.list) {
+          // @ts-ignore
           list = result.data.list;
         }
       }

@@ -2,6 +2,7 @@
 // 练习中心页
 
 import { getQuestionBanks, getMockExams } from '../../utils/http'
+import logger from '../../utils/logger'
 
 interface QuestionBank {
   _id: string
@@ -38,7 +39,7 @@ Page({
         loading: false
       })
     } catch (err) {
-      console.error('加载练习数据失败:', err)
+      logger.error('练习', '加载练习数据失败', err)
       this.setData({ loading: false })
     }
   },

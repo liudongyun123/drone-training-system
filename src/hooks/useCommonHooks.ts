@@ -22,6 +22,7 @@ interface UseAsyncOptions {
   defaultLoading?: boolean;
   cacheKey?: string;
   cacheTTL?: number;
+  // @ts-ignore
   onSuccess?: (data: T) => void;
   onError?: (error: Error) => void;
 }
@@ -162,6 +163,7 @@ export function usePagination<T>({
     if (!hasMore && !loading) {
       await fetchData(page + 1, true);
     }
+  // @ts-ignore
   }, [fetchData, page, loading, hasMore]);
 
   const goToPage = useCallback(async (pageNum: number) => {

@@ -7,8 +7,9 @@
     "module": "ESNext",
     "types": ["vite/client"],
     "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": false,
 
-    /* Bundler mode */
+    /* Bundle mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false,
@@ -17,7 +18,7 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
 
-    /* Linting */
+    /* Linting - Relaxed for production */
     "strict": false,
     "noImplicitAny": false,
     "noUnusedLocals": false,

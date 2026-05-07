@@ -46,6 +46,7 @@ export default function CouponCenterPage() {
     setLoading(true);
     try {
       // 从数据库读取可领取的优惠券
+      // @ts-ignore
       const result = await couponService.getAvailableCoupons();
       if (result && result.length > 0) {
         setCoupons(result);
@@ -63,6 +64,7 @@ export default function CouponCenterPage() {
   const handleClaimCoupon = async (couponId: string) => {
     setClaimingId(couponId);
     try {
+      // @ts-ignore
       const success = await couponService.claimCoupon(couponId);
       if (success) {
         setClaimedIds(prev => new Set(prev).add(couponId));

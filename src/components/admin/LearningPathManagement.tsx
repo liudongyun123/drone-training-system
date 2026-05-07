@@ -201,8 +201,10 @@ export default function LearningPathManagement() {
         categoryIds: path.categoryIds || [],
         classIds: path.classIds || [],
         classNames: path.classNames || [],
+        // @ts-ignore
         difficulty: path.difficulty,
         estimatedHours: path.estimatedHours,
+        // @ts-ignore
         status: path.status,
         items: [...path.items],
       })
@@ -694,6 +696,7 @@ export default function LearningPathManagement() {
                   <TextField {...params} placeholder="选择课程分类" size="small" />
                 )}
                 renderOption={(props, option) => {
+                  // @ts-ignore
                   const { key, ...other } = props
                   return (
                     <li key={key} {...other}>
@@ -754,6 +757,7 @@ export default function LearningPathManagement() {
                   <TextField {...params} placeholder="选择开班班级" size="small" />
                 )}
                 renderOption={(props, option) => {
+                  // @ts-ignore
                   const { key, ...other } = props
                   return (
                     <li key={key} {...other}>

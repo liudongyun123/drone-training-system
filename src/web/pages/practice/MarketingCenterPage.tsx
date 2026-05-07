@@ -396,7 +396,9 @@ export default function MarketingCenter() {
         couponService.getStats(),
         groupBuyService.getStats(),
       ]);
+      // @ts-ignore
       setCoupons(couponRes.data);
+      // @ts-ignore
       setGroupBuys(groupBuyRes.data);
       setCouponStats(couponStatRes.data);
       setGroupBuyStats({

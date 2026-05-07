@@ -11,7 +11,7 @@
  * 此服务保留用于向后兼容，将在后续版本中删除
  */
 
-import { app } from '@/utils/cloudbase'
+import { ensureInit } from '@/utils/cloudbase'
 import type { Course } from '../types'
 
 // 课程数据服务（云开发版本）
@@ -19,6 +19,9 @@ export const CloudCourseService = {
   // 获取所有课程
   async getAll(): Promise<Course[]> {
     try {
+      await ensureInit()
+      const { getCloudbaseApp } = await import('@/utils/cloudbase')
+      const app = getCloudbaseApp()
       const data = await app.database().collection('courses').get()
       return data.data.map((c: any) => ({
         _id: c._id,
@@ -53,7 +56,9 @@ export const CloudCourseService = {
       }
 
       console.log('CloudCourseService.getById 查询ID:', id)
-      // ✅ 修复：直接查询指定ID，而不是获取全量数据后筛选
+      await ensureInit()
+      const { getCloudbaseApp } = await import('@/utils/cloudbase')
+      const app = getCloudbaseApp()
       const result = await app.database().collection('courses').doc(id).get()
       console.log('查询结果:', result)
 
@@ -98,6 +103,9 @@ export const CloudCourseService = {
       }
 
       console.log('[CloudCourseService.getByCategory] 查询分类ID:', categoryId)
+      await ensureInit()
+      const { getCloudbaseApp } = await import('@/utils/cloudbase')
+      const app = getCloudbaseApp()
       const db = app.database()
       
       // 直接用 categoryId 查询（课程表现在会同时存储 categoryId）
@@ -142,6 +150,9 @@ export const CloudCourseService = {
   // 搜索课程 - 优化：服务端筛选
   async search(keyword: string): Promise<Course[]> {
     try {
+      await ensureInit()
+      const { getCloudbaseApp } = await import('@/utils/cloudbase')
+      const app = getCloudbaseApp()
       const db = app.database()
       const { data } = await db.collection('courses')
         .where({
@@ -178,6 +189,9 @@ export const CloudCourseService = {
       if (level === 'all') {
         return this.getAll()
       }
+      await ensureInit()
+      const { getCloudbaseApp } = await import('@/utils/cloudbase')
+      const app = getCloudbaseApp()
       const db = app.database()
       const { data } = await db.collection('courses')
         .where({ level })

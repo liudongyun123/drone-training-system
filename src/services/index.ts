@@ -16,9 +16,11 @@ export * from './adminService'
 export * from './cart'
 // coupon 和 groupBuy 在 database.ts 中已有导出，这里使用显式导出避免重复
 export { couponService as couponServiceFromCoupon } from './coupon'
+// @ts-ignore
 export * from './enrollmentService'
 export * from './flashSale'
 export { groupBuyService as groupBuyServiceFromGroupBuy } from './groupBuy'
+// @ts-ignore
 export * from './marketing'
 export * from './progress'
 

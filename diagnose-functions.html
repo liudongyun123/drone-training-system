@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>云函数诊断 - 无人机培训系统</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; padding: 20px; background: #f5f5f5; }
+    .card { background: white; border-radius: 8px; padding: 20px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .success { color: green; }
+    .error { color: red; }
+    .loading { color: orange; }
+    pre { background: #f0f0f0; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+    button { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; margin: 5px; }
+    button:hover { background: #1d4ed8; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .result { margin-top: 10px; }
+    input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px; }
+    label { display: block; margin: 10px 0 5px; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <h1>☁️ CloudBase 云函数诊断</h1>
+  
+  <div class="card">
+    <h2>1. CloudBase SDK 初始化</h2>
+    <button onclick="testInit()">测试初始化</button>
+    <div id="init-result" class="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. 调用 api-admin 云函数</h2>
+    <label>集合名:</label>
+    <input type="text" id="collection" value="courses" placeholder="courses">
+    <br>
+    <label>Action:</label>
+    <select id="action">
+      <option value="list">list (列表查询)</option>
+      <option value="get">get (单条查询)</option>
+      <option value="count">count (计数)</option>
+    </select>
+    <br><br>
+    <button onclick="testAdminApi()">调用 api-admin</button>
+    <div id="admin-result" class="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. 调用 api-course 云函数</h2>
+    <button onclick="testCourseApi()">调用 api-course (list)</button>
+    <div id="course-result" class="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>4. 直接数据库查询 (SDK)</h2>
+    <button onclick="testDatabase()">查询 courses 集合</button>
+    <div id="db-result" class="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>5. 认证状态检查</h2>
+    <button onclick="checkAuth()">检查登录状态</button>
+    <div id="auth-result" class="result"></div>
+  </div>
+
+  <script src="https://resources.tencent.com/publicResources/tcb/js/cloudbase-app-sdk/2.14.0/cloudbase.js"></script>
+  <script>
+    let app = null;
+    let initialized = false;
+
+    function log(id, message, isError = false) {
+      const el = document.getElementById(id);
+      el.innerHTML = `<pre class="${isError ? 'error' : ''}">${message}</pre>`;
+    }
+
+    async function testInit() {
+      const el = document.getElementById('init-result');
+      el.innerHTML = '<span class="loading">正在初始化...</span>';
+      
+      try {
+        if (!initialized) {
+          app = cloudbase.init({
+            env: 'rcwljy-5ghmq2ex26764978'
+          });
+          initialized = true;
+        }
+        log('init-result', `✅ CloudBase SDK 初始化成功!\nApp: ${JSON.stringify(app, null, 2)}`);
+      } catch (e) {
+        log('init-result', `❌ 初始化失败: ${e.message}`, true);
+      }
+    }
+
+    async function testAdminApi() {
+      const collection = document.getElementById('collection').value;
+      const action = document.getElementById('action').value;
+      const el = document.getElementById('admin-result');
+      el.innerHTML = '<span class="loading">正在调用 api-admin...</span>';
+      
+      try {
+        if (!initialized) {
+          await testInit();
+        }
+        
+        const result = await app.callFunction({
+          name: 'api-admin',
+          data: { 
+            action: action, 
+            collection: collection,
+            _dev: true
+          }
+        });
+        
+        log('admin-result', `✅ api-admin 调用成功!\n\n响应: ${JSON.stringify(result.result, null, 2)}`);
+      } catch (e) {
+        log('admin-result', `❌ api-admin 调用失败: ${e.message}`, true);
+      }
+    }
+
+    async function testCourseApi() {
+      const el = document.getElementById('course-result');
+      el.innerHTML = '<span class="loading">正在调用 api-course...</span>';
+      
+      try {
+        if (!initialized) {
+          await testInit();
+        }
+        
+        const result = await app.callFunction({
+          name: 'api-course',
+          data: { 
+            action: 'list',
+            page: 1,
+            pageSize: 10
+          }
+        });
+        
+        log('course-result', `✅ api-course 调用成功!\n\n响应: ${JSON.stringify(result.result, null, 2)}`);
+      } catch (e) {
+        log('course-result', `❌ api-course 调用失败: ${e.message}`, true);
+      }
+    }
+
+    async function testDatabase() {
+      const el = document.getElementById('db-result');
+      el.innerHTML = '<span class="loading">正在查询数据库...</span>';
+      
+      try {
+        if (!initialized) {
+          await testInit();
+        }
+        
+        const db = app.database();
+        const res = await db.collection('courses').limit(5).get();
+        
+        log('db-result', `✅ 数据库查询成功!\n\n数据条数: ${res.data.length}\n\n示例数据: ${JSON.stringify(res.data[0], null, 2)}`);
+      } catch (e) {
+        log('db-result', `❌ 数据库查询失败: ${e.message}`, true);
+      }
+    }
+
+    async function checkAuth() {
+      const el = document.getElementById('auth-result');
+      el.innerHTML = '<span class="loading">正在检查...</span>';
+      
+      try {
+        if (!initialized) {
+          await testInit();
+        }
+        
+        const auth = app.auth();
+        const state = await auth.getLoginState();
+        
+        if (state) {
+          const user = await auth.getCurrentUser();
+          log('auth-result', `✅ 已登录!\n\n用户: ${JSON.stringify(user, null, 2)}`);
+        } else {
+          log('auth-result', `⚠️ 未登录 (这是正常的，公开数据应该可以查询)`);
+        }
+      } catch (e) {
+        log('auth-result', `❌ 认证检查失败: ${e.message}`, true);
+      }
+    }
+
+    // 页面加载时自动初始化
+    window.onload = testInit;
+  </script>
+</body>
+</html>

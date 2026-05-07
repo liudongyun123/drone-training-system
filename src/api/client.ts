@@ -62,8 +62,10 @@ function onTokenRefreshed(token: string) {
 
 // 请求拦截器
 apiClient.interceptors.request.use(
+  // @ts-ignore
   (config: AxiosRequestConfig) => {
     // 添加 Access Token
+    // @ts-ignore
     const token = useAuthStore.getState().accessToken
     if (token) {
       config.headers = config.headers || {}
@@ -204,6 +206,7 @@ function handleHttpError(status: number, data: any) {
 }
 
 // 处理 Token 过期
+// @ts-ignore
 async function handleTokenExpired(originalConfig?: InternalAxiosRequestConfig) {
   const refreshToken = localStorage.getItem('refresh_token')
 

@@ -24,7 +24,7 @@ interface QuestionBank {
   description: string;
   category: string;
   questionCount: number;
-  level: 'easy' | 'medium' | 'hard';
+  level?: 'beginner' | 'intermediate' | 'advanced';
   tags?: string[];
   courseIds?: string[];
   courseTitles?: string[];

@@ -200,9 +200,13 @@ export const orderApi = {
 export const userApi = {
   async getUser(userId: string) {
     const result = await dbQuery('users', { _id: userId })
-    return result.data
+    // 返回单个用户对象而不是数组
+    if (result.data && result.data.length > 0) {
+      return result.data[0]
+    }
+    return null
   },
-  
+
   async updateUser(userId: string, data: any) {
     return await callFunction('updateUser', { userId, ...data })
   }

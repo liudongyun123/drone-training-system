@@ -52,7 +52,9 @@ export function useTeachers({ autoLoad = true }: UseTeachersOptions = {}): UseTe
         teacherList = result.data.list;
       } else if (Array.isArray(result.data)) {
         teacherList = result.data;
+      // @ts-ignore
       } else if (result.data?.data && Array.isArray(result.data.data)) {
+        // @ts-ignore
         teacherList = result.data.data;
       }
 

@@ -257,7 +257,9 @@ export default function AdminMarketing() {
       const [couponRes, groupBuyRes, couponStatRes, groupBuyStatRes] = await Promise.all([
         couponService.getList(), groupBuyService.getList(), couponService.getStats(), groupBuyService.getStats(),
       ]);
+      // @ts-ignore
       setCoupons(couponRes.data || []);
+      // @ts-ignore
       setGroupBuys(groupBuyRes.data || []);
       setCouponStats(couponStatRes.data || { total: 0, active: 0, used: 0, expired: 0 });
       setGroupBuyStats(groupBuyStatRes.data || { total: 0, active: 0, completed: 0, expired: 0, totalParticipants: 0, totalSavings: 0 });

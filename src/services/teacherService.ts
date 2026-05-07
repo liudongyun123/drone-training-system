@@ -7,7 +7,7 @@
 import app from '../config/tcb'
 import type { Teacher, Schedule, PaginationParams } from '../types/service'
 
-const CLOUD_FUNCTION_NAME = 'admin'
+const CLOUD_FUNCTION_NAME = 'api-admin'
 
 // 错误日志开关（生产环境设为 false）
 const ENABLE_ERROR_LOG = false
@@ -109,6 +109,7 @@ export const teacherService = {
 
     return await callAdminFunction('add', {
       collection: 'teacher_profiles',
+      id: 'new', // 云函数 add 操作不使用 docId，这里传一个占位值
       data: teacherData
     })
   },

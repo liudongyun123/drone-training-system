@@ -21,10 +21,10 @@
 
   <!-- 课程信息 -->
   <view class="lesson-info">
-    <view class="lesson-title">{{lesson?.title || '加载中...'}}</view>
+    <view class="lesson-title">{{lesson ? lesson.title : '加载中...'}}</view>
     <view class="lesson-meta">
       <text class="meta-item">进度: {{progress}}%</text>
-      <text class="meta-item">时长: {{lesson?.duration ? formatTime(lesson.duration) : '--:--'}}</text>
+      <text class="meta-item">时长: {{lesson.duration ? formatTime(lesson.duration) : '--:--'}}</text>
     </view>
 
     <!-- 进度条 -->
@@ -59,7 +59,7 @@
   <!-- 底部操作栏 -->
   <view class="bottom-bar">
     <button class="btn-back" bindtap="goBack">返回</button>
-    <button class="btn-next" bindtap="switchLesson" data-id="{{lessons[lessons.findIndex(l => l._id === lessonId) + 1]?._id}}">
+    <button wx:if="{{nextLessonId}}" class="btn-next" bindtap="switchLesson" data-id="{{nextLessonId}}">
       下一课时
     </button>
   </view>

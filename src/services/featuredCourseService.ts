@@ -2,34 +2,39 @@
  * 热门课程管理服务
  * 管理首页热门课程展示配置
  */
-import { db } from './cloudBaseService';
-import { ensureAuthenticated } from '../utils/cloudbase';
+import { ensureInit } from '@/utils/cloudbase'
 
 // 热门课程配置集合
-const COLLECTION_NAME = 'featuredCourses';
+const COLLECTION_NAME = 'featuredCourses'
+
+// 获取数据库实例
+async function getDb() {
+  await ensureInit()
+  const { getCloudbaseApp } = await import('@/utils/cloudbase')
+  const app = getCloudbaseApp()
+  return app.database()
+}
 
 /**
  * 获取首页热门课程列表
  */
 export async function getFeaturedCourses(): Promise<string[]> {
   try {
-    // 确保用户已认证（用于数据库安全规则验证）
-    await ensureAuthenticated();
-    
-    const result = await db.collection(COLLECTION_NAME).doc('home-featured').get();
+    const db = await getDb()
+    const result = await db.collection(COLLECTION_NAME).doc('home-featured').get()
     
     if (result.code) {
-      console.error('获取热门课程失败:', result.code, result.message);
-      return [];
+      console.error('获取热门课程失败:', result.code, result.message)
+      return []
     }
     
     if (result.data && result.data.length > 0) {
-      return result.data[0].courseIds || [];
+      return result.data[0].courseIds || []
     }
-    return [];
+    return []
   } catch (error) {
-    console.error('获取热门课程失败:', error);
-    return [];
+    console.error('获取热门课程失败:', error)
+    return []
   }
 }
 
@@ -39,11 +44,10 @@ export async function getFeaturedCourses(): Promise<string[]> {
  */
 export async function setFeaturedCourses(courseIds: string[]): Promise<boolean> {
   try {
-    // 确保用户已认证（用于数据库安全规则验证）
-    await ensureAuthenticated();
+    const db = await getDb()
     
     // 先尝试获取现有配置
-    const existing = await db.collection(COLLECTION_NAME).doc('home-featured').get();
+    const existing = await db.collection(COLLECTION_NAME).doc('home-featured').get()
     
     if (existing.data && existing.data.length > 0) {
       // 更新现有配置
@@ -52,13 +56,13 @@ export async function setFeaturedCourses(courseIds: string[]): Promise<boolean> 
           courseIds,
           updateTime: new Date().toISOString(),
         }
-      });
+      })
       
       if (result.code) {
-        console.error('更新热门课程失败:', result);
-        return false;
+        console.error('更新热门课程失败:', result)
+        return false
       }
-      return true;
+      return true
     } else {
       // 创建新配置
       const result = await db.collection(COLLECTION_NAME).add({
@@ -68,17 +72,17 @@ export async function setFeaturedCourses(courseIds: string[]): Promise<boolean> 
           createTime: new Date().toISOString(),
           updateTime: new Date().toISOString(),
         }
-      });
+      })
       
       if (result.code) {
-        console.error('创建热门课程配置失败:', result);
-        return false;
+        console.error('创建热门课程配置失败:', result)
+        return false
       }
-      return true;
+      return true
     }
   } catch (error) {
-    console.error('设置热门课程失败:', error);
-    return false;
+    console.error('设置热门课程失败:', error)
+    return false
   }
 }
 
@@ -88,18 +92,18 @@ export async function setFeaturedCourses(courseIds: string[]): Promise<boolean> 
  */
 export async function addFeaturedCourse(courseId: string): Promise<boolean> {
   try {
-    const currentIds = await getFeaturedCourses();
+    const currentIds = await getFeaturedCourses()
     if (currentIds.includes(courseId)) {
-      return true; // 已经存在
+      return true // 已经存在
     }
     if (currentIds.length >= 8) {
-      console.warn('热门课程数量已达上限(8个)');
-      return false;
+      console.warn('热门课程数量已达上限(8个)')
+      return false
     }
-    return await setFeaturedCourses([...currentIds, courseId]);
+    return await setFeaturedCourses([...currentIds, courseId])
   } catch (error) {
-    console.error('添加热门课程失败:', error);
-    return false;
+    console.error('添加热门课程失败:', error)
+    return false
   }
 }
 
@@ -109,12 +113,12 @@ export async function addFeaturedCourse(courseId: string): Promise<boolean> {
  */
 export async function removeFeaturedCourse(courseId: string): Promise<boolean> {
   try {
-    const currentIds = await getFeaturedCourses();
-    const newIds = currentIds.filter(id => id !== courseId);
-    return await setFeaturedCourses(newIds);
+    const currentIds = await getFeaturedCourses()
+    const newIds = currentIds.filter(id => id !== courseId)
+    return await setFeaturedCourses(newIds)
   } catch (error) {
-    console.error('移除热门课程失败:', error);
-    return false;
+    console.error('移除热门课程失败:', error)
+    return false
   }
 }
 
@@ -124,24 +128,22 @@ export async function removeFeaturedCourse(courseId: string): Promise<boolean> {
  */
 export async function reorderFeaturedCourses(courseIds: string[]): Promise<boolean> {
   try {
-    // 确保用户已认证（用于数据库安全规则验证）
-    await ensureAuthenticated();
-    
+    const db = await getDb()
     const result = await db.collection(COLLECTION_NAME).doc('home-featured').update({
       data: {
         courseIds,
         updateTime: new Date().toISOString(),
       }
-    });
+    })
     
     if (result.code) {
-      console.error('更新热门课程顺序失败:', result);
-      return false;
+      console.error('更新热门课程顺序失败:', result)
+      return false
     }
-    return true;
+    return true
   } catch (error) {
-    console.error('更新热门课程顺序失败:', error);
-    return false;
+    console.error('更新热门课程顺序失败:', error)
+    return false
   }
 }
 
