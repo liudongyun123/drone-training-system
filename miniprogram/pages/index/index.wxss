@@ -340,7 +340,7 @@
 
 /* ==================== 学习路径卡片 ==================== */
 .path-card {
-  width: 165rpx;
+  width: 166rpx;
   flex-shrink: 0;
   background: #fff;
   border-radius: 16rpx;

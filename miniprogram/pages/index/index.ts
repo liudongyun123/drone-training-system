@@ -21,6 +21,7 @@ interface IndexData {
   featuredProducts: any[]
   heroBanners: any[]
   learningPaths: any[]  // 学习路径分类
+  learningPathLevelCount: number  // 学习路径等级数量
   currentSource: string  // 当前体系
   sourceList: Array<{ key: string; name: string; icon: string }>
   loading: boolean
@@ -33,6 +34,7 @@ Page<IndexData>({
     featuredProducts: [],
     heroBanners: [],
     learningPaths: [],
+    learningPathLevelCount: 5,  // 默认5级
     currentSource: 'RENSHE',
     sourceList: [
       { key: 'RENSHE', name: '人社培训', icon: '🏛️' },
@@ -80,13 +82,33 @@ Page<IndexData>({
       const currentSource = this.data.currentSource
       
       // 并行加载数据
-      const [courses, classes, products, banners, categories] = await Promise.all([
-        courseApi.getHotCourses(6, currentSource),  // 按体系过滤
-        classApi.getList({ status: 'enrolling', sourceId: currentSource }),  // 按体系过滤
-        productApi.getList({ pageSize: 6 }),
+      const [courses, classes, products, banners, categories, dictionaries] = await Promise.all([
+        courseApi.getHotCourses(hotCourseCount, currentSource),  // 按体系过滤，动态数量
+        classApi.getList({ status: 'enrolling', sourceId: currentSource, pageSize: enrollingClassCount }),  // 按体系过滤，动态数量
+        productApi.getList({ pageSize: productCount }),  // 动态数量
         bannerApi.getList(10),
-        systemConfigApi.getCategories()
+        systemConfigApi.getCategories(),
+        systemConfigApi.getDictionaries()  // 获取字典配置
       ])
+
+      // 获取首页显示配置
+      const homePageConfig = dictionaries?.homePage || {}
+      const hotCourseCount = homePageConfig.hotCourseCount || 6
+      const enrollingClassCount = homePageConfig.enrollingClassCount || 6
+      const productCount = homePageConfig.productCount || 6
+
+      // 获取等级数量 - 从 learningPathCategories 对象中获取当前体系的等级数量
+      let levelCount = 5  // 默认值
+      if (dictionaries && dictionaries.learningPathCategories) {
+        const sourceLevels = dictionaries.learningPathCategories[currentSource]
+        if (sourceLevels) {
+          // 获取任意一个分类的等级数量（所有分类等级数相同）
+          const firstCategoryLevels = Object.values(sourceLevels)[0]
+          if (Array.isArray(firstCategoryLevels)) {
+            levelCount = firstCategoryLevels.length
+          }
+        }
+      }
 
       // 按体系过滤分类
       const filteredCategories = (categories || []).filter((cat: any) => {
@@ -112,6 +134,7 @@ Page<IndexData>({
         featuredProducts: products,
         heroBanners: banners,
         learningPaths: filteredCategories || [],
+        learningPathLevelCount: levelCount,
         loading: false
       })
     } catch (err) {

@@ -143,7 +143,7 @@
               <text class="path-icon">{{item.icon}}</text>
             </view>
             <text class="path-name">{{item.name}}</text>
-            <text class="path-desc">5级进阶体系</text>
+            <text class="path-desc">{{learningPathLevelCount}}级进阶体系</text>
           </view>
         </view>
       </scroll-view>

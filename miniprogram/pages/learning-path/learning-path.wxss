@@ -34,7 +34,7 @@
   display: flex;
   align-items: center;
   padding: 40rpx 30rpx;
-  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
   color: white;
 }
 
@@ -74,7 +74,8 @@
 .level-progress {
   background: white;
   padding: 30rpx;
-  margin-bottom: 20rpx;
+  margin: 0 20rpx 20rpx;
+  border-radius: 16rpx;
 }
 
 .progress-track {
@@ -82,14 +83,16 @@
   align-items: center;
   justify-content: space-between;
   position: relative;
-  padding: 0 20rpx;
+  padding: 0;
 }
 
 .progress-step {
   display: flex;
+  flex-direction: column;
   align-items: center;
   position: relative;
   z-index: 1;
+  flex: 1;
 }
 
 .step-dot {
@@ -99,17 +102,18 @@
   background: #ddd;
   border: 4rpx solid #fff;
   box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.1);
+  margin-bottom: 12rpx;
 }
 
 .progress-step.active .step-dot {
-  background: #4CAF50;
-  border-color: #4CAF50;
+  background: #2563EB;
+  border-color: #2563EB;
 }
 
 .step-line {
   position: absolute;
   top: 12rpx;
-  left: 24rpx;
+  left: 50%;
   width: calc(100% - 24rpx);
   height: 4rpx;
   background: #ddd;
@@ -118,8 +122,8 @@
 .progress-labels {
   display: flex;
   justify-content: space-between;
-  margin-top: 16rpx;
-  padding: 0 10rpx;
+  margin-top: 0;
+  padding: 0;
 }
 
 .progress-label {
@@ -132,6 +136,7 @@
 /* 学习阶段列表 */
 .stages-container {
   padding: 0 20rpx 40rpx;
+  margin: 0 20rpx;
 }
 
 .stage-section {
@@ -199,8 +204,8 @@
 }
 
 .course-cover {
-  width: 160rpx;
-  height: 100rpx;
+  width: 161rpx;
+  height: 101rpx;
   border-radius: 8rpx;
   flex-shrink: 0;
 }
@@ -251,7 +256,7 @@
   background: #f8f8f8;
   border-radius: 12rpx;
   padding: 20rpx;
-  border-left: 6rpx solid #4CAF50;
+  border-left: 6rpx solid #2563EB;
 }
 
 .class-header {
@@ -266,7 +271,7 @@
   border-radius: 6rpx;
   font-size: 20rpx;
   color: white;
-  background: #4CAF50;
+  background: #2563EB;
 }
 
 .class-name {

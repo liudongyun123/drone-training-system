@@ -16,7 +16,7 @@
       </view>
       <view class="path-info">
         <text class="path-title">{{categoryName}}</text>
-        <text class="path-subtitle">系统化学习路径 · 5级进阶体系</text>
+        <text class="path-subtitle">系统化学习路径 · {{stages.length}}级进阶体系</text>
       </view>
     </view>
 
