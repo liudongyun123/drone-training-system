@@ -5,42 +5,6 @@ import logger from './logger'
 
 const API_BASE = 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com'
 
-// 兼容旧 API_BASE 命名
-export { API_BASE }
-
-/**
- * 调用云函数 - mobile-learning
- */
-export async function callMobileLearning(data: {
-  action: string
-  data?: any
-  openid?: string
-}) {
-  return callFunction('mobile-learning', data)
-}
-
-/**
- * 调用云函数 - api-user
- */
-export async function callApiUser(data: {
-  action: string
-  data?: any
-  openid?: string
-}) {
-  return callFunction('api-user', data)
-}
-
-/**
- * 调用云函数 - api-order
- */
-export async function callApiOrder(data: {
-  action: string
-  data?: any
-  openid?: string
-}) {
-  return callFunction('api-order', data)
-}
-
 /**
  * HTTP 请求封装
  */
@@ -226,4 +190,27 @@ export async function getCertificates(userId: string) {
     where: { userId },
     orderBy: 'createdAt desc'
   })
+}
+
+// ============== API 云函数封装 ==============
+
+/**
+ * 调用 api-user 云函数
+ */
+export async function callApiUser(action: string, data?: any) {
+  return request<any>('/api-user', 'POST', { action, data })
+}
+
+/**
+ * 调用 api-order 云函数
+ */
+export async function callApiOrder(action: string, data?: any) {
+  return request<any>('/api-order', 'POST', { action, data })
+}
+
+/**
+ * 调用 mobile-learning 云函数
+ */
+export async function callMobileLearning(action: string, data?: any) {
+  return request<any>('/mobile-learning', 'POST', { action, data })
 }

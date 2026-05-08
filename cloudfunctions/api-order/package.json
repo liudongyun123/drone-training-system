@@ -4,7 +4,8 @@
   "description": "订单服务 - 统一订单管理（课程/商品/班级报名）",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "latest",
-    "tcb-admin-node": "latest"
+    "@cloudbase/framework-plugin-function": "^1.9.7",
+    "tcb-admin-node": "latest",
+    "wx-server-sdk": "latest"
   }
 }

@@ -1,11 +1,11 @@
 // 添加用户云函数
-const cloudbase = require('@cloudbase/node-sdk')
+const cloud = require('wx-server-sdk')
 
-const app = cloudbase.init({
-  env: cloudbase.SYMBOL_CURRENT_ENV
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV
 })
 
-const db = app.database()
+const db = cloud.database()
 
 exports.main = async (event, context) => {
   const { phone, password, username, role } = event
