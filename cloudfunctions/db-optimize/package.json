@@ -1,0 +1,15 @@
+{
+  "name": "db-optimize",
+  "version": "1.0.0",
+  "description": "数据库优化脚本",
+  "main": "index.js",
+  "scripts": {
+    "create": "tcb fn invoke db-optimize --params '{\"action\":\"create\"}'",
+    "delete": "tcb fn invoke db-optimize --params '{\"action\":\"delete\"}'",
+    "index": "tcb fn invoke db-optimize --params '{\"action\":\"index\"}'",
+    "all": "tcb fn invoke db-optimize --params '{\"action\":\"all\"}'"
+  },
+  "dependencies": {
+    "@cloudbase/node-sdk": "^2.15.0"
+  }
+}
