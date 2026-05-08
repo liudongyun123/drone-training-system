@@ -36,3 +36,6 @@ export { default as classService } from './classService'
 
 // 章节服务
 export { ChapterService } from './ChapterService'
+
+// Feature API 服务（新云函数）
+export { featureApi, adminUserApi, adminOrderApi, adminLearningApi } from './featureApi'

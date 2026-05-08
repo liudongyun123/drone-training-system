@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import type { Certificate } from '@/types';
 import { certificateService } from '@/services/certificateService';
+import { adminLearningApi } from '@/services/featureApi';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
 import { formatDateStr } from '@/utils/dateUtils';
@@ -30,15 +31,23 @@ export default function AdminCertificates() {
   const loadData = async () => {
     try {
       setLoading(true);
+      
+      // 优先使用新 API (adminLearningApi)
       const [certsRes, statsRes] = await Promise.all([
-        certificateService.getList(),
-        certificateService.getStats()
+        adminLearningApi.getCertificates().catch(() => ({ success: false, data: [] })),
+        adminLearningApi.getCertificateStats().catch(() => ({ success: false, data: null }))
       ]);
       
-      if (certsRes.success && Array.isArray(certsRes.data)) {
-        setCertificates(certsRes.data);
+      // 如果新 API 失败，使用旧 API
+      if (!certsRes.success || !Array.isArray(certsRes.data)) {
+        const fallbackCerts = await certificateService.getList();
+        if (fallbackCerts.success && Array.isArray(fallbackCerts.data)) {
+          setCertificates(fallbackCerts.data);
+        } else {
+          setCertificates([]);
+        }
       } else {
-        setCertificates([]);
+        setCertificates(certsRes.data);
       }
       
       if (statsRes.success && statsRes.data) {
@@ -48,10 +57,23 @@ export default function AdminCertificates() {
           issued: typeof s.issued === 'number' ? s.issued : 0,
           pending: typeof s.pending === 'number' ? s.pending : 0,
           revoked: typeof s.revoked === 'number' ? s.revoked : 0,
-          thisMonth: typeof s.thisMonth === 'number' ? s.thisMonth : 0
+          thisMonth: 0 // 新 API 暂无此字段
         });
       } else {
-        setStats({ total: 0, issued: 0, pending: 0, revoked: 0, thisMonth: 0 });
+        // 使用旧 API 获取统计
+        const fallbackStats = await certificateService.getStats();
+        if (fallbackStats.success && fallbackStats.data) {
+          const s = fallbackStats.data;
+          setStats({
+            total: typeof s.total === 'number' ? s.total : 0,
+            issued: typeof s.issued === 'number' ? s.issued : 0,
+            pending: typeof s.pending === 'number' ? s.pending : 0,
+            revoked: typeof s.revoked === 'number' ? s.revoked : 0,
+            thisMonth: typeof s.thisMonth === 'number' ? s.thisMonth : 0
+          });
+        } else {
+          setStats({ total: 0, issued: 0, pending: 0, revoked: 0, thisMonth: 0 });
+        }
       }
     } catch (err) {
       console.error('加载数据失败', err);

@@ -2,12 +2,14 @@
 // 管理后台 - 课程订单管理
 // 功能：管理线上购买视频课程的订单
 // 数据来源：orders 集合，type='course'
+// 新增：支持使用 featureApi 中的 api-order 云函数
 // ============================================================================
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useConfirm } from '@/admin/hooks/useConfirm';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { orderService } from '@/services';
+import { adminOrderApi } from '@/services/featureApi';
 import { toast } from '@/components/Toast';
 import {
   Search, Filter, Download, RefreshCw, Eye, CheckCircle,
