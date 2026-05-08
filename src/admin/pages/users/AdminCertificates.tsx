@@ -34,29 +34,44 @@ export default function AdminCertificates() {
       
       // 优先使用新 API (adminLearningApi)
       const [certsRes, statsRes] = await Promise.all([
-        adminLearningApi.getCertificates().catch(() => ({ success: false, data: [] })),
+        adminLearningApi.getCertificates().catch(() => ({ success: false, data: null })),
         adminLearningApi.getCertificateStats().catch(() => ({ success: false, data: null }))
       ]);
       
-      // 如果新 API 失败，使用旧 API
-      if (!certsRes.success || !Array.isArray(certsRes.data)) {
-        const fallbackCerts = await certificateService.getList();
-        if (fallbackCerts.success && Array.isArray(fallbackCerts.data)) {
-          setCertificates(fallbackCerts.data);
-        } else {
-          setCertificates([]);
+      // 如果新 API 失败或返回格式不对，使用旧 API
+      // 新 API 返回 { list, total, page, pageSize } 或 { data: { list, ... } }
+      let certList: Certificate[] = [];
+      
+      if (certsRes.success && certsRes.data) {
+        // 处理新 API 返回格式 { list, total, ... }
+        if (Array.isArray(certsRes.data)) {
+          certList = certsRes.data;
+        } else if (certsRes.data.list && Array.isArray(certsRes.data.list)) {
+          certList = certsRes.data.list;
+        } else if (certsRes.data.data && Array.isArray(certsRes.data.data)) {
+          // 处理 { data: { list, ... } } 格式
+          certList = certsRes.data.data;
         }
-      } else {
-        setCertificates(certsRes.data);
       }
       
+      // 如果新 API 获取失败，使用旧 API
+      if (certList.length === 0) {
+        const fallbackCerts = await certificateService.getList();
+        if (fallbackCerts.success && Array.isArray(fallbackCerts.data)) {
+          certList = fallbackCerts.data;
+        }
+      }
+      
+      setCertificates(certList);
+      
+      // 处理统计
       if (statsRes.success && statsRes.data) {
         const s = statsRes.data;
         setStats({
-          total: typeof s.total === 'number' ? s.total : 0,
-          issued: typeof s.issued === 'number' ? s.issued : 0,
-          pending: typeof s.pending === 'number' ? s.pending : 0,
-          revoked: typeof s.revoked === 'number' ? s.revoked : 0,
+          total: typeof s.total === 'number' ? s.total : certList.length,
+          issued: typeof s.issued === 'number' ? s.issued : certList.filter(c => c.status === 'issued').length,
+          pending: typeof s.pending === 'number' ? s.pending : certList.filter(c => c.status === 'pending').length,
+          revoked: typeof s.revoked === 'number' ? s.revoked : certList.filter(c => c.status === 'revoked').length,
           thisMonth: 0 // 新 API 暂无此字段
         });
       } else {

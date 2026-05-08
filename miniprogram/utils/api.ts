@@ -379,7 +379,8 @@ export const learningPathApi = {
       action: 'getLearningPaths',
       data: filters
     })
-    return res.data || []
+    // 云函数返回 { list, total, page, pageSize }
+    return res.data?.list || res.data || []
   },
 
   /**
@@ -450,7 +451,8 @@ export const certificateApi = {
       action: 'getCertificates',
       data: filters
     })
-    return res.data || []
+    // 云函数返回 { list, total, page, pageSize }
+    return res.data?.list || res.data || []
   },
 
   /**
