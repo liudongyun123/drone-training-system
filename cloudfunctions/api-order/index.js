@@ -1,12 +1,15 @@
 /**
- * api-order 云函数 - 统一订单管理
+ * api-order 云函数 - Feature: Order
  *
  * 功能：
- * - 创建订单（课程订单、商品订单、班级报名订单）
- * - 查询订单列表（支持按用户、状态筛选、分页）
- * - 获取订单详情
- * - 更新订单状态（pending/paid/cancelled/refunded）
- * - 取消订单
+ * - 订单管理（创建、查询、更新状态、取消、删除）
+ * - 购物车管理（获取、添加、移除、清空）
+ * - 优惠券管理（获取、验证、使用、领取）
+ *
+ * Actions:
+ * 订单: create, getList, getDetail, updateStatus, cancel, delete
+ * 购物车: getCart, addToCart, removeFromCart, clearCart
+ * 优惠券: getCoupons, validateCoupon, useCoupon, claimCoupon
  */
 
 // 动态选择 SDK
@@ -26,6 +29,15 @@ cloud.init({
 
 const db = cloud.database()
 const _ = db.command
+
+// ========== 集合名称 ==========
+
+const COLLECTIONS = {
+  ORDERS: 'orders',
+  CART: 'cart',
+  COUPONS: 'coupons',
+  COURSES: 'courses',
+}
 
 // ========== 工具函数 ==========
 
@@ -48,6 +60,21 @@ function getCorsHeaders(origin = '') {
 }
 
 /**
+ * 统一成功响应
+ */
+function success(data, message = 'success') {
+  return { success: true, data, message };
+}
+
+/**
+ * 统一错误响应
+ */
+function fail(message, error = null) {
+  if (error) console.error(`[Error] ${message}:`, error);
+  return { success: false, error: message };
+}
+
+/**
  * 生成订单号：ORD + 年月日时分秒 + 4位随机数
  */
 function generateOrderNo() {
@@ -56,6 +83,18 @@ function generateOrderNo() {
   const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
   const rand = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
   return `ORD${ts}${rand}`
+}
+
+/**
+ * 生成优惠券码
+ */
+function generateCouponCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
 }
 
 /**
@@ -80,6 +119,379 @@ function isValidType(type) {
  */
 function isValidStatus(status) {
   return VALID_STATUS.includes(status)
+}
+
+// ========== 购物车相关 ==========
+
+/**
+ * 获取购物车
+ */
+async function getCart(openid) {
+  const cartResult = await db.collection(COLLECTIONS.CART)
+    .where({ _openid: openid })
+    .limit(1)
+    .get();
+  
+  if (!cartResult.data || cartResult.data.length === 0) {
+    return success({ items: [], totalAmount: 0 });
+  }
+  
+  const cart = cartResult.data[0];
+  
+  // 获取课程详情
+  const courseIds = (cart.items || []).map(item => item.courseId);
+  let courses = [];
+  
+  if (courseIds.length > 0) {
+    const coursesResult = await db.collection(COLLECTIONS.COURSES)
+      .where({
+        _id: _.in(courseIds),
+        status: 'published',
+      })
+      .get();
+    courses = coursesResult.data;
+  }
+  
+  // 合并课程信息
+  const items = (cart.items || []).map(item => {
+    const course = courses.find(c => c._id === item.courseId) || {};
+    return {
+      ...item,
+      title: course.title || item.title,
+      cover: course.cover || item.cover,
+      price: course.price || item.price,
+    };
+  });
+  
+  const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  
+  return success({
+    items,
+    totalAmount,
+    itemCount: items.length,
+  });
+}
+
+/**
+ * 添加到购物车
+ */
+async function addToCart(data, openid) {
+  const { courseId, title, cover, price } = data;
+  
+  if (!courseId) {
+    return fail('缺少课程ID');
+  }
+  
+  // 检查课程是否存在
+  const course = await db.collection(COLLECTIONS.COURSES)
+    .doc(courseId)
+    .get();
+  
+  if (!course.data || course.data.length === 0) {
+    return fail('课程不存在');
+  }
+  
+  // 检查是否已购买
+  const existingOrder = await db.collection(COLLECTIONS.ORDERS)
+    .where({
+      _openid: openid,
+      'items.itemId': courseId,
+      status: 'paid',
+    })
+    .count();
+  
+  if (existingOrder > 0) {
+    return fail('您已购买该课程');
+  }
+  
+  // 获取或创建购物车
+  let cartResult = await db.collection(COLLECTIONS.CART)
+    .where({ _openid: openid })
+    .limit(1)
+    .get();
+  
+  let cart;
+  
+  if (cartResult.data && cartResult.data.length > 0) {
+    cart = cartResult.data[0];
+  } else {
+    // 创建新购物车
+    const newCart = {
+      _openid: openid,
+      items: [],
+      createdAt: new Date().toISOString(),
+    };
+    const result = await db.collection(COLLECTIONS.CART).add({ data: newCart });
+    cart = { ...newCart, _id: result._id };
+  }
+  
+  // 检查购物车中是否已存在
+  const existingItems = cart.items || [];
+  const existsIndex = existingItems.findIndex(item => item.courseId === courseId);
+  
+  if (existsIndex >= 0) {
+    return success({ added: false, message: '课程已在购物车中' });
+  }
+  
+  // 添加新课程
+  existingItems.push({
+    courseId,
+    title: course.data[0].title,
+    cover: course.data[0].cover,
+    price: course.data[0].price,
+    quantity: 1,
+    addedAt: new Date().toISOString(),
+  });
+  
+  await db.collection(COLLECTIONS.CART)
+    .doc(cart._id)
+    .update({
+      data: { items: existingItems },
+    });
+  
+  return success({ added: true, itemCount: existingItems.length });
+}
+
+/**
+ * 从购物车移除
+ */
+async function removeFromCart(data, openid) {
+  const { courseId } = data;
+  
+  if (!courseId) {
+    return fail('缺少课程ID');
+  }
+  
+  const cartResult = await db.collection(COLLECTIONS.CART)
+    .where({ _openid: openid })
+    .limit(1)
+    .get();
+  
+  if (!cartResult.data || cartResult.data.length === 0) {
+    return fail('购物车为空');
+  }
+  
+  const cart = cartResult.data[0];
+  const items = (cart.items || []).filter(item => item.courseId !== courseId);
+  
+  await db.collection(COLLECTIONS.CART)
+    .doc(cart._id)
+    .update({
+      data: { items },
+    });
+  
+  return success({ removed: true, itemCount: items.length });
+}
+
+/**
+ * 清空购物车
+ */
+async function clearCart(openid) {
+  const cartResult = await db.collection(COLLECTIONS.CART)
+    .where({ _openid: openid })
+    .limit(1)
+    .get();
+  
+  if (!cartResult.data || cartResult.data.length === 0) {
+    return success({ cleared: true });
+  }
+  
+  await db.collection(COLLECTIONS.CART)
+    .doc(cartResult.data[0]._id)
+    .update({
+      data: { items: [] },
+    });
+  
+  return success({ cleared: true });
+}
+
+// ========== 优惠券相关 ==========
+
+/**
+ * 获取优惠券列表
+ */
+async function getCoupons(data, openid) {
+  const { page = 1, pageSize = 10, status } = data;
+  
+  let where = { _openid: openid };
+  
+  if (status === 'available') {
+    where.used = false;
+    where.expireAt = _.gt(new Date().toISOString());
+  } else if (status === 'used') {
+    where.used = true;
+  } else if (status === 'expired') {
+    where.used = false;
+    where.expireAt = _.lt(new Date().toISOString());
+  }
+  
+  const query = db.collection(COLLECTIONS.COUPONS)
+    .where(where)
+    .orderBy('createdAt', 'desc');
+  
+  const skip = (page - 1) * pageSize;
+  const result = await query.skip(skip).limit(pageSize).get();
+  const countResult = await query.count();
+  
+  return success({
+    list: result.data,
+    total: countResult.total,
+    page,
+    pageSize,
+  });
+}
+
+/**
+ * 验证优惠券
+ */
+async function validateCoupon(data) {
+  const { code, amount } = data;
+  
+  if (!code) {
+    return fail('缺少优惠券码');
+  }
+  
+  if (typeof amount !== 'number' || amount <= 0) {
+    return fail('订单金额无效');
+  }
+  
+  const couponResult = await db.collection(COLLECTIONS.COUPONS)
+    .where({
+      code: code.toUpperCase(),
+      used: false,
+      expireAt: _.gt(new Date().toISOString()),
+    })
+    .limit(1)
+    .get();
+  
+  if (!couponResult.data || couponResult.data.length === 0) {
+    return fail('优惠券无效或已过期');
+  }
+  
+  const coupon = couponResult.data[0];
+  
+  // 检查最低消费
+  if (coupon.minAmount && amount < coupon.minAmount) {
+    return fail(`订单金额需满 ${coupon.minAmount} 元`);
+  }
+  
+  // 计算优惠金额
+  let discount = 0;
+  if (coupon.type === 'fixed') {
+    discount = coupon.value;
+  } else if (coupon.type === 'percentage') {
+    discount = Math.floor(amount * (coupon.value / 100));
+  }
+  
+  // 优惠金额不能超过订单金额
+  discount = Math.min(discount, amount);
+  
+  return success({
+    valid: true,
+    discount,
+    finalAmount: amount - discount,
+    coupon: {
+      code: coupon.code,
+      type: coupon.type,
+      value: coupon.value,
+      name: coupon.name,
+    },
+  });
+}
+
+/**
+ * 使用优惠券
+ */
+async function useCoupon(data, openid) {
+  const { code, orderId } = data;
+  
+  if (!code) {
+    return fail('缺少优惠券码');
+  }
+  
+  // 获取优惠券
+  const couponResult = await db.collection(COLLECTIONS.COUPONS)
+    .where({
+      code: code.toUpperCase(),
+      _openid: openid,
+      used: false,
+    })
+    .limit(1)
+    .get();
+  
+  if (!couponResult.data || couponResult.data.length === 0) {
+    return fail('优惠券不存在或已使用');
+  }
+  
+  const coupon = couponResult.data[0];
+  
+  // 标记为已使用
+  await db.collection(COLLECTIONS.COUPONS)
+    .doc(coupon._id)
+    .update({
+      data: {
+        used: true,
+        usedAt: new Date().toISOString(),
+        usedOrderId: orderId || '',
+      },
+    });
+  
+  return success({ used: true, couponId: coupon._id });
+}
+
+/**
+ * 领取优惠券
+ */
+async function claimCoupon(data, openid) {
+  const { couponId } = data;
+  
+  if (!couponId) {
+    return fail('缺少优惠券ID');
+  }
+  
+  // 检查是否已领取
+  const existing = await db.collection(COLLECTIONS.COUPONS)
+    .where({
+      _openid: openid,
+      sourceCouponId: couponId,
+    })
+    .count();
+  
+  if (existing > 0) {
+    return fail('您已领取过该优惠券');
+  }
+  
+  // 获取优惠券模板
+  // 这里假设有优惠券模板集合，或者直接创建新优惠券
+  // 简化处理：创建新优惠券
+  const code = generateCouponCode();
+  const expireAt = new Date();
+  expireAt.setDate(expireAt.getDate() + 30); // 30天后过期
+  
+  const result = await db.collection(COLLECTIONS.COUPONS).add({
+    data: {
+      _openid: openid,
+      code,
+      name: data.name || '优惠券',
+      type: data.type || 'fixed',
+      value: data.value || 10,
+      minAmount: data.minAmount || 0,
+      used: false,
+      sourceCouponId: couponId,
+      expireAt: expireAt.toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+  });
+  
+  return success({
+    claimed: true,
+    coupon: {
+      _id: result._id,
+      code,
+      name: data.name || '优惠券',
+      expireAt: expireAt.toISOString(),
+    },
+  });
 }
 
 // ========== 业务逻辑 ==========
@@ -154,7 +566,7 @@ async function createOrder(data, openid) {
     updatedAt: now
   }
 
-  const res = await db.collection('orders').add({ data: orderData })
+  const res = await db.collection(COLLECTIONS.ORDERS).add({ data: orderData })
 
   return {
     success: true,
@@ -218,12 +630,12 @@ async function getOrderList(params, openid) {
   }
 
   // 获取总数
-  const countResult = await db.collection('orders').where(where).count()
+  const countResult = await db.collection(COLLECTIONS.ORDERS).where(where).count()
   const total = countResult.total
 
   // 分页查询
   const skip = (page - 1) * pageSize
-  const listRes = await db.collection('orders')
+  const listRes = await db.collection(COLLECTIONS.ORDERS)
     .where(where)
     .orderBy('createdAt', 'desc')
     .skip(skip)
@@ -252,7 +664,7 @@ async function getOrderDetail(orderId) {
     return { success: false, error: '缺少订单 ID' }
   }
 
-  const res = await db.collection('orders').doc(orderId).get()
+  const res = await db.collection(COLLECTIONS.ORDERS).doc(orderId).get()
 
   if (!res.data) {
     return { success: false, error: '订单不存在' }
@@ -284,7 +696,7 @@ async function updateOrderStatus(data) {
   }
 
   // 获取原订单
-  const res = await db.collection('orders').doc(orderId).get()
+  const res = await db.collection(COLLECTIONS.ORDERS).doc(orderId).get()
   if (!res.data) {
     return { success: false, error: '订单不存在' }
   }
@@ -320,7 +732,7 @@ async function updateOrderStatus(data) {
     updateData.remark = remark
   }
 
-  await db.collection('orders').doc(orderId).update({
+  await db.collection(COLLECTIONS.ORDERS).doc(orderId).update({
     data: updateData
   })
 
@@ -350,7 +762,7 @@ async function cancelOrder(data, openid) {
   }
 
   // 获取订单，校验归属
-  const res = await db.collection('orders').doc(orderId).get()
+  const res = await db.collection(COLLECTIONS.ORDERS).doc(orderId).get()
   if (!res.data) {
     return { success: false, error: '订单不存在' }
   }
@@ -364,7 +776,7 @@ async function cancelOrder(data, openid) {
 
   const now = new Date().toISOString()
 
-  await db.collection('orders').doc(orderId).update({
+  await db.collection(COLLECTIONS.ORDERS).doc(orderId).update({
     data: {
       status: 'cancelled',
       remark: reason || '用户取消',
@@ -397,7 +809,7 @@ async function deleteOrder(data, openid) {
   }
 
   // 获取订单
-  const res = await db.collection('orders').doc(orderId).get()
+  const res = await db.collection(COLLECTIONS.ORDERS).doc(orderId).get()
   if (!res.data) {
     return { success: false, error: '订单不存在' }
   }
@@ -409,7 +821,7 @@ async function deleteOrder(data, openid) {
     return { success: false, error: '仅允许删除已取消或已退款的订单' }
   }
 
-  await db.collection('orders').doc(orderId).remove()
+  await db.collection(COLLECTIONS.ORDERS).doc(orderId).remove()
 
   console.log('[api-order] 删除订单:', orderId)
 
@@ -508,6 +920,40 @@ exports.main = async (event, context) => {
       // 删除订单
       case 'delete':
         result = await deleteOrder(data, openid)
+        break
+
+      // ===== 购物车 =====
+      case 'getCart':
+        result = await getCart(openid)
+        break
+
+      case 'addToCart':
+        result = await addToCart(data, openid)
+        break
+
+      case 'removeFromCart':
+        result = await removeFromCart(data, openid)
+        break
+
+      case 'clearCart':
+        result = await clearCart(openid)
+        break
+
+      // ===== 优惠券 =====
+      case 'getCoupons':
+        result = await getCoupons(data, openid)
+        break
+
+      case 'validateCoupon':
+        result = await validateCoupon(data)
+        break
+
+      case 'useCoupon':
+        result = await useCoupon(data, openid)
+        break
+
+      case 'claimCoupon':
+        result = await claimCoupon(data, openid)
         break
 
       default:

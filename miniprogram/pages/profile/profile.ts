@@ -1,13 +1,16 @@
 // pages/profile/profile.ts
 // 个人中心
 
-import { userApi } from '../../utils/api'
+import { userApi, newUserApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
 import logger from '../../utils/logger'
 
 Page({
   data: {
     userInfo: {} as any,
+    memberLevel: 'free',
+    memberStatus: 'active',
+    stats: null as any,
     loading: true,
     cartCount: 0
   },
@@ -29,17 +32,35 @@ Page({
     
     if (userId) {
       this.loadUserInfo()
+      this.loadMemberInfo()
+      this.loadUserStats()
     } else {
       logger.debug('个人中心', '没有 userId，跳转登录')
       wx.navigateTo({ url: '/pages/login/login' })
     }
   },
 
+  onShow() {
+    // 每次显示页面时刷新会员状态
+    this.loadMemberInfo()
+  },
+
+  // 加载用户信息（支持新 API）
   async loadUserInfo() {
     logger.debug('个人中心', 'loadUserInfo 开始')
     try {
       const userId = getUserId()
-      const result = await userApi.getUser(userId)
+      let result = null
+
+      // 优先使用新 API
+      const newResult = await newUserApi.getProfile()
+      if (newResult.success && newResult.data?.user) {
+        result = newResult.data.user
+      } else {
+        // 兜底使用旧 API
+        result = await userApi.getUser(userId)
+      }
+
       logger.debug('个人中心', 'result', result)
       
       if (result) {
@@ -49,8 +70,8 @@ Page({
         
         this.setData({
           userInfo: {
-            _id: result._id,
-            nickName: result.name || basicInfo.nickName || '用户' + userId.slice(-4),
+            _id: result._id || result.userId,
+            nickName: result.nickname || result.name || basicInfo.nickName || '用户' + (userId?.slice(-4) || ''),
             phone: result.phone || basicInfo.phone || '',
             avatarUrl: result.avatar || basicInfo.avatarUrl || '/assets/icons/profile.png',
             createdAt: result.createdAt
@@ -64,6 +85,33 @@ Page({
     } catch (err) {
       logger.error('个人中心', '错误', err)
       this.setData({ loading: false })
+    }
+  },
+
+  // 加载会员信息（使用新 API）
+  async loadMemberInfo() {
+    try {
+      const result = await newUserApi.getMemberLevel()
+      if (result.success && result.data) {
+        this.setData({
+          memberLevel: result.data.level || 'free',
+          memberStatus: result.data.status || 'active'
+        })
+      }
+    } catch (err) {
+      logger.error('个人中心', '加载会员信息失败', err)
+    }
+  },
+
+  // 加载用户统计（使用新 API）
+  async loadUserStats() {
+    try {
+      const result = await newUserApi.getStats()
+      if (result.success && result.data) {
+        this.setData({ stats: result.data })
+      }
+    } catch (err) {
+      logger.error('个人中心', '加载用户统计失败', err)
     }
   },
 
@@ -89,6 +137,29 @@ Page({
   // 绑定手机号
   bindPhone() {
     wx.showToast({ title: '手机号绑定功能开发中', icon: 'none' })
+  },
+
+  // 升级会员
+  async upgradeMember() {
+    wx.showModal({
+      title: '升级会员',
+      content: '确定要升级为金牌会员吗？',
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            const result = await newUserApi.upgradeMember('gold', 12)
+            if (result.success) {
+              wx.showToast({ title: '升级成功！', icon: 'success' })
+              this.loadMemberInfo()
+            } else {
+              wx.showToast({ title: result.error || '升级失败', icon: 'none' })
+            }
+          } catch (err) {
+            wx.showToast({ title: '升级失败', icon: 'none' })
+          }
+        }
+      }
+    })
   },
 
   // ==================== 页面跳转 ====================

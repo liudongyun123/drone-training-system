@@ -2,7 +2,7 @@
 // 我的学习页面 - 小程序个人中心
 
 import { checkLogin, getUserId, getPhone } from '../../utils/util'
-import { courseApi, orderApi } from '../../utils/api'
+import { courseApi, newUserApi, learningPathApi } from '../../utils/api'
 import { dbGetList } from '../../utils/http'
 import logger from '../../utils/logger'
 
@@ -20,6 +20,8 @@ Page({
     learningCourses: [] as any[],
     completedCourses: [] as any[],
     notStartedCourses: [] as any[],
+    // 学习统计
+    learningStats: null as any,
     loading: false
   },
 
@@ -28,6 +30,7 @@ Page({
     this.checkStatus()
     if (checkLogin()) {
       this.loadMyData()
+      this.loadLearningStats()
     }
   },
 
@@ -35,6 +38,7 @@ Page({
     this.checkStatus()
     if (checkLogin()) {
       this.loadMyData()
+      this.loadLearningStats()
     }
   },
 
@@ -45,6 +49,18 @@ Page({
       userInfo,
       phone: getPhone() || ''
     })
+  },
+
+  // 加载学习统计（使用新 API）
+  async loadLearningStats() {
+    try {
+      const result = await newUserApi.getLearningStats()
+      if (result.success && result.data) {
+        this.setData({ learningStats: result.data })
+      }
+    } catch (err) {
+      logger.error('我的学习', '加载学习统计失败', err)
+    }
   },
 
   async loadMyData() {

@@ -1,7 +1,7 @@
 // utils/api.ts
 // API 封装 - 通过 HTTP 请求连接腾讯云 CloudBase
 
-import { dbGetList, dbQuery, callFunction } from './http'
+import { dbGetList, dbQuery, callFunction, callMobileLearning, callApiUser, callApiOrder } from './http'
 
 // 等级中文映射（英文 -> 中文）
 const LEVEL_MAP: Record<string, string> = {
@@ -362,5 +362,498 @@ export const userApi = {
 
   async updateUser(userId: string, data: any) {
     return await callFunction('updateUser', { userId, ...data })
+  }
+}
+
+// ============== 新云函数 API (Feature-Based) ==============
+
+/**
+ * 学习路径 API - mobile-learning
+ */
+export const learningPathApi = {
+  /**
+   * 获取学习路径列表
+   */
+  async getList(filters: any = {}) {
+    const res = await callMobileLearning({
+      action: 'getLearningPaths',
+      data: filters
+    })
+    return res.data || []
+  },
+
+  /**
+   * 获取学习路径详情
+   */
+  async getDetail(pathId: string) {
+    const res = await callMobileLearning({
+      action: 'getLearningPathDetail',
+      data: { pathId }
+    })
+    return res.data
+  },
+
+  /**
+   * 获取路径学习进度
+   */
+  async getProgress(pathId: string) {
+    const res = await callMobileLearning({
+      action: 'getPathProgress',
+      data: { pathId }
+    })
+    return res.data
+  },
+
+  /**
+   * 开始学习路径
+   */
+  async start(pathId: string) {
+    const res = await callMobileLearning({
+      action: 'startPath',
+      data: { pathId }
+    })
+    return res.data
+  },
+
+  /**
+   * 更新学习进度
+   */
+  async updateProgress(pathId: string, courseId: string, lessonId: string) {
+    const res = await callMobileLearning({
+      action: 'updateProgress',
+      data: { pathId, courseId, lessonId }
+    })
+    return res.data
+  },
+
+  /**
+   * 完成学习路径
+   */
+  async complete(pathId: string) {
+    const res = await callMobileLearning({
+      action: 'completePath',
+      data: { pathId }
+    })
+    return res.data
+  }
+}
+
+/**
+ * 证书 API - mobile-learning
+ */
+export const certificateApi = {
+  /**
+   * 获取证书列表
+   */
+  async getList(filters: any = {}) {
+    const res = await callMobileLearning({
+      action: 'getCertificates',
+      data: filters
+    })
+    return res.data || []
+  },
+
+  /**
+   * 获取证书详情
+   */
+  async getDetail(certificateId: string) {
+    const res = await callMobileLearning({
+      action: 'getCertificateDetail',
+      data: { certificateId }
+    })
+    return res.data
+  },
+
+  /**
+   * 下载证书
+   */
+  async download(certificateId: string) {
+    const res = await callMobileLearning({
+      action: 'downloadCertificate',
+      data: { certificateId }
+    })
+    return res.data
+  },
+
+  /**
+   * 生成证书
+   */
+  async generate(params: { courseId?: string; examId?: string; pathId?: string }) {
+    const res = await callMobileLearning({
+      action: 'generateCertificate',
+      data: params
+    })
+    return res.data
+  },
+
+  /**
+   * 验证证书
+   */
+  async verify(certificateCode: string) {
+    const res = await callMobileLearning({
+      action: 'verifyCertificate',
+      data: { certificateCode }
+    })
+    return res.data
+  }
+}
+
+/**
+ * 用户 API (新) - api-user
+ */
+export const newUserApi = {
+  /**
+   * 用户注册
+   */
+  async register(params: { phone: string; password: string; nickname?: string }) {
+    const res = await callApiUser({
+      action: 'register',
+      data: params
+    })
+    return res
+  },
+
+  /**
+   * 用户登录
+   */
+  async login(params: { phone: string; password: string }) {
+    const res = await callApiUser({
+      action: 'login',
+      data: params
+    })
+    if (res.success && res.data?.user) {
+      // 保存用户信息到本地
+      wx.setStorageSync('user', res.data.user)
+      wx.setStorageSync('phone', res.data.user.phone)
+    }
+    return res
+  },
+
+  /**
+   * 获取个人资料
+   */
+  async getProfile() {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'getProfile',
+      openid
+    })
+    return res
+  },
+
+  /**
+   * 更新个人资料
+   */
+  async updateProfile(data: { nickname?: string; avatar?: string; gender?: string; birthday?: string; bio?: string }) {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'updateProfile',
+      openid,
+      data
+    })
+    return res
+  },
+
+  /**
+   * 获取会员等级
+   */
+  async getMemberLevel() {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'getMemberLevel',
+      openid
+    })
+    return res
+  },
+
+  /**
+   * 升级会员
+   */
+  async upgradeMember(level: string, months: number = 1) {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'upgradeMember',
+      openid,
+      data: { level, months }
+    })
+    return res
+  },
+
+  /**
+   * 获取会员权益
+   */
+  async getMemberBenefits(level: string) {
+    const res = await callApiUser({
+      action: 'getMemberBenefits',
+      data: { level }
+    })
+    return res.data
+  },
+
+  /**
+   * 获取用户设置
+   */
+  async getSettings() {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'getSettings',
+      openid
+    })
+    return res
+  },
+
+  /**
+   * 更新用户设置
+   */
+  async updateSettings(data: any) {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'updateSettings',
+      openid,
+      data
+    })
+    return res
+  },
+
+  /**
+   * 获取用户统计
+   */
+  async getStats() {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'getStats',
+      openid
+    })
+    return res
+  },
+
+  /**
+   * 获取学习统计
+   */
+  async getLearningStats() {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'getLearningStats',
+      openid
+    })
+    return res
+  },
+
+  /**
+   * 获取每日统计
+   */
+  async getDailyStats(date?: string) {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'getDailyStats',
+      openid,
+      data: { date }
+    })
+    return res
+  },
+
+  /**
+   * 更新每日统计
+   */
+  async updateDailyStats(data: { date?: string; learningTime?: number; coursesCompleted?: number; examsTaken?: number }) {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'updateDailyStats',
+      openid,
+      data
+    })
+    return res
+  },
+
+  /**
+   * 增量更新统计
+   */
+  async incrementStat(field: 'totalLearningTime' | 'totalCourses' | 'totalExams' | 'points') {
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      return { success: false, error: '未登录' }
+    }
+    const res = await callApiUser({
+      action: 'incrementStat',
+      openid,
+      data: { field }
+    })
+    return res
+  }
+}
+
+/**
+ * 订单 API (扩展) - api-order
+ */
+export const newOrderApi = {
+  /**
+   * 获取订单列表
+   */
+  async getList(filters: any = {}) {
+    const res = await callApiOrder({
+      action: 'getList',
+      data: filters
+    })
+    return res.data || []
+  },
+
+  /**
+   * 获取订单详情
+   */
+  async getDetail(orderId: string) {
+    const res = await callApiOrder({
+      action: 'getDetail',
+      data: { orderId }
+    })
+    return res.data
+  },
+
+  /**
+   * 创建订单
+   */
+  async create(params: any) {
+    const res = await callApiOrder({
+      action: 'create',
+      data: params
+    })
+    return res
+  },
+
+  /**
+   * 更新订单状态
+   */
+  async updateStatus(orderId: string, status: string) {
+    const res = await callApiOrder({
+      action: 'updateStatus',
+      data: { orderId, status }
+    })
+    return res
+  },
+
+  /**
+   * 取消订单
+   */
+  async cancel(orderId: string, reason?: string) {
+    const res = await callApiOrder({
+      action: 'cancel',
+      data: { orderId, reason }
+    })
+    return res
+  },
+
+  /**
+   * 获取购物车
+   */
+  async getCart() {
+    const res = await callApiOrder({
+      action: 'getCart'
+    })
+    return res.data
+  },
+
+  /**
+   * 添加到购物车
+   */
+  async addToCart(item: { type: string; id: string; name: string; price: number; cover?: string }) {
+    const res = await callApiOrder({
+      action: 'addToCart',
+      data: { item }
+    })
+    return res
+  },
+
+  /**
+   * 从购物车移除
+   */
+  async removeFromCart(itemId: string) {
+    const res = await callApiOrder({
+      action: 'removeFromCart',
+      data: { itemId }
+    })
+    return res
+  },
+
+  /**
+   * 清空购物车
+   */
+  async clearCart() {
+    const res = await callApiOrder({
+      action: 'clearCart'
+    })
+    return res
+  },
+
+  /**
+   * 获取优惠券列表
+   */
+  async getCoupons(status?: string) {
+    const res = await callApiOrder({
+      action: 'getCoupons',
+      data: { status }
+    })
+    return res.data || []
+  },
+
+  /**
+   * 验证优惠券
+   */
+  async validateCoupon(code: string, amount: number) {
+    const res = await callApiOrder({
+      action: 'validateCoupon',
+      data: { code, amount }
+    })
+    return res.data
+  },
+
+  /**
+   * 使用优惠券
+   */
+  async useCoupon(couponId: string, orderId?: string) {
+    const res = await callApiOrder({
+      action: 'useCoupon',
+      data: { couponId, orderId }
+    })
+    return res
+  },
+
+  /**
+   * 领取优惠券
+   */
+  async claimCoupon(couponTemplateId: string) {
+    const res = await callApiOrder({
+      action: 'claimCoupon',
+      data: { couponTemplateId }
+    })
+    return res
   }
 }

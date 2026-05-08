@@ -5,6 +5,42 @@ import logger from './logger'
 
 const API_BASE = 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com'
 
+// 兼容旧 API_BASE 命名
+export { API_BASE }
+
+/**
+ * 调用云函数 - mobile-learning
+ */
+export async function callMobileLearning(data: {
+  action: string
+  data?: any
+  openid?: string
+}) {
+  return callFunction('mobile-learning', data)
+}
+
+/**
+ * 调用云函数 - api-user
+ */
+export async function callApiUser(data: {
+  action: string
+  data?: any
+  openid?: string
+}) {
+  return callFunction('api-user', data)
+}
+
+/**
+ * 调用云函数 - api-order
+ */
+export async function callApiOrder(data: {
+  action: string
+  data?: any
+  openid?: string
+}) {
+  return callFunction('api-order', data)
+}
+
 /**
  * HTTP 请求封装
  */
