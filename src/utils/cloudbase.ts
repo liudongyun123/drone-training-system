@@ -1,146 +1,258 @@
-// @ts-ignore
-import cloudbase from "@cloudbase/js-sdk";
+/**
+ * CloudBase SDK 管理模块
+ * 
+ * SDK v3.3.9 使用方式
+ */
 
-// 显式导入子模块并触发副作用 - 防止 tree-shaking 删除
-// 这些导入会执行模块注册操作
-import "@cloudbase/auth";
-import "@cloudbase/js-sdk/database";
+const ENV_ID = (import.meta.env.VITE_ENV_ID as string) || 'rcwljy-5ghmq2ex26764978';
 
-// 确保副作用不被删除
-void (window as any).__cloudbase_registerAuth;
+interface SDKStatus {
+  isReady: boolean;
+  isLoading: boolean;
+  error: string | null;
+  source: string | null;
+  loadTime: number | null;
+}
 
-// 从环境变量读取配置
-const ENV_ID = import.meta.env.VITE_ENV_ID || "rcwljy-5ghmq2ex26764978";
+let sdkStatus: SDKStatus = {
+  isReady: false,
+  isLoading: false,
+  error: null,
+  source: null,
+  loadTime: null,
+};
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let cloudbaseAppInstance: any = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const DEBUG = true;
+const log = {
+  info: (...args: any[]) => DEBUG && console.log('[CloudBase]', ...args),
+  warn: (...args: any[]) => DEBUG && console.warn('[CloudBase]', ...args),
+  error: (...args: any[]) => console.error('[CloudBase]', ...args),
+};
+
+// SDK 模块缓存
+let sdkModule: any = null;
+let cloudbaseApp: any = null;
 let authInstance: any = null;
 let initPromise: Promise<any> | null = null;
 
-// 异步初始化
-async function initCloudbaseApp(): Promise<any> {
-  // 如果已经有实例，直接返回
-  if (cloudbaseAppInstance) {
-    return cloudbaseAppInstance;
-  }
-  
-  // 如果正在初始化，等待完成
-  if (initPromise) {
-    return initPromise;
-  }
-  
-  // 开始初始化
+// 初始化 CloudBase
+export async function init(): Promise<any> {
+  if (cloudbaseApp) return cloudbaseApp;
+  if (initPromise) return initPromise;
+
+  sdkStatus.isLoading = true;
+  log.info('初始化 CloudBase SDK...');
+  log.info('环境 ID:', ENV_ID);
+
   initPromise = (async () => {
-    console.log("🔧 初始化 CloudBase SDK...");
-    console.log("   环境ID:", ENV_ID);
-    
-    // @ts-ignore
-    cloudbaseAppInstance = cloudbase.init({
-      env: ENV_ID,
-    });
-    
-    console.log("✅ CloudBase SDK 初始化完成");
-    
-    // 获取 auth 实例
-    authInstance = cloudbaseAppInstance.auth({ persistence: "local" });
-    
-    // 尝试匿名登录
     try {
-      const loginState = await authInstance.getLoginState();
-      if (loginState) {
-        console.log("✅ 已存在登录状态");
+      // 动态导入 SDK
+      const sdk: any = await import('@cloudbase/js-sdk');
+      
+      // 调试：打印 SDK 的所有导出键
+      log.info('SDK 导出键:', Object.keys(sdk));
+      log.info('sdk.default 类型:', typeof sdk.default);
+      
+      // Vite 预构建后的 SDK 只导出 default，需要使用 sdk.default
+      // 而 sdk.default.init 是实际的初始化函数
+      if (typeof sdk.default?.init === 'function') {
+        log.info('使用 sdk.default.init');
+        sdkModule = sdk.default;
+      } else if (typeof sdk.init === 'function') {
+        // 某些环境直接导出 init
+        log.info('使用 sdk.init (直接导出)');
+        sdkModule = sdk;
       } else {
-        console.log("🔑 正在使用匿名登录...");
-        await authInstance.signInAnonymously();
-        console.log("✅ 匿名登录成功");
+        throw new Error(`SDK.init 不可用，sdk.default: ${typeof sdk.default}, sdk.init: ${typeof sdk.init}`);
       }
-    } catch (error) {
-      console.error("匿名登录失败:", error);
+      
+      // 检查 SDK 是否有效
+      log.info('sdkModule.init 类型:', typeof sdkModule?.init);
+      if (typeof sdkModule?.init !== 'function') {
+        throw new Error(`SDK.init 不可用，当前类型: ${typeof sdkModule?.init}`);
+      }
+      
+      // 初始化应用
+      cloudbaseApp = sdkModule.init({
+        env: ENV_ID
+      });
+
+      log.info('应用初始化完成');
+      log.info('app.auth:', typeof cloudbaseApp?.auth);
+      log.info('app.database:', typeof cloudbaseApp?.database);
+      log.info('app.callFunction:', typeof cloudbaseApp?.callFunction);
+
+      // 获取 auth 实例
+      if (cloudbaseApp?.auth) {
+        authInstance = cloudbaseApp.auth();
+        log.info('Auth 实例:', typeof authInstance);
+        log.info('auth.getLoginState:', typeof authInstance?.getLoginState);
+        log.info('auth.signInAnonymously:', typeof authInstance?.signInAnonymously);
+        
+        // 尝试匿名登录以获取数据库访问权限
+        try {
+          const loginResult = await authInstance.signInAnonymously();
+          log.info('匿名登录结果:', loginResult);
+        } catch (loginError: any) {
+          log.warn('匿名登录失败:', loginError?.message);
+        }
+      } else {
+        log.warn('app.auth 不可用');
+      }
+
+      sdkStatus = {
+        isReady: true,
+        isLoading: false,
+        error: null,
+        source: 'bundled',
+        loadTime: 0
+      };
+
+      log.info('CloudBase SDK 初始化成功');
+      return cloudbaseApp;
+
+    } catch (error: any) {
+      sdkStatus = {
+        isReady: false,
+        isLoading: false,
+        error: error?.message || '初始化失败',
+        source: 'bundled',
+        loadTime: null
+      };
+      log.error('CloudBase SDK 初始化失败:', error);
+      throw error;
     }
-    
-    return cloudbaseAppInstance;
   })();
-  
+
   return initPromise;
 }
 
-// 同步获取 app 实例（可能未初始化）
-export function getCloudbaseApp(): any {
-  return cloudbaseAppInstance;
-}
-
-// 异步确保初始化完成
+// 等待初始化
 export async function ensureInit(): Promise<any> {
-  return initCloudbaseApp();
+  if (cloudbaseApp) return cloudbaseApp;
+  return init();
 }
 
-// 获取 auth 实例
-export function getAuth(): any {
+// 获取应用实例
+export function getCloudBaseApp() {
+  return cloudbaseApp;
+}
+
+// 获取 Auth 实例
+export function getAuth() {
+  if (!authInstance && cloudbaseApp?.auth) {
+    authInstance = cloudbaseApp.auth();
+  }
   return authInstance;
 }
 
-// 获取 database 实例
-export function getDatabase(): any {
-  return cloudbaseAppInstance?.database();
-}
-
-// 检查登录状态
-export async function checkLogin(): Promise<boolean> {
-  try {
-    await initCloudbaseApp();
-    const loginState = await authInstance?.getLoginState();
-    return !!loginState;
-  } catch (error) {
-    console.error("检查登录状态失败:", error);
-    return false;
+// 获取数据库实例
+export function getDatabase() {
+  if (!cloudbaseApp?.database) {
+    log.warn('Database 不可用');
+    return null;
   }
+  const db = cloudbaseApp.database();
+  log.info('getDatabase() 返回:', db ? 'defined' : 'null');
+  return db;
 }
 
-// 登出
-export async function logout(): Promise<void> {
-  try {
-    await initCloudbaseApp();
-    await authInstance?.signOut();
-    console.log("已退出登录");
-  } catch (error) {
-    console.error("退出登录失败:", error);
+// 获取数据库实例（带初始化检查）
+export async function getDatabaseAsync() {
+  await ensureInit();
+  return getDatabase();
+}
+
+// 调用云函数
+export async function callFunction(name: string, data?: any) {
+  await ensureInit();
+  if (!cloudbaseApp?.callFunction) {
+    throw new Error('callFunction 不可用');
   }
+  return cloudbaseApp.callFunction({ name, data });
 }
 
-// authLogout 是 logout 的别名
-export const authLogout = logout;
-
-// 确保用户已认证
-export async function ensureAuthenticated(): Promise<boolean> {
-  await initCloudbaseApp();
-  const isLoggedIn = await checkLogin();
-  if (!isLoggedIn) {
-    console.warn("用户未登录");
-    return false;
-  }
-  return true;
+// 检查是否已初始化
+export function isReady() {
+  return sdkStatus.isReady;
 }
 
-// 兼容旧的确保认证函数
-export const ensureAuth = ensureAuthenticated;
+// 获取状态
+export function getStatus(): SDKStatus {
+  return { ...sdkStatus };
+}
 
-// 导出 app 实例（注意：可能是 undefined，需要先调用 ensureInit）
+// 导出 app 对象（兼容旧代码）
 export const app = {
-  get database() {
-    return cloudbaseAppInstance?.database();
+  get: () => cloudbaseApp,
+  auth: () => {
+    if (!cloudbaseApp?.auth) {
+      log.warn('app.auth() 调用时 SDK 未初始化');
+      return null;
+    }
+    return cloudbaseApp.auth();
   },
-  get auth() {
-    return cloudbaseAppInstance?.auth();
+  database: () => {
+    if (!cloudbaseApp?.database) {
+      log.warn('app.database() 调用时 SDK 未初始化');
+      return null;
+    }
+    return cloudbaseApp.database();
   },
-  async callFunction(params: any) {
-    await initCloudbaseApp();
-    return cloudbaseAppInstance?.callFunction(params);
+  callFunction: async (name: string, data?: any) => {
+    await ensureInit();
+    if (!cloudbaseApp?.callFunction) {
+      throw new Error('callFunction 不可用');
+    }
+    return cloudbaseApp.callFunction({ name, data });
   }
 };
 
-export const cloudbaseApp = app;
-export { ENV_ID };
+// 检查登录状态
+export async function checkLogin(): Promise<any> {
+  await ensureInit();
+  const auth = getAuth();
+  if (!auth) return null;
+  
+  try {
+    const loginState = await auth.getLoginState();
+    if (!loginState) return null;
+    return loginState.getUserInfo?.() || loginState;
+  } catch (error: any) {
+    log.warn('检查登录状态失败:', error?.message);
+    return null;
+  }
+}
 
-// 立即开始初始化（在模块加载时）
-initCloudbaseApp();
+// 确保已认证
+export async function ensureAuthenticated(): Promise<any> {
+  const user = await checkLogin();
+  if (!user) {
+    throw new Error('用户未登录');
+  }
+  return user;
+}
+
+// 兼容命名导出
+export { cloudbaseApp as cloudbaseAppInstance };
+export { cloudbaseApp };
+
+// 启动自动初始化
+init().catch((error) => {
+  log.error('CloudBase 自动初始化失败:', error);
+});
+
+export default {
+  init,
+  ensureInit,
+  getCloudBaseApp,
+  getAuth,
+  getDatabase,
+  getDatabaseAsync,
+  callFunction,
+  isReady,
+  getStatus,
+  checkLogin,
+  ensureAuthenticated,
+  app
+};

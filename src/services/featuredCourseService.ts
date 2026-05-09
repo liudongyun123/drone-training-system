@@ -10,8 +10,8 @@ const COLLECTION_NAME = 'featuredCourses'
 // 获取数据库实例
 async function getDb() {
   await ensureInit()
-  const { getCloudbaseApp } = await import('@/utils/cloudbase')
-  const app = getCloudbaseApp()
+  const { getCloudBaseApp } = await import('@/utils/cloudbase')
+  const app = getCloudBaseApp()
   return app.database()
 }
 

@@ -16,7 +16,7 @@ const API_TIMEOUT = parseInt(env.VITE_API_TIMEOUT || "30000", 10);
 const DEBUG_MODE = env.VITE_DEBUG_MODE === "true";
 
 // 构建版本号
-const BUILD_VERSION = 'v20260506-1033-fix';
+const BUILD_VERSION = 'v20260509-final';
 
 // Sentry 配置
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
@@ -72,9 +72,10 @@ export default defineConfig({
       'zustand',
       'dayjs',
       'axios',
-      '@cloudbase/js-sdk'
     ],
-    exclude: [],
+    include: [
+      '@cloudbase/js-sdk',  // CloudBase SDK 由 Vite 打包
+    ],
   },
   build: {
     // 生产环境禁用 sourcemap
@@ -110,8 +111,7 @@ export default defineConfig({
           'vendor-state': ['zustand'],
           // 工具库
           'vendor-utils': ['axios', 'dayjs', 'lucide-react'],
-          // CloudBase SDK（整体不可拆分，约 640KB）
-          'vendor-cloudbase': ['@cloudbase/js-sdk'],
+          // CloudBase SDK 使用 CDN 加载，不打包
         },
         // 使用内容哈希生成文件名
         entryFileNames: `assets/[name]-${BUILD_VERSION}.js`,
@@ -124,9 +124,11 @@ export default defineConfig({
         // 静态资源内联阈值（小于 4KB 的资源内联）
         inlineDynamicImports: false,
       },
+      // CloudBase SDK 由 Vite 打包
+      // external: ['@cloudbase/js-sdk'],
     },
-    // CloudBase SDK 整体约 640KB 无法进一步拆分，设为 700 避免误报
-    chunkSizeWarningLimit: 700,
+    // CloudBase SDK 使用 CDN 加载，chunk 大小限制降低
+    chunkSizeWarningLimit: 600,
     // 使用 esbuild 压缩并移除 console 和 debugger
     minify: 'esbuild',
     esbuild: {

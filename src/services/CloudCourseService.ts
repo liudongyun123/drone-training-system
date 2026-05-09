@@ -20,8 +20,8 @@ export const CloudCourseService = {
   async getAll(): Promise<Course[]> {
     try {
       await ensureInit()
-      const { getCloudbaseApp } = await import('@/utils/cloudbase')
-      const app = getCloudbaseApp()
+      const { getCloudBaseApp } = await import('@/utils/cloudbase')
+      const app = getCloudBaseApp()
       const data = await app.database().collection('courses').get()
       return data.data.map((c: any) => ({
         _id: c._id,
@@ -57,8 +57,8 @@ export const CloudCourseService = {
 
       console.log('CloudCourseService.getById 查询ID:', id)
       await ensureInit()
-      const { getCloudbaseApp } = await import('@/utils/cloudbase')
-      const app = getCloudbaseApp()
+      const { getCloudBaseApp } = await import('@/utils/cloudbase')
+      const app = getCloudBaseApp()
       const result = await app.database().collection('courses').doc(id).get()
       console.log('查询结果:', result)
 
@@ -104,8 +104,8 @@ export const CloudCourseService = {
 
       console.log('[CloudCourseService.getByCategory] 查询分类ID:', categoryId)
       await ensureInit()
-      const { getCloudbaseApp } = await import('@/utils/cloudbase')
-      const app = getCloudbaseApp()
+      const { getCloudBaseApp } = await import('@/utils/cloudbase')
+      const app = getCloudBaseApp()
       const db = app.database()
       
       // 直接用 categoryId 查询（课程表现在会同时存储 categoryId）
@@ -151,8 +151,8 @@ export const CloudCourseService = {
   async search(keyword: string): Promise<Course[]> {
     try {
       await ensureInit()
-      const { getCloudbaseApp } = await import('@/utils/cloudbase')
-      const app = getCloudbaseApp()
+      const { getCloudBaseApp } = await import('@/utils/cloudbase')
+      const app = getCloudBaseApp()
       const db = app.database()
       const { data } = await db.collection('courses')
         .where({
@@ -190,8 +190,8 @@ export const CloudCourseService = {
         return this.getAll()
       }
       await ensureInit()
-      const { getCloudbaseApp } = await import('@/utils/cloudbase')
-      const app = getCloudbaseApp()
+      const { getCloudBaseApp } = await import('@/utils/cloudbase')
+      const app = getCloudBaseApp()
       const db = app.database()
       const { data } = await db.collection('courses')
         .where({ level })

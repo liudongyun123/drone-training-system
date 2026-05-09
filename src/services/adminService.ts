@@ -12,8 +12,8 @@ const CLOUD_FUNCTION_NAME = 'api-admin'
 async function callAdminFunction(action: string, params: Record<string, unknown> = {}) {
   try {
     await ensureInit()
-    const { getCloudbaseApp } = await import('@/utils/cloudbase')
-    const app = getCloudbaseApp()
+    const { getCloudBaseApp } = await import('@/utils/cloudbase')
+    const app = getCloudBaseApp()
     
     const result = await app.callFunction({
       name: CLOUD_FUNCTION_NAME,
