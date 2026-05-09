@@ -22,13 +22,6 @@ interface Source {
   icon: string;
 }
 
-interface Category {
-  _id: string;
-  name: string;
-  sourceId?: string;  // 关联的体系ID
-  sourceCode?: string;  // 关联的体系代码
-}
-
 interface BannerItem {
   _id?: string;
   id?: string;
@@ -67,13 +60,13 @@ interface ClassItem {
   status: string;
 }
 
-interface LearningPathItem {
+// 学习路径结构：按分类组织，每个分类下包含课程和培训班
+interface LearningPathGroup {
   _id: string;
   name: string;
-  title?: string;
-  sourceCode?: string;
-  categoryId?: string;
-  status: string;
+  order: number;
+  courses: CourseItem[];
+  classes: ClassItem[];
 }
 
 type TabType = 'banners' | 'notices' | 'learningPaths' | 'courses' | 'classes';
@@ -84,8 +77,8 @@ export default function PageConfigManagement() {
   // 状态
   const [activeTab, setActiveTab] = useState<TabType>('banners');
   const [sources, setSources] = useState<Source[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedSource, setSelectedSource] = useState<string>('');
+  const [selectedSource, setSelectedSource] = useState<string>('');  // 体系的 code
+  const [selectedSourceId, setSelectedSourceId] = useState<string>('');  // 体系的 _id
   const [loading, setLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<{api: string; data: any}[]>([]);
   
@@ -94,37 +87,26 @@ export default function PageConfigManagement() {
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [courses, setCourses] = useState<CourseItem[]>([]);
   const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [learningPaths, setLearningPaths] = useState<LearningPathItem[]>([]);
+  const [learningPaths, setLearningPaths] = useState<LearningPathGroup[]>([]);
   
   // 弹窗状态
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
-  // 获取当前体系的分类ID列表
-  const getCurrentCategoryIds = useCallback(() => {
-    if (!selectedSource) return [];
-    const selectedSourceObj = sources.find(s => s.code === selectedSource);
-    return categories
-      .filter(c => 
-        c.sourceCode === selectedSource || 
-        c.sourceId === selectedSourceObj?._id
-      )
-      .map(c => c._id);
-  }, [selectedSource, categories, sources]);
-
   // 加载体系列表
   useEffect(() => {
     loadSources();
-    loadCategories();
   }, []);
 
   // 加载数据
   useEffect(() => {
-    if (activeTab) {
+    // 轮播图和公告是全局的，不需要体系选择
+    const isGlobalTab = activeTab === 'banners' || activeTab === 'notices';
+    if (activeTab && (isGlobalTab || selectedSourceId)) {
       loadData();
     }
-  }, [activeTab, selectedSource]);
+  }, [activeTab, selectedSourceId]);
 
   const loadSources = async () => {
     try {
@@ -135,24 +117,13 @@ export default function PageConfigManagement() {
         // 自动选择第一个体系
         const firstSource = result.data.list[0];
         setSelectedSource(firstSource.code);
-        console.log('[PageConfig] 自动选择体系:', firstSource.code, firstSource.name);
+        setSelectedSourceId(firstSource._id || '');
+        console.log('[PageConfig] 自动选择体系:', firstSource.code, firstSource.name, 'ID:', firstSource._id);
       } else {
         console.log('[PageConfig] 未找到体系数据');
       }
     } catch (error) {
       console.error('加载体系失败:', error);
-    }
-  };
-
-  const loadCategories = async () => {
-    try {
-      const result = await adminService.list('categories', {}, { limit: 200 });
-      console.log('[PageConfig] loadCategories result:', result);
-      if (result.data?.list) {
-        setCategories(result.data.list);
-      }
-    } catch (error) {
-      console.error('加载分类失败:', error);
     }
   };
 
@@ -198,106 +169,89 @@ export default function PageConfigManagement() {
   };
 
   const loadCourses = async () => {
-    console.log('[PageConfig] loadCourses, selectedSource:', selectedSource);
+    console.log('[PageConfig] loadCourses, selectedSourceId:', selectedSourceId);
     try {
-      const result = await adminService.list('courses', {}, { orderBy: 'createdAt', order: 'desc', limit: 100 });
+      // 直接通过 sourceId 筛选属于该体系的课程
+      const result = await adminService.list('courses', { sourceId: selectedSourceId }, { limit: 1000 });
       
-      const debug = {api: 'courses', raw: result, list: result.data?.list, total: result.data?.total};
-      setDebugInfo(prev => [...prev.slice(-2), debug]);
-      
-      console.log('[PageConfig] 课程原始数据:', JSON.stringify(result.data?.list?.slice(0, 2)));
+      console.log('[PageConfig] 课程查询结果:', {
+        selectedSourceId,
+        total: result.data?.total,
+        listLength: result.data?.list?.length
+      });
       
       if (result.data?.list && result.data.list.length > 0) {
-        const categoryIds = getCurrentCategoryIds();
-        console.log('[PageConfig] 当前体系的分类IDs:', categoryIds);
-        
-        // 筛选：匹配 sourceCode 或 分类属于当前体系 或 通用（无sourceCode和categoryId）
-        const courses = result.data.list.filter((c: any) => {
-          if (!selectedSource) return true;
-          if (c.sourceCode === selectedSource) return true;
-          if (c.categoryId && categoryIds.includes(c.categoryId)) return true;
-          if (!c.sourceCode && !c.categoryId) return true;  // 通用内容
-          return false;
-        });
-        
-        console.log('[PageConfig] 课程总数:', result.data.list.length, '筛选后:', courses.length);
-        setCourses(courses.map((c: any) => ({ ...c, id: c._id })));
+        console.log('[PageConfig] 热门课程:', result.data.list.length);
+        setCourses(result.data.list.map((c: any) => ({ ...c, id: c._id })));
       } else {
-        console.log('[PageConfig] 没有课程数据');
         setCourses([]);
       }
     } catch (error) {
       console.error('[PageConfig] loadCourses error:', error);
-      setDebugInfo(prev => [...prev.slice(-2), {api: 'courses', error: String(error)}]);
+      setCourses([]);
     }
   };
 
   const loadClasses = async () => {
-    console.log('[PageConfig] loadClasses, selectedSource:', selectedSource);
+    console.log('[PageConfig] loadClasses, selectedSourceId:', selectedSourceId);
     try {
-      const result = await adminService.list('classes', {}, { orderBy: 'createdAt', order: 'desc', limit: 100 });
+      // 统一使用 sourceId（_id）查询
+      const result = await adminService.list('classes', { 
+        sourceId: selectedSourceId 
+      }, { limit: 1000 });
       
-      const debug = {api: 'classes', raw: result, list: result.data?.list, total: result.data?.total};
-      setDebugInfo(prev => [...prev.slice(-2), debug]);
-      
-      console.log('[PageConfig] 班级原始数据:', JSON.stringify(result.data?.list?.slice(0, 2)));
-      
-      if (result.data?.list && result.data.list.length > 0) {
-        const categoryIds = getCurrentCategoryIds();
-        console.log('[PageConfig] 当前体系的分类IDs:', categoryIds);
-        
-        const classes = result.data.list.filter((c: any) => {
-          if (!selectedSource) return true;
-          if (c.sourceCode === selectedSource) return true;
-          if (c.categoryId && categoryIds.includes(c.categoryId)) return true;
-          if (!c.sourceCode && !c.categoryId) return true;
-          return false;
-        });
-        
-        console.log('[PageConfig] 班级总数:', result.data.list.length, '筛选后:', classes.length);
-        setClasses(classes.map((c: any) => ({ ...c, id: c._id })));
-      } else {
-        console.log('[PageConfig] 没有班级数据');
-        setClasses([]);
-      }
+      console.log('[PageConfig] 培训班:', result.data?.list?.length || 0);
+      setClasses((result.data?.list || []).map((c: any) => ({ ...c, id: c._id })));
     } catch (error) {
       console.error('[PageConfig] loadClasses error:', error);
-      setDebugInfo(prev => [...prev.slice(-2), {api: 'classes', error: String(error)}]);
+      setClasses([]);
     }
   };
 
   const loadLearningPaths = async () => {
-    console.log('[PageConfig] loadLearningPaths, selectedSource:', selectedSource);
+    console.log('[PageConfig] loadLearningPaths, selectedSourceId:', selectedSourceId);
     try {
-      const result = await adminService.list('learning_paths', {}, { orderBy: 'createdAt', order: 'desc', limit: 100 });
+      // 1. 查询该体系的所有分类（使用 sortOrder 排序）
+      const categoryResult = await adminService.list('categories', { sourceId: selectedSourceId }, { orderBy: 'sortOrder', order: 'asc', limit: 100 });
+      const categories = categoryResult.data?.list || [];
+      console.log('[PageConfig] 学习路径分类:', categories.length, '个');
       
-      // 诊断：显示原始数据
-      const debug = {api: 'learning_paths', raw: result, list: result.data?.list, total: result.data?.total};
-      setDebugInfo(prev => [...prev.slice(-2), debug]);
+      // 2. 统一使用 sourceId（_id）查询课程和培训班
+      const [coursesResult, classesResult] = await Promise.all([
+        adminService.list('courses', { sourceId: selectedSourceId }, { limit: 1000 }),
+        adminService.list('classes', { sourceId: selectedSourceId }, { limit: 1000 })
+      ]);
       
-      console.log('[PageConfig] 学习路径原始数据:', JSON.stringify(result.data?.list?.slice(0, 2)));
+      const allCourses = coursesResult.data?.list || [];
+      const allClasses = classesResult.data?.list || [];
+      console.log('[PageConfig] 课程总数:', allCourses.length, '培训班总数:', allClasses.length);
       
-      if (result.data?.list && result.data.list.length > 0) {
-        const categoryIds = getCurrentCategoryIds();
-        console.log('[PageConfig] 当前体系的分类IDs:', categoryIds);
+      // 3. 按分类组织：每个分类匹配对应的课程和培训班
+      const pathGroups: LearningPathGroup[] = categories.map((cat: any) => {
+        // 匹配属于该分类的课程（通过 categoryId 或 categoryName）
+        const matchedCourses = allCourses.filter((c: any) => 
+          c.categoryId === cat._id || c.categoryId === cat.code || c.category === cat.name
+        );
+        // 匹配属于该分类的培训班（通过 category 字段匹配分类 name）
+        const matchedClasses = allClasses.filter((cls: any) => 
+          cls.category === cat.name || cls.categoryId === cat._id || cls.categoryId === cat.code
+        );
         
-        // 学习路径通过 categoryId 关联到分类
-        const paths = result.data.list.filter((p: any) => {
-          if (!selectedSource) return true;  // 没有选择体系时显示全部
-          // 只要有 categoryId 且该分类属于当前体系，就显示
-          if (p.categoryId && categoryIds.includes(p.categoryId)) return true;
-          return false;
-        });
-        
-        console.log('[PageConfig] 学习路径总数:', result.data.list.length, '筛选后:', paths.length);
-        setLearningPaths(paths.map((p: any) => ({ ...p, id: p._id })));
-      } else {
-        console.log('[PageConfig] 没有学习路径数据');
-        setLearningPaths([]);
-      }
+        return {
+          _id: cat._id,
+          name: cat.name,
+          icon: cat.icon || '',
+          order: cat.sortOrder || 0,
+          courses: matchedCourses.map((c: any) => ({ ...c, id: c._id })),
+          classes: matchedClasses.map((c: any) => ({ ...c, id: c._id }))
+        };
+      }).filter((g: LearningPathGroup) => g.courses.length > 0 || g.classes.length > 0);
+      
+      console.log('[PageConfig] 学习路径分组:', pathGroups);
+      setLearningPaths(pathGroups);
     } catch (error) {
       console.error('[PageConfig] loadLearningPaths error:', error);
-      setDebugInfo(prev => [...prev.slice(-2), {api: 'learning_paths', error: String(error)}]);
+      setLearningPaths([]);
     }
   };
 
@@ -394,16 +348,6 @@ export default function PageConfigManagement() {
       const source = sources.find(s => s.code === item.sourceCode);
       return source?.name || item.sourceCode;
     }
-    if (item.categoryId) {
-      const category = categories.find(c => c._id === item.categoryId);
-      if (category) {
-        if (category.sourceCode) {
-          const source = sources.find(s => s.code === category.sourceCode);
-          return source?.name || '未知体系';
-        }
-        return category.name;
-      }
-    }
     return '通用';
   };
 
@@ -440,7 +384,10 @@ export default function PageConfigManagement() {
                 sources.map((source) => (
                   <button
                     key={source.code}
-                    onClick={() => setSelectedSource(source.code)}
+                    onClick={() => {
+                      setSelectedSource(source.code);
+                      setSelectedSourceId(source._id || '');
+                    }}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                       selectedSource === source.code
                         ? 'bg-blue-500 text-white'
@@ -606,15 +553,39 @@ export default function PageConfigManagement() {
                   {activeTab === 'learningPaths' && learningPaths.length === 0 && (
                     <p className="text-gray-500 text-center py-8">暂无学习路径</p>
                   )}
-                  {activeTab === 'learningPaths' && learningPaths.map((path) => (
-                    <div key={path._id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                      <Route className="w-5 h-5 text-purple-500" />
-                      <div className="flex-1">
-                        <p className="font-medium">{path.name || path.title}</p>
-                        <p className="text-xs text-gray-500">{getSourceName(path)}</p>
+                  {activeTab === 'learningPaths' && learningPaths.map((group) => (
+                    <div key={group._id} className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-3 mb-3 pb-2 border-b border-gray-200">
+                        <span className="text-xl">{group.icon || '📁'}</span>
+                        <h3 className="font-semibold text-gray-800">{group.name}</h3>
+                        <span className="text-xs text-gray-500">
+                          {group.courses.length} 个课程，{group.classes.length} 个培训班
+                        </span>
                       </div>
-                      {getSourceName(path) === '通用' && <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">通用</span>}
-                      <span className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-600">{path.status || '活跃'}</span>
+                      {group.courses.length > 0 && (
+                        <div className="mb-2">
+                          <p className="text-xs text-gray-500 mb-1">课程：</p>
+                          <div className="flex flex-wrap gap-2">
+                            {group.courses.map((course) => (
+                              <span key={course._id} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                {course.title}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {group.classes.length > 0 && (
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">培训班：</p>
+                          <div className="flex flex-wrap gap-2">
+                            {group.classes.map((cls) => (
+                              <span key={cls._id} className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
+                                {cls.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -707,22 +678,6 @@ export default function PageConfigManagement() {
                   {sources.map((s) => (
                     <option key={s.code} value={s.code}>{s.icon} {s.name}</option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">关联分类（可选）</label>
-                <select 
-                  className="w-full p-2 border rounded-lg"
-                  value={editItem?.categoryId || ''}
-                  onChange={(e) => setEditItem({ ...editItem, categoryId: e.target.value })}
-                >
-                  <option value="">无分类</option>
-                  {categories
-                    .filter(c => !editItem?.sourceCode || c.sourceCode === editItem?.sourceCode)
-                    .map((c) => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))
-                  }
                 </select>
               </div>
             </>

@@ -99,7 +99,8 @@ export function useCourses() {
   const [sourcesLoading, setSourcesLoading] = useState(false);
 
   // 筛选状态
-  const [selectedSource, setSelectedSource] = useState<string>('');
+  const [selectedSource, setSelectedSource] = useState<string>('');  // 体系的 code
+  const [selectedSourceId, setSelectedSourceId] = useState<string>('');  // 体系的 _id
 
   // 字典数据
   const { options: levelOptions, loading: levelsLoading } = useDictionary({ groupKey: 'courseLevels' });
@@ -146,7 +147,10 @@ export function useCourses() {
     try {
       // 构建查询条件
       const query: Record<string, any> = {};
-      if (selectedSource) {
+      // 优先使用 selectedSourceId（_id格式），如果没有则使用 selectedSource（code格式）
+      if (selectedSourceId) {
+        query.sourceId = selectedSourceId;
+      } else if (selectedSource) {
         query.sourceId = selectedSource;
       }
       
@@ -166,7 +170,7 @@ export function useCourses() {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedSource]);
+  }, [page, selectedSource, selectedSourceId]);
 
   // 加载体系列表（新增）
   const loadSources = useCallback(async () => {
@@ -833,6 +837,8 @@ export function useCourses() {
     // 筛选
     selectedSource,
     setSelectedSource,
+    selectedSourceId,
+    setSelectedSourceId,
     // 教师
     teachers,
     teachersLoading,

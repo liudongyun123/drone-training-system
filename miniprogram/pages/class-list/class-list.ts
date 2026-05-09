@@ -14,10 +14,11 @@ Page({
     currentCategory: '',
     categories: [] as string[],
     searchKeyword: '',
-    currentSource: 'RENSHE',
+    currentSource: 'RENSHE',  // 体系的 code（用于显示）
+    currentSourceId: '',      // 体系的 _id（用于查询）
     sourceList: [
-      { key: 'RENSHE', name: '人社培训', icon: '🏛️' },
-      { key: 'CAAC', name: 'CAAC培训', icon: '✈️' }
+      { key: 'RENSHE', name: '人社培训', icon: '🏛️', id: '' },
+      { key: 'CAAC', name: 'CAAC培训', icon: '✈️', id: '' }
     ]
   },
 
@@ -39,11 +40,13 @@ Page({
         const sourceList = sources.map((s: any) => ({
           key: s.code,
           name: s.name,
-          icon: s.icon || '📚'
+          icon: s.icon || '📚',
+          id: s._id || s.id || ''
         }))
         this.setData({
           sourceList,
-          currentSource: sources[0].code || 'RENSHE'
+          currentSource: sources[0].code || 'RENSHE',
+          currentSourceId: sources[0]._id || sources[0].id || ''
         })
       }
     } catch (err) {
@@ -69,7 +72,9 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const filters: any = { page: 1, pageSize: 10, sourceId: this.data.currentSource }
+      // 优先使用 _id 查询，如果没有则使用 code
+      const sourceId = this.data.currentSourceId || this.data.currentSource
+      const filters: any = { page: 1, pageSize: 10, sourceId }
       
       // 状态筛选
       if (this.data.currentStatus) {
@@ -105,7 +110,9 @@ Page({
     const nextPage = this.data.page + 1
 
     try {
-      const filters: any = { page: nextPage, pageSize: 10, sourceId: this.data.currentSource }
+      // 优先使用 _id 查询，如果没有则使用 code
+      const sourceId = this.data.currentSourceId || this.data.currentSource
+      const filters: any = { page: nextPage, pageSize: 10, sourceId }
       
       if (this.data.currentStatus) {
         filters.status = this.data.currentStatus
@@ -149,10 +156,13 @@ Page({
 
   // 切换体系
   switchSource(e: any) {
-    const source = e.currentTarget.dataset.source
-    if (source !== this.data.currentSource) {
+    const sourceKey = e.currentTarget.dataset.source
+    // 找到对应的体系信息
+    const sourceInfo = this.data.sourceList.find((s: any) => s.key === sourceKey)
+    if (sourceKey !== this.data.currentSource && sourceInfo) {
       this.setData({ 
-        currentSource: source,
+        currentSource: sourceKey,
+        currentSourceId: sourceInfo.id || '',
         currentCategory: '',
         currentStatus: '',
         page: 1,

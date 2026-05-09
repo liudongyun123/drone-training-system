@@ -4,12 +4,6 @@
 import { courseApi, classApi, productApi, bannerApi, systemConfigApi } from '../../utils/api'
 import logger from '../../utils/logger'
 
-// 体系配置映射 - 用于获取体系 ID
-const SOURCE_CONFIG = {
-  RENSHE: { id: 'RENSHE', name: '人社培训' },
-  CAAC: { id: 'CAAC', name: 'CAAC培训' },
-} as const
-
 // 培训班等级映射
 const CLASS_LEVEL_MAP: Record<string, string> = {
   '入门班': '入门班', '基础班': '基础班', '进阶班': '进阶班', '高级班': '高级班', '考证班': '考证班'
@@ -22,8 +16,9 @@ interface IndexData {
   heroBanners: any[]
   learningPaths: any[]  // 学习路径分类
   learningPathLevelCount: number  // 学习路径等级数量
-  currentSource: string  // 当前体系
-  sourceList: Array<{ key: string; name: string; icon: string }>
+  currentSource: string  // 当前体系 code
+  currentSourceId: string  // 当前体系 _id
+  sourceList: Array<{ key: string; name: string; icon: string; id: string }>
   loading: boolean
 }
 
@@ -36,9 +31,10 @@ Page<IndexData>({
     learningPaths: [],
     learningPathLevelCount: 5,  // 默认5级
     currentSource: 'RENSHE',
+    currentSourceId: '',
     sourceList: [
-      { key: 'RENSHE', name: '人社培训', icon: '🏛️' },
-      { key: 'CAAC', name: 'CAAC培训', icon: '✈️' }
+      { key: 'RENSHE', name: '人社培训', icon: '🏛️', id: '' },
+      { key: 'CAAC', name: 'CAAC培训', icon: '✈️', id: '' }
     ],
     loading: true
   },
@@ -61,11 +57,13 @@ Page<IndexData>({
         const sourceList = sources.map((s: any) => ({
           key: s.code,
           name: s.name,
-          icon: s.icon || '📚'
+          icon: s.icon || '📚',
+          id: s._id || s.id || ''
         }))
         this.setData({
           sourceList,
-          currentSource: sources[0].code || 'RENSHE'
+          currentSource: sources[0].code || 'RENSHE',
+          currentSourceId: sources[0]._id || sources[0].id || ''
         })
       }
     } catch (err) {
@@ -78,8 +76,8 @@ Page<IndexData>({
     this.setData({ loading: true })
 
     try {
-      // 按当前体系过滤分类
-      const currentSource = this.data.currentSource
+      // 优先使用 _id 查询，如果没有则使用 code
+      const currentSourceId = this.data.currentSourceId || this.data.currentSource
       
       // 先获取字典配置获取首页显示数量
       let hotCourseCount = 6
@@ -98,8 +96,8 @@ Page<IndexData>({
       
       // 并行加载数据
       const [courses, classes, products, banners, categories] = await Promise.all([
-        courseApi.getHotCourses(hotCourseCount, currentSource),  // 按体系过滤，动态数量
-        classApi.getList({ status: 'enrolling', sourceId: currentSource, pageSize: enrollingClassCount }),  // 按体系过滤，动态数量
+        courseApi.getHotCourses(hotCourseCount, currentSourceId),  // 按体系过滤，动态数量
+        classApi.getList({ status: 'enrolling', sourceId: currentSourceId, pageSize: enrollingClassCount }),  // 按体系过滤，动态数量
         productApi.getList({ pageSize: productCount }),  // 动态数量
         bannerApi.getList(10),
         systemConfigApi.getCategories()
@@ -113,16 +111,9 @@ Page<IndexData>({
         levelCount = Math.min(categories.length, 10) || 5
       }
 
-      // 按体系过滤分类
+      // 按体系过滤分类（使用 _id 匹配）
       const filteredCategories = (categories || []).filter((cat: any) => {
-        // RENSHE 的 sourceId 是 "RENSHE"，CAAC 的 sourceId 是 _id
-        if (currentSource === 'RENSHE') {
-          return cat.sourceId === 'RENSHE'
-        } else if (currentSource === 'CAAC') {
-          // CAAC 分类的 sourceId 是 _id，需要特殊处理
-          return cat.sourceId !== 'RENSHE'
-        }
-        return true
+        return cat.sourceId === currentSourceId
       })
 
       // 处理培训班等级显示
@@ -184,7 +175,8 @@ Page<IndexData>({
     const path = e.currentTarget.dataset.path || {}
     const categoryId = path._id || ''
     const categoryName = path.name || ''
-    const sourceId = SOURCE_CONFIG[this.data.currentSource as keyof typeof SOURCE_CONFIG]?.id || ''
+    // 优先使用 _id 查询
+    const sourceId = this.data.currentSourceId || this.data.currentSource
     wx.navigateTo({
       url: `/pages/learning-path/learning-path?id=${categoryId}&name=${encodeURIComponent(categoryName)}&source=${this.data.currentSource}&sourceId=${sourceId}`
     })
@@ -192,9 +184,14 @@ Page<IndexData>({
 
   // 切换体系
   switchSource(e: any) {
-    const source = e.currentTarget.dataset.source
-    if (source !== this.data.currentSource) {
-      this.setData({ currentSource: source }, () => {
+    const sourceKey = e.currentTarget.dataset.source
+    // 找到对应的体系信息
+    const sourceInfo = this.data.sourceList.find((s: any) => s.key === sourceKey)
+    if (sourceKey !== this.data.currentSource && sourceInfo) {
+      this.setData({ 
+        currentSource: sourceKey,
+        currentSourceId: sourceInfo.id || ''
+      }, () => {
         this.loadData()
       })
     }

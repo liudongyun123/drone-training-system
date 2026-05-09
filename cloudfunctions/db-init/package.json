@@ -5,6 +5,7 @@
   "main": "index.js",
   "keywords": ["cloudbase", "database"],
   "dependencies": {
-    "wx-server-sdk": "~2.6.3"
+    "wx-server-sdk": "~2.6.3",
+    "tcb-admin-node": "^1.3.5"
   }
 }

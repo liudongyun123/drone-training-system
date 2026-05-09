@@ -19,8 +19,8 @@ interface ApiResponse<T = any> {
 async function callWebApi<T = any>(action: string, data: Record<string, unknown> = {}): Promise<ApiResponse<T>> {
   try {
     await ensureInit()
-    const { getCloudBaseApp } = await import('@/utils/cloudbase')
-    const app = getCloudBaseApp()
+    const { getCloudbaseApp } = await import('@/utils/cloudbase')
+    const app = getCloudbaseApp()
     
     const result = await app.callFunction({
       name: CLOUD_FUNCTION_NAME,

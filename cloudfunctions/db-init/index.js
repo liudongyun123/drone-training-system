@@ -1,17 +1,33 @@
 /**
- * 数据库操作云函数 - 小程序端专用
- * 支持 HTTP 触发器和云调用两种方式
+ * 数据库操作云函数 - 通用版
+ * 同时支持小程序端和 Web 端 HTTP 调用
  */
 
-const cloud = require('wx-server-sdk')
+// 检测运行环境
+const isHttpTrigger = typeof process !== 'undefined' && process.env && process.env.FUNCTION_TYPE === 'http';
+const isWxEnvironment = typeof wx !== 'undefined' && typeof wx.cloud !== 'undefined';
 
-cloud.init({
-  env: cloud.DYNAMIC_CURRENT_ENV
-})
+let db, _, $;
 
-const db = cloud.database()
-const _ = db.command
-const $ = db.command.aggregate
+if (isHttpTrigger) {
+  // HTTP 触发器环境：使用 tcb-admin-node
+  const tcb = require('tcb-admin-node');
+  tcb.init({
+    env: process.env.TCB_ENV || tcb.DYNAMIC_CURRENT_ENV
+  });
+  db = tcb.database();
+  _ = db.command;
+  $ = db.command.aggregate;
+} else {
+  // 云调用环境：使用 wx-server-sdk
+  const cloud = require('wx-server-sdk');
+  cloud.init({
+    env: cloud.DYNAMIC_CURRENT_ENV
+  });
+  db = cloud.database();
+  _ = db.command;
+  $ = db.command.aggregate;
+}
 
 /**
  * 解析请求参数

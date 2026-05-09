@@ -24,7 +24,7 @@
     "prepare": "bash scripts/setup-git-hooks.sh"
   },
   "dependencies": {
-    "@cloudbase/js-sdk": "^3.3.9",
+    "@cloudbase/js-sdk": "^2.28.2",
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
     "@fullcalendar/core": "^6.1.20",
@@ -54,9 +54,6 @@
     "zustand": "^4.4.0"
   },
   "devDependencies": {
-    "@cloudbase/framework-core": "^1.9.7",
-    "@cloudbase/framework-plugin-function": "^1.9.7",
-    "@cloudbase/framework-plugin-website": "^1.9.7",
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.9.1",
