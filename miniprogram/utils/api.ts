@@ -171,19 +171,21 @@ export const systemConfigApi = {
       console.log('[API] getLearningPathConfig called, sourceId:', sourceId)
       const pageConfig = await this.getPageConfig('learningPaths')
       
-      if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
-        let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
-        // 按体系筛查：优先匹配当前体系的配置
-        if (sourceId) {
-          const matchedBySource = items.filter((item: any) => item.sourceId === sourceId)
-          if (matchedBySource.length > 0) {
-            items = matchedBySource
-            console.log('[API] learningPaths matched by sourceId:', sourceId, 'count:', items.length)
-          }
+      if (pageConfig && pageConfig.data) {
+        // 检查配置是否属于当前体系（sourceId 在 data 层面）
+        if (sourceId && pageConfig.data.sourceId !== sourceId) {
+          console.log('[API] learningPaths sourceId mismatch, expected:', sourceId, 'got:', pageConfig.data.sourceId)
+          // 不匹配，回退到 categories
+          console.log('[API] learningPaths fallback to categories')
+          return this.getCategories(sourceId)
         }
-        items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-        console.log('[API] learningPaths final count:', items.length)
-        return items
+        
+        if (pageConfig.data.items && pageConfig.data.items.length > 0) {
+          console.log('[API] learningPaths from config, count:', pageConfig.data.items.length)
+          let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+          items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+          return items
+        }
       }
       
       // 回退：从 categories 集合获取
@@ -201,19 +203,20 @@ export const systemConfigApi = {
       console.log('[API] getHotCourseConfig called, limit:', limit, 'sourceId:', sourceId)
       const pageConfig = await this.getPageConfig('courses')
       
-      if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
-        let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
-        // 按体系筛查：优先匹配当前体系的配置
-        if (sourceId) {
-          const matchedBySource = items.filter((item: any) => item.sourceId === sourceId)
-          if (matchedBySource.length > 0) {
-            items = matchedBySource
-            console.log('[API] hotCourses matched by sourceId:', sourceId, 'count:', items.length)
-          }
+      if (pageConfig && pageConfig.data) {
+        // 检查配置是否属于当前体系
+        if (sourceId && pageConfig.data.sourceId !== sourceId) {
+          console.log('[API] hotCourses sourceId mismatch, expected:', sourceId, 'got:', pageConfig.data.sourceId)
+          console.log('[API] hotCourses fallback to courseApi.getHotCourses')
+          return courseApi.getHotCourses(limit, sourceId)
         }
-        items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-        console.log('[API] hotCourses final count:', items.length)
-        return items.slice(0, limit)
+        
+        if (pageConfig.data.items && pageConfig.data.items.length > 0) {
+          console.log('[API] hotCourses from config, count:', pageConfig.data.items.length)
+          let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+          items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+          return items.slice(0, limit)
+        }
       }
       
       // 回退：从 courses 集合获取
@@ -231,19 +234,20 @@ export const systemConfigApi = {
       console.log('[API] getClassConfig called, limit:', limit, 'sourceId:', sourceId)
       const pageConfig = await this.getPageConfig('classes')
       
-      if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
-        let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
-        // 按体系筛查：优先匹配当前体系的配置
-        if (sourceId) {
-          const matchedBySource = items.filter((item: any) => item.sourceId === sourceId)
-          if (matchedBySource.length > 0) {
-            items = matchedBySource
-            console.log('[API] classes matched by sourceId:', sourceId, 'count:', items.length)
-          }
+      if (pageConfig && pageConfig.data) {
+        // 检查配置是否属于当前体系
+        if (sourceId && pageConfig.data.sourceId !== sourceId) {
+          console.log('[API] classes sourceId mismatch, expected:', sourceId, 'got:', pageConfig.data.sourceId)
+          console.log('[API] classes fallback to classApi.getList')
+          return classApi.getList({ status: 'enrolling', sourceId, pageSize: limit })
         }
-        items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-        console.log('[API] classes final count:', items.length)
-        return items.slice(0, limit)
+        
+        if (pageConfig.data.items && pageConfig.data.items.length > 0) {
+          console.log('[API] classes from config, count:', pageConfig.data.items.length)
+          let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+          items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+          return items.slice(0, limit)
+        }
       }
       
       // 回退：从 classes 集合获取
