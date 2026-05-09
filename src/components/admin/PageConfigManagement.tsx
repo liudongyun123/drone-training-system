@@ -660,6 +660,7 @@ export default function PageConfigManagement() {
           name: cat.name,
           icon: cat.icon || '',
           order: cat.sortOrder || 0,
+          sourceId: selectedSourceId,  // 保存体系ID用于小程序过滤
           courses: matchedCourses.map((c: any) => ({ ...c, id: c._id })),
           classes: matchedClasses.map((c: any) => ({ ...c, id: c._id })),
           visible: true

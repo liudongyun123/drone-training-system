@@ -177,7 +177,12 @@ export const systemConfigApi = {
         if (sourceId) {
           const filtered = items.filter((item: any) => item.sourceId === sourceId)
           console.log('[API] filtered by sourceId, count:', filtered.length)
-          if (filtered.length > 0) items = filtered
+          // 如果按sourceId过滤后有数据，使用过滤结果；否则返回所有数据（兜底）
+          if (filtered.length > 0) {
+            items = filtered
+          } else {
+            console.log('[API] sourceId过滤为空，返回所有可见项')
+          }
         }
         return items
       }
