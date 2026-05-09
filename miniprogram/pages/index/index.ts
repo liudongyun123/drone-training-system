@@ -111,11 +111,6 @@ Page<IndexData>({
         levelCount = Math.min(categories.length, 10) || 5
       }
 
-      // 按体系过滤分类（使用 _id 匹配）
-      const filteredCategories = (categories || []).filter((cat: any) => {
-        return cat.sourceId === currentSourceId
-      })
-
       // 处理培训班等级显示
       const processedClasses = (classes || []).map((cls: any) => ({
         ...cls,
@@ -127,7 +122,7 @@ Page<IndexData>({
         enrollingClasses: processedClasses,
         featuredProducts: products,
         heroBanners: banners,
-        learningPaths: filteredCategories || [],
+        learningPaths: categories || [],
         learningPathLevelCount: levelCount,
         loading: false
       })
