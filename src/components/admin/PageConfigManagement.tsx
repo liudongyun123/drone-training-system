@@ -852,13 +852,33 @@ export default function PageConfigManagement() {
   // 加载学习路径配置
   const loadLearningPathConfigs = async () => {
     try {
-      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 1 });
+      // 查询所有学习路径相关配置（通用配置 + 按体系区分的配置）
+      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 10 });
+      let foundConfig = null;
+      
+      // 优先查找当前体系的专用配置
       if (result.data?.list && result.data.list.length > 0) {
-        const config = result.data.list[0];
-        if (config.data?.items && Array.isArray(config.data.items) && config.data.items.length > 0) {
-          setLearningPathConfigs(config.data.items);
-          return;
+        // 查找 sourceCode 匹配的配置
+        for (const config of result.data.list) {
+          if (config.data?.sourceCode === selectedSource) {
+            foundConfig = config;
+            break;
+          }
         }
+        // 如果没找到，查找通用配置（没有 sourceCode 的）
+        if (!foundConfig) {
+          for (const config of result.data.list) {
+            if (!config.data?.sourceCode) {
+              foundConfig = config;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (foundConfig && foundConfig.data?.items && Array.isArray(foundConfig.data.items) && foundConfig.data.items.length > 0) {
+        setLearningPathConfigs(foundConfig.data.items);
+        return;
       }
       // 无配置时自动从学习路径生成默认配置
       const defaultItems = learningPaths.map((g, index) => ({
@@ -885,13 +905,25 @@ export default function PageConfigManagement() {
   // 直接保存学习路径配置
   const saveLearningPathConfigsDirect = async (items: LearningPathGroup[]) => {
     try {
-      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 1 });
+      // 查找当前体系的配置
+      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 10 });
+      let existingConfig = null;
+      
+      if (result.data?.list && result.data.list.length > 0) {
+        for (const config of result.data.list) {
+          if (config.data?.sourceCode === selectedSource) {
+            existingConfig = config;
+            break;
+          }
+        }
+      }
+      
       const saveData = {
         section: 'learningPaths',
-        title: '学习路径配置',
+        title: `学习路径配置 - ${selectedSource}`,
         enabled: true,
         order: 2,
-        data: { items }
+        data: { items, sourceCode: selectedSource, sourceId: selectedSourceId }
       };
       if (result.data?.list && result.data.list.length > 0) {
         await adminService.update('page_configs', result.data.list[0]._id, saveData);
@@ -906,16 +938,29 @@ export default function PageConfigManagement() {
   // 保存学习路径配置
   const saveLearningPathConfigs = async () => {
     try {
-      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 1 });
+      // 查找当前体系的配置
+      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 10 });
+      let existingConfig = null;
+      
+      if (result.data?.list && result.data.list.length > 0) {
+        for (const config of result.data.list) {
+          if (config.data?.sourceCode === selectedSource) {
+            existingConfig = config;
+            break;
+          }
+        }
+      }
+      
       const saveData = {
         section: 'learningPaths',
-        title: '学习路径配置',
+        title: `学习路径配置 - ${selectedSource}`,
         enabled: true,
         order: 2,
-        data: { items: learningPathConfigs }
+        data: { items: learningPathConfigs, sourceCode: selectedSource, sourceId: selectedSourceId }
       };
-      if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+      
+      if (existingConfig) {
+        await adminService.update('page_configs', existingConfig._id, saveData);
       } else {
         await adminService.add('page_configs', saveData);
       }

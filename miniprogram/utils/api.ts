@@ -165,27 +165,45 @@ export const systemConfigApi = {
     }
   },
 
-  async getLearningPathConfig(sourceId?: string) {
+  async getLearningPathConfig(sourceId?: string, sourceCode?: string) {
     try {
-      console.log('[API] getLearningPathConfig called, sourceId:', sourceId)
-      const pageConfig = await this.getPageConfig('learningPaths')
-      console.log('[API] pageConfig:', pageConfig ? 'found' : 'not found')
-      if (pageConfig && pageConfig.data && pageConfig.data.items && pageConfig.data.items.length > 0) {
-        console.log('[API] pageConfig items count:', pageConfig.data.items.length)
-        let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
-        items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-        if (sourceId) {
-          const filtered = items.filter((item: any) => item.sourceId === sourceId)
-          console.log('[API] filtered by sourceId, count:', filtered.length)
-          // 如果按sourceId过滤后有数据，使用过滤结果；否则返回所有数据（兜底）
-          if (filtered.length > 0) {
-            items = filtered
-          } else {
-            console.log('[API] sourceId过滤为空，返回所有可见项')
+      console.log('[API] getLearningPathConfig called, sourceId:', sourceId, 'sourceCode:', sourceCode)
+      // 查询所有 learningPaths 配置
+      const result = await dbGetList('page_configs', { where: { section: 'learningPaths' } })
+      
+      if (result.data && result.data.length > 0) {
+        let foundConfig = null
+        
+        // 优先查找 sourceCode 匹配的配置
+        if (sourceCode) {
+          for (const config of result.data) {
+            if (config.data?.sourceCode === sourceCode) {
+              foundConfig = config
+              console.log('[API] Found config for sourceCode:', sourceCode)
+              break
+            }
           }
         }
-        return items
+        
+        // 如果没找到，查找通用配置
+        if (!foundConfig) {
+          for (const config of result.data) {
+            if (!config.data?.sourceCode && config.data?.items && config.data.items.length > 0) {
+              foundConfig = config
+              console.log('[API] Using generic config')
+              break
+            }
+          }
+        }
+        
+        if (foundConfig && foundConfig.data?.items && foundConfig.data.items.length > 0) {
+          let items = foundConfig.data.items.filter((item: any) => item.visible !== false)
+          items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+          console.log('[API] Using items count:', items.length)
+          return items
+        }
       }
+      
       console.log('[API] falling back to getCategories')
       const cats = await this.getCategories(sourceId)
       console.log('[API] categories count:', cats.length)

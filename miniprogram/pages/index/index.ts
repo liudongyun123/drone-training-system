@@ -100,7 +100,7 @@ Page<IndexData>({
         classApi.getList({ status: 'enrolling', sourceId: currentSourceId, pageSize: enrollingClassCount }),  // 按体系过滤，动态数量
         productApi.getList({ pageSize: productCount }),  // 动态数量
         bannerApi.getList(10),
-        systemConfigApi.getLearningPathConfig(currentSourceId)
+        systemConfigApi.getLearningPathConfig(currentSourceId, currentSource)
       ])
 
       // 获取等级数量 - 从 categories 数据中推断
