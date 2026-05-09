@@ -165,16 +165,24 @@ export const systemConfigApi = {
     }
   },
 
-  // 获取学习路径配置 - 从 page_configs 读取，优先使用配置，否则从 categories 回退
+  // 获取学习路径配置 - 从 page_configs 读取，按体系(sourceId)筛查，回退到原始集合
   async getLearningPathConfig(sourceId?: string) {
     try {
       console.log('[API] getLearningPathConfig called, sourceId:', sourceId)
       const pageConfig = await this.getPageConfig('learningPaths')
       
       if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
-        console.log('[API] learningPaths from config, count:', pageConfig.data.items.length)
         let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+        // 按体系筛查：优先匹配当前体系的配置
+        if (sourceId) {
+          const matchedBySource = items.filter((item: any) => item.sourceId === sourceId)
+          if (matchedBySource.length > 0) {
+            items = matchedBySource
+            console.log('[API] learningPaths matched by sourceId:', sourceId, 'count:', items.length)
+          }
+        }
         items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+        console.log('[API] learningPaths final count:', items.length)
         return items
       }
       
@@ -187,16 +195,24 @@ export const systemConfigApi = {
     }
   },
 
-  // 获取热门课程配置 - 从 page_configs 读取，优先使用配置，否则从 courses 回退
+  // 获取热门课程配置 - 从 page_configs 读取，按体系(sourceId)筛查，回退到原始集合
   async getHotCourseConfig(limit: number = 6, sourceId?: string) {
     try {
       console.log('[API] getHotCourseConfig called, limit:', limit, 'sourceId:', sourceId)
       const pageConfig = await this.getPageConfig('courses')
       
       if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
-        console.log('[API] hotCourses from config, count:', pageConfig.data.items.length)
         let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+        // 按体系筛查：优先匹配当前体系的配置
+        if (sourceId) {
+          const matchedBySource = items.filter((item: any) => item.sourceId === sourceId)
+          if (matchedBySource.length > 0) {
+            items = matchedBySource
+            console.log('[API] hotCourses matched by sourceId:', sourceId, 'count:', items.length)
+          }
+        }
         items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+        console.log('[API] hotCourses final count:', items.length)
         return items.slice(0, limit)
       }
       
@@ -209,16 +225,24 @@ export const systemConfigApi = {
     }
   },
 
-  // 获取培训班配置 - 从 page_configs 读取，优先使用配置，否则从 classes 回退
+  // 获取培训班配置 - 从 page_configs 读取，按体系(sourceId)筛查，回退到原始集合
   async getClassConfig(limit: number = 6, sourceId?: string) {
     try {
       console.log('[API] getClassConfig called, limit:', limit, 'sourceId:', sourceId)
       const pageConfig = await this.getPageConfig('classes')
       
       if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
-        console.log('[API] classes from config, count:', pageConfig.data.items.length)
         let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+        // 按体系筛查：优先匹配当前体系的配置
+        if (sourceId) {
+          const matchedBySource = items.filter((item: any) => item.sourceId === sourceId)
+          if (matchedBySource.length > 0) {
+            items = matchedBySource
+            console.log('[API] classes matched by sourceId:', sourceId, 'count:', items.length)
+          }
+        }
         items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+        console.log('[API] classes final count:', items.length)
         return items.slice(0, limit)
       }
       
