@@ -71,6 +71,7 @@ import {
   AdminDictionaries,
   AdminSiteConfig,
   AdminSources,
+  AdminLevels,
   TransferRequestPage,
   AdminTransfers,
   AdminClasses,
@@ -209,6 +210,7 @@ const adminRoutes = [
   { path: '/admin/dictionaries', element: adminRoute(AdminDictionaries) },
   { path: '/admin/site-config', element: adminRoute(AdminSiteConfig) },
   { path: '/admin/sources', element: adminRoute(AdminSources) },
+  { path: '/admin/levels', element: adminRoute(AdminLevels) },
 
   // 系统设置
   { path: '/admin/auth-config', element: adminRoute(AdminAuthConfig) },

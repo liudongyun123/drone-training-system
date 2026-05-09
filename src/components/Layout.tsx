@@ -10,7 +10,8 @@ import {
   LayoutDashboard, Wallet, Shield, FolderTree,
   MessageSquare, ScrollText, UsersRound,
   Wrench, Layers, Building2, CreditCard, ClipboardList,
-  BookMarked, Megaphone, Gauge, Database, Globe
+  BookMarked, Megaphone, Gauge, Database, Globe,
+  BookMarked as LevelsIcon
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -62,6 +63,17 @@ const adminMenuGroups: MenuGroup[] = [
     ]
   },
 
+  // ==================== 体系配置 ====================
+  {
+    title: '体系配置',
+    icon: BookMarked,
+    items: [
+      { path: '/admin/sources', icon: BookMarked, label: '体系管理', description: 'CAAC/人社培训等' },
+      { path: '/admin/categories', icon: FolderTree, label: '分类管理', description: '多旋翼/固定翼等' },
+      { path: '/admin/levels', icon: Award, label: '等级管理', description: '初级工/视距内等' },
+    ]
+  },
+
   // ==================== 内容管理 ====================
   {
     title: '内容管理',
@@ -69,7 +81,6 @@ const adminMenuGroups: MenuGroup[] = [
     items: [
       { path: '/admin/courses', icon: BookOpen, label: '课程管理', description: '视频课程' },
       { path: '/admin/teachers', icon: GraduationCap, label: '教师管理', description: '教师档案' },
-      { path: '/admin/categories', icon: FolderTree, label: '分类管理', description: '课程/商品分类' },
       { 
         path: '/admin/page-config', 
         icon: Layers, 

@@ -3,13 +3,7 @@
 import { X, Save, ImageIcon, XCircle } from 'lucide-react';
 import type { CourseFormData } from '../hooks/useCourses';
 import type { Teacher } from '@/types';
-import type { OptionItem } from '@/services/dictionaryService';
-
-// 体系ID到体系代码的映射
-const SOURCE_ID_TO_CODE: Record<string, string> = {
-  'e35392d069fc521f0152e2c14dbb4a18': 'RENSHE',
-  'e35392d069fc521f0152e2c2537e32ad': 'CAAC',
-};
+import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
 
 interface CourseFormProps {
   isOpen: boolean;
@@ -21,8 +15,6 @@ interface CourseFormProps {
   teachersLoading: boolean;
   categories: Array<{ _id: string; name: string; code: string; sourceId?: string }>;
   categoriesLoading: boolean;
-  levelOptions: OptionItem[];
-  levelsLoading: boolean;
   // 封面上传
   uploadingCover: boolean;
   coverProgress: number;
@@ -49,8 +41,6 @@ export default function CourseForm({
   teachersLoading,
   categories,
   categoriesLoading,
-  levelOptions,
-  levelsLoading,
   uploadingCover,
   coverProgress,
   coverDragActive,
@@ -64,6 +54,9 @@ export default function CourseForm({
   onClose,
   onTeacherChange,
 }: CourseFormProps) {
+  // 使用统一配置hook
+  const { sourceOptions, getLevelsBySource, levelsLoading } = useSourceConfig();
+
   if (!isOpen) return null;
 
   // 根据体系过滤分类
@@ -73,13 +66,8 @@ export default function CourseForm({
     return cat.sourceId === formData.sourceId;
   });
 
-  // 根据体系过滤等级
-  const sourceCode = SOURCE_ID_TO_CODE[formData.sourceId] || '';
-  const filteredLevels = levelOptions.filter(level => {
-    // 如果没有 source 字段，返回所有等级（兼容旧数据）
-    if (!('source' in level) || !level.source) return true;
-    return level.source === sourceCode;
-  });
+  // 根据体系过滤等级（从levels集合获取）
+  const filteredLevels = getLevelsBySource(formData.sourceId);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -142,10 +130,14 @@ export default function CourseForm({
                   setFormData({ ...formData, sourceId: e.target.value, category: '', categoryId: '' })
                 }}
                 required
+                disabled={sourceOptions.length === 0}
               >
                 <option value="">请选择体系</option>
-                <option value="e35392d069fc521f0152e2c14dbb4a18">人社培训</option>
-                <option value="e35392d069fc521f0152e2c2537e32ad">CAAC培训</option>
+                {sourceOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.icon} {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -180,7 +172,7 @@ export default function CourseForm({
               </select>
             </div>
 
-            {/* 难度等级 - 使用字典 */}
+            {/* 难度等级 - 从levels集合获取 */}
             <div className="form-control">
               <label className="label">
                 <span className="label-text">难度等级</span>
@@ -197,9 +189,9 @@ export default function CourseForm({
                 {!formData.sourceId ? (
                   <option value="">请先选择体系</option>
                 ) : filteredLevels.length > 0 ? (
-                  filteredLevels.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
+                  filteredLevels.map((level) => (
+                    <option key={level._id || level.code} value={level.code}>
+                      {level.name}
                     </option>
                   ))
                 ) : (

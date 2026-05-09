@@ -3,39 +3,41 @@
 
 import { dbGetList, dbQuery, callFunction, callMobileLearning, callApiUser, callApiOrder } from './http'
 
-// 等级中文映射（英文 -> 中文）
-const LEVEL_MAP: Record<string, string> = {
-  'beginner': '初级工',
-  'basic': '中级工',
-  'intermediate': '高级工',
-  'advanced': '技师',
-  'expert': '高级技师'
+// 等级缓存（从数据库动态加载）
+let levelCache: Array<{ code: string; name: string; sourceCode: string }> = []
+let levelCacheLoaded = false
+
+// 加载等级列表（从 levels 集合）
+async function loadLevels() {
+  if (levelCacheLoaded) return levelCache
+  
+  try {
+    const result = await dbGetList('levels', {
+      where: { status: 'active' },
+      orderBy: 'sortOrder asc'
+    })
+    if (result.data && result.data.length > 0) {
+      levelCache = result.data.map((l: any) => ({
+        code: l.code,
+        name: l.name,
+        sourceCode: l.sourceCode || ''
+      }))
+    }
+    levelCacheLoaded = true
+  } catch (error) {
+    console.error('加载等级列表失败:', error)
+  }
+  return levelCache
 }
 
-// 直接的中文等级映射（用于已经是中文的level字段）
-const LEVEL_TEXT_MAP: Record<string, string> = {
-  // 职业技能等级（课程用）
-  '初级工': '初级工',
-  '中级工': '中级工',
-  '高级工': '高级工',
-  '技师': '技师',
-  '高级技师': '高级技师',
-  // 培训班等级（兼容旧数据）
-  '入门班': '初级工',
-  '基础班': '中级工',
-  '进阶班': '高级工',
-  '高级班': '技师',
-  '考证班': '高级技师',
-  // CAAC等级
-  '视距内驾驶员': '视距内驾驶员',
-  '超视距驾驶员': '超视距驾驶员',
-  '教员': '教员',
-  'CAAC入门班': '视距内驾驶员',
-  'CAAC基础班': '超视距驾驶员',
-  'CAAC进阶班': '教员'
+// 根据等级代码获取等级名称
+function getLevelName(levelCode: string): string {
+  if (!levelCode) return ''
+  const level = levelCache.find(l => l.code === levelCode)
+  return level?.name || levelCode
 }
 
-// 培训班等级中文映射
+// 培训班等级中文映射（兼容旧数据）
 const CLASS_LEVEL_MAP: Record<string, string> = {
   '入门班': '入门班',
   '基础班': '基础班',
@@ -58,10 +60,10 @@ function inferClassLevel(name: string): string {
   return '入门班'
 }
 
-// 转换课程等级
-function transformCourse(course: any) {
-  // 优先使用英文映射，否则直接使用level字段（可能是中文）
-  const levelText = LEVEL_MAP[course.level] || LEVEL_TEXT_MAP[course.level] || course.level || ''
+// 转换课程等级（异步，需要先加载等级列表）
+async function transformCourseAsync(course: any) {
+  await loadLevels()
+  const levelText = getLevelName(course.level)
   return {
     ...course,
     levelText
@@ -69,11 +71,33 @@ function transformCourse(course: any) {
 }
 
 // 转换培训班等级
-function transformClass(classItem: any) {
+async function transformClassAsync(classItem: any) {
+  await loadLevels()
   const level = classItem.level || inferClassLevel(classItem.name || '')
+  // 尝试从缓存获取等级名称
+  const levelText = getLevelName(level) || CLASS_LEVEL_MAP[level] || level || ''
   return {
     ...classItem,
-    levelText: CLASS_LEVEL_MAP[level] || level || ''
+    levelText
+  }
+}
+
+// 兼容旧数据的同步转换函数（使用缓存）
+function transformCourse(course: any) {
+  const levelText = getLevelName(course.level)
+  return {
+    ...course,
+    levelText
+  }
+}
+
+// 兼容旧数据的同步转换函数（使用缓存）
+function transformClass(classItem: any) {
+  const level = classItem.level || inferClassLevel(classItem.name || '')
+  const levelText = getLevelName(level) || CLASS_LEVEL_MAP[level] || level || ''
+  return {
+    ...classItem,
+    levelText
   }
 }
 
@@ -121,6 +145,13 @@ export const systemConfigApi = {
       orderBy: 'sortOrder asc'
     })
     return result.data || []
+  },
+
+  async getLevels(sourceId?: string) {
+    await loadLevels()
+    if (!sourceId) return levelCache
+    // 根据体系代码筛选
+    return levelCache.filter(l => l.sourceCode === sourceId || !l.sourceCode)
   }
 }
 
@@ -144,12 +175,15 @@ export const courseApi = {
       skip,
       limit: pageSize
     })
+    // 先加载等级缓存，再转换
+    await loadLevels()
     return (result.data || []).map(transformCourse)
   },
 
   async getDetail(courseId: string) {
     const result = await dbQuery('courses', { _id: courseId })
     if (result.data) {
+      await loadLevels()
       return transformCourse(result.data)
     }
     return result.data
@@ -171,6 +205,7 @@ export const courseApi = {
       orderBy: 'salesCount desc',
       limit
     })
+    await loadLevels()
     return (result.data || []).map(transformCourse)
   },
 
@@ -204,12 +239,15 @@ export const classApi = {
       skip,
       limit: pageSize
     })
+    // 先加载等级缓存，再转换
+    await loadLevels()
     return (result.data || []).map(transformClass)
   },
 
   async getDetail(classId: string) {
     const result = await dbQuery('classes', { _id: classId })
     if (result.data) {
+      await loadLevels()
       return transformClass(result.data)
     }
     return result.data

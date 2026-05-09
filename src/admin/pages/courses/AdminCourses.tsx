@@ -39,8 +39,6 @@ export default function AdminCourses() {
         teachersLoading={hook.teachersLoading}
         categories={hook.categories}
         categoriesLoading={hook.categoriesLoading}
-        levelOptions={hook.levelOptions}
-        levelsLoading={hook.levelsLoading}
         uploadingCover={hook.uploadingCover}
         coverProgress={hook.coverProgress}
         coverDragActive={hook.coverDragActive}

@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useConfirm } from '@/admin/hooks/useConfirm';
 import { useDictionary } from '@/admin/hooks/useDictionary';
+import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { classService } from '@/services';
 import { courseService, teacherService } from '@/services/database';
@@ -18,19 +19,6 @@ import {
   BookOpen, UserCheck, Video, X, ChevronLeft, ChevronRight, Grid, List,
   Link as LinkIcon, ExternalLink, Copy, Check, Monitor, Smartphone
 } from 'lucide-react';
-
-// 体系ID到体系代码的映射
-const SOURCE_ID_TO_CODE: Record<string, string> = {
-  'e35392d069fc521f0152e2c14dbb4a18': 'RENSHE',
-  'e35392d069fc521f0152e2c2537e32ad': 'CAAC',
-};
-
-// 体系选项
-const SOURCE_OPTIONS = [
-  { value: '', label: '全部体系' },
-  { value: 'e35392d069fc521f0152e2c14dbb4a18', label: '人社培训' },
-  { value: 'e35392d069fc521f0152e2c2537e32ad', label: 'CAAC培训' },
-];
 
 // 班级状态标签
 const STATUS_LABELS: Record<string, { text: string; color: string }> = {
@@ -130,8 +118,8 @@ export default function AdminClasses() {
   const [filterSource, setFilterSource] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
 
-  // ★ 培训班等级选项
-  const { options: classLevelOptions, loading: classLevelsLoading } = useDictionary({ groupKey: 'classLevels' });
+  // ★ 使用统一配置hook获取体系和等级
+  const { sourceOptions, getSourceCode, getLevelsBySource, levelsLoading } = useSourceConfig();
 
   // ★ 学员来源统计
   const [classMemberStats, setClassMemberStats] = useState<Record<string, {
@@ -154,17 +142,15 @@ export default function AdminClasses() {
   const { confirm, ConfirmDialog } = useConfirm();
 
   // 根据体系过滤课程和等级
-  const sourceCode = SOURCE_ID_TO_CODE[formData.sourceId || ''] || '';
+  const sourceCode = getSourceCode(formData.sourceId || '');
   const filteredCourses = courses.filter(course => {
     // 如果课程没有 sourceId 字段，视为兼容旧数据，显示
     if (!('sourceId' in course) || !course.sourceId) return true;
     return course.sourceId === formData.sourceId;
   });
 
-  const filteredClassLevels = classLevelOptions.filter(level => {
-    if (!('source' in level) || !level.source) return true;
-    return level.source === sourceCode;
-  });
+  // 从levels集合获取等级
+  const filteredClassLevels = getLevelsBySource(formData.sourceId);
   
   // 安全提取列表数据(兼容多种返回格式)
   const extractList = <T,>(result: any): T[] => {
@@ -802,12 +788,15 @@ export default function AdminClasses() {
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     >
                       <option value="">请选择体系</option>
-                      <option value="e35392d069fc521f0152e2c14dbb4a18">人社培训</option>
-                      <option value="e35392d069fc521f0152e2c2537e32ad">CAAC培训</option>
+                      {sourceOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.icon} {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
-                  {/* 培训班等级 */}
+                  {/* 培训班等级 - 从levels集合获取 */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       班级等级
@@ -815,16 +804,16 @@ export default function AdminClasses() {
                     <select
                       value={formData.level || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value }))}
-                      disabled={classLevelsLoading || !formData.sourceId}
+                      disabled={levelsLoading || !formData.sourceId}
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     >
                       <option value="">请选择等级</option>
                       {!formData.sourceId ? (
                         <option value="">请先选择体系</option>
                       ) : filteredClassLevels.length > 0 ? (
-                        filteredClassLevels.map((opt: any) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
+                        filteredClassLevels.map((level) => (
+                          <option key={level._id || level.code} value={level.code}>
+                            {level.name}
                           </option>
                         ))
                       ) : (
