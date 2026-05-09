@@ -682,7 +682,9 @@ export default function PageConfigManagement() {
   // 加载热门课程配置
   const loadCourseConfigs = async () => {
     try {
-      const result = await adminService.list('page_configs', { section: 'courses' }, { limit: 1 });
+      // 按体系使用独立的集合名
+      const collectionName = `page_configs_${selectedSource}`;
+      const result = await adminService.list(collectionName, { section: 'courses' }, { limit: 1 });
       if (result.data?.list && result.data.list.length > 0) {
         const config = result.data.list[0];
         if (config.data?.items && Array.isArray(config.data.items) && config.data.items.length > 0) {
@@ -723,18 +725,19 @@ export default function PageConfigManagement() {
   // 直接保存课程配置（用于自动初始化）
   const saveCourseConfigsDirect = async (items: CourseConfigItem[]) => {
     try {
-      const result = await adminService.list('page_configs', { section: 'courses' }, { limit: 1 });
+      const collectionName = `page_configs_${selectedSource}`;
+      const result = await adminService.list(collectionName, { section: 'courses' }, { limit: 1 });
       const saveData = {
         section: 'courses',
-        title: '热门课程配置',
+        title: `热门课程配置 - ${selectedSource}`,
         enabled: true,
         order: 3,
         data: { items }
       };
       if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+        await adminService.update(collectionName, result.data.list[0]._id, saveData);
       } else {
-        await adminService.add('page_configs', saveData);
+        await adminService.add(collectionName, saveData);
       }
     } catch (error) {
       console.error('自动保存课程配置失败:', error);
@@ -744,18 +747,19 @@ export default function PageConfigManagement() {
   // 保存热门课程配置
   const saveCourseConfigs = async () => {
     try {
-      const result = await adminService.list('page_configs', { section: 'courses' }, { limit: 1 });
+      const collectionName = `page_configs_${selectedSource}`;
+      const result = await adminService.list(collectionName, { section: 'courses' }, { limit: 1 });
       const saveData = {
         section: 'courses',
-        title: '热门课程配置',
+        title: `热门课程配置 - ${selectedSource}`,
         enabled: true,
         order: 3,
         data: { items: courseConfigs }
       };
       if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+        await adminService.update(collectionName, result.data.list[0]._id, saveData);
       } else {
-        await adminService.add('page_configs', saveData);
+        await adminService.add(collectionName, saveData);
       }
       alert('保存成功');
     } catch (error) {
@@ -767,7 +771,9 @@ export default function PageConfigManagement() {
   // 加载培训班配置
   const loadClassConfigs = async () => {
     try {
-      const result = await adminService.list('page_configs', { section: 'classes' }, { limit: 1 });
+      // 按体系使用独立的集合名
+      const collectionName = `page_configs_${selectedSource}`;
+      const result = await adminService.list(collectionName, { section: 'classes' }, { limit: 1 });
       if (result.data?.list && result.data.list.length > 0) {
         const config = result.data.list[0];
         if (config.data?.items && Array.isArray(config.data.items) && config.data.items.length > 0) {
@@ -808,18 +814,19 @@ export default function PageConfigManagement() {
   // 直接保存培训班配置
   const saveClassConfigsDirect = async (items: ClassConfigItem[]) => {
     try {
-      const result = await adminService.list('page_configs', { section: 'classes' }, { limit: 1 });
+      const collectionName = `page_configs_${selectedSource}`;
+      const result = await adminService.list(collectionName, { section: 'classes' }, { limit: 1 });
       const saveData = {
         section: 'classes',
-        title: '培训班配置',
+        title: `培训班配置 - ${selectedSource}`,
         enabled: true,
         order: 4,
         data: { items }
       };
       if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+        await adminService.update(collectionName, result.data.list[0]._id, saveData);
       } else {
-        await adminService.add('page_configs', saveData);
+        await adminService.add(collectionName, saveData);
       }
     } catch (error) {
       console.error('自动保存培训班配置失败:', error);
@@ -829,18 +836,19 @@ export default function PageConfigManagement() {
   // 保存培训班配置
   const saveClassConfigs = async () => {
     try {
-      const result = await adminService.list('page_configs', { section: 'classes' }, { limit: 1 });
+      const collectionName = `page_configs_${selectedSource}`;
+      const result = await adminService.list(collectionName, { section: 'classes' }, { limit: 1 });
       const saveData = {
         section: 'classes',
-        title: '培训班配置',
+        title: `培训班配置 - ${selectedSource}`,
         enabled: true,
         order: 4,
         data: { items: classConfigs }
       };
       if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+        await adminService.update(collectionName, result.data.list[0]._id, saveData);
       } else {
-        await adminService.add('page_configs', saveData);
+        await adminService.add(collectionName, saveData);
       }
       alert('保存成功');
     } catch (error) {
@@ -852,32 +860,12 @@ export default function PageConfigManagement() {
   // 加载学习路径配置
   const loadLearningPathConfigs = async () => {
     try {
-      // 查询所有学习路径相关配置（通用配置 + 按体系区分的配置）
-      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 10 });
-      let foundConfig = null;
+      // 按体系使用独立的集合名
+      const collectionName = `page_configs_${selectedSource}`;
+      const result = await adminService.list(collectionName, { section: 'learningPaths' }, { limit: 1 });
       
-      // 优先查找当前体系的专用配置
-      if (result.data?.list && result.data.list.length > 0) {
-        // 查找 sourceCode 匹配的配置
-        for (const config of result.data.list) {
-          if (config.data?.sourceCode === selectedSource) {
-            foundConfig = config;
-            break;
-          }
-        }
-        // 如果没找到，查找通用配置（没有 sourceCode 的）
-        if (!foundConfig) {
-          for (const config of result.data.list) {
-            if (!config.data?.sourceCode) {
-              foundConfig = config;
-              break;
-            }
-          }
-        }
-      }
-      
-      if (foundConfig && foundConfig.data?.items && Array.isArray(foundConfig.data.items) && foundConfig.data.items.length > 0) {
-        setLearningPathConfigs(foundConfig.data.items);
+      if (result.data?.list && result.data.list.length > 0 && result.data.list[0].data?.items) {
+        setLearningPathConfigs(result.data.list[0].data.items);
         return;
       }
       // 无配置时自动从学习路径生成默认配置
@@ -918,17 +906,21 @@ export default function PageConfigManagement() {
         }
       }
       
+      // 按体系使用独立的集合名
+      const collectionName = `page_configs_${selectedSource}`;
       const saveData = {
         section: 'learningPaths',
         title: `学习路径配置 - ${selectedSource}`,
         enabled: true,
         order: 2,
-        data: { items, sourceCode: selectedSource, sourceId: selectedSourceId }
+        data: { items }
       };
-      if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+      // 查找现有配置
+      const existingResult = await adminService.list(collectionName, { section: 'learningPaths' }, { limit: 1 });
+      if (existingResult.data?.list && existingResult.data.list.length > 0) {
+        await adminService.update(collectionName, existingResult.data.list[0]._id, saveData);
       } else {
-        await adminService.add('page_configs', saveData);
+        await adminService.add(collectionName, saveData);
       }
     } catch (error) {
       console.error('自动保存学习路径配置失败:', error);
@@ -938,31 +930,22 @@ export default function PageConfigManagement() {
   // 保存学习路径配置
   const saveLearningPathConfigs = async () => {
     try {
-      // 查找当前体系的配置
-      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 10 });
-      let existingConfig = null;
-      
-      if (result.data?.list && result.data.list.length > 0) {
-        for (const config of result.data.list) {
-          if (config.data?.sourceCode === selectedSource) {
-            existingConfig = config;
-            break;
-          }
-        }
-      }
-      
+      // 按体系使用独立的集合名
+      const collectionName = `page_configs_${selectedSource}`;
       const saveData = {
         section: 'learningPaths',
         title: `学习路径配置 - ${selectedSource}`,
         enabled: true,
         order: 2,
-        data: { items: learningPathConfigs, sourceCode: selectedSource, sourceId: selectedSourceId }
+        data: { items: learningPathConfigs }
       };
       
-      if (existingConfig) {
-        await adminService.update('page_configs', existingConfig._id, saveData);
+      // 查找现有配置
+      const existingResult = await adminService.list(collectionName, { section: 'learningPaths' }, { limit: 1 });
+      if (existingResult.data?.list && existingResult.data.list.length > 0) {
+        await adminService.update(collectionName, existingResult.data.list[0]._id, saveData);
       } else {
-        await adminService.add('page_configs', saveData);
+        await adminService.add(collectionName, saveData);
       }
       alert('保存成功');
     } catch (error) {

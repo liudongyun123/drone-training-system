@@ -165,27 +165,22 @@ export const systemConfigApi = {
     }
   },
 
-  // 获取学习路径配置 - 从 page_configs 读取，按体系(sourceId)筛查，回退到原始集合
-  async getLearningPathConfig(sourceId?: string) {
+  // 获取学习路径配置 - 从 page_configs_${sourceCode} 集合读取，回退到 categories
+  async getLearningPathConfig(sourceId?: string, sourceCode?: string) {
     try {
-      console.log('[API] getLearningPathConfig called, sourceId:', sourceId)
-      const pageConfig = await this.getPageConfig('learningPaths')
+      console.log('[API] getLearningPathConfig, sourceId:', sourceId, 'sourceCode:', sourceCode)
+      if (!sourceCode) {
+        return this.getCategories(sourceId)
+      }
       
-      if (pageConfig && pageConfig.data) {
-        // 检查配置是否属于当前体系（sourceId 在 data 层面）
-        if (sourceId && pageConfig.data.sourceId !== sourceId) {
-          console.log('[API] learningPaths sourceId mismatch, expected:', sourceId, 'got:', pageConfig.data.sourceId)
-          // 不匹配，回退到 categories
-          console.log('[API] learningPaths fallback to categories')
-          return this.getCategories(sourceId)
-        }
-        
-        if (pageConfig.data.items && pageConfig.data.items.length > 0) {
-          console.log('[API] learningPaths from config, count:', pageConfig.data.items.length)
-          let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
-          items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-          return items
-        }
+      const collectionName = `page_configs_${sourceCode}`
+      const pageConfig = await this.getPageConfigFromCollection(collectionName, 'learningPaths')
+      
+      if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
+        console.log('[API] learningPaths from config, count:', pageConfig.data.items.length)
+        let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+        items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+        return items
       }
       
       // 回退：从 categories 集合获取
@@ -197,26 +192,22 @@ export const systemConfigApi = {
     }
   },
 
-  // 获取热门课程配置 - 从 page_configs 读取，按体系(sourceId)筛查，回退到原始集合
-  async getHotCourseConfig(limit: number = 6, sourceId?: string) {
+  // 获取热门课程配置 - 从 page_configs_${sourceCode} 集合读取，回退到 courses
+  async getHotCourseConfig(limit: number = 6, sourceId?: string, sourceCode?: string) {
     try {
-      console.log('[API] getHotCourseConfig called, limit:', limit, 'sourceId:', sourceId)
-      const pageConfig = await this.getPageConfig('courses')
+      console.log('[API] getHotCourseConfig, limit:', limit, 'sourceId:', sourceId, 'sourceCode:', sourceCode)
+      if (!sourceCode) {
+        return courseApi.getHotCourses(limit, sourceId)
+      }
       
-      if (pageConfig && pageConfig.data) {
-        // 检查配置是否属于当前体系
-        if (sourceId && pageConfig.data.sourceId !== sourceId) {
-          console.log('[API] hotCourses sourceId mismatch, expected:', sourceId, 'got:', pageConfig.data.sourceId)
-          console.log('[API] hotCourses fallback to courseApi.getHotCourses')
-          return courseApi.getHotCourses(limit, sourceId)
-        }
-        
-        if (pageConfig.data.items && pageConfig.data.items.length > 0) {
-          console.log('[API] hotCourses from config, count:', pageConfig.data.items.length)
-          let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
-          items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-          return items.slice(0, limit)
-        }
+      const collectionName = `page_configs_${sourceCode}`
+      const pageConfig = await this.getPageConfigFromCollection(collectionName, 'courses')
+      
+      if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
+        console.log('[API] hotCourses from config, count:', pageConfig.data.items.length)
+        let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+        items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+        return items.slice(0, limit)
       }
       
       // 回退：从 courses 集合获取
@@ -228,26 +219,22 @@ export const systemConfigApi = {
     }
   },
 
-  // 获取培训班配置 - 从 page_configs 读取，按体系(sourceId)筛查，回退到原始集合
-  async getClassConfig(limit: number = 6, sourceId?: string) {
+  // 获取培训班配置 - 从 page_configs_${sourceCode} 集合读取，回退到 classes
+  async getClassConfig(limit: number = 6, sourceId?: string, sourceCode?: string) {
     try {
-      console.log('[API] getClassConfig called, limit:', limit, 'sourceId:', sourceId)
-      const pageConfig = await this.getPageConfig('classes')
+      console.log('[API] getClassConfig, limit:', limit, 'sourceId:', sourceId, 'sourceCode:', sourceCode)
+      if (!sourceCode) {
+        return classApi.getList({ status: 'enrolling', sourceId, pageSize: limit })
+      }
       
-      if (pageConfig && pageConfig.data) {
-        // 检查配置是否属于当前体系
-        if (sourceId && pageConfig.data.sourceId !== sourceId) {
-          console.log('[API] classes sourceId mismatch, expected:', sourceId, 'got:', pageConfig.data.sourceId)
-          console.log('[API] classes fallback to classApi.getList')
-          return classApi.getList({ status: 'enrolling', sourceId, pageSize: limit })
-        }
-        
-        if (pageConfig.data.items && pageConfig.data.items.length > 0) {
-          console.log('[API] classes from config, count:', pageConfig.data.items.length)
-          let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
-          items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-          return items.slice(0, limit)
-        }
+      const collectionName = `page_configs_${sourceCode}`
+      const pageConfig = await this.getPageConfigFromCollection(collectionName, 'classes')
+      
+      if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
+        console.log('[API] classes from config, count:', pageConfig.data.items.length)
+        let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+        items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+        return items.slice(0, limit)
       }
       
       // 回退：从 classes 集合获取
@@ -256,6 +243,17 @@ export const systemConfigApi = {
     } catch (error) {
       console.error('getClassConfig failed:', error)
       return []
+    }
+  },
+
+  // 从指定集合获取页面配置
+  async getPageConfigFromCollection(collection: string, section: string) {
+    try {
+      const result = await dbGetList(collection, { where: { section } })
+      return result.data && result.data.length > 0 ? result.data[0] : null
+    } catch (error) {
+      console.error('getPageConfigFromCollection failed:', error)
+      return null
     }
   }
 
