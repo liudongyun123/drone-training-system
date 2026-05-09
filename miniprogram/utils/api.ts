@@ -165,26 +165,68 @@ export const systemConfigApi = {
     }
   },
 
-  async getLearningPathConfig(sourceId?: string, sourceCode?: string) {
+  // 获取学习路径配置 - 从 page_configs 读取，优先使用配置，否则从 categories 回退
+  async getLearningPathConfig(sourceId?: string) {
     try {
-      console.log('[API] getLearningPathConfig called, sourceId:', sourceId, 'sourceCode:', sourceCode)
+      console.log('[API] getLearningPathConfig called, sourceId:', sourceId)
       const pageConfig = await this.getPageConfig('learningPaths')
       
       if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
-        console.log('[API] pageConfig items count:', pageConfig.data.items.length)
+        console.log('[API] learningPaths from config, count:', pageConfig.data.items.length)
         let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
         items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-        console.log('[API] filtered visible items:', items.length)
         return items
       }
       
-      console.log('[API] falling back to getCategories')
-      // 回退时不限制 sourceId，获取所有可见的分类
-      const cats = await this.getCategories()
-      console.log('[API] categories count:', cats.length)
-      return cats
+      // 回退：从 categories 集合获取
+      console.log('[API] learningPaths fallback to categories')
+      return this.getCategories(sourceId)
     } catch (error) {
       console.error('getLearningPathConfig failed:', error)
+      return []
+    }
+  },
+
+  // 获取热门课程配置 - 从 page_configs 读取，优先使用配置，否则从 courses 回退
+  async getHotCourseConfig(limit: number = 6, sourceId?: string) {
+    try {
+      console.log('[API] getHotCourseConfig called, limit:', limit, 'sourceId:', sourceId)
+      const pageConfig = await this.getPageConfig('courses')
+      
+      if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
+        console.log('[API] hotCourses from config, count:', pageConfig.data.items.length)
+        let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+        items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+        return items.slice(0, limit)
+      }
+      
+      // 回退：从 courses 集合获取
+      console.log('[API] hotCourses fallback to courseApi.getHotCourses')
+      return courseApi.getHotCourses(limit, sourceId)
+    } catch (error) {
+      console.error('getHotCourseConfig failed:', error)
+      return []
+    }
+  },
+
+  // 获取培训班配置 - 从 page_configs 读取，优先使用配置，否则从 classes 回退
+  async getClassConfig(limit: number = 6, sourceId?: string) {
+    try {
+      console.log('[API] getClassConfig called, limit:', limit, 'sourceId:', sourceId)
+      const pageConfig = await this.getPageConfig('classes')
+      
+      if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
+        console.log('[API] classes from config, count:', pageConfig.data.items.length)
+        let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+        items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+        return items.slice(0, limit)
+      }
+      
+      // 回退：从 classes 集合获取
+      console.log('[API] classes fallback to classApi.getList')
+      return classApi.getList({ status: 'enrolling', sourceId, pageSize: limit })
+    } catch (error) {
+      console.error('getClassConfig failed:', error)
       return []
     }
   }

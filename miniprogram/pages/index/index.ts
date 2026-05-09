@@ -94,13 +94,13 @@ Page<IndexData>({
         console.log('获取首页配置失败，使用默认值')
       }
       
-      // 并行加载数据
+      // 并行加载数据 - 从 page_configs 读取配置，回退到原始集合
       const [courses, classes, products, banners, categories] = await Promise.all([
-        courseApi.getHotCourses(hotCourseCount, currentSourceId),  // 按体系过滤，动态数量
-        classApi.getList({ status: 'enrolling', sourceId: currentSourceId, pageSize: enrollingClassCount }),  // 按体系过滤，动态数量
-        productApi.getList({ pageSize: productCount }),  // 动态数量
+        systemConfigApi.getHotCourseConfig(hotCourseCount, currentSourceId),
+        systemConfigApi.getClassConfig(enrollingClassCount, currentSourceId),
+        productApi.getList({ pageSize: productCount }),
         bannerApi.getList(10),
-        systemConfigApi.getLearningPathConfig(currentSourceId, currentSource)
+        systemConfigApi.getLearningPathConfig(currentSourceId)
       ])
 
       // 获取等级数量 - 从 categories 数据中推断
