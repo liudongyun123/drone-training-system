@@ -179,7 +179,8 @@ export const systemConfigApi = {
       }
       
       console.log('[API] falling back to getCategories')
-      const cats = await this.getCategories(sourceId)
+      // 回退时不限制 sourceId，获取所有可见的分类
+      const cats = await this.getCategories()
       console.log('[API] categories count:', cats.length)
       return cats
     } catch (error) {
