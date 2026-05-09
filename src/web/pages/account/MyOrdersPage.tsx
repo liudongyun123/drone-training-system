@@ -127,7 +127,7 @@ export default function MyOrdersPage() {
             // 通过 classId 查询班级详情，获取课程信息
             let courseId = reg.courseId;
             let courseName = reg.className || '培训班';
-            let courseCover = reg.classCover;
+            const courseCover = reg.classCover;
             
             if (reg.classId) {
               try {

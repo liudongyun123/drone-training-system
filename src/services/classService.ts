@@ -263,7 +263,7 @@ export const classService = {
     const end = new Date(endDate)
     const excludeSet = new Set(excludeDates)
     
-    let current = new Date(start)
+    const current = new Date(start)
     while (current <= end) {
       const dateStr = current.toISOString().split('T')[0]
       

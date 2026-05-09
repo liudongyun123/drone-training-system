@@ -452,6 +452,118 @@ export const adminLearningApi = {
       action: 'getCertificateStats',
       data: {}
     })
+  },
+
+  // ==================== 学习进度管理 ====================
+
+  /**
+   * 获取进度列表
+   */
+  async getProgressList(params?: {
+    page?: number
+    pageSize?: number
+    userId?: string
+    courseId?: string
+    status?: string
+    keyword?: string
+  }): Promise<FeatureApiResponse<{
+    list: any[]
+    total: number
+    page: number
+    pageSize: number
+  }>> {
+    return callFunction('mobile-learning', {
+      action: 'getProgressList',
+      data: params || {}
+    })
+  },
+
+  /**
+   * 获取学员进度详情
+   */
+  async getUserProgress(userId: string): Promise<FeatureApiResponse<any[]>> {
+    return callFunction('mobile-learning', {
+      action: 'getUserProgress',
+      data: { userId }
+    })
+  },
+
+  /**
+   * 获取课程进度详情
+   */
+  async getCourseProgress(courseId: string): Promise<FeatureApiResponse<any[]>> {
+    return callFunction('mobile-learning', {
+      action: 'getCourseProgress',
+      data: { courseId }
+    })
+  },
+
+  /**
+   * 更新进度
+   */
+  async updateProgress(progressId: string, data: {
+    progress?: number
+    status?: string
+    videoProgress?: number
+  }): Promise<FeatureApiResponse<void>> {
+    return callFunction('mobile-learning', {
+      action: 'updateProgress',
+      data: { progressId, ...data }
+    })
+  },
+
+  /**
+   * 完成课时
+   */
+  async completeLesson(progressId: string): Promise<FeatureApiResponse<void>> {
+    return callFunction('mobile-learning', {
+      action: 'completeLesson',
+      data: { progressId }
+    })
+  },
+
+  /**
+   * 重置进度
+   */
+  async resetProgress(userId: string, courseId: string): Promise<FeatureApiResponse<void>> {
+    return callFunction('mobile-learning', {
+      action: 'resetProgress',
+      data: { userId, courseId }
+    })
+  },
+
+  /**
+   * 获取进度统计
+   */
+  async getProgressStats(): Promise<FeatureApiResponse<{
+    total: number
+    notStarted: number
+    inProgress: number
+    completed: number
+    thisWeek: number
+    avgProgress: number
+  }>> {
+    return callFunction('mobile-learning', {
+      action: 'getProgressStats',
+      data: {}
+    })
+  },
+
+  /**
+   * 获取学员学习统计
+   */
+  async getUserLearningStats(userId: string): Promise<FeatureApiResponse<{
+    totalCourses: number
+    completedCourses: number
+    totalLessons: number
+    completedLessons: number
+    totalProgress: number
+    lastStudyTime?: number
+  }>> {
+    return callFunction('mobile-learning', {
+      action: 'getUserLearningStats',
+      data: { userId }
+    })
   }
 }
 

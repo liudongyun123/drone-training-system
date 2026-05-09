@@ -21,7 +21,7 @@ export default function AdminLogin() {
   const { isAuthenticated, isAdmin, adminLogin, sendPhoneCode } = useAuthStore()
   
   // 登录方式切换
-  const [activeTab, setActiveTab] = useState<LoginTab>('sms')
+  const [activeTab, setActiveTab] = useState<LoginTab>('password')
   
   // 账号密码登录
   const [username, setUsername] = useState('')

@@ -13,7 +13,20 @@
           "cloudPath": "/",
           "websiteConfig": {
             "index": "index.html",
-            "error": "index.html"
+            "error": "index.html",
+            "routes": [
+              { "path": "/admin/*", "target": "admin/index.html" },
+              { "path": "/admin", "target": "admin/index.html" },
+              { "path": "/admin/login", "target": "admin/index.html" },
+              { "path": "/admin/dashboard", "target": "admin/index.html" },
+              { "path": "/courses/*", "target": "index.html" },
+              { "path": "/course/*", "target": "index.html" },
+              { "path": "/lesson/*", "target": "index.html" },
+              { "path": "/exam/*", "target": "index.html" },
+              { "path": "/my-learning", "target": "index.html" },
+              { "path": "/checkout", "target": "index.html" },
+              { "path": "/*", "target": "index.html" }
+            ]
           }
         }
       },
@@ -50,6 +63,26 @@
                   "type": "http"
                 }
               ]
+            },
+            {
+              "name": "admin",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "triggers": []
+            },
+            {
+              "name": "mobile-auth",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git", "scf_bootstrap"],
+              "triggers": []
             },
             {
               "name": "migrate-permissions",

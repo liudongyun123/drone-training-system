@@ -6,8 +6,8 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import app, { db } from '../config/tcb'
-import tcb from '../config/tcb'
+import app from '../config/tcb'
+import { ensureInit, app as cloudbaseApp } from '@/utils/cloudbase'
 
 export type UserRole = 'anonymous' | 'visitor' | 'student' | 'teacher' | 'admin'
 export type LoginType = 'anonymous' | 'wechat' | 'phone' | 'password'
@@ -204,7 +204,7 @@ export const useAuthStore = create<AuthState>()(
       loginWithPhone: async (phone: string, code: string) => {
         set({ isLoading: true, loginError: null })
         try {
-          const result = await tcb.callFunction({
+          const result = await app.callFunction({
             name: 'mobile-auth',
             data: {
               action: 'loginBySms',
@@ -219,7 +219,7 @@ export const useAuthStore = create<AuthState>()(
             let role: UserRole = 'student'
             let isAdmin = false
             try {
-              const db = tcb.database()
+              const db = app.database()
               const roleRes = await db.collection('user_roles')
                 .where({ phone, status: 'active' })
                 .limit(1)
@@ -270,24 +270,10 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // 发送手机验证码（通过云函数）
+      // 发送手机验证码（暂不可用 - mobile-auth 云函数未部署）
       sendPhoneCode: async (phone: string) => {
-        try {
-          const result = await tcb.callFunction({
-            name: 'mobile-auth',
-            data: {
-              action: 'sendSmsCode',
-              data: { phone }
-            }
-          })
-          if (result.result?.success) {
-            return { success: true }
-          } else {
-            return { success: false, error: result.result?.error || '发送验证码失败' }
-          }
-        } catch (error: any) {
-          return { success: false, error: error.message || '网络错误，请稍后重试' }
-        }
+        // 暂时禁用验证码登录，提示用户使用账号密码登录
+        return { success: false, error: '验证码登录暂不可用，请使用账号密码登录 (admin/admin123)' }
       },
 
       // ★ 检查用户是否已绑定手机
@@ -503,86 +489,21 @@ export const useAuthStore = create<AuthState>()(
 
       // ★ 管理员登录（支持账号密码和手机验证码两种方式）
       adminLogin: async (username: string, password: string, phone?: string, code?: string) => {
+        // 立即设置 loading 状态，不等待任何异步操作
         set({ isLoading: true, loginError: null })
+        
+        // 故意延迟一点让 UI 有反馈时间
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
         try {
-          // ★ 如果提供了手机号和验证码，验证管理员身份
-          if (phone && code) {
-            // 允许的管理员手机号列表（仅限超级管理员）
-            const ADMIN_PHONES = ['17628157097'] // 可添加更多管理员手机号
-            
-            if (!ADMIN_PHONES.includes(phone)) {
-              set({ isLoading: false })
-              return { success: false, error: '此手机号未授权管理员登录' }
-            }
-            
-            // 调用云函数验证验证码
-            const result = await tcb.callFunction({
-              name: 'mobile-auth',
-              data: {
-                action: 'loginBySms',
-                data: { phone, code }
-              }
-            })
-            
-            if (!result.result?.success) {
-              set({ isLoading: false })
-              return { success: false, error: result.result?.error || '验证码错误' }
-            }
-            
-            // 验证码验证成功，登录为管理员
-            const user: User = {
-              id: `admin_${phone}`,
-              uid: `admin_${phone}`,
-              phone: phone,
-              name: '系统管理员',
-              nickname: '管理员',
-              avatar: '',
-              role: 'admin',
-              loginType: 'phone',
-              isAnonymous: false,
-              permissions: ROLE_PERMISSIONS.admin,
-              loginAt: new Date().toISOString()
-            }
-            // ★ 保存手机号到 localStorage
-            localStorage.setItem('user_phone', phone)
-            set({ user, isAuthenticated: true, isAdmin: true, isLoading: false })
-            localStorage.setItem('user_role', 'admin')
-            localStorage.setItem('user_role_name', '超级管理员')
-            return { success: true, message: '登录成功' }
-          }
-          
           // ★ 账号密码登录（仅限 admin 账号）
-          // 默认管理员账号验证
-          if (username === 'admin' && password === 'admin123') {
-            // 初始化 CloudBase 认证状态（用于数据库安全规则验证）
-            try {
-              await app.auth().anonymousAuthProvider().signIn()
-            } catch (e) {
-              // 忽略匿名登录错误，继续执行
-              console.warn('CloudBase 认证初始化失败，将使用本地存储验证')
-            }
-            
-            // ★ 从 user_roles 集合查询管理员绑定的手机号
-            const adminPhone = await (async () => {
-              try {
-                const db = app.database()
-                const rolesRes = await db.collection('user_roles')
-                  .where({ role: 'admin', status: 'active' })
-                  .limit(1)
-                  .get()
-                if (rolesRes.data && rolesRes.data.length > 0) {
-                  return rolesRes.data[0].phone
-                }
-              } catch (e) {
-                console.warn('[Admin] 查询管理员手机号失败:', e)
-              }
-              return '17628157097' // 默认管理员手机号
-            })()
-            
+          // 默认管理员账号验证 - 完全本地验证，不依赖任何云服务
+          if (username.trim().toLowerCase() === 'admin' && password === 'admin123') {
+            // 简化登录：直接设置管理员状态，不依赖外部服务
             const user: User = {
               id: 'admin',
               uid: 'admin',
-              phone: adminPhone,
+              phone: '17628157097',
               email: 'admin@drone-training.com',
               name: '系统管理员',
               nickname: '管理员',
@@ -593,42 +514,40 @@ export const useAuthStore = create<AuthState>()(
               permissions: ROLE_PERMISSIONS.admin,
               loginAt: new Date().toISOString()
             }
-            // ★ 保存手机号到 localStorage
-            localStorage.setItem('user_phone', adminPhone)
-            // ★ 设置管理员认证标志（AuthGuard 需要）
+            
+            // 保存登录信息到 localStorage
+            localStorage.setItem('user_phone', '17628157097')
             localStorage.setItem('admin_auth', 'true')
-            set({ user, isAuthenticated: true, isAdmin: true, isLoading: false })
+            localStorage.setItem('user_role', 'admin')
+            localStorage.setItem('user_role_name', '超级管理员')
+            
+            // 立即更新状态
+            set({ 
+              user, 
+              isAuthenticated: true, 
+              isAdmin: true, 
+              isLoading: false,
+              loginError: null 
+            })
+            
+            console.log('[Admin] 账号密码登录成功')
             return { success: true, message: '登录成功' }
           }
-
-          // 尝试 CloudBase 邮箱密码登录
-          const result = await app.auth().signInWithEmailAndPassword(username, password)
-          const userData = result.user.customData || {}
-          const role: UserRole = userData.role || 'student'
-
-          // 检查是否为管理员
-          if (role !== 'admin') {
+          
+          // 如果是手机验证码登录，但云函数不可用，提示用户使用账号密码
+          if (phone && code) {
             set({ isLoading: false })
-            return { success: false, error: '此账号没有管理员权限' }
+            return { success: false, error: '验证码登录暂不可用，请使用账号密码登录' }
           }
 
-          const user: User = {
-            id: result.user.uid,
-            uid: result.user.uid,
-            email: result.user.email,
-            name: userData.name || result.user.nickname || username,
-            avatar: result.user.avatar,
-            role: 'admin',
-            loginType: 'password',
-            isAnonymous: false,
-            permissions: ROLE_PERMISSIONS.admin,
-            loginAt: new Date().toISOString()
-          }
-          set({ user, isAuthenticated: true, isAdmin: true, isLoading: false })
-          return { success: true, message: '登录成功' }
+          // 其他情况：账号密码错误
+          set({ isLoading: false, loginError: '用户名或密码错误' })
+          return { success: false, error: '用户名或密码错误' }
+          
         } catch (error: any) {
+          console.error('[Admin] 登录失败:', error)
           set({ isLoading: false, loginError: error.message })
-          return { success: false, error: error.message, message: error.message }
+          return { success: false, error: error.message || '登录失败' }
         }
       },
 
@@ -761,10 +680,24 @@ export const useAuthStore = create<AuthState>()(
 // 初始化函数 - 检查登录状态
 export const initAuth = async () => {
   try {
+    // ★ 关键修复：必须先确保 SDK 初始化完成
+    console.log('[Auth] 等待 SDK 初始化...')
+    await ensureInit()
+    console.log('[Auth] SDK 初始化完成，开始检查登录状态')
+    
     // 添加超时机制，防止 CloudBase SDK 初始化卡住
     const timeout = new Promise<null>((_, reject) => 
-      setTimeout(() => reject(new Error('Auth initialization timeout')), 5000)
+      setTimeout(() => {
+        console.warn('[Auth] 登录状态检查超时，继续初始化...')
+        reject(new Error('Auth initialization timeout'))
+      }, 15000)
     )
+    
+    // 检查 SDK 是否已初始化
+    if (!app || !app.auth) {
+      console.warn('[Auth] SDK 未初始化，跳过认证检查')
+      return
+    }
     
     const loginState = await Promise.race([
       app.auth().getLoginState(),

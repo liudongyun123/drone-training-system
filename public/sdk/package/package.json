@@ -1,0 +1,71 @@
+{
+  "name": "@cloudbase/js-sdk",
+  "version": "3.3.9",
+  "description": "cloudbase javascript sdk",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "miniprogram": "miniprogram_dist",
+  "typings": "./index.d.ts",
+  "scripts": {
+    "lint": "eslint --fix \"./src/**/*.ts\"",
+    "build": "rm -rf dist/ && gulp build",
+    "build:cdn": "gulp cdn",
+    "build:e2e": "rm -rf dist/ && NODE_ENV=e2e gulp e2e",
+    "precommit": "npm run lint"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TencentCloudBase/cloudbase-js-sdk"
+  },
+  "keywords": [
+    "tcb",
+    "cloudbase",
+    "Cloudbase",
+    "serverless",
+    "Serverless",
+    "javascript",
+    "JavaScript"
+  ],
+  "files": [
+    "miniprogram_dist",
+    "**/dist/",
+    "/index.d.ts",
+    "**/package.json",
+    "CHANGELOG.md"
+  ],
+  "components": [
+    "app",
+    "auth",
+    "database",
+    "functions",
+    "storage"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@cloudbase/adapter-interface": "^0.7.1",
+    "@cloudbase/ai": "3.3.9",
+    "@cloudbase/analytics": "3.3.9",
+    "@cloudbase/apis": "3.3.9",
+    "@cloudbase/app": "3.3.9",
+    "@cloudbase/auth": "3.3.9",
+    "@cloudbase/cloudrun": "3.3.9",
+    "@cloudbase/database": "0.12.1",
+    "@cloudbase/functions": "3.3.9",
+    "@cloudbase/model": "3.3.9",
+    "@cloudbase/mysql": "3.3.9",
+    "@cloudbase/realtime": "3.3.9",
+    "@cloudbase/storage": "3.3.9",
+    "@cloudbase/types": "3.3.9",
+    "@cloudbase/utilities": "3.3.9"
+  },
+  "browserslist": [
+    "last 2 version",
+    "> 1%",
+    "chrome 53"
+  ],
+  "gitHead": "15319022eadba98835ca00fe40adecac523885ed"
+}

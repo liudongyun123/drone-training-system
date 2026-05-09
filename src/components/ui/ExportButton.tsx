@@ -37,7 +37,7 @@ export default function ExportButton({
 
   // 格式化数据
   const formatValue = (item: Record<string, any>, field: ExportField): string => {
-    let value = item[field.key];
+    const value = item[field.key];
 
     if (field.format) {
       return field.format(value);

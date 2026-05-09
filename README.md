@@ -171,5 +171,15 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - **通用 CRUD**: list/get/add/update/delete/count/upsert
 
 ### 最近更新
+- **2026-05-09 v6**: CloudBase SDK 生产级方案 - 多 CDN 降级策略（unpkg → jsdelivr → 本地 → 模块）
 - **2026-04-30 v5**: 更新响应格式为生产规范（ISO时间戳、简洁分页）
 - **2026-04-30**: 修复admin云函数权限过滤问题
+
+### CloudBase SDK 加载策略
+生产级 SDK 管理方案，支持多 CDN 降级：
+1. **unpkg CDN**: `https://unpkg.com/@cloudbase/js-sdk@2.8.0/dist/cloudbase.js`
+2. **jsdelivr CDN**: `https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@2.8.0/dist/cloudbase.js`
+3. **本地 SDK**: `/sdk/cloudbase.js`（内置于 `public/sdk/` 目录）
+4. **模块导入**: `@cloudbase/js-sdk`（Vite 动态导入）
+
+SDK 会按优先级自动降级，确保最大可用性。

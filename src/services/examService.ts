@@ -1003,7 +1003,7 @@ export const questionBankService = {
   // 开始练习
   async startPractice(bankId: string, mode: 'sequential' | 'random' | 'wrong' | 'favorites', questionCount: number): Promise<ApiResponse<{ practiceId: string; questions: BankQuestion[] }>> {
     try {
-      let query = getDb().collection('bankQuestions').where({ bankId });
+      const query = getDb().collection('bankQuestions').where({ bankId });
       
       const { data } = await query.get();
       let questions = data as BankQuestion[];

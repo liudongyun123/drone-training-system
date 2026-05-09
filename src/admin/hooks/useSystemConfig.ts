@@ -17,9 +17,9 @@ interface UseSystemConfigReturn {
   /** 是否正在加载 */
   loading: boolean;
   /** 更新字典配置 */
-  updateDictionary: (key: string, data: any) => Promise<boolean>;
+  updateDictionary: (key: string, data: OptionItem[]) => Promise<boolean>;
   /** 更新站点配置 */
-  updateSiteConfig: (key: string, value: any) => Promise<boolean>;
+  updateSiteConfig: (key: string, value: unknown) => Promise<boolean>;
   /** 更新登录方式 */
   updateLoginProvider: (providerId: string, enabled: boolean) => Promise<boolean>;
   /** 更新角色权限 */
@@ -27,6 +27,9 @@ interface UseSystemConfigReturn {
   /** 手动刷新配置 */
   refresh: () => Promise<void>;
 }
+
+// 导入 OptionItem 类型
+import type { OptionItem } from '@/services/dictionaryService';
 
 /**
  * 系统配置管理 Hook
@@ -57,7 +60,7 @@ export function useSystemConfig(): UseSystemConfigReturn {
     load();
   }, [load]);
 
-  const handleUpdateDictionary = useCallback(async (key: string, data: any): Promise<boolean> => {
+  const handleUpdateDictionary = useCallback(async (key: string, data: OptionItem[]): Promise<boolean> => {
     if (!config?._id) return false;
     try {
       const db = (await import('@/utils/cloudbase')).app.database();
@@ -80,7 +83,7 @@ export function useSystemConfig(): UseSystemConfigReturn {
     }
   }, [config]);
 
-  const handleUpdateSiteConfig = useCallback(async (key: string, value: any): Promise<boolean> => {
+  const handleUpdateSiteConfig = useCallback(async (key: string, value: unknown): Promise<boolean> => {
     try {
       const success = await updateConfig(key, value);
       return success;

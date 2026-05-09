@@ -9,9 +9,9 @@ import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { enrollmentService } from '@/services';
 import type { Registration as Enrollment } from '@/types/registration';
 import {
-  Check, X, Search, User, Phone, BookOpen, CreditCard,
-  ChevronLeft, ChevronRight, Plus, Loader2, AlertCircle, Calendar, RefreshCw,
-  TrendingUp, Users as UsersIcon
+  Search, User, Phone, BookOpen, CreditCard,
+  ChevronLeft, ChevronRight, Plus, AlertCircle, Calendar, RefreshCw,
+  TrendingUp
 } from 'lucide-react';
 
 // 状态标签
@@ -294,8 +294,8 @@ export default function AdminRegistrations() {
                             <User size={18} className="text-blue-600" />
                           </div>
                           <div>
-                            // @ts-ignore
-                            <div className="font-medium">{enrollment.userName || enrollment.userId || '-'}</div>
+                            {/* @ts-expect-error - 兼容扩展字段 */}
+                            <div className="font-medium">{(enrollment as { userName?: string }).userName || (enrollment as { userId?: string }).userId || '-'}</div>
                             <div className="text-sm text-gray-500 flex items-center gap-1">
                               <Phone size={12} />
                               {enrollment.phone || '-'}
@@ -315,19 +315,17 @@ export default function AdminRegistrations() {
                         </span>
                       </td>
                       <td>
-                        // @ts-ignore
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${PAYMENT_STATUS_LABELS[enrollment.paymentStatus || 'unpaid']?.color || 'bg-gray-100 text-gray-600'}`}>
-                          // @ts-ignore
-                          {PAYMENT_STATUS_LABELS[enrollment.paymentStatus || 'unpaid']?.text || enrollment.paymentStatus || '-'}
+                        {/* @ts-expect-error - 兼容扩展字段 */}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${PAYMENT_STATUS_LABELS[(enrollment as { paymentStatus?: string }).paymentStatus || 'unpaid']?.color || 'bg-gray-100 text-gray-600'}`}>
+                          {/* @ts-expect-error - 兼容扩展字段 */}
+                          {PAYMENT_STATUS_LABELS[(enrollment as { paymentStatus?: string }).paymentStatus || 'unpaid']?.text || (enrollment as { paymentStatus?: string }).paymentStatus || '-'}
                         </span>
                       </td>
                       <td>
-                        // @ts-ignore
                         <span className="font-medium text-primary">¥{enrollment.amount || 0}</span>
                       </td>
                       <td>
                         <div className="text-sm text-gray-500">
-                          // @ts-ignore
                           {enrollment.enrollmentDate ? new Date(enrollment.enrollmentDate).toLocaleDateString('zh-CN') : '-'}
                         </div>
                       </td>

@@ -1,0 +1,12 @@
+#!/usr/bin/expect -f
+set timeout 300
+spawn tcb fn deploy admin -e rcwljy-5ghmq2ex26764978 --dir cloudfunctions/admin
+expect {
+    "Continue deployment with default config?" {
+        send "y\r"
+        exp_continue
+    }
+    "选择您要部署的环境" { send "1\r"; exp_continue }
+    "是否确认部署" { send "yes\r" }
+    eof
+}

@@ -60,7 +60,7 @@ export const groupBuyService = {
   // 获取拼团列表
   getList: async (params?: { status?: string; courseId?: string; page?: number; limit?: number }): Promise<PaginatedResponse<GroupBuy>> => {
     try {
-      let activities = await dbService.getAllActivities() || [];
+      const activities = await dbService.getAllActivities() || [];
       const activityList = Array.isArray(activities) ? activities : [];
       let mapped = activityList.map(toGroupBuy);
 

@@ -3,7 +3,7 @@
  * 
  * 处理学习进度、收藏、学习路径、证书等学习相关功能
  * 
- * Actions:
+ * 小程序端 Actions:
  * - getLearningStats      : 获取学习统计
  * - getMyCourses         : 获取我的课程
  * - getCourseProgress     : 获取课程进度
@@ -18,6 +18,17 @@
  * - getCertificates       : 获取证书列表
  * - getCertificateDetail  : 获取证书详情
  * - downloadCertificate   : 下载证书
+ * 
+ * 管理端 Actions (进度管理):
+ * - getProgressList       : 获取进度列表
+ * - getUserProgress       : 获取学员进度
+ * - getProgress           : 获取单条进度
+ * - updateProgress        : 更新进度
+ * - completeLesson        : 完成课时
+ * - resetProgress         : 重置进度
+ * - batchUpdateProgress    : 批量更新进度
+ * - getProgressStats      : 获取进度统计
+ * - getUserLearningStats  : 获取学员学习统计
  */
 
 const cloud = require('wx-server-sdk');
@@ -328,6 +339,245 @@ async function generateCertificate(data, openid) {
 }
 
 // ============================================
+// 进度管理（管理端）
+// ============================================
+
+/**
+ * 获取进度列表（管理端）
+ */
+async function getProgressList(data) {
+  const { page = 1, pageSize = 20, userId, courseId, status, keyword } = data;
+  
+  let query = db.collection(COLLECTIONS.PROGRESS);
+  const conditions = [];
+  
+  if (userId) {
+    conditions.push({ userId });
+  }
+  if (courseId) {
+    conditions.push({ courseId });
+  }
+  if (status) {
+    conditions.push({ status });
+  }
+  if (keyword) {
+    // 模糊搜索需要用 or
+    conditions.push({
+      userName: db.RegExp({ regexp: keyword, options: 'i' })
+    });
+  }
+  
+  if (conditions.length > 0) {
+    query = query.where(_.and(conditions));
+  }
+  
+  const skip = (page - 1) * pageSize;
+  
+  const result = await query
+    .orderBy('updatedAt', 'desc')
+    .skip(skip)
+    .limit(pageSize)
+    .get();
+  
+  const countResult = await query.count();
+  
+  return success({
+    list: result.data,
+    total: countResult.total,
+    page,
+    pageSize,
+  });
+}
+
+/**
+ * 获取学员进度（管理端）
+ */
+async function getUserProgress(data) {
+  const { userId } = data;
+  
+  const result = await db.collection(COLLECTIONS.PROGRESS)
+    .where({ userId })
+    .orderBy('updatedAt', 'desc')
+    .get();
+  
+  return success(result.data);
+}
+
+/**
+ * 获取单条进度详情（管理端）
+ */
+async function getProgress(data) {
+  const { progressId } = data;
+  
+  const result = await db.collection(COLLECTIONS.PROGRESS)
+    .doc(progressId)
+    .get();
+  
+  if (!result.data) {
+    return error(404, '进度记录不存在');
+  }
+  
+  return success(result.data);
+}
+
+/**
+ * 完成课时（管理端）
+ */
+async function completeLesson(data) {
+  const { progressId } = data;
+  
+  const progress = await db.collection(COLLECTIONS.PROGRESS)
+    .doc(progressId)
+    .get();
+  
+  if (!progress.data) {
+    return error(404, '进度记录不存在');
+  }
+  
+  const updateData = {
+    status: 'completed',
+    progress: 100,
+    completed: true,
+    completedAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  
+  await db.collection(COLLECTIONS.PROGRESS)
+    .doc(progressId)
+    .update({ data: updateData });
+  
+  return success({ updated: true });
+}
+
+/**
+ * 重置进度（管理端）
+ */
+async function resetProgress(data) {
+  const { userId, courseId } = data;
+  
+  const result = await db.collection(COLLECTIONS.PROGRESS)
+    .where({ userId, courseId })
+    .remove();
+  
+  return success({ reset: true, deleted: result.deleted });
+}
+
+/**
+ * 批量更新进度（管理端）
+ */
+async function batchUpdateProgress(data) {
+  const { progressIds, status, progress } = data;
+  
+  if (!progressIds || !Array.isArray(progressIds) || progressIds.length === 0) {
+    return error(400, '请选择要更新的进度记录');
+  }
+  
+  const updateData = { updatedAt: Date.now() };
+  if (status) updateData.status = status;
+  if (typeof progress === 'number') {
+    updateData.progress = progress;
+    if (progress >= 100) {
+      updateData.completed = true;
+      updateData.completedAt = Date.now();
+    }
+  }
+  
+  for (const id of progressIds) {
+    await db.collection(COLLECTIONS.PROGRESS)
+      .doc(id)
+      .update({ data: updateData });
+  }
+  
+  return success({ updated: progressIds.length });
+}
+
+/**
+ * 获取进度统计（管理端）
+ */
+async function getProgressStats() {
+  const totalResult = await db.collection(COLLECTIONS.PROGRESS).count();
+  
+  const notStartedResult = await db.collection(COLLECTIONS.PROGRESS)
+    .where({ status: 'not_started' })
+    .count();
+  
+  const inProgressResult = await db.collection(COLLECTIONS.PROGRESS)
+    .where({ status: 'in_progress' })
+    .count();
+  
+  const completedResult = await db.collection(COLLECTIONS.PROGRESS)
+    .where({ status: 'completed' })
+    .count();
+  
+  // 本周新增
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const thisWeekResult = await db.collection(COLLECTIONS.PROGRESS)
+    .where({
+      createdAt: _.gte(weekAgo)
+    })
+    .count();
+  
+  // 平均进度
+  const allProgress = await db.collection(COLLECTIONS.PROGRESS)
+    .field({ progress: true })
+    .limit(1000)
+    .get();
+  
+  let avgProgress = 0;
+  if (allProgress.data.length > 0) {
+    const sum = allProgress.data.reduce((acc, p) => acc + (p.progress || 0), 0);
+    avgProgress = Math.round(sum / allProgress.data.length);
+  }
+  
+  return success({
+    total: totalResult.total,
+    notStarted: notStartedResult.total,
+    inProgress: inProgressResult.total,
+    completed: completedResult.total,
+    thisWeek: thisWeekResult.total,
+    avgProgress,
+  });
+}
+
+/**
+ * 获取学员学习统计（管理端）
+ */
+async function getUserLearningStats(data) {
+  const { userId } = data;
+  
+  // 获取学员所有进度
+  const progressList = await db.collection(COLLECTIONS.PROGRESS)
+    .where({ userId })
+    .get();
+  
+  const uniqueCourses = new Set(progressList.data.map(p => p.courseId));
+  const completedCourses = progressList.data.filter(p => p.progress >= 100);
+  const uniqueCompletedCourses = new Set(completedCourses.map(p => p.courseId));
+  
+  const totalLessons = progressList.data.length;
+  const completedLessons = progressList.data.filter(p => p.completed || p.status === 'completed').length;
+  
+  let totalProgress = 0;
+  if (progressList.data.length > 0) {
+    const sum = progressList.data.reduce((acc, p) => acc + (p.progress || 0), 0);
+    totalProgress = Math.round(sum / progressList.data.length);
+  }
+  
+  const lastProgress = progressList.data
+    .filter(p => p.lastStudyTime || p.updatedAt)
+    .sort((a, b) => (b.lastStudyTime || b.updatedAt) - (a.lastStudyTime || a.updatedAt))[0];
+  
+  return success({
+    totalCourses: uniqueCourses.size,
+    completedCourses: uniqueCompletedCourses.size,
+    totalLessons,
+    completedLessons,
+    totalProgress,
+    lastStudyTime: lastProgress?.lastStudyTime || lastProgress?.updatedAt,
+  });
+}
+
+// ============================================
 // 主函数
 // ============================================
 
@@ -587,6 +837,31 @@ exports.main = async (event, context) => {
 
       case 'generateCertificate':
         return await generateCertificate(data, openid);
+
+      // ===== 进度管理（管理端）=====
+      case 'getProgressList':
+        return await getProgressList(data);
+
+      case 'getUserProgress':
+        return await getUserProgress(data);
+
+      case 'getProgress':
+        return await getProgress(data);
+
+      case 'completeLesson':
+        return await completeLesson(data);
+
+      case 'resetProgress':
+        return await resetProgress(data);
+
+      case 'batchUpdateProgress':
+        return await batchUpdateProgress(data);
+
+      case 'getProgressStats':
+        return await getProgressStats();
+
+      case 'getUserLearningStats':
+        return await getUserLearningStats(data);
 
       default:
         return error(400, `未知操作: ${action}`);

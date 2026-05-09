@@ -13,7 +13,7 @@ import type { ClassV2 as Class, ClassScheduleV2 as ClassSchedule } from '@/types
 import type { MemberSource } from '@/types/member';
 import {
   Plus, Edit, Trash2, Calendar, MapPin, ArrowLeft,
-  X, Check, ChevronLeft, ChevronRight, Layers,
+  X, Layers,
   Users, Clock, Smartphone, UserCheck
 } from 'lucide-react';
 

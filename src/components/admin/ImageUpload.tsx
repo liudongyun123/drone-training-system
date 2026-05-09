@@ -27,8 +27,11 @@ export default function ImageUpload({
 
   const uploadToCloudBase = async (file: File): Promise<string | null> => {
     try {
-      const { app } = await import('../../utils/cloudbase')
+      const { app, ensureInit } = await import('../../utils/cloudbase')
       const cloudPath = `course-covers/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
+      
+      // ★ 关键修复：必须先确保 SDK 初始化完成
+      await ensureInit()
       
       // 确保用户已登录
       await app.auth().getLoginState()

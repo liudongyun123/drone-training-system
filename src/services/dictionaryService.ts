@@ -267,7 +267,18 @@ export async function getDictionaries(): Promise<Record<string, any>> {
   }
 
   try {
+    // 检查 SDK 是否已初始化
+    if (!app || !app.database) {
+      console.warn('[DictionaryService] SDK 未初始化，使用默认值');
+      return DEFAULT_DICTIONARIES;
+    }
+    
     const db = app.database();
+    if (!db) {
+      console.warn('[DictionaryService] database() 返回 null，使用默认值');
+      return DEFAULT_DICTIONARIES;
+    }
+    
     const { data } = await db.collection(CONFIG_COLLECTION)
       .where({ type: 'dictionaries' })
       .limit(1)

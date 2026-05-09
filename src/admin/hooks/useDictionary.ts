@@ -4,12 +4,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   getDictionary,
-  getOptions,
-  getStatusLabel,
   clearDictionaryCache,
   type OptionItem,
-  type LevelConfigItem,
-  type LabelConfig,
 } from '@/services/dictionaryService';
 
 interface UseDictionaryOptions {
@@ -19,9 +15,12 @@ interface UseDictionaryOptions {
   autoLoad?: boolean;
 }
 
+// 字典数据原始格式（Object 或 Array）
+type DictionaryRaw = Record<string, unknown> | OptionItem[] | null;
+
 interface UseDictionaryReturn {
   /** 原始字典数据（可能是 Object 或 Array） */
-  raw: any;
+  raw: DictionaryRaw;
   /** 格式化后的下拉选项列表（统一为 OptionItem[]） */
   options: OptionItem[];
   /** 是否正在加载 */
@@ -48,7 +47,7 @@ interface UseDictionaryReturn {
  * const badge = getBadge('paid'); // { text: '已支付', color: 'bg-green-100 text-green-700' }
  */
 export function useDictionary({ groupKey, autoLoad = true }: UseDictionaryOptions): UseDictionaryReturn {
-  const [raw, setRaw] = useState<any>(null);
+  const [raw, setRaw] = useState<DictionaryRaw>(null);
   const [options, setOptions] = useState<OptionItem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -64,12 +63,12 @@ export function useDictionary({ groupKey, autoLoad = true }: UseDictionaryOption
       } else if (data && typeof data === 'object') {
         // Object 类型（如 orderStatus, classStatus）
         const items = Object.entries(data).map(([key, val]) => {
-          const item = val as Record<string, any>;
+          const item = val as Record<string, unknown>;
           return {
             value: key,
-            label: item.text || item.label || key,
-            color: item.color,
-            bg: item.bg,
+            label: (item.text as string) || (item.label as string) || key,
+            color: item.color as string | undefined,
+            bg: item.bg as string | undefined,
             ...item,
           } as OptionItem;
         });
@@ -99,8 +98,8 @@ export function useDictionary({ groupKey, autoLoad = true }: UseDictionaryOption
         const item = (raw as OptionItem[]).find(o => o.value === value);
         return item?.label || fallback || value;
       }
-      const config = (raw as Record<string, any>)[value];
-      if (config) return config.text || config.label || value;
+      const config = (raw as Record<string, Record<string, unknown>>)[value];
+      if (config) return (config.text as string) || (config.label as string) || value;
       return fallback || value;
     },
     [raw]
@@ -119,9 +118,9 @@ export function useDictionary({ groupKey, autoLoad = true }: UseDictionaryOption
         }
         return fallback || { text: value, color: 'bg-gray-100 text-gray-700' };
       }
-      const config = (raw as Record<string, any>)[value];
+      const config = (raw as Record<string, Record<string, unknown>>)[value];
       if (config && config.text) {
-        return { text: config.text, color: config.color || 'bg-gray-100 text-gray-700' };
+        return { text: config.text as string, color: (config.color as string) || 'bg-gray-100 text-gray-700' };
       }
       return fallback || { text: value, color: 'bg-gray-100 text-gray-700' };
     },

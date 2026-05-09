@@ -2,7 +2,7 @@
 // 认证上下文
 // ============================================================================
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { app, checkLogin, logout as authLogout } from '@/utils/cloudbase';
+import { app, ensureInit } from '@/utils/cloudbase';
 
 interface User {
   uid: string;
@@ -31,11 +31,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const session = await checkLogin();
-      // @ts-ignore
-      if (session && 'uid' in session) {
-        // @ts-ignore
-        setUser(session as User);
+      // 确保 SDK 初始化
+      await ensureInit();
+      
+      // 获取登录状态和用户信息
+      const auth = app.auth();
+      const loginState = await auth.getLoginState();
+      
+      if (loginState) {
+        const { data } = await auth.getUser();
+        if (data?.user) {
+          const cloudUser = data.user;
+          setUser({
+            uid: cloudUser.uid || cloudUser.id || '',
+            isAnonymous: cloudUser.isAnonymous || false,
+            email: cloudUser.email,
+            phone: cloudUser.phone,
+            user_metadata: cloudUser.user_metadata
+          });
+        }
+      } else {
+        setUser(null);
       }
     } catch (error) {
       console.error('检查登录状态失败:', error);
@@ -51,12 +67,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async () => {
     try {
-      // 使用 checkLogin 防止并发请求
-      const session = await checkLogin();
-      // @ts-ignore
-      if (session && 'uid' in session) {
-        // @ts-ignore
-        setUser(session as User);
+      await ensureInit();
+      const auth = app.auth();
+      const loginState = await auth.getLoginState();
+      
+      if (!loginState) {
+        // 执行匿名登录
+        await auth.anonymousAuthProvider().signIn();
+      }
+      
+      // 获取用户信息
+      const { data } = await auth.getUser();
+      if (data?.user) {
+        const cloudUser = data.user;
+        setUser({
+          uid: cloudUser.uid || cloudUser.id || '',
+          isAnonymous: cloudUser.isAnonymous || false,
+          email: cloudUser.email,
+          phone: cloudUser.phone,
+          user_metadata: cloudUser.user_metadata
+        });
       }
     } catch (error) {
       console.error('登录失败:', error);
@@ -66,7 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await authLogout();
+      const auth = app.auth();
+      await auth.signOut();
       setUser(null);
     } catch (error) {
       console.error('退出登录失败:', error);
@@ -79,10 +110,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     isLoggedIn: !!user,
     login,
-    logout,
+    logout
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
@@ -92,3 +127,5 @@ export function useAuth() {
   }
   return context;
 }
+
+export default AuthContext;

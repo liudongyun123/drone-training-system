@@ -162,7 +162,7 @@ export default function LessonPlayerPage() {
 
         if (targetLesson) {
           // 转换初始课时的视频 URL
-          let resolvedLesson = { ...targetLesson };
+          const resolvedLesson = { ...targetLesson };
           if (targetLesson.videoUrl && targetLesson.videoUrl.startsWith('cloud://')) {
             try {
               const tempUrl = await getFileUrl(targetLesson.videoUrl);
@@ -249,7 +249,7 @@ export default function LessonPlayerPage() {
     }
 
     // 转换 cloud:// URL 为可访问的临时 URL
-    let resolvedLesson = { ...lesson };
+    const resolvedLesson = { ...lesson };
     if (lesson.videoUrl && lesson.videoUrl.startsWith('cloud://')) {
       try {
         const tempUrl = await getFileUrl(lesson.videoUrl);

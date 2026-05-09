@@ -5,19 +5,16 @@
 // ============================================================================
 import { useState, useEffect } from 'react';
 import { useConfirm } from '@/admin/hooks/useConfirm';
-import { useDictionary } from '@/admin/hooks/useDictionary';
 import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { classService } from '@/services';
 import { courseService, teacherService } from '@/services/database';
 import type { ClassV2 as Class, Course, Teacher } from '@/types';
-import type { MemberSource } from '@/types/member';
-import { MemberSourceLabels, MemberSourceColors } from '@/types/member';
 import { CloudAdminService } from '@/services/CloudAdminService';
 import {
   Plus, Edit, Trash2, Search, Calendar, MapPin, Users,
   BookOpen, UserCheck, Video, X, ChevronLeft, ChevronRight, Grid, List,
-  Link as LinkIcon, ExternalLink, Copy, Check, Monitor, Smartphone
+  Link as LinkIcon, ExternalLink, Check, Smartphone
 } from 'lucide-react';
 
 // 班级状态标签
@@ -76,8 +73,42 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
   }
 };
 
+// 班级介绍类型
+interface ClassIntro {
+  videoUrl?: string;
+  videoCover?: string;
+  documentUrl?: string;
+  documentName?: string;
+  content?: string;
+}
+
+// 班级报名配置类型
+interface ClassEnrollmentConfig {
+  price: number;
+  originalPrice?: number;
+  enableVideoAccess: boolean;
+  videoAccessDays: number;
+  materials?: string[];
+}
+
+// 表单数据类型
+interface ClassFormData {
+  name: string;
+  description: string;
+  level: string;
+  courseId: string;
+  maxStudents: number;
+  startDate: string;
+  endDate: string;
+  location: string;
+  teacherId: string;
+  sourceId: string;
+  intro: ClassIntro;
+  enrollmentConfig: ClassEnrollmentConfig;
+}
+
 // 初始表单数据
-const initialFormData: Partial<Class> & { sourceId?: string } = {
+const initialFormData: ClassFormData = {
   name: '',
   description: '',
   level: '',
@@ -90,15 +121,15 @@ const initialFormData: Partial<Class> & { sourceId?: string } = {
   sourceId: '',
   // 班级介绍
   intro: {
-    videoUrl: undefined,
-    videoCover: undefined,
-    documentUrl: undefined,
-    documentName: undefined,
-    content: undefined
+    videoUrl: '',
+    videoCover: '',
+    documentUrl: '',
+    documentName: '',
+    content: ''
   },
   enrollmentConfig: {
     price: 0,
-    originalPrice: undefined,
+    originalPrice: 0,
     enableVideoAccess: false,
     videoAccessDays: 365,
     materials: []
@@ -119,7 +150,7 @@ export default function AdminClasses() {
   const [searchKeyword, setSearchKeyword] = useState('');
 
   // ★ 使用统一配置hook获取体系和等级
-  const { sourceOptions, getSourceCode, getLevelsBySource, levelsLoading } = useSourceConfig();
+  const { sourceOptions, getLevelsBySource, levelsLoading } = useSourceConfig();
 
   // ★ 学员来源统计
   const [classMemberStats, setClassMemberStats] = useState<Record<string, {
@@ -133,7 +164,7 @@ export default function AdminClasses() {
   // 模态框状态
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<Class | null>(null);
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState<ClassFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
 
   // 关联数据
@@ -142,7 +173,6 @@ export default function AdminClasses() {
   const { confirm, ConfirmDialog } = useConfirm();
 
   // 根据体系过滤课程和等级
-  const sourceCode = getSourceCode(formData.sourceId || '');
   const filteredCourses = courses.filter(course => {
     // 如果课程没有 sourceId 字段，视为兼容旧数据，显示
     if (!('sourceId' in course) || !course.sourceId) return true;
@@ -150,7 +180,7 @@ export default function AdminClasses() {
   });
 
   // 从levels集合获取等级
-  const filteredClassLevels = getLevelsBySource(formData.sourceId);
+  const filteredClassLevels = formData.sourceId ? getLevelsBySource(formData.sourceId) : [];
   
   // 安全提取列表数据(兼容多种返回格式)
   const extractList = <T,>(result: any): T[] => {
@@ -292,17 +322,19 @@ export default function AdminClasses() {
   // 打开编辑模态框
   const openEditModal = (cls: Class) => {
     setEditingClass(cls);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const clsAny = cls as any;
     setFormData({
       name: cls.name,
       description: cls.description || '',
-      level: cls.level || '',
+      level: clsAny.level || '',
       courseId: cls.courseId,
       maxStudents: cls.maxStudents,
       startDate: cls.startDate,
       endDate: cls.endDate,
       location: cls.location,
       teacherId: cls.teacherId,
-      sourceId: (cls as any).sourceId || '',
+      sourceId: clsAny.sourceId || '',
       intro: cls.intro || initialFormData.intro,
       enrollmentConfig: cls.enrollmentConfig || initialFormData.enrollmentConfig
     });
@@ -918,10 +950,10 @@ export default function AdminClasses() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">视频介绍URL</label>
                       <input
                         type="url"
-                        value={formData.intro.videoUrl}
+                        value={formData.intro.videoUrl || ''}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          intro: { ...prev.intro, videoUrl: e.target.value }
+                          intro: { ...prev.intro!, videoUrl: e.target.value }
                         }))}
                         placeholder="如:https://www.bilibili.com/video/xxx"
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
@@ -933,10 +965,10 @@ export default function AdminClasses() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">视频封面图URL</label>
                       <input
                         type="url"
-                        value={formData.intro.videoCover}
+                        value={formData.intro.videoCover || ''}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          intro: { ...prev.intro, videoCover: e.target.value }
+                          intro: { ...prev.intro!, videoCover: e.target.value }
                         }))}
                         placeholder="视频封面图片链接(可选)"
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
@@ -949,10 +981,10 @@ export default function AdminClasses() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">课程文档URL</label>
                       <input
                         type="url"
-                        value={formData.intro.documentUrl}
+                        value={formData.intro.documentUrl || ''}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          intro: { ...prev.intro, documentUrl: e.target.value }
+                          intro: { ...prev.intro!, documentUrl: e.target.value }
                         }))}
                         placeholder="如:https://example.com/syllabus.pdf"
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
@@ -964,10 +996,10 @@ export default function AdminClasses() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">文档名称</label>
                       <input
                         type="text"
-                        value={formData.intro.documentName}
+                        value={formData.intro?.documentName || ''}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          intro: { ...prev.intro, documentName: e.target.value }
+                          intro: { ...prev.intro!, documentName: e.target.value }
                         }))}
                         placeholder="如:课程大纲、招生简章"
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
@@ -978,10 +1010,10 @@ export default function AdminClasses() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">详细介绍</label>
                     <textarea
-                      value={formData.intro.content}
+                      value={formData.intro.content || ''}
                       onChange={(e) => setFormData(prev => ({
                         ...prev,
-                        intro: { ...prev.intro, content: e.target.value }
+                        intro: { ...prev.intro!, content: e.target.value }
                       }))}
                       rows={4}
                       placeholder="详细介绍班级课程内容、培训目标、适合人群等..."
@@ -999,10 +1031,10 @@ export default function AdminClasses() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">报名价格</label>
                       <input
                         type="number"
-                        value={formData.enrollmentConfig.price}
+                        value={formData.enrollmentConfig?.price || 0}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          enrollmentConfig: { ...prev.enrollmentConfig, price: parseFloat(e.target.value) || 0 }
+                          enrollmentConfig: { ...prev.enrollmentConfig!, price: parseFloat(e.target.value) || 0 }
                         }))}
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       />
@@ -1012,10 +1044,10 @@ export default function AdminClasses() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">原价</label>
                       <input
                         type="number"
-                        value={formData.enrollmentConfig.originalPrice}
+                        value={formData.enrollmentConfig?.originalPrice || 0}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          enrollmentConfig: { ...prev.enrollmentConfig, originalPrice: parseFloat(e.target.value) || 0 }
+                          enrollmentConfig: { ...prev.enrollmentConfig!, originalPrice: parseFloat(e.target.value) || 0 }
                         }))}
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       />
@@ -1025,10 +1057,10 @@ export default function AdminClasses() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">视频有效期(天)</label>
                       <input
                         type="number"
-                        value={formData.enrollmentConfig.videoAccessDays}
+                        value={formData.enrollmentConfig?.videoAccessDays || 365}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          enrollmentConfig: { ...prev.enrollmentConfig, videoAccessDays: parseInt(e.target.value) || 365 }
+                          enrollmentConfig: { ...prev.enrollmentConfig!, videoAccessDays: parseInt(e.target.value) || 365 }
                         }))}
                         className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       />
@@ -1039,10 +1071,10 @@ export default function AdminClasses() {
                     <input
                       type="checkbox"
                       id="enableVideo"
-                      checked={formData.enrollmentConfig.enableVideoAccess}
+                      checked={formData.enrollmentConfig?.enableVideoAccess || false}
                       onChange={(e) => setFormData(prev => ({
                         ...prev,
-                        enrollmentConfig: { ...prev.enrollmentConfig, enableVideoAccess: e.target.checked }
+                        enrollmentConfig: { ...prev.enrollmentConfig!, enableVideoAccess: e.target.checked }
                       }))}
                       className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                     />

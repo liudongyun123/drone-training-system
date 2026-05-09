@@ -740,7 +740,9 @@ export function useCourses() {
     setPermissionStats(null);
 
     try {
-      const { app } = await import('@/utils/cloudbase');
+      const { app, ensureInit } = await import('@/utils/cloudbase');
+      // ★ 关键修复：必须先确保 SDK 初始化完成
+      await ensureInit();
       await app.auth().getLoginState();
       const db = app.database();
 

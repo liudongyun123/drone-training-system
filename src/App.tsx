@@ -36,7 +36,8 @@ function App() {
 
     // PWA 安装提示
     window.addEventListener('beforeinstallprompt', (e) => {
-      (window as any).deferredPrompt = e;
+      // @ts-expect-error deferredPrompt 是自定义属性
+      window.deferredPrompt = e;
     });
 
     // 生产环境启动日志
