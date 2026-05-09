@@ -2,10 +2,8 @@
 // useCourses Hook - 课程管理业务逻辑
 // ============================================================================
 import { useState, useEffect, useCallback } from 'react';
-import { courseService, teacherService } from '@/services/database';
 import { CloudAdminService } from '@/services/CloudAdminService';
-import { adminService } from '@/services/adminService';
-import { safeGetList, safeGetTotal } from '@/utils/safeData';
+import { adminApi } from '@/services/adminApiService';
 import { useDictionary } from '@/admin/hooks/useDictionary';
 import { useConfirm } from '@/admin/hooks/useConfirm';
 import { toast } from '@/components/Toast';
@@ -96,6 +94,13 @@ export function useCourses() {
   const [categories, setCategories] = useState<Array<{ _id: string; name: string; code: string }>>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
+  // 体系列表（新增）
+  const [sources, setSources] = useState<Array<{ _id: string; name: string; code: string }>>([]);
+  const [sourcesLoading, setSourcesLoading] = useState(false);
+
+  // 筛选状态
+  const [selectedSource, setSelectedSource] = useState<string>('');
+
   // 字典数据
   const { options: levelOptions, loading: levelsLoading } = useDictionary({ groupKey: 'courseLevels' });
   const { options: categoryOptions } = useDictionary({ groupKey: 'courseCategories' });
@@ -139,9 +144,21 @@ export function useCourses() {
   const loadCourses = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await courseService.getList({ page, pageSize: 10 });
-      setCourses(safeGetList(result) as Course[]);
-      setTotal(safeGetTotal(result));
+      // 构建查询条件
+      const query: Record<string, any> = {};
+      if (selectedSource) {
+        query.sourceId = selectedSource;
+      }
+      
+      // 使用 adminApi（HTTP 方式）查询
+      const result = await adminApi.list<Course>('courses', query, {
+        page,
+        pageSize: 10,
+        orderBy: 'createdAt',
+        order: 'desc',
+      });
+      setCourses(result.data);
+      setTotal(result.total);
     } catch (error) {
       console.error('加载课程失败:', error);
       setCourses([]);
@@ -149,14 +166,27 @@ export function useCourses() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, selectedSource]);
+
+  // 加载体系列表（新增）
+  const loadSources = useCallback(async () => {
+    setSourcesLoading(true);
+    try {
+      const result = await adminApi.listSources({ limit: 100 });
+      setSources(result.data);
+    } catch (error) {
+      console.error('加载体系列表失败:', error);
+    } finally {
+      setSourcesLoading(false);
+    }
+  }, []);
 
   // 加载教师列表
   const loadTeachers = useCallback(async () => {
     setTeachersLoading(true);
     try {
-      const result = await teacherService.getList({ page: 1, pageSize: 100 });
-      setTeachers(safeGetList(result));
+      const result = await adminApi.listTeachers({ status: 'active' }, { limit: 100 });
+      setTeachers(result.data);
     } catch (error) {
       console.error('加载教师列表失败:', error);
     } finally {
@@ -168,11 +198,8 @@ export function useCourses() {
   const loadCategories = useCallback(async () => {
     setCategoriesLoading(true);
     try {
-      const result = await adminService.list('categories', { status: 'active' });
-      if (result.code === 0 && Array.isArray(result.data)) {
-        setCategories(result.data);
-      } else {
-      }
+      const result = await adminApi.listCategories({ status: 'active' }, { limit: 100 });
+      setCategories(result.data);
     } catch (error) {
       console.error('加载分类列表异常:', error);
     } finally {
@@ -185,7 +212,8 @@ export function useCourses() {
     loadCourses();
     loadTeachers();
     loadCategories();
-  }, [loadCourses, loadTeachers, loadCategories]);
+    loadSources(); // 新增：加载体系列表
+  }, [loadCourses, loadTeachers, loadCategories, loadSources]);
 
   // 当教师列表加载完成后，如果正在编辑课程且 teacherId 为空，自动匹配
   useEffect(() => {
@@ -802,12 +830,18 @@ export function useCourses() {
     page,
     setPage,
     loadCourses,
+    // 筛选
+    selectedSource,
+    setSelectedSource,
     // 教师
     teachers,
     teachersLoading,
     // 分类
     categories,
     categoriesLoading,
+    // 体系
+    sources,
+    sourcesLoading,
     // 字典
     levelOptions,
     levelsLoading,

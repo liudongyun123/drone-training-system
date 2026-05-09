@@ -9,9 +9,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, Button, Loading } from '@/components';
-import { courseService } from '@/services/database';
-import { enrollmentService } from '@/services/enrollmentService';
-import { app as cloudbaseApp, checkLogin } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 import { parseDate, formatDateStr } from '@/utils/dateUtils';
 
 interface DashboardStats {
@@ -85,34 +83,32 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // 确保已登录
-      try {
-        await checkLogin();
-      } catch (authError) {
-        console.error('登录检查失败:', authError);
-      }
-
       console.log('[Dashboard] 开始加载数据...');
 
-      // 通过云函数获取数据（避免 CORS 问题）
-      const dashboardData = await cloudbaseApp.callFunction({
-        name: 'admin',
-        data: {
-          action: 'getDashboardStats'
-        }
+      // 通过 adminService HTTP 获取数据
+      const [coursesResult, enrollmentsResult, ordersResult, membersResult] = await Promise.all([
+        adminService.listCourses({ limit: 1000 }),
+        adminService.listEnrollments({ limit: 1000 }),
+        adminService.listOrders({ limit: 1000 }),
+        adminService.listMembers({ limit: 1000 }),
+      ]);
+
+      console.log('[Dashboard] 获取到数据:', {
+        courses: coursesResult.data?.list?.length || 0,
+        enrollments: enrollmentsResult.data?.list?.length || 0,
+        orders: ordersResult.data?.list?.length || 0,
+        members: membersResult.data?.list?.length || 0,
       });
 
-      const coursesResult = { list: dashboardData.data?.courses || [] };
-      const enrollmentsResult = { data: dashboardData.data?.enrollments || [] };
-      const ordersResult = { data: dashboardData.data?.orders || [] };
-      const membersResult = { data: dashboardData.data?.members || [] };
-
-      console.log('[Dashboard] 云函数返回数据:', dashboardData);
-
       // 计算基础统计数据
-      const totalStudents = membersResult.data?.length || 0;
-      const totalCourses = coursesResult.list?.length || 0;
-      const totalOrders = ordersResult.data?.length || 0;
+      const coursesList = coursesResult.data?.list || [];
+      const enrollmentsList = enrollmentsResult.data?.list || [];
+      const ordersList = ordersResult.data?.list || [];
+      const membersList = membersResult.data?.list || [];
+
+      const totalStudents = membersList.length;
+      const totalCourses = coursesList.length;
+      const totalOrders = ordersList.length;
 
       // ★ 计算会员来源统计（从 enrollments 和 members 集合）
       const memberSourceStats = {
@@ -123,7 +119,7 @@ export default function AdminDashboard() {
       };
 
       // 从报名记录统计来源
-      enrollmentsResult.data?.forEach((e: any) => {
+      enrollmentsList.forEach((e: any) => {
         const source = e.source || 'offline';
         if (source === 'online_purchase' || source === 'online') {
           memberSourceStats.online_purchase++;
@@ -137,7 +133,7 @@ export default function AdminDashboard() {
       });
 
       // 计算总收入（从订单）
-      const totalRevenue = ordersResult.data?.reduce((sum: number, order: any) => {
+      const totalRevenue = ordersList.reduce((sum: number, order: any) => {
         return sum + (order.totalAmount || order.amount || 0);
       }, 0) || 0;
 
@@ -145,30 +141,30 @@ export default function AdminDashboard() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const todayEnrollments = enrollmentsResult.data?.filter((e: any) => {
+      const todayEnrollments = enrollmentsList.filter((e: any) => {
         const enrollDate = parseDate(e.createdAt);
         return enrollDate !== null && enrollDate >= today;
-      }) || [];
+      });
 
-      const todayOrders = ordersResult.data?.filter((o: any) => {
+      const todayOrders = ordersList.filter((o: any) => {
         const orderDate = parseDate(o.createdAt);
         return orderDate !== null && orderDate >= today;
-      }) || [];
+      });
 
       // 今日新增学员：从 members 集合获取
-      const todayNewUsers = membersResult.data?.filter((m: any) => {
+      const todayNewUsers = membersList.filter((m: any) => {
         const createDate = parseDate(m.createdAt);
         return createDate !== null && createDate >= today;
-      }) || [];
+      });
 
       // 6. 计算本周收入
       const weekAgo = new Date(today);
       weekAgo.setDate(weekAgo.getDate() - 7);
 
-      const weekOrders = ordersResult.data?.filter((o: any) => {
+      const weekOrders = ordersList.filter((o: any) => {
         const orderDate = parseDate(o.createdAt);
         return orderDate !== null && orderDate >= weekAgo;
-      }) || [];
+      });
 
       const weekRevenue = weekOrders.reduce((sum: number, order: any) => {
         return sum + (order.totalAmount || order.amount || 0);
@@ -178,33 +174,32 @@ export default function AdminDashboard() {
       // 昨日数据（昨天0点到今天0点之间）
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      const dayBeforeYesterday = new Date(yesterday);
 
-      const yesterdayEnrollments = enrollmentsResult.data?.filter((e: any) => {
+      const yesterdayEnrollments = enrollmentsList.filter((e: any) => {
         const enrollDate = parseDate(e.createdAt);
         return enrollDate !== null && enrollDate >= yesterday && enrollDate < today;
-      }) || [];
-      const yesterdayOrders = ordersResult.data?.filter((o: any) => {
+      });
+      const yesterdayOrders = ordersList.filter((o: any) => {
         const orderDate = parseDate(o.createdAt);
         return orderDate !== null && orderDate >= yesterday && orderDate < today;
-      }) || [];
+      });
 
       // 上周同期数据（上周同一时间段）
       const lastWeekStart = new Date(weekAgo);
       const lastWeekEnd = new Date(yesterday);
-      const lastWeekOrders = ordersResult.data?.filter((o: any) => {
+      const lastWeekOrders = ordersList.filter((o: any) => {
         const orderDate = parseDate(o.createdAt);
         return orderDate !== null && orderDate >= lastWeekStart && orderDate < lastWeekEnd;
-      }) || [];
+      });
       const lastWeekRevenue = lastWeekOrders.reduce((sum: number, order: any) => {
         return sum + (order.totalAmount || order.amount || 0);
       }, 0);
 
       // 7. 计算完成率（从 enrollments 的 status 字段）
-      const completedEnrollments = enrollmentsResult.data?.filter((e: any) => {
+      const completedEnrollments = enrollmentsList.filter((e: any) => {
         return e.status === 'completed' || e.status === 'graduated';
-      })?.length || 0;
-      const totalEnrollments = enrollmentsResult.data?.length || 0;
+      }).length;
+      const totalEnrollments = enrollmentsList.length;
       const completionRate = totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0;
 
       setStats({
@@ -228,8 +223,8 @@ export default function AdminDashboard() {
       const activities: RecentActivity[] = [];
       
       // 从最近的订单生成活动
-      const recentOrders = ordersResult.data
-        ?.slice(0, 3)
+      const recentOrders = ordersList
+        .slice(0, 3)
         .map((order: any) => {
           const time = getTimeAgo(order.createdAt);
           return {
@@ -239,11 +234,11 @@ export default function AdminDashboard() {
             description: `订单 ¥${order.totalAmount || order.amount} 已支付`,
             time,
           };
-        }) || [];
+        });
 
       // 从最近的报名生成活动
-      const recentEnrollments = enrollmentsResult.data
-        ?.slice(0, 3)
+      const recentEnrollments = enrollmentsList
+        .slice(0, 3)
         .map((enrollment: any) => {
           const time = getTimeAgo(enrollment.createdAt);
           return {
@@ -253,11 +248,11 @@ export default function AdminDashboard() {
             description: `学员报名了课程`,
             time,
           };
-        }) || [];
+        });
 
       // 从最近的课程生成活动
-      const recentCourses = coursesResult.list
-        ?.slice(0, 2)
+      const recentCourses = coursesList
+        .slice(0, 2)
         .map((course: any) => {
           const time = getTimeAgo(course.updatedAt || course.createdAt);
           return {
@@ -267,11 +262,11 @@ export default function AdminDashboard() {
             description: `课程 "${course.title}" 已更新`,
             time,
           };
-        }) || [];
+        });
 
       // 从最近的学员生成活动（从 members 集合）
-      const recentMembers = (membersResult.data || [])
-        ?.slice(0, 2)
+      const recentMembers = membersList
+        .slice(0, 2)
         .map((member: any) => {
           const time = getTimeAgo(member.createdAt || member.updatedAt);
           return {
@@ -281,14 +276,14 @@ export default function AdminDashboard() {
             description: `学员 ${member.name || member.phone || '未知'} 加入了平台`,
             time,
           };
-        }) || [];
+        });
 
       // 合并并去重
       const allActivities = [...recentOrders, ...recentEnrollments, ...recentCourses, ...recentMembers];
       setRecentActivities(allActivities.slice(0, 5));
 
       // 9. 热门课程（按报名人数排序）
-      const sortedCourses = [...(coursesResult.list || [])]
+      const sortedCourses = [...coursesList]
         .sort((a: any, b: any) => {
           const studentsA = a.students || a.enrollmentCount || 0;
           const studentsB = b.students || b.enrollmentCount || 0;
@@ -302,7 +297,7 @@ export default function AdminDashboard() {
         students: c.students || c.enrollmentCount || 0,
         revenue: (c.price || 0) * (c.students || c.enrollmentCount || 0),
         rating: c.rating || 4.5,
-      })) || []);
+      })));
     } catch (error) {
       console.error('加载仪表板数据失败:', error);
       console.error('错误详情:', JSON.stringify(error, null, 2));

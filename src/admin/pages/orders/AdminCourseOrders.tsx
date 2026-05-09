@@ -1,15 +1,13 @@
 // ============================================================================
 // 管理后台 - 课程订单管理
 // 功能：管理线上购买视频课程的订单
-// 数据来源：orders 集合，type='course'
-// 新增：支持使用 featureApi 中的 api-order 云函数
+// 数据来源：orders 集合
 // ============================================================================
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useConfirm } from '@/admin/hooks/useConfirm';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
-import { orderService } from '@/services';
-import { adminOrderApi } from '@/services/featureApi';
+import { adminService } from '@/services/adminService';
 import { toast } from '@/components/Toast';
 import {
   Search, Filter, Download, RefreshCw, Eye, CheckCircle,
@@ -49,15 +47,14 @@ export default function AdminCourseOrders() {
   const loadOrders = async () => {
     setLoading(true);
     try {
-      // 课程订单：获取所有订单（课程订单有 courseId 或 items）
+      // 课程订单：获取所有订单
       const query: Record<string, any> = {};
       if (filterStatus) query.status = filterStatus;
       
-      const result = await orderService.list(query, { page, pageSize });
+      const result = await adminService.list('orders', query, { page, pageSize, orderBy: 'createdAt', order: 'desc' });
       if (result.code === 0) {
         // 过滤出课程订单（有 courseId 或 items）
-        // 云函数返回: { data: [...数组], total, page, pageSize }
-        let list = Array.isArray(result.data) ? result.data : (result.data?.data || result.data?.list || []);
+        let list = result.data?.list || [];
         list = list.filter((o: any) => o.courseId || o.items);
         
         // 搜索筛选
@@ -103,14 +100,12 @@ export default function AdminCourseOrders() {
     const ok = await confirm({ title: '支付确认', message: `确定要确认订单 ${order.orderNo || order._id} 的支付吗？`, variant: 'danger' });
     if (!ok) return;
     try {
-      const result = await orderService.updateStatus(order._id, 'paid');
-      // @ts-ignore
+      const result = await adminService.update('orders', order._id, { status: 'paid', paidAt: new Date().toISOString() });
       if (result.code === 0) {
         toast.success('支付确认成功');
         loadOrders();
       } else {
-        // @ts-ignore
-        toast.error(result.message || '操作失败');
+        toast.error('操作失败');
       }
     } catch (error) {
       console.error('确认支付失败:', error);
@@ -123,8 +118,7 @@ export default function AdminCourseOrders() {
     const ok = await confirm({ title: '取消确认', message: `确定要取消订单 ${order.orderNo || order._id} 吗？`, variant: 'danger' });
     if (!ok) return;
     try {
-      const result = await orderService.updateStatus(order._id, 'cancelled');
-      // @ts-ignore
+      const result = await adminService.update('orders', order._id, { status: 'cancelled' });
       if (result.code === 0) {
         toast.success('订单已取消');
         loadOrders();

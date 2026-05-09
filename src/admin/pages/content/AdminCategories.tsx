@@ -10,7 +10,6 @@ import {
 import { adminService } from '@/services/adminService';
 import { CourseCategory } from '@/services/categoryService';
 import { toast } from '@/components/Toast';
-import { cloudbaseApp } from '@/utils/cloudbase';
 
 // 来源选项（从 sources 表动态加载）
 interface Source {
@@ -69,13 +68,9 @@ export default function AdminCategories() {
 
   const loadSources = async () => {
     try {
-      const db = cloudbaseApp.database();
-      const result = await db.collection('sources')
-        .where({ status: 'active' })
-        .orderBy('sortOrder', 'asc')
-        .get();
-      if (result.data && result.data.length > 0) {
-        setSources(result.data);
+      const result = await adminService.listSources({ limit: 100 });
+      if (result.data?.list && result.data.list.length > 0) {
+        setSources(result.data.list);
       }
     } catch (error) {
       console.error('加载体系列表失败:', error);
@@ -87,18 +82,19 @@ export default function AdminCategories() {
       setLoading(true);
       const res = await adminService.list('categories', {}, { limit: 100, orderBy: 'sort', order: 'asc' });
 
-      if (res.code === 0 && Array.isArray(res.data)) {
-        setCategories(res.data);
+      if (res.code === 0 && Array.isArray(res.data?.list)) {
+        const list = res.data.list;
+        setCategories(list);
         
         // 手动计算统计数据
         setStats({
-          total: res.data.length,
-          active: res.data.filter((c: CourseCategory) => c.status === 'active').length,
-          disabled: res.data.filter((c: CourseCategory) => c.status === 'disabled').length,
+          total: list.length,
+          active: list.filter((c: CourseCategory) => c.status === 'active').length,
+          disabled: list.filter((c: CourseCategory) => c.status === 'disabled').length,
         });
       } else {
-        console.error('获取分类列表失败:', res.message);
-        toast.error(res.message || '获取分类列表失败');
+        console.error('获取分类列表失败:', res);
+        toast.error('获取分类列表失败');
       }
     } catch (error) {
       console.error('加载分类失败:', error);

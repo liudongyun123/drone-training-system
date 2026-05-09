@@ -2,7 +2,7 @@
 // useTeachers Hook - 教师管理业务逻辑
 // ============================================================================
 import { useState, useEffect, useCallback } from 'react';
-import { teacherService } from '@/services/teacherService';
+import { adminService } from '@/services/adminService';
 import type { Teacher } from '@/types';
 
 interface UseTeachersOptions {
@@ -44,7 +44,7 @@ export function useTeachers({ autoLoad = true }: UseTeachersOptions = {}): UseTe
         query.status = statusFilter;
       }
 
-      const result = await teacherService.getList(query, { page, pageSize });
+      const result = await adminService.listTeachers({ page, pageSize, orderBy: 'createdAt', order: 'desc' });
 
       let teacherList: any[] = [];
 
@@ -52,10 +52,6 @@ export function useTeachers({ autoLoad = true }: UseTeachersOptions = {}): UseTe
         teacherList = result.data.list;
       } else if (Array.isArray(result.data)) {
         teacherList = result.data;
-      // @ts-ignore
-      } else if (result.data?.data && Array.isArray(result.data.data)) {
-        // @ts-ignore
-        teacherList = result.data.data;
       }
 
       if (keyword && teacherList.length > 0) {
@@ -104,16 +100,16 @@ export function useTeachers({ autoLoad = true }: UseTeachersOptions = {}): UseTe
 
       let result;
       if (existingTeacher) {
-        result = await teacherService.update(existingTeacher._id, saveData);
+        result = await adminService.updateTeacher(existingTeacher._id, saveData);
       } else {
-        result = await teacherService.create(saveData);
+        result = await adminService.createTeacher(saveData);
       }
 
       if (result && result.code === 0) {
         await loadTeachers();
         return true;
       } else {
-        throw new Error(result?.message || '保存失败，请重试');
+        throw new Error('保存失败，请重试');
       }
     } catch (error) {
       console.error('保存教师失败:', error);
@@ -125,12 +121,12 @@ export function useTeachers({ autoLoad = true }: UseTeachersOptions = {}): UseTe
 
   const deleteTeacher = useCallback(async (teacherId: string): Promise<boolean> => {
     try {
-      const result = await teacherService.delete(teacherId);
-      if (result.code === 0) {
+      const result = await adminService.deleteTeacher(teacherId);
+      if (result && result.code === 0) {
         await loadTeachers();
         return true;
       } else {
-        throw new Error(result.message || '删除失败');
+        throw new Error('删除失败');
       }
     } catch (error) {
       console.error('删除教师失败:', error);

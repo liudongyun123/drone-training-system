@@ -4,6 +4,7 @@
 import { User, TrendingUp, List, Save, Trash2 } from 'lucide-react';
 import AdminPageTemplate, { DataRecord } from '@/admin/pages/system/_AdminPageTemplate';
 import { StatusBadge } from '@/admin/components/StatusBadge';
+import { Select } from '@/components/Select';
 import type { Course } from '@/types';
 import React from 'react';
 
@@ -13,6 +14,9 @@ interface CourseListProps {
   total: number;
   page: number;
   categories: Array<{ _id: string; name: string; code: string }>;
+  sources?: Array<{ _id: string; name: string; code: string }>;  // 新增：体系列表
+  selectedSource?: string;  // 新增：选中的体系
+  onSourceChange?: (sourceId: string) => void;  // 新增：体系变化回调
   onSearch: () => void;
   onPageChange: (page: number) => void;
   onAdd: () => void;
@@ -28,6 +32,9 @@ export default function CourseList({
   total,
   page,
   categories,
+  sources = [],
+  selectedSource = '',
+  onSourceChange,
   onSearch,
   onPageChange,
   onAdd,
@@ -118,51 +125,85 @@ export default function CourseList({
   // Cast Course[] to DataRecord[] for compatibility with AdminPageTemplate
   const dataSource = courses as unknown as DataRecord[];
 
+  // 体系筛选器
+  const renderSourceFilter = () => {
+    if (!onSourceChange || sources.length === 0) return null;
+    
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-500">体系筛选:</span>
+        <select
+          className="select select-bordered select-sm w-40"
+          value={selectedSource}
+          onChange={(e) => onSourceChange(e.target.value)}
+        >
+          <option value="">全部体系</option>
+          {sources.map((source) => (
+            <option key={source._id} value={source._id}>
+              {source.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  };
+
   return (
-    <AdminPageTemplate
-      title="课程管理"
-      columns={columns}
-      dataSource={dataSource}
-      loading={loading}
-      total={total}
-      page={page}
-      pageSize={10}
-      onPageChange={onPageChange}
-      onSearch={onSearch}
-      onAdd={onAdd}
-      renderActions={(record: DataRecord) => {
-        const course = record as unknown as Course;
-        return (
-          <div className="flex gap-2">
-            <button
-              className="btn btn-sm btn-square btn-ghost text-purple-500"
-              onClick={() => onViewStats(course)}
-              title="权限统计"
-            >
-              <TrendingUp size={16} />
-            </button>
-            <button
-              className="btn btn-sm btn-square btn-ghost text-blue-500"
-              onClick={() => onManageLessons(course)}
-              title="管理章节"
-            >
-              <List size={16} />
-            </button>
-            <button
-              className="btn btn-sm btn-square btn-ghost"
-              onClick={() => onEdit(course)}
-            >
-              <Save size={16} />
-            </button>
-            <button
-              className="btn btn-sm btn-square btn-ghost text-red-500"
-              onClick={() => onDelete(course._id!)}
-            >
-              <Trash2 size={16} />
-            </button>
+    <div>
+      {/* 筛选栏 */}
+      {renderSourceFilter() && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4">
+          <div className="flex items-center gap-4">
+            {renderSourceFilter()}
           </div>
-        );
-      }}
-    />
+        </div>
+      )}
+      
+      <AdminPageTemplate
+        title="课程管理"
+        columns={columns}
+        dataSource={dataSource}
+        loading={loading}
+        total={total}
+        page={page}
+        pageSize={10}
+        onPageChange={onPageChange}
+        onSearch={onSearch}
+        onAdd={onAdd}
+        renderActions={(record: DataRecord) => {
+          const course = record as unknown as Course;
+          return (
+            <div className="flex gap-2">
+              <button
+                className="btn btn-sm btn-square btn-ghost text-purple-500"
+                onClick={() => onViewStats(course)}
+                title="权限统计"
+              >
+                <TrendingUp size={16} />
+              </button>
+              <button
+                className="btn btn-sm btn-square btn-ghost text-blue-500"
+                onClick={() => onManageLessons(course)}
+                title="管理章节"
+              >
+                <List size={16} />
+              </button>
+              <button
+                className="btn btn-sm btn-square btn-ghost"
+                onClick={() => onEdit(course)}
+              >
+                <Save size={16} />
+              </button>
+              <button
+                className="btn btn-sm btn-square btn-ghost text-red-500"
+                onClick={() => onDelete(course._id!)}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          );
+        }}
+      />
+    </div>
   );
 }

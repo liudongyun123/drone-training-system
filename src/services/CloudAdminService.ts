@@ -36,7 +36,7 @@ export const CloudUserAdminService = {
 
       return {
         success: true,
-        data: listResult.data.map((u: any) => ({
+        data: (Array.isArray(listResult.data) ? listResult.data : listResult.data?.list || []).map((u: any) => ({
           id: u._id,
           username: u.username,
           email: u.email,
@@ -45,7 +45,7 @@ export const CloudUserAdminService = {
           createdAt: u.createdAt,
           lastLogin: u.lastLogin,
         })),
-        total: countResult.data // ✅ 直接返回总数
+        total: countResult.data
       }
     } catch (error) {
       console.error('获取用户列表失败:', error)
@@ -173,7 +173,7 @@ export const CloudOrderAdminService = {
 
       return {
         success: true,
-        data: listResult.data.map((o: any) => ({
+        data: (Array.isArray(listResult.data) ? listResult.data : listResult.data?.list || []).map((o: any) => ({
           _id: o._id,
           id: o._id,
           userId: o.userId,
@@ -256,7 +256,7 @@ export const CloudOrderAdminService = {
       const result = await adminService.list(this.collection, { userId })
       return {
         success: true,
-        data: result.data.map((o: any) => ({
+        data: (result.data?.list || []).map((o: any) => ({
           _id: o._id,
           userId: o.userId,
           userName: o.userName,
@@ -279,7 +279,7 @@ export const CloudOrderAdminService = {
     try {
       // 查询包含该课程的订单
       const result = await adminService.list(this.collection, {})
-      const filteredData = result.data.filter((o: any) => {
+      const filteredData = (result.data?.list || []).filter((o: any) => {
         if (o.courseId === courseId) return true
         if (o.items?.some((item: any) => item.courseId === courseId)) return true
         return false
@@ -310,7 +310,7 @@ export const CloudOrderAdminService = {
       const result = await adminService.list(this.collection, { status })
       return {
         success: true,
-        data: result.data.map((o: any) => ({
+        data: (result.data?.list || []).map((o: any) => ({
           _id: o._id,
           userId: o.userId,
           userName: o.userName,
@@ -367,7 +367,7 @@ export const CloudNotificationService = {
       const result = await adminService.list(this.collection, query, options)
       return {
         success: true,
-        data: result.data.map((n: any) => ({
+        data: (Array.isArray(result.data) ? result.data : result.data?.list || []).map((n: any) => ({
           id: n._id,
           title: n.title,
           content: n.content,
@@ -440,7 +440,7 @@ export const CloudCourseAdminService = {
 
       return {
         success: true,
-        data: listResult.data.map((c: any) => ({
+        data: (Array.isArray(listResult.data) ? listResult.data : listResult.data?.list || []).map((c: any) => ({
           id: c._id,
           title: c.title,
           description: c.description,
@@ -457,8 +457,8 @@ export const CloudCourseAdminService = {
           rating: c.rating || 0,
           status: c.status || 'draft',
           createdAt: c.createdAt,
-        })) || [],
-        total: countResult.data // ✅ 直接返回总数
+        })),
+        total: countResult.data
       }
     } catch (error) {
       console.error('获取课程列表失败:', error)
@@ -593,9 +593,10 @@ export const CloudChapterAdminService = {
       }
 
       const result = await adminService.list(this.collection, query, options)
+      const dataList = Array.isArray(result.data) ? result.data : result.data?.list || []
       return {
         success: true,
-        data: result.data.map((c: any) => ({
+        data: dataList.map((c: any) => ({
           id: c._id,
           title: c.title,
           courseId: c.courseId,
@@ -672,7 +673,7 @@ export const CloudExamAdminService = {
       const result = await adminService.list(this.collection, query, options)
       return {
         success: true,
-        data: result.data.map((e: any) => ({
+        data: (result.data?.list || []).map((e: any) => ({
           id: e._id,
           title: e.title,
           courseId: e.courseId,
@@ -681,7 +682,7 @@ export const CloudExamAdminService = {
           passScore: e.passScore,
           status: e.status || 'draft',
           createdAt: e.createdAt,
-        })) || []
+        }))
       }
     } catch (error) {
       console.error('获取试卷列表失败:', error)
@@ -764,9 +765,10 @@ export const CloudQuestionBankAdminService = {
       }
 
       const result = await adminService.list(this.collection, query, options)
+      const dataList = Array.isArray(result.data) ? result.data : result.data?.list || []
       return {
         success: true,
-        data: result.data.map((q: any) => ({
+        data: dataList.map((q: any) => ({
           id: q._id,
           title: q.title,
           category: q.category,
@@ -833,7 +835,7 @@ export const CloudLearningPathAdminService = {
       const result = await adminService.list(this.collection, query, options)
       return {
         success: true,
-        data: result.data || []
+        data: result.data?.list || []
       }
     } catch (error) {
       console.error('获取学习路径列表失败:', error)
@@ -921,7 +923,7 @@ export const CloudMemberLevelAdminService = {
 
       return {
         success: true,
-        data: listResult.data || [],
+        data: listResult.data?.list || [],
         total: countResult.data // ✅ 直接返回总数
       }
     } catch (error) {
@@ -1036,7 +1038,7 @@ export const CloudRoleAdminService = {
 
       return {
         success: true,
-        data: listResult.data || [],
+        data: listResult.data?.list || [],
         total: countResult.data // ✅ 直接返回总数
       }
     } catch (error) {
@@ -1152,7 +1154,7 @@ export const CloudCouponAdminService = {
 
       return {
         success: true,
-        data: listResult.data || [],
+        data: listResult.data?.list || [],
         total: countResult.data // ✅ 直接返回总数
       }
     } catch (error) {
@@ -1269,7 +1271,7 @@ export const CloudBannerAdminService = {
 
       return {
         success: true,
-        data: listResult.data || [],
+        data: listResult.data?.list || [],
         total: countResult.data // ✅ 直接返回总数
       }
     } catch (error) {
@@ -1383,7 +1385,7 @@ export const CloudNoticeAdminService = {
 
       return {
         success: true,
-        data: listResult.data || [],
+        data: listResult.data?.list || [],
         total: countResult.data // ✅ 直接返回总数
       }
     } catch (error) {
@@ -1489,9 +1491,10 @@ export const CloudPracticeRecordAdminService = {
       }
 
       const result = await adminService.list(this.collection, query, options)
+      const dataList = Array.isArray(result.data) ? result.data : result.data?.list || []
       return {
         success: true,
-        data: result.data
+        data: dataList
       }
     } catch (error) {
       console.error('获取练习记录列表失败:', error)
@@ -1556,7 +1559,7 @@ export const CloudCommentAdminService = {
 
       return {
         success: true,
-        data: listResult.data || [],
+        data: listResult.data?.list || [],
         total: countResult.data // ✅ 直接返回总数
       }
     } catch (error) {
@@ -1664,9 +1667,10 @@ export const CloudSystemLogAdminService = {
       }
 
       const result = await adminService.list(this.collection, query, options)
+      const dataList = Array.isArray(result.data) ? result.data : result.data?.list || []
       return {
         success: true,
-        data: result.data
+        data: dataList
       }
     } catch (error) {
       console.error('获取系统日志失败:', error)
@@ -1715,7 +1719,7 @@ export const CloudSystemSettingAdminService = {
       const result = await adminService.list(this.collection, query, options)
       return {
         success: true,
-        data: result.data
+        data: result.data?.list || []
       }
     } catch (error) {
       console.error('获取系统设置失败:', error)
@@ -1726,7 +1730,8 @@ export const CloudSystemSettingAdminService = {
   async getByKey(key: string) {
     try {
       const result = await adminService.list(this.collection, { key })
-      return result.data[0]
+      const dataList = Array.isArray(result.data) ? result.data : result.data?.list || []
+      return dataList[0] || null
     } catch (error) {
       console.error('获取系统设置失败:', error)
       return null
@@ -1780,11 +1785,11 @@ export const CloudAdminService = {
     try {
       const { collection, query = {}, options = {} } = params;
       const result = await adminService.list(collection, query, options);
-      // 兼容不同返回格式
+      // 兼容不同返回格式 - adminService 返回 { data: { list: [], total } }
       if (result.code === 0) {
         return {
           code: 0,
-          data: result.data || []
+          data: result.data?.list || []
         };
       } else {
         return {
@@ -1829,9 +1834,10 @@ export const CloudAdminService = {
       }
 
       const result = await adminService.list(collection, {}, options)
+      const dataList = Array.isArray(result.data) ? result.data : result.data?.list || []
       return {
         success: true,
-        data: result.data.map((item: any) => ({
+        data: dataList.map((item: any) => ({
           id: item._id || item.id,
           ...item
         }))
@@ -1910,5 +1916,7 @@ export const CloudAdminService = {
         message: 'Upsert 失败'
       }
     }
-  },
+  }
 }
+
+ 

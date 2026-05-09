@@ -6,8 +6,7 @@ import {
   ChevronLeft, ChevronRight, Eye
 } from 'lucide-react';
 import type { Certificate } from '@/types';
-import { certificateService } from '@/services/certificateService';
-import { adminLearningApi } from '@/services/featureApi';
+import { adminService } from '@/services/adminService';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
 import { formatDateStr } from '@/utils/dateUtils';
@@ -32,64 +31,19 @@ export default function AdminCertificates() {
     try {
       setLoading(true);
       
-      // 优先使用新 API (adminLearningApi)
-      const [certsRes, statsRes] = await Promise.all([
-        adminLearningApi.getCertificates().catch(() => ({ success: false, data: null })),
-        adminLearningApi.getCertificateStats().catch(() => ({ success: false, data: null }))
-      ]);
-      
-      // 如果新 API 失败或返回格式不对，使用旧 API
-      // 新 API 返回 { list, total, page, pageSize } 或 { data: { list, ... } }
-      let certList: Certificate[] = [];
-      
-      if (certsRes.success && certsRes.data) {
-        // 处理新 API 返回格式 { list, total, ... }
-        if (Array.isArray(certsRes.data)) {
-          certList = certsRes.data;
-        } else if (certsRes.data.list && Array.isArray(certsRes.data.list)) {
-          certList = certsRes.data.list;
-        } else if (certsRes.data.data && Array.isArray(certsRes.data.data)) {
-          // 处理 { data: { list, ... } } 格式
-          certList = certsRes.data.data;
-        }
-      }
-      
-      // 如果新 API 获取失败，使用旧 API
-      if (certList.length === 0) {
-        const fallbackCerts = await certificateService.getList();
-        if (fallbackCerts.success && Array.isArray(fallbackCerts.data)) {
-          certList = fallbackCerts.data;
-        }
-      }
+      const result = await adminService.list('certificates', {}, { limit: 100 });
+      const certList: Certificate[] = result.data?.list || [];
       
       setCertificates(certList);
       
       // 处理统计
-      if (statsRes.success && statsRes.data) {
-        const s = statsRes.data;
-        setStats({
-          total: typeof s.total === 'number' ? s.total : certList.length,
-          issued: typeof s.issued === 'number' ? s.issued : certList.filter(c => c.status === 'issued').length,
-          pending: typeof s.pending === 'number' ? s.pending : certList.filter(c => c.status === 'pending').length,
-          revoked: typeof s.revoked === 'number' ? s.revoked : certList.filter(c => c.status === 'revoked').length,
-          thisMonth: 0 // 新 API 暂无此字段
-        });
-      } else {
-        // 使用旧 API 获取统计
-        const fallbackStats = await certificateService.getStats();
-        if (fallbackStats.success && fallbackStats.data) {
-          const s = fallbackStats.data;
-          setStats({
-            total: typeof s.total === 'number' ? s.total : 0,
-            issued: typeof s.issued === 'number' ? s.issued : 0,
-            pending: typeof s.pending === 'number' ? s.pending : 0,
-            revoked: typeof s.revoked === 'number' ? s.revoked : 0,
-            thisMonth: typeof s.thisMonth === 'number' ? s.thisMonth : 0
-          });
-        } else {
-          setStats({ total: 0, issued: 0, pending: 0, revoked: 0, thisMonth: 0 });
-        }
-      }
+      setStats({
+        total: certList.length,
+        issued: certList.filter(c => c.status === 'issued').length,
+        pending: certList.filter(c => c.status === 'pending').length,
+        revoked: certList.filter(c => c.status === 'revoked').length,
+        thisMonth: 0
+      });
     } catch (err) {
       console.error('加载数据失败', err);
       setCertificates([]);
@@ -103,11 +57,13 @@ export default function AdminCertificates() {
     if (!selectedCert || !certificateNo.trim()) return;
     
     try {
-      const res = await certificateService.issue(selectedCert._id, {
-        certificateNo: certificateNo.trim()
+      const res = await adminService.update('certificates', selectedCert._id, {
+        status: 'issued',
+        certificateNo: certificateNo.trim(),
+        issuedAt: new Date().toISOString()
       });
       
-      if (res.success) {
+      if (res.code === 0) {
         setShowIssueModal(false);
         setCertificateNo('');
         loadData();
@@ -119,8 +75,11 @@ export default function AdminCertificates() {
 
   const handleRevoke = async (id: string) => {
     try {
-      const res = await certificateService.revoke(id, '管理员撤销');
-      if (res.success) {
+      const res = await adminService.update('certificates', id, {
+        status: 'revoked',
+        revokedAt: new Date().toISOString()
+      });
+      if (res.code === 0) {
         loadData();
       }
     } catch (err) {
@@ -130,8 +89,8 @@ export default function AdminCertificates() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await certificateService.delete(id);
-      if (res.success) {
+      const res = await adminService.delete('certificates', id);
+      if (res.code === 0) {
         setShowDeleteConfirm(null);
         loadData();
       }

@@ -101,34 +101,26 @@ export default function AdminTeachers() {
   const loadSchedules = async (teacherId: string, date: string) => {
     setScheduleLoading(true);
     try {
-      const db = cloudbaseApp.database();
-      
       // 1. 先找到该教师负责的培训班（classes）
-      const classesResult = await db.collection('classes')
-        .where({ teacherId })
-        .field({ _id: true, name: true })
-        .limit(100)
-        .get();
+      const classesResult = await adminService.list('classes', { teacherId }, { limit: 100 });
+      const classesList = classesResult.data?.list || [];
       
-      const classIds = classesResult.data?.map((c: any) => c._id) || [];
+      const classIds = classesList.map((c: any) => c._id) || [];
       const classNamesMap: Record<string, string> = {};
-      classesResult.data?.forEach((c: any) => {
+      classesList.forEach((c: any) => {
         classNamesMap[c._id] = c.name;
       });
       
       // 2. 如果有培训班，再查询这些培训班的排课（class_schedules）
       let schedules: any[] = [];
       if (classIds.length > 0) {
-        const schedulesResult = await db.collection('class_schedules')
-          .where({
-            classId: db.command.in(classIds),
-            date: date,
-          })
-          .orderBy('startTime', 'asc')
-          .get();
+        const schedulesResult = await adminService.list('class_schedules', { 
+          classId: { $in: classIds },
+          date: date,
+        }, { orderBy: 'startTime', order: 'asc', limit: 100 });
         
         // 为排课添加班级名称
-        schedules = (schedulesResult.data || []).map((s: any) => ({
+        schedules = (schedulesResult.data?.list || []).map((s: any) => ({
           ...s,
           className: classNamesMap[s.classId] || '未知班级'
         }));

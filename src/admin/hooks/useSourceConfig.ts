@@ -4,7 +4,7 @@
 // ============================================================================
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { adminService } from '@/services/adminService';
-import { cloudbaseApp } from '@/utils/cloudbase';
+import { adminApi } from '@/services/adminApiService';
 
 // 类型定义
 export interface Source {
@@ -58,18 +58,15 @@ export function useSourceConfig() {
   const loadSources = useCallback(async () => {
     setSourcesLoading(true);
     try {
-      const db = cloudbaseApp.database();
-      const result = await db.collection('sources')
-        .where({ status: 'active' })
-        .orderBy('sortOrder', 'asc')
-        .get();
+      // 使用 adminApi（HTTP 方式）查询
+      const result = await adminApi.listSources({ limit: 100 });
       
       if (result.data && result.data.length > 0) {
-        setSources(result.data);
+        setSources(result.data as Source[]);
         // 构建映射
         sourceIdToCodeMap = {};
         sourceCodeToIdMap = {};
-        result.data.forEach((s: Source) => {
+        result.data.forEach((s: any) => {
           sourceIdToCodeMap[s._id] = s.code;
           sourceCodeToIdMap[s.code] = s._id;
         });
@@ -85,10 +82,11 @@ export function useSourceConfig() {
   const loadCategories = useCallback(async () => {
     setCategoriesLoading(true);
     try {
-      const result = await adminService.list('categories', { status: 'active' });
-      if (result.code === 0 && Array.isArray(result.data)) {
+      // 使用 adminApi（HTTP 方式）查询
+      const result = await adminApi.listCategories({ status: 'active' }, { limit: 100 });
+      if (result.data && Array.isArray(result.data)) {
         // 构建 sourceCode 映射
-        const categoriesWithSourceCode: Category[] = result.data.map((c: Category) => ({
+        const categoriesWithSourceCode: Category[] = result.data.map((c: any) => ({
           ...c,
           sourceCode: sourceIdToCodeMap[c.sourceId] || c.sourceId
         }));
@@ -105,14 +103,11 @@ export function useSourceConfig() {
   const loadLevels = useCallback(async () => {
     setLevelsLoading(true);
     try {
-      const db = cloudbaseApp.database();
-      const result = await db.collection('levels')
-        .where({ status: 'active' })
-        .orderBy('sortOrder', 'asc')
-        .get();
+      // 使用 adminApi（HTTP 方式）查询
+      const result = await adminApi.listLevels({ limit: 100 });
       
       if (result.data && result.data.length > 0) {
-        setLevels(result.data);
+        setLevels(result.data as Level[]);
       }
     } catch (error) {
       console.error('加载等级列表失败:', error);

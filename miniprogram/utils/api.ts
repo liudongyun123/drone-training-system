@@ -169,15 +169,32 @@ export const courseApi = {
     if (categoryId) where.categoryId = categoryId  // 按ID过滤
     if (sourceId) where.sourceId = sourceId  // 按体系过滤
 
-    const result = await dbGetList('courses', {
-      where,
-      orderBy: 'createdAt desc',
-      skip,
-      limit: pageSize
-    })
-    // 先加载等级缓存，再转换
-    await loadLevels()
-    return (result.data || []).map(transformCourse)
+    try {
+      const result = await dbGetList('courses', {
+        where,
+        orderBy: 'createdAt desc',
+        skip,
+        limit: pageSize
+      })
+      // 先加载等级缓存，再转换
+      await loadLevels()
+      const courses = (result.data || []).map(transformCourse)
+      
+      // 如果没有数据且有筛选条件，尝试无筛选查询
+      if (courses.length === 0 && Object.keys(where).length > 0) {
+        const fallbackResult = await dbGetList('courses', {
+          orderBy: 'createdAt desc',
+          skip,
+          limit: pageSize
+        })
+        return (fallbackResult.data || []).map(transformCourse)
+      }
+      
+      return courses
+    } catch (error) {
+      console.error('courseApi.getList 失败:', error)
+      return []
+    }
   },
 
   async getDetail(courseId: string) {
@@ -198,15 +215,42 @@ export const courseApi = {
   },
 
   async getHotCourses(limit: number = 6, sourceId?: string) {
-    const where: any = { status: 'published' }
+    const where: any = {}
+    // 尝试先查询 published 状态的课程
+    where.status = 'published'
     if (sourceId) where.sourceId = sourceId
-    const result = await dbGetList('courses', {
-      where,
-      orderBy: 'salesCount desc',
-      limit
-    })
-    await loadLevels()
-    return (result.data || []).map(transformCourse)
+    
+    try {
+      let result = await dbGetList('courses', {
+        where,
+        orderBy: 'salesCount desc',
+        limit
+      })
+      
+      // 如果没有数据，尝试无状态筛选
+      if (!result.data || result.data.length === 0) {
+        const fallbackWhere: any = sourceId ? { sourceId } : {}
+        result = await dbGetList('courses', {
+          where: fallbackWhere,
+          orderBy: 'createdAt desc',
+          limit
+        })
+      }
+      
+      // 如果还是没有数据，查询所有课程
+      if (!result.data || result.data.length === 0) {
+        result = await dbGetList('courses', {
+          orderBy: 'createdAt desc',
+          limit
+        })
+      }
+      
+      await loadLevels()
+      return (result.data || []).map(transformCourse)
+    } catch (error) {
+      console.error('courseApi.getHotCourses 失败:', error)
+      return []
+    }
   },
 
   async getCategories(sourceId?: string) {

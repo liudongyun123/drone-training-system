@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, Plus, Edit, Trash2, X, Check, AlertCircle } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
-import { cloudbaseApp } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 
 interface Source {
   _id?: string;
@@ -48,16 +48,10 @@ export default function AdminSources() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 尝试从数据库直接查询
-      const db = cloudbaseApp.database();
-      const result = await db.collection('sources')
-        .orderBy('sortOrder', 'asc')
-        .get();
-      
-      if (result.data && result.data.length > 0) {
-        setSources(result.data);
+      const result = await adminService.listSources({ limit: 100 });
+      if (result.data?.list && result.data.list.length > 0) {
+        setSources(result.data.list);
       } else {
-        // 如果数据库为空，使用默认值
         setSources(DEFAULT_SOURCES);
       }
     } catch (error) {
@@ -81,33 +75,27 @@ export default function AdminSources() {
 
     setSaving(true);
     try {
-      const db = cloudbaseApp.database();
-      
       if (editingId === 'new') {
         // 新增
-        await db.collection('sources').add({
-          data: {
-            code: editForm.code,
-            name: editForm.name,
-            icon: editForm.icon || '📚',
-            description: editForm.description || '',
-            sortOrder: editForm.sortOrder || sources.length + 1,
-            status: editForm.status || 'active',
-            createdAt: new Date().toISOString()
-          }
+        await adminService.createSource({
+          code: editForm.code,
+          name: editForm.name,
+          icon: editForm.icon || '📚',
+          description: editForm.description || '',
+          sortOrder: editForm.sortOrder || sources.length + 1,
+          status: editForm.status || 'active',
+          createdAt: new Date().toISOString()
         });
       } else if (editingId) {
         // 更新
-        await db.collection('sources').doc(editingId).update({
-          data: {
-            code: editForm.code,
-            name: editForm.name,
-            icon: editForm.icon || '📚',
-            description: editForm.description || '',
-            sortOrder: editForm.sortOrder,
-            status: editForm.status || 'active',
-            updatedAt: new Date().toISOString()
-          }
+        await adminService.updateSource(editingId, {
+          code: editForm.code,
+          name: editForm.name,
+          icon: editForm.icon || '📚',
+          description: editForm.description || '',
+          sortOrder: editForm.sortOrder,
+          status: editForm.status || 'active',
+          updatedAt: new Date().toISOString()
         });
       }
       
@@ -133,8 +121,7 @@ export default function AdminSources() {
     if (!ok) return;
 
     try {
-      const db = cloudbaseApp.database();
-      await db.collection('sources').doc(id).remove();
+      await adminService.deleteSource(id);
       setSources(sources.filter(s => s._id !== id));
     } catch (error) {
       console.error('删除失败:', error);

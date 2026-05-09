@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小程序 API 全面测试</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { color: #00d4ff; margin-bottom: 20px; text-align: center; }
+    h2 { color: #00d4ff; margin: 20px 0 10px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+    .card { background: #16213e; border-radius: 12px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .card-title { font-size: 16px; font-weight: 600; color: #00d4ff; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+    .btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; margin: 5px; transition: transform 0.2s; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0); }
+    .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .btn-danger { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+    .btn-warning { background: linear-gradient(135deg, #f2994a 0%, #f2c94c 100%); color: #333; }
+    .result { background: #0f0f23; border-radius: 8px; padding: 15px; margin-top: 15px; font-family: 'Fira Code', monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; border: 1px solid #333; }
+    .result.success { border-color: #38ef7d; }
+    .result.error { border-color: #eb3349; }
+    .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-left: 10px; }
+    .status.pending { background: #faad14; color: #000; }
+    .status.success { background: #38ef7d; color: #000; }
+    .status.error { background: #eb3349; color: #fff; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #333; }
+    th { background: #1a1a2e; color: #00d4ff; }
+    tr:hover { background: rgba(0,212,255,0.1); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+    .badge-published { background: #38ef7d; color: #000; }
+    .badge-draft { background: #faad14; color: #000; }
+    .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid #00d4ff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .summary { background: #0f3460; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; }
+    .summary-item { text-align: center; }
+    .summary-value { font-size: 28px; font-weight: 700; color: #00d4ff; }
+    .summary-label { font-size: 13px; color: #888; margin-top: 5px; }
+    .logs { background: #0a0a15; padding: 15px; border-radius: 8px; margin-top: 20px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 11px; }
+    .log-entry { margin: 2px 0; padding: 2px 0; border-bottom: 1px solid #222; }
+    .log-time { color: #666; margin-right: 10px; }
+    .log-success { color: #38ef7d; }
+    .log-error { color: #eb3349; }
+    .log-info { color: #00d4ff; }
+    input, select { background: #0f0f23; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; width: 100%; margin: 5px 0; }
+    .form-group { margin: 10px 0; }
+    .form-group label { display: block; margin-bottom: 5px; color: #888; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 小程序 API 全面测试</h1>
+    
+    <!-- 概览统计 -->
+    <div class="summary" id="summary">
+      <div class="summary-item">
+        <div class="summary-value" id="totalCourses">-</div>
+        <div class="summary-label">课程总数</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-value" id="totalCategories">-</div>
+        <div class="summary-label">分类总数</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-value" id="totalSources">-</div>
+        <div class="summary-label">体系总数</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-value" id="totalBanners">-</div>
+        <div class="summary-label">轮播图</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-value" id="publishedCourses">-</div>
+        <div class="summary-label">已发布课程</div>
+      </div>
+    </div>
+    
+    <div class="grid">
+      <!-- 1. 连接测试 -->
+      <div class="card">
+        <div class="card-title">1️⃣ API 连接测试 <span id="conn-status" class="status pending">测试中</span></div>
+        <button class="btn btn-success" onclick="testConnection()">测试连接</button>
+        <button class="btn" onclick="runAllTests()">运行全部测试</button>
+        <div id="conn-result" class="result"></div>
+      </div>
+      
+      <!-- 2. 课程 API -->
+      <div class="card">
+        <div class="card-title">2️⃣ 课程 API</div>
+        <div class="form-group">
+          <label>体系选择</label>
+          <select id="course-source">
+            <option value="">全部</option>
+            <option value="RENSHE">人社培训</option>
+            <option value="CAAC">CAAC培训</option>
+          </select>
+        </div>
+        <button class="btn" onclick="testGetHotCourses()">热门课程</button>
+        <button class="btn" onclick="testGetCourseList()">课程列表</button>
+        <button class="btn btn-warning" onclick="testGetCourseList(100)">全部课程</button>
+        <div id="courses-result" class="result"></div>
+      </div>
+      
+      <!-- 3. 分类 API -->
+      <div class="card">
+        <div class="card-title">3️⃣ 分类 & 体系 API</div>
+        <button class="btn" onclick="testGetSources()">获取体系</button>
+        <button class="btn" onclick="testGetCategories()">获取分类</button>
+        <button class="btn" onclick="testGetLevels()">获取等级</button>
+        <button class="btn" onclick="testGetDictionaries()">获取字典配置</button>
+        <div id="categories-result" class="result"></div>
+      </div>
+      
+      <!-- 4. 轮播图 API -->
+      <div class="card">
+        <div class="card-title">4️⃣ 轮播图 API</div>
+        <button class="btn" onclick="testGetBanners()">获取轮播图</button>
+        <div id="banners-result" class="result"></div>
+      </div>
+      
+      <!-- 5. 培训班 API -->
+      <div class="card">
+        <div class="card-title">5️⃣ 培训班 API</div>
+        <div class="form-group">
+          <label>状态筛选</label>
+          <select id="class-status">
+            <option value="">全部</option>
+            <option value="enrolling">正在报名</option>
+            <option value="ongoing">进行中</option>
+            <option value="completed">已完成</option>
+          </select>
+        </div>
+        <button class="btn" onclick="testGetClasses()">获取培训班</button>
+        <button class="btn btn-warning" onclick="testGetClasses(100)">全部培训班</button>
+        <div id="classes-result" class="result"></div>
+      </div>
+      
+      <!-- 6. 订单相关 -->
+      <div class="card">
+        <div class="card-title">6️⃣ 订单 & 权限 API</div>
+        <button class="btn" onclick="testGetOrders()">获取订单</button>
+        <button class="btn" onclick="testGetPermissions()">获取权限</button>
+        <button class="btn" onclick="testGetProgress()">获取学习进度</button>
+        <div id="orders-result" class="result"></div>
+      </div>
+    </div>
+    
+    <!-- 测试日志 -->
+    <div class="card" style="margin-top: 20px;">
+      <div class="card-title">📋 测试日志</div>
+      <div id="logs" class="logs"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com';
+    const STATS = { courses: 0, categories: 0, sources: 0, banners: 0, published: 0 };
+    
+    function log(msg, type = 'info') {
+      const logs = document.getElementById('logs');
+      const time = new Date().toLocaleTimeString();
+      const colorClass = type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : 'log-info';
+      logs.innerHTML += `<div class="log-entry"><span class="log-time">[${time}]</span><span class="${colorClass}">${msg}</span></div>`;
+      logs.scrollTop = logs.scrollHeight;
+    }
+    
+    async function apiRequest(path, data = {}) {
+      try {
+        const res = await fetch(`${API_BASE}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        return { success: true, data: json, status: res.status };
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    }
+    
+    // 测试连接
+    async function testConnection() {
+      const status = document.getElementById('conn-status');
+      const result = document.getElementById('conn-result');
+      status.className = 'status pending';
+      status.textContent = '测试中';
+      result.className = 'result';
+      result.innerHTML = '<span class="loading"></span> 正在测试...';
+      
+      log('开始测试 API 连接...');
+      const res = await apiRequest('/db-init', { action: 'ping' });
+      
+      if (res.success && res.data.code === 0) {
+        status.className = 'status success';
+        status.textContent = '成功';
+        result.className = 'result success';
+        result.innerHTML = `✅ 连接成功！\n\n${JSON.stringify(res.data, null, 2)}`;
+        log('API 连接测试成功', 'success');
+      } else {
+        status.className = 'status error';
+        status.textContent = '失败';
+        result.className = 'result error';
+        result.innerHTML = `❌ 连接失败\n\n${JSON.stringify(res, null, 2)}`;
+        log('API 连接测试失败: ' + (res.error || res.data?.message), 'error');
+      }
+    }
+    
+    // 测试热门课程
+    async function testGetHotCourses() {
+      const result = document.getElementById('courses-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log('测试热门课程 API...');
+      
+      const sourceId = document.getElementById('course-source').value;
+      const res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'courses',
+        query: { status: 'published', ...(sourceId ? { sourceId } : {}) },
+        orderBy: 'salesCount desc',
+        limit: 10
+      });
+      
+      if (res.success && res.data.data) {
+        STATS.courses = res.data.total || res.data.data.length;
+        document.getElementById('totalCourses').textContent = STATS.courses;
+        log(`热门课程加载成功: ${res.data.data.length} 条`, 'success');
+        
+        let html = `✅ 热门课程 (${res.data.data.length}条)\n\n`;
+        res.data.data.forEach((c, i) => {
+          html += `${i + 1}. ${c.title || c.name || '未命名'}\n`;
+          html += `   价格: ¥${c.price || 0} | 销量: ${c.salesCount || 0}\n`;
+          html += `   状态: ${c.status || '无'} | 体系: ${c.sourceId || '无'}\n\n`;
+        });
+        result.innerHTML = html;
+      } else {
+        log('热门课程加载失败', 'error');
+        result.innerHTML = '❌ 加载失败: ' + JSON.stringify(res);
+      }
+    }
+    
+    // 测试课程列表
+    async function testGetCourseList(limit = 10) {
+      const result = document.getElementById('courses-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log(`测试课程列表 API (limit=${limit})...`);
+      
+      const sourceId = document.getElementById('course-source').value;
+      
+      // 先尝试 published 状态
+      let res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'courses',
+        query: { status: 'published', ...(sourceId ? { sourceId } : {}) },
+        orderBy: 'createdAt desc',
+        limit
+      });
+      
+      // 如果没有 published，查询全部
+      if (!res.success || !res.data.data || res.data.data.length === 0) {
+        log('无 published 状态课程，尝试查询全部...');
+        res = await apiRequest('/db-init', {
+          action: 'getList',
+          collection: 'courses',
+          query: sourceId ? { sourceId } : {},
+          orderBy: 'createdAt desc',
+          limit
+        });
+      }
+      
+      if (res.success && res.data.data) {
+        const courses = res.data.data;
+        STATS.courses = res.data.total || courses.length;
+        STATS.published = courses.filter(c => c.status === 'published').length;
+        
+        document.getElementById('totalCourses').textContent = STATS.courses;
+        document.getElementById('publishedCourses').textContent = STATS.published;
+        log(`课程列表加载成功: ${courses.length} 条`, 'success');
+        
+        let html = `📚 课程列表 (${courses.length}条 / 总计${STATS.courses}条)\n`;
+        html += `已发布: ${STATS.published} 条\n\n`;
+        
+        courses.slice(0, 20).forEach((c, i) => {
+          const badge = c.status === 'published' ? '✅' : '📝';
+          html += `${badge} ${i + 1}. ${c.title || c.name || '未命名'}\n`;
+          html += `   ¥${c.price || 0} | 销量:${c.salesCount || 0} | ${c.status || '无状态'}\n`;
+        });
+        
+        if (courses.length > 20) html += `\n... 还有 ${courses.length - 20} 条`;
+        result.innerHTML = html;
+      } else {
+        log('课程列表加载失败', 'error');
+        result.innerHTML = '❌ 加载失败';
+      }
+    }
+    
+    // 测试体系
+    async function testGetSources() {
+      const result = document.getElementById('categories-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log('测试体系 API...');
+      
+      const res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'sources',
+        query: { status: 'active' },
+        orderBy: 'sortOrder asc'
+      });
+      
+      if (res.success && res.data.data) {
+        STATS.sources = res.data.data.length;
+        document.getElementById('totalSources').textContent = STATS.sources;
+        log(`体系加载成功: ${res.data.data.length} 条`, 'success');
+        
+        let html = `🏛️ 体系配置 (${res.data.data.length}条)\n\n`;
+        res.data.data.forEach(s => {
+          html += `• ${s.name} (${s.code}) ${s.icon || ''}\n`;
+        });
+        result.innerHTML = html;
+      } else {
+        log('体系加载失败', 'error');
+        result.innerHTML = '❌ 加载失败';
+      }
+    }
+    
+    // 测试分类
+    async function testGetCategories() {
+      const result = document.getElementById('categories-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log('测试分类 API...');
+      
+      const res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'categories',
+        orderBy: 'sort asc'
+      });
+      
+      if (res.success && res.data.data) {
+        STATS.categories = res.data.data.length;
+        document.getElementById('totalCategories').textContent = STATS.categories;
+        log(`分类加载成功: ${res.data.data.length} 条`, 'success');
+        
+        let html = `📂 分类配置 (${res.data.data.length}条)\n\n`;
+        res.data.data.forEach(c => {
+          html += `• ${c.name} (排序:${c.sort || 0}) 体系:${c.sourceId || '全部'}\n`;
+        });
+        result.innerHTML = html;
+      } else {
+        log('分类加载失败', 'error');
+        result.innerHTML = '❌ 加载失败';
+      }
+    }
+    
+    // 测试等级
+    async function testGetLevels() {
+      const result = document.getElementById('categories-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log('测试等级 API...');
+      
+      const res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'levels',
+        query: { status: 'active' },
+        orderBy: 'sortOrder asc'
+      });
+      
+      if (res.success && res.data.data) {
+        log(`等级加载成功: ${res.data.data.length} 条`, 'success');
+        
+        let html = `⭐ 等级配置 (${res.data.data.length}条)\n\n`;
+        res.data.data.forEach(l => {
+          html += `• ${l.name} (${l.code}) 体系:${l.sourceCode || '全部'}\n`;
+        });
+        result.innerHTML = html;
+      } else {
+        log('等级加载失败', 'error');
+        result.innerHTML = '❌ 加载失败';
+      }
+    }
+    
+    // 测试字典配置
+    async function testGetDictionaries() {
+      const result = document.getElementById('categories-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log('测试字典配置 API...');
+      
+      const res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'systemConfig',
+        query: { type: 'dictionaries' }
+      });
+      
+      if (res.success && res.data.data && res.data.data.length > 0) {
+        const dict = res.data.data[0];
+        log(`字典配置加载成功`, 'success');
+        
+        let html = `⚙️ 字典配置\n\n`;
+        const dictionaries = dict.dictionaries || {};
+        
+        if (dictionaries.homePage) {
+          html += `首页配置:\n`;
+          html += `  热门课程数量: ${dictionaries.homePage.hotCourseCount || 6}\n`;
+          html += `  培训班数量: ${dictionaries.homePage.enrollingClassCount || 6}\n`;
+          html += `  商品数量: ${dictionaries.homePage.productCount || 6}\n\n`;
+        }
+        
+        if (dictionaries.learningPathCategories) {
+          html += `学习路径分类:\n`;
+          Object.keys(dictionaries.learningPathCategories).forEach(source => {
+            const cats = dictionaries.learningPathCategories[source];
+            html += `  ${source}:\n`;
+            Object.keys(cats).forEach(cat => {
+              html += `    - ${cat}: [${cats[cat].join(', ')}]\n`;
+            });
+          });
+        }
+        
+        result.innerHTML = html;
+      } else {
+        log('字典配置加载失败或为空', 'error');
+        result.innerHTML = '❌ 加载失败或无数据';
+      }
+    }
+    
+    // 测试轮播图
+    async function testGetBanners() {
+      const result = document.getElementById('banners-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log('测试轮播图 API...');
+      
+      const res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'banners',
+        query: { status: 'active' },
+        orderBy: 'order asc',
+        limit: 20
+      });
+      
+      if (res.success && res.data.data) {
+        STATS.banners = res.data.data.length;
+        document.getElementById('totalBanners').textContent = STATS.banners;
+        log(`轮播图加载成功: ${res.data.data.length} 条`, 'success');
+        
+        let html = `🎠 轮播图 (${res.data.data.length}条)\n\n`;
+        res.data.data.forEach((b, i) => {
+          html += `${i + 1}. ${b.title || '无标题'}\n`;
+          html += `   图片: ${b.image || b.imageUrl || '无'}\n`;
+          html += `   链接: ${b.link || b.url || '无'}\n`;
+        });
+        result.innerHTML = html;
+      } else {
+        log('轮播图加载失败', 'error');
+        result.innerHTML = '❌ 加载失败';
+      }
+    }
+    
+    // 测试培训班
+    async function testGetClasses(limit = 10) {
+      const result = document.getElementById('classes-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log(`测试培训班 API (limit=${limit})...`);
+      
+      const status = document.getElementById('class-status').value;
+      const query = status ? { status } : {};
+      
+      const res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'classes',
+        query,
+        orderBy: 'startDate desc',
+        limit
+      });
+      
+      if (res.success && res.data.data) {
+        const classes = res.data.data;
+        log(`培训班加载成功: ${classes.length} 条`, 'success');
+        
+        let html = `🏫 培训班 (${classes.length}条)\n\n`;
+        classes.forEach((c, i) => {
+          html += `${i + 1}. ${c.name || '未命名'}\n`;
+          html += `   状态: ${c.status || '无'} | 等级: ${c.level || '无'}\n`;
+          html += `   开始: ${c.startDate || '无'} | 价格: ¥${c.price || 0}\n`;
+        });
+        result.innerHTML = html;
+      } else {
+        log('培训班加载失败', 'error');
+        result.innerHTML = '❌ 加载失败';
+      }
+    }
+    
+    // 测试订单
+    async function testGetOrders() {
+      const result = document.getElementById('orders-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log('测试订单 API...');
+      
+      const res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'orders',
+        orderBy: 'createdAt desc',
+        limit: 10
+      });
+      
+      if (res.success && res.data.data) {
+        log(`订单加载成功: ${res.data.data.length} 条`, 'success');
+        
+        let html = `📦 订单 (${res.data.data.length}条)\n\n`;
+        res.data.data.forEach((o, i) => {
+          html += `${i + 1}. ${o.orderNo || o._id}\n`;
+          html += `   状态: ${o.status || '无'} | 金额: ¥${o.totalPrice || o.finalAmount || 0}\n`;
+        });
+        result.innerHTML = html;
+      } else {
+        log('订单加载失败', 'error');
+        result.innerHTML = '❌ 加载失败';
+      }
+    }
+    
+    // 测试权限
+    async function testGetPermissions() {
+      const result = document.getElementById('orders-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log('测试权限 API...');
+      
+      const res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'course_permissions',
+        limit: 20
+      });
+      
+      if (res.success && res.data.data) {
+        log(`权限加载成功: ${res.data.data.length} 条`, 'success');
+        
+        let html = `🔐 课程权限 (${res.data.data.length}条)\n\n`;
+        res.data.data.forEach((p, i) => {
+          html += `${i + 1}. 课程:${p.courseId || '无'} 手机:${p.phone || '无'}\n`;
+        });
+        result.innerHTML = html;
+      } else {
+        log('权限加载失败', 'error');
+        result.innerHTML = '❌ 加载失败';
+      }
+    }
+    
+    // 测试学习进度
+    async function testGetProgress() {
+      const result = document.getElementById('orders-result');
+      result.innerHTML = '<span class="loading"></span> 加载中...';
+      log('测试学习进度 API...');
+      
+      const res = await apiRequest('/db-init', {
+        action: 'getList',
+        collection: 'user_progress',
+        limit: 20
+      });
+      
+      if (res.success && res.data.data) {
+        log(`学习进度加载成功: ${res.data.data.length} 条`, 'success');
+        
+        let html = `📈 学习进度 (${res.data.data.length}条)\n\n`;
+        res.data.data.forEach((p, i) => {
+          html += `${i + 1}. 课程:${p.courseId} 完成:${p.completed ? '✅' : '❌'}\n`;
+        });
+        result.innerHTML = html;
+      } else {
+        log('学习进度加载失败', 'error');
+        result.innerHTML = '❌ 加载失败';
+      }
+    }
+    
+    // 运行全部测试
+    async function runAllTests() {
+      log('========== 开始全面测试 ==========', 'info');
+      
+      await testConnection();
+      await new Promise(r => setTimeout(r, 300));
+      await testGetSources();
+      await new Promise(r => setTimeout(r, 300));
+      await testGetCategories();
+      await new Promise(r => setTimeout(r, 300));
+      await testGetCourseList(20);
+      await new Promise(r => setTimeout(r, 300));
+      await testGetBanners();
+      await new Promise(r => setTimeout(r, 300));
+      await testGetClasses(10);
+      
+      log('========== 测试完成 ==========', 'success');
+      
+      // 显示总结
+      const summary = document.getElementById('summary');
+      summary.innerHTML = `
+        <div class="summary-item">
+          <div class="summary-value">${STATS.courses}</div>
+          <div class="summary-label">课程总数</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value">${STATS.published}</div>
+          <div class="summary-label">已发布</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value">${STATS.categories}</div>
+          <div class="summary-label">分类总数</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value">${STATS.sources}</div>
+          <div class="summary-label">体系总数</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value">${STATS.banners}</div>
+          <div class="summary-label">轮播图</div>
+        </div>
+      `;
+    }
+    
+    // 页面加载时自动测试
+    window.onload = function() {
+      log('页面加载完成，准备测试...', 'info');
+      setTimeout(runAllTests, 500);
+    };
+  </script>
+</body>
+</html>

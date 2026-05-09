@@ -8,7 +8,7 @@ import { useConfirm } from '@/admin/hooks/useConfirm';
 import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { classService } from '@/services';
-import { courseService, teacherService } from '@/services/database';
+import { adminApi } from '@/services/adminApiService';
 import type { ClassV2 as Class, Course, Teacher } from '@/types';
 import { CloudAdminService } from '@/services/CloudAdminService';
 import {
@@ -143,9 +143,8 @@ export default function AdminClasses() {
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
-  // 筛选状态
+  // 筛选状态（移除课程筛选）
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterCourse, setFilterCourse] = useState('');
   const [filterSource, setFilterSource] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
 
@@ -215,7 +214,6 @@ export default function AdminClasses() {
     try {
       const query: Record<string, unknown> = {};
       if (filterStatus) query.status = filterStatus;
-      if (filterCourse) query.courseId = filterCourse;
       if (searchKeyword) query.keyword = searchKeyword;
 
       const result = await classService.getList({
@@ -240,16 +238,13 @@ export default function AdminClasses() {
   // 加载关联数据
   const loadRelatedData = async () => {
     try {
-      const [coursesResult, teachersResult] = await Promise.all([
-        courseService.getList({ page: 1, pageSize: 100 }),
-        teacherService.getList({ page: 1, pageSize: 100 })
-      ]);
-
-      // 调试日志
-
-      // 直接访问 list 字段,确保是数组
-      setCourses(Array.isArray(coursesResult?.list) ? coursesResult.list : []);
-      setTeachers(Array.isArray(teachersResult?.list) ? teachersResult.list : []);
+      // 使用 adminApi 获取课程列表
+      const coursesResult = await adminApi.listCourses({}, { limit: 100 });
+      setCourses(coursesResult.data);
+      
+      // 使用 adminApi 获取教师列表
+      const teachersResult = await adminApi.listTeachers({ status: 'active' }, { limit: 100 });
+      setTeachers(teachersResult.data || []);
     } catch (error) {
       console.error('加载关联数据失败:', error);
       // 出错时设置为空数组
@@ -261,7 +256,7 @@ export default function AdminClasses() {
   useEffect(() => {
     loadClasses();
     loadRelatedData();
-  }, [page, filterStatus, filterCourse]);
+  }, [page, filterStatus]);
 
   // ★ 加载班级学员来源统计
   const loadClassMemberStats = async (classId: string) => {
@@ -664,17 +659,6 @@ export default function AdminClasses() {
             <option value="">全部体系</option>
             <option value="e35392d069fc521f0152e2c14dbb4a18">人社培训</option>
             <option value="e35392d069fc521f0152e2c2537e32ad">CAAC培训</option>
-          </select>
-
-          <select
-            value={filterCourse}
-            onChange={(e) => setFilterCourse(e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value="">全部课程</option>
-            {(courses || []).map(course => (
-              <option key={course._id} value={course._id}>{course.title}</option>
-            ))}
           </select>
 
           <div className="flex gap-2">

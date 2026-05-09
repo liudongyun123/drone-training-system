@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Award, Plus, Edit, Trash2, X, Check, AlertCircle, Filter } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
-import { cloudbaseApp } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 
 interface Level {
   _id?: string;
@@ -38,26 +38,28 @@ export default function AdminLevels() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const db = cloudbaseApp.database();
+      console.log('[AdminLevels] 开始加载数据...');
       
-      // 加载体系列表
-      const sourcesResult = await db.collection('sources')
-        .where({ status: 'active' })
-        .orderBy('sortOrder', 'asc')
-        .get();
+      // 测试直接 HTTP 请求
+      const testResponse = await fetch('https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com/db-init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'query',
+          collection: 'levels',
+          query: {},
+          limit: 100
+        })
+      });
+      const testData = await testResponse.json();
+      console.log('[AdminLevels] 直接 HTTP 请求结果:', testData);
       
-      if (sourcesResult.data && sourcesResult.data.length > 0) {
-        setSources(sourcesResult.data);
-      }
+      // 使用 adminService
+      const levelsResult = await adminService.list('levels', {}, { limit: 100 });
+      console.log('[AdminLevels] adminService 结果:', levelsResult);
       
-      // 加载等级列表
-      const levelsResult = await db.collection('levels')
-        .orderBy('sourceCode', 'asc')
-        .orderBy('sortOrder', 'asc')
-        .get();
-      
-      if (levelsResult.data && levelsResult.data.length > 0) {
-        setLevels(levelsResult.data);
+      if (levelsResult.data?.list) {
+        setLevels(levelsResult.data.list);
       }
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -91,7 +93,6 @@ export default function AdminLevels() {
 
     setSaving(true);
     try {
-      const db = cloudbaseApp.database();
       const source = sources.find(s => s.code === editForm.sourceCode);
       
       const levelData = {
@@ -102,14 +103,13 @@ export default function AdminLevels() {
         description: editForm.description || '',
         sortOrder: editForm.sortOrder || 1,
         status: editForm.status || 'active',
-        updatedAt: new Date().toISOString()
       };
 
       if (editingId === 'new') {
         levelData.createdAt = new Date().toISOString();
-        await db.collection('levels').add({ data: levelData });
+        await adminService.add('levels', levelData);
       } else if (editingId) {
-        await db.collection('levels').doc(editingId).update({ data: levelData });
+        await adminService.update('levels', editingId, { ...levelData, updatedAt: new Date().toISOString() });
       }
       
       await loadData();
@@ -117,7 +117,7 @@ export default function AdminLevels() {
       setEditForm({});
     } catch (error) {
       console.error('保存失败:', error);
-      alert('保存失败');
+      alert('保存失败: ' + (error as Error).message);
     } finally {
       setSaving(false);
     }
@@ -133,8 +133,7 @@ export default function AdminLevels() {
     if (!ok) return;
 
     try {
-      const db = cloudbaseApp.database();
-      await db.collection('levels').doc(id).remove();
+      await adminService.delete('levels', id);
       setLevels(levels.filter(l => l._id !== id));
     } catch (error) {
       console.error('删除失败:', error);

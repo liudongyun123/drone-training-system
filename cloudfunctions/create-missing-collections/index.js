@@ -72,6 +72,15 @@ exports.main = async (event, context) => {
     newEnrollments: 0,
   }))
 
+  // 3. question_banks - 题库管理
+  results.push(await createCollection('question_banks', {
+    name: '默认题库',
+    description: '系统默认题库',
+    category: '理论考试',
+    status: 'active',
+    questionCount: 0,
+  }))
+
   console.log('\n创建完成！')
   console.log(`成功: ${results.filter(r => r.success).length}`)
   console.log(`失败: ${results.filter(r => !r.success).length}`)

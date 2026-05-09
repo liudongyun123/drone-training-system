@@ -6,6 +6,7 @@ import CourseList from './components/CourseList';
 import CourseForm from './components/CourseForm';
 import LessonManager from './components/LessonManager';
 import CourseStats from './components/CourseStats';
+import { Select } from '@/components/Select';
 
 export default function AdminCourses() {
   const hook = useCourses();
@@ -19,6 +20,9 @@ export default function AdminCourses() {
         total={hook.total}
         page={hook.page}
         categories={hook.categories}
+        sources={hook.sources}
+        selectedSource={hook.selectedSource}
+        onSourceChange={hook.setSelectedSource}
         onSearch={hook.loadCourses}
         onPageChange={hook.setPage}
         onAdd={hook.handleAdd}

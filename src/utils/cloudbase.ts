@@ -199,12 +199,22 @@ export const app = {
     }
     return cloudbaseApp.database();
   },
-  callFunction: async (name: string, data?: any) => {
+  callFunction: async (nameOrOptions: string | { name?: string; data?: any }, data?: any) => {
     await ensureInit();
     if (!cloudbaseApp?.callFunction) {
       throw new Error('callFunction 不可用');
     }
-    return cloudbaseApp.callFunction({ name, data });
+    // 兼容两种调用方式：callFunction(name, data) 和 callFunction({ name, data })
+    let name: string;
+    let payload: any;
+    if (typeof nameOrOptions === 'object') {
+      name = nameOrOptions.name;
+      payload = nameOrOptions.data;
+    } else {
+      name = nameOrOptions;
+      payload = data;
+    }
+    return cloudbaseApp.callFunction({ name, data: payload });
   }
 };
 

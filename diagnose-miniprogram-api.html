@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小程序 API 诊断</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { color: #333; margin-bottom: 20px; text-align: center; }
+    .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .status { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .status-dot.success { background: #52c41a; }
+    .status-dot.error { background: #ff4d4f; }
+    .status-dot.warning { background: #faad14; }
+    .status-dot.pending { background: #1890ff; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .title { font-size: 16px; font-weight: 600; color: #333; }
+    .result { background: #f7f7f7; border-radius: 8px; padding: 15px; margin-top: 10px; font-family: monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; }
+    .btn { background: #1890ff; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-right: 10px; margin-bottom: 10px; }
+    .btn:hover { background: #40a9ff; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-success { background: #52c41a; }
+    .btn-danger { background: #ff4d4f; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+    .stat-card { background: #f7f7f7; padding: 15px; border-radius: 8px; text-align: center; }
+    .stat-value { font-size: 28px; font-weight: 700; color: #1890ff; }
+    .stat-label { font-size: 13px; color: #666; margin-top: 5px; }
+    .error { color: #ff4d4f; }
+    .success { color: #52c41a; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+    th { background: #fafafa; font-weight: 600; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .badge-published { background: #f6ffed; color: #52c41a; }
+    .badge-draft { background: #fff7e6; color: #fa8c16; }
+    .badge-unknown { background: #f5f5f5; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛠️ 小程序 API 诊断工具</h1>
+    
+    <!-- API 连接测试 -->
+    <div class="card">
+      <div class="title">1. API 连接测试</div>
+      <div id="connection-status" class="status">
+        <span class="status-dot pending"></span>
+        <span>正在测试连接...</span>
+      </div>
+      <button class="btn" onclick="testConnection()">重新测试</button>
+      <div id="connection-result" class="result" style="display:none;"></div>
+    </div>
+    
+    <!-- 数据库统计 -->
+    <div class="card">
+      <div class="title">2. 数据库统计</div>
+      <div id="stats-status" class="status">
+        <span class="status-dot pending"></span>
+        <span>正在加载...</span>
+      </div>
+      <div id="stats-grid" class="grid" style="display:none;"></div>
+      <button class="btn" onclick="loadStats()">刷新统计</button>
+    </div>
+    
+    <!-- 课程数据 -->
+    <div class="card">
+      <div class="title">3. 课程数据预览</div>
+      <div id="courses-status" class="status">
+        <span class="status-dot pending"></span>
+        <span>正在加载课程...</span>
+      </div>
+      <div id="courses-table" style="display:none;"></div>
+      <button class="btn" onclick="loadCourses()">刷新课程</button>
+    </div>
+    
+    <!-- 一键修复 -->
+    <div class="card">
+      <div class="title">4. 数据修复工具</div>
+      <p style="color: #666; margin-bottom: 15px; font-size: 14px;">
+        如果课程没有显示，可能是缺少必要字段。点击下方按钮批量修复：
+      </p>
+      <button class="btn btn-success" onclick="fixCourses()">批量修复课程数据</button>
+      <button class="btn" onclick="fixCategories()">修复分类数据</button>
+      <button class="btn" onclick="fixSources()">修复体系数据</button>
+      <div id="fix-result" class="result" style="display:none;"></div>
+    </div>
+    
+    <!-- 日志 -->
+    <div class="card">
+      <div class="title">5. 操作日志</div>
+      <div id="logs" class="result" style="max-height: 200px;"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com';
+    
+    function log(msg, type = 'info') {
+      const logs = document.getElementById('logs');
+      const time = new Date().toLocaleTimeString();
+      const color = type === 'error' ? 'color:red;' : type === 'success' ? 'color:#52c41a;' : '';
+      logs.innerHTML += `<span style="${color}">[${time}] ${msg}</span>\n`;
+      logs.scrollTop = logs.scrollHeight;
+    }
+    
+    async function apiRequest(path, data = {}) {
+      try {
+        const res = await fetch(`${API_BASE}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) {
+        throw new Error(`请求失败: ${e.message}`);
+      }
+    }
+    
+    // 测试连接
+    async function testConnection() {
+      const status = document.getElementById('connection-status');
+      const result = document.getElementById('connection-result');
+      status.innerHTML = '<span class="status-dot pending"></span><span>正在测试...</span>';
+      result.style.display = 'none';
+      
+      try {
+        const res = await apiRequest('/db-init', { action: 'ping' });
+        status.innerHTML = '<span class="status-dot success"></span><span>连接成功!</span>';
+        result.style.display = 'block';
+        result.innerHTML = JSON.stringify(res, null, 2);
+        log('API 连接测试成功', 'success');
+      } catch (e) {
+        status.innerHTML = `<span class="status-dot error"></span><span>连接失败</span>`;
+        result.style.display = 'block';
+        result.innerHTML = `<span class="error">${e.message}</span>\n\n可能的原因：\n1. 云函数未部署或 HTTP 触发器未配置\n2. 网络问题\n3. 域名未添加到安全域名列表`;
+        log('API 连接测试失败: ' + e.message, 'error');
+      }
+    }
+    
+    // 加载统计
+    async function loadStats() {
+      const status = document.getElementById('stats-status');
+      const grid = document.getElementById('stats-grid');
+      
+      try {
+        const [coursesRes, categoriesRes, sourcesRes, levelsRes] = await Promise.all([
+          apiRequest('/db-init', { action: 'count', collection: 'courses' }),
+          apiRequest('/db-init', { action: 'count', collection: 'categories' }),
+          apiRequest('/db-init', { action: 'count', collection: 'sources' }),
+          apiRequest('/db-init', { action: 'count', collection: 'levels' })
+        ]);
+        
+        grid.innerHTML = `
+          <div class="stat-card">
+            <div class="stat-value">${coursesRes.total || 0}</div>
+            <div class="stat-label">课程数量</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${categoriesRes.total || 0}</div>
+            <div class="stat-label">分类数量</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${sourcesRes.total || 0}</div>
+            <div class="stat-label">体系数量</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${levelsRes.total || 0}</div>
+            <div class="stat-label">等级数量</div>
+          </div>
+        `;
+        grid.style.display = 'grid';
+        status.innerHTML = '<span class="status-dot success"></span><span>加载完成</span>';
+        log(`统计数据加载成功: 课程${coursesRes.total}个, 分类${categoriesRes.total}个`);
+      } catch (e) {
+        status.innerHTML = '<span class="status-dot error"></span><span>加载失败</span>';
+        log('统计数据加载失败: ' + e.message, 'error');
+      }
+    }
+    
+    // 加载课程
+    async function loadCourses() {
+      const status = document.getElementById('courses-status');
+      const table = document.getElementById('courses-table');
+      
+      try {
+        // 先尝试查询 published 状态的课程
+        let res = await apiRequest('/db-init', { 
+          action: 'getList', 
+          collection: 'courses', 
+          query: { status: 'published' },
+          limit: 10
+        });
+        
+        // 如果没有 published 课程，查询所有课程
+        if (!res.data || res.data.length === 0) {
+          res = await apiRequest('/db-init', { 
+            action: 'getList', 
+            collection: 'courses', 
+            limit: 10
+          });
+        }
+        
+        if (res.data && res.data.length > 0) {
+          let html = `<table>
+            <tr>
+              <th>名称</th>
+              <th>状态</th>
+              <th>销量</th>
+              <th>价格</th>
+              <th>体系</th>
+            </tr>`;
+          
+          res.data.forEach(c => {
+            const badgeClass = c.status === 'published' ? 'badge-published' : 
+                              c.status === 'draft' ? 'badge-draft' : 'badge-unknown';
+            html += `<tr>
+              <td>${c.title || c.name || '未命名'}</td>
+              <td><span class="badge ${badgeClass}">${c.status || '无'}</span></td>
+              <td>${c.salesCount || c.sales || 0}</td>
+              <td>¥${c.price || 0}</td>
+              <td>${c.sourceId || '无'}</td>
+            </tr>`;
+          });
+          
+          html += '</table>';
+          table.innerHTML = html;
+          table.style.display = 'block';
+          status.innerHTML = `<span class="status-dot success"></span><span>找到 ${res.data.length} 个课程</span>`;
+          log(`加载了 ${res.data.length} 个课程`);
+        } else {
+          table.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">暂无课程数据</p>';
+          table.style.display = 'block';
+          status.innerHTML = '<span class="status-dot warning"></span><span>没有找到课程</span>';
+          log('没有找到课程数据', 'warning');
+        }
+      } catch (e) {
+        status.innerHTML = '<span class="status-dot error"></span><span>加载失败</span>';
+        log('课程加载失败: ' + e.message, 'error');
+      }
+    }
+    
+    // 修复课程数据
+    async function fixCourses() {
+      const result = document.getElementById('fix-result');
+      result.style.display = 'block';
+      result.innerHTML = '正在修复...';
+      
+      try {
+        // 获取所有课程
+        const res = await apiRequest('/db-init', { 
+          action: 'getList', 
+          collection: 'courses', 
+          limit: 100 
+        });
+        
+        if (!res.data || res.data.length === 0) {
+          result.innerHTML = '没有找到课程数据，无法修复';
+          log('修复失败: 没有课程数据', 'error');
+          return;
+        }
+        
+        let fixed = 0;
+        for (const course of res.data) {
+          try {
+            await apiRequest('/db-init', {
+              action: 'update',
+              collection: 'courses',
+              id: course._id,
+              data: {
+                status: course.status || 'published',
+                salesCount: course.salesCount || course.sales || 0,
+                sourceId: course.sourceId || 'RENSHE'
+              }
+            });
+            fixed++;
+          } catch (e) {
+            console.error('修复课程失败:', course._id, e);
+          }
+        }
+        
+        result.innerHTML = `✅ 修复完成！共修复 ${fixed}/${res.data.length} 个课程`;
+        log(`课程修复完成: ${fixed}/${res.data.length}`, 'success');
+        
+        // 刷新课程列表
+        setTimeout(loadCourses, 500);
+      } catch (e) {
+        result.innerHTML = `<span class="error">修复失败: ${e.message}</span>`;
+        log('课程修复失败: ' + e.message, 'error');
+      }
+    }
+    
+    // 修复分类数据
+    async function fixCategories() {
+      const result = document.getElementById('fix-result');
+      result.style.display = 'block';
+      result.innerHTML = '正在创建默认分类...';
+      
+      try {
+        // 检查是否已有分类
+        const res = await apiRequest('/db-init', { 
+          action: 'count', 
+          collection: 'categories' 
+        });
+        
+        if (res.total > 0) {
+          result.innerHTML = `已有 ${res.total} 个分类，无需创建`;
+          log(`分类已有 ${res.total} 个`);
+          return;
+        }
+        
+        // 创建默认分类
+        const defaultCategories = [
+          { name: '入门课程', sort: 1, sourceId: 'RENSHE', status: 'active' },
+          { name: '基础课程', sort: 2, sourceId: 'RENSHE', status: 'active' },
+          { name: '进阶课程', sort: 3, sourceId: 'RENSHE', status: 'active' },
+          { name: '高级课程', sort: 4, sourceId: 'RENSHE', status: 'active' },
+          { name: '考证课程', sort: 5, sourceId: 'RENSHE', status: 'active' },
+          { name: 'CAAC基础', sort: 1, status: 'active' },
+          { name: 'CAAC进阶', sort: 2, status: 'active' },
+          { name: 'CAAC高级', sort: 3, status: 'active' }
+        ];
+        
+        for (const cat of defaultCategories) {
+          await apiRequest('/db-init', {
+            action: 'add',
+            collection: 'categories',
+            data: cat
+          });
+        }
+        
+        result.innerHTML = `✅ 默认分类创建完成！共 ${defaultCategories.length} 个`;
+        log(`创建了 ${defaultCategories.length} 个分类`, 'success');
+        setTimeout(loadStats, 500);
+      } catch (e) {
+        result.innerHTML = `<span class="error">修复失败: ${e.message}</span>`;
+        log('分类修复失败: ' + e.message, 'error');
+      }
+    }
+    
+    // 修复体系数据
+    async function fixSources() {
+      const result = document.getElementById('fix-result');
+      result.style.display = 'block';
+      result.innerHTML = '正在创建体系配置...';
+      
+      try {
+        // 检查是否已有体系
+        const res = await apiRequest('/db-init', { 
+          action: 'count', 
+          collection: 'sources' 
+        });
+        
+        if (res.total > 0) {
+          result.innerHTML = `已有 ${res.total} 个体系配置`;
+          log(`体系已有 ${res.total} 个`);
+          return;
+        }
+        
+        // 创建默认体系
+        const defaultSources = [
+          { code: 'RENSHE', name: '人社培训', icon: '🏛️', sortOrder: 1, status: 'active' },
+          { code: 'CAAC', name: 'CAAC培训', icon: '✈️', sortOrder: 2, status: 'active' }
+        ];
+        
+        for (const src of defaultSources) {
+          await apiRequest('/db-init', {
+            action: 'add',
+            collection: 'sources',
+            data: src
+          });
+        }
+        
+        result.innerHTML = `✅ 体系配置创建完成！共 ${defaultSources.length} 个`;
+        log(`创建了 ${defaultSources.length} 个体系`, 'success');
+        setTimeout(loadStats, 500);
+      } catch (e) {
+        result.innerHTML = `<span class="error">修复失败: ${e.message}</span>`;
+        log('体系修复失败: ' + e.message, 'error');
+      }
+    }
+    
+    // 页面加载时自动测试
+    window.onload = function() {
+      testConnection();
+      loadStats();
+      loadCourses();
+    };
+  </script>
+</body>
+</html>
