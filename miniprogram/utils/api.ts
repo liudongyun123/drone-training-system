@@ -152,7 +152,35 @@ export const systemConfigApi = {
     if (!sourceId) return levelCache
     // 根据体系代码筛选
     return levelCache.filter(l => l.sourceCode === sourceId || !l.sourceCode)
+  },
+
+
+  async getPageConfig(section: string) {
+    try {
+      const result = await dbGetList('page_configs', { where: { section } })
+      return result.data && result.data.length > 0 ? result.data[0] : null
+    } catch (error) {
+      console.error('getPageConfig failed:', error)
+      return null
+    }
+  },
+
+  async getLearningPathConfig(sourceId?: string) {
+    try {
+      const pageConfig = await this.getPageConfig('learningPaths')
+      if (pageConfig && pageConfig.data && pageConfig.data.items) {
+        let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
+        items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+        if (sourceId) items = items.filter((item: any) => item.sourceId === sourceId)
+        return items
+      }
+      return this.getCategories(sourceId)
+    } catch (error) {
+      console.error('getLearningPathConfig failed:', error)
+      return []
+    }
   }
+
 }
 
 /**
