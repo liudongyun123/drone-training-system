@@ -167,14 +167,24 @@ export const systemConfigApi = {
 
   async getLearningPathConfig(sourceId?: string) {
     try {
+      console.log('[API] getLearningPathConfig called, sourceId:', sourceId)
       const pageConfig = await this.getPageConfig('learningPaths')
-      if (pageConfig && pageConfig.data && pageConfig.data.items) {
+      console.log('[API] pageConfig:', pageConfig ? 'found' : 'not found')
+      if (pageConfig && pageConfig.data && pageConfig.data.items && pageConfig.data.items.length > 0) {
+        console.log('[API] pageConfig items count:', pageConfig.data.items.length)
         let items = pageConfig.data.items.filter((item: any) => item.visible !== false)
         items.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-        if (sourceId) items = items.filter((item: any) => item.sourceId === sourceId)
+        if (sourceId) {
+          const filtered = items.filter((item: any) => item.sourceId === sourceId)
+          console.log('[API] filtered by sourceId, count:', filtered.length)
+          if (filtered.length > 0) items = filtered
+        }
         return items
       }
-      return this.getCategories(sourceId)
+      console.log('[API] falling back to getCategories')
+      const cats = await this.getCategories(sourceId)
+      console.log('[API] categories count:', cats.length)
+      return cats
     } catch (error) {
       console.error('getLearningPathConfig failed:', error)
       return []
