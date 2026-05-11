@@ -25,6 +25,7 @@ import {
 import { Button, Loading, Empty } from '@/components'
 import { CloudMessageService, Message, MessageType } from '@/services/CloudMessageService'
 import { useAuthStore } from '@/store/authStore'
+import { getUserPhone } from '@/utils/userQuery'
 
 // 消息类型配置
 const MESSAGE_TYPES: { key: MessageType | 'all'; label: string; icon: any; color: string }[] = [
@@ -65,16 +66,16 @@ export default function MessagesPage() {
   
   const navigate = useNavigate()
   const { user, isLoggedIn } = useAuthStore()
-  // 从 user 对象或 localStorage 获取 phone
-  const phone = user?.phone || localStorage.getItem('user_phone')
 
   // 加载消息
   const loadMessages = useCallback(async () => {
-    console.log('[Messages] loadMessages 调用, isLoggedIn:', isLoggedIn, 'user:', user, 'phone:', phone)
+    // ★ 统一使用 phone 作为用户标识
+    const phone = getUserPhone();
+    console.log('[Messages] loadMessages 调用, isLoggedIn:', isLoggedIn, 'phone:', phone)
     
     // 未登录用户：只显示系统公告
-    if (!isLoggedIn) {
-      console.log('[Messages] 用户未登录，只加载系统公告')
+    if (!isLoggedIn || !phone) {
+      console.log('[Messages] 用户未登录/无手机号，只加载系统公告')
       try {
         setLoading(true)
         const result = await CloudMessageService.getMessages({
@@ -96,17 +97,12 @@ export default function MessagesPage() {
     try {
       setLoading(true)
       
-      // 获取用户标识
-      const userId = user?.id
-      const _openid = user?._openid
-      const currentPhone = user?.phone || localStorage.getItem('user_phone')
-      console.log('[Messages] 查询参数:', { userId, _openid, phone: currentPhone })
+      // ★ 统一使用 phone 查询
+      console.log('[Messages] 查询参数: phone:', phone)
       
-      // 查询消息 - 使用重新获取的 phone
+      // 查询消息
       const result = await CloudMessageService.getMessages({
-        userId,
-        phone: currentPhone,
-        _openid,
+        phone,
         type: selectedType === 'all' ? undefined : selectedType,
         page: 1,
         pageSize: 50
@@ -118,9 +114,7 @@ export default function MessagesPage() {
       
       // 获取未读数
       const unread = await CloudMessageService.getUnreadCount({
-        userId,
-        phone,
-        _openid
+        phone
       })
       setUnreadCount(unread)
     } catch (error) {
@@ -158,12 +152,11 @@ export default function MessagesPage() {
   // 全部标为已读
   const handleMarkAllRead = async () => {
     if (markingRead) return
+    const phone = getUserPhone();
     try {
       setMarkingRead(true)
       await CloudMessageService.markAllAsRead({
-        userId: user?.id,
-        phone,
-        _openid: user?._openid
+        phone
       })
       setMessages(prev => prev.map(m => ({ ...m, status: 'read' as const })))
       setUnreadCount(0)

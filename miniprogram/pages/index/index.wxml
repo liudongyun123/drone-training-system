@@ -93,23 +93,17 @@
   <!-- 内容区域 -->
   <scroll-view wx:else class="content" scroll-y enable-back-to-top>
     
-    <!-- ==================== 体系切换 Tab ==================== -->
+    <!-- ==================== 体系切换 Tab（动态渲染） ==================== -->
     <view class="source-tabs">
       <view 
-        class="source-tab {{currentSource === 'RENSHE' ? 'active' : ''}}"
+        class="source-tab {{currentSource === item.key ? 'active' : ''}}"
+        wx:for="{{sourceList}}"
+        wx:key="key"
         bindtap="switchSource"
-        data-source="RENSHE"
+        data-source="{{item.key}}"
       >
-        <text class="source-icon">🏛️</text>
-        <text class="source-name">人社培训</text>
-      </view>
-      <view 
-        class="source-tab {{currentSource === 'CAAC' ? 'active' : ''}}"
-        bindtap="switchSource"
-        data-source="CAAC"
-      >
-        <text class="source-icon">✈️</text>
-        <text class="source-name">CAAC培训</text>
+        <text class="source-icon">{{item.icon}}</text>
+        <text class="source-name">{{item.name}}</text>
       </view>
     </view>
 

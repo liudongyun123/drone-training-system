@@ -1,9 +1,0 @@
-{
-  "name": "clearEmptyCollections",
-  "version": "1.0.0",
-  "description": "清理空的数据表",
-  "main": "index.js",
-  "dependencies": {
-    "wx-server-sdk": "~2.6.3"
-  }
-}

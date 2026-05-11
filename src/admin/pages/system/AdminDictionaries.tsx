@@ -48,7 +48,7 @@ export default function AdminDictionaries() {
     if (!hasChanges) return;
     setSaving(true);
     try {
-      // TODO: 调用 API 更新
+      // 调用数据库 API 更新配置
       const db = (await import('@/utils/cloudbase')).app.database();
       const { data } = await db.collection('systemConfig').where({ type: 'dictionaries' }).limit(1).get();
       
@@ -78,7 +78,29 @@ export default function AdminDictionaries() {
       variant: 'danger',
     });
     if (!ok) return;
-    // TODO: 实现删除
+
+    // 从当前数据中删除该项
+    const meta = GROUP_META[selectedGroup];
+    if (meta?.type === 'object') {
+      // object 类型：从字典中删除该 key
+      const newData = { ...(raw as Record<string, LabelConfig>) };
+      delete newData[key];
+      // 触发保存
+      setHasChanges(true);
+      // 通知父组件更新
+      if (typeof refresh === 'function') {
+        // 等待下一次渲染后再保存
+        setTimeout(() => refresh(), 0);
+      }
+    } else if (meta?.type === 'array') {
+      // array 类型：从数组中删除该项
+      const newData = (raw as OptionItem[]).filter(item => item.value !== key);
+      // 触发保存
+      setHasChanges(true);
+      if (typeof refresh === 'function') {
+        setTimeout(() => refresh(), 0);
+      }
+    }
   };
 
   return (

@@ -96,6 +96,40 @@ export async function dbGetList(
 }
 
 /**
+ * 数据库操作 - 新增记录
+ */
+export async function dbAdd(collection: string, data: any) {
+  return request<{ id: string; data: any }>('/db-init', 'POST', {
+    action: 'add',
+    collection,
+    data
+  })
+}
+
+/**
+ * 数据库操作 - 更新记录
+ */
+export async function dbUpdate(collection: string, id: string, data: any) {
+  return request<{ updated: number }>('/db-init', 'POST', {
+    action: 'update',
+    collection,
+    id,
+    data
+  })
+}
+
+/**
+ * 数据库操作 - 删除记录
+ */
+export async function dbDelete(collection: string, id: string) {
+  return request<{ deleted: number }>('/db-init', 'POST', {
+    action: 'delete',
+    collection,
+    id
+  })
+}
+
+/**
  * 测试连接
  */
 export async function testConnection() {

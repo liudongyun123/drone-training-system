@@ -1,9 +1,0 @@
-{
-  "name": "fix-class-category",
-  "version": "1.0.0",
-  "description": "修复培训班分类字段",
-  "main": "index.js",
-  "dependencies": {
-    "wx-server-sdk": "~2.6.3"
-  }
-}

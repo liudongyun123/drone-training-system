@@ -66,7 +66,8 @@ Page({
   async loadMyData() {
     this.setData({ loading: true })
     try {
-      const phone = wx.getStorageSync('phone') || ''
+      // ★ 统一使用 phone 作为用户标识
+      const phone = getPhone() || ''
 
       if (!phone) {
         this.setData({
@@ -81,28 +82,14 @@ Page({
         return
       }
 
-      // 从 user_progress 表获取用户真实学习进度
-      // 同时查询 phone 和 userId，确保兼容旧数据
-      const userId = getUserId() || ''
-      
-      // 构建查询条件：同时用 phone 和 userId 查询，然后合并结果
+      // ★ 统一使用 phone 查询（数据库已统一）
       const progressResults: any[] = []
       
-      if (phone) {
-        const r1 = await dbGetList('user_progress', {
-          where: { phone },
-          orderBy: 'updatedAt desc'
-        })
-        if (r1.data) progressResults.push(...r1.data)
-      }
-      
-      if (userId) {
-        const r2 = await dbGetList('user_progress', {
-          where: { userId },
-          orderBy: 'updatedAt desc'
-        })
-        if (r2.data) progressResults.push(...r2.data)
-      }
+      const r1 = await dbGetList('user_progress', {
+        where: { phone },
+        orderBy: 'updatedAt desc'
+      })
+      if (r1.data) progressResults.push(...r1.data)
       
       // 去重（根据 courseId + lessonId）
       const progressMap = new Map<string, any>()

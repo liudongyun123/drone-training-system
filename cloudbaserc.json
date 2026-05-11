@@ -3,7 +3,7 @@
   "envId": "rcwljy-5ghmq2ex26764978",
   "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
   "framework": {
-    "name": "cloudbase-react-template",
+    "name": "drone-training-system",
     "plugins": {
       "client": {
         "use": "@cloudbase/framework-plugin-website",
@@ -35,19 +35,14 @@
         "inputs": {
           "functions": [
             {
-              "name": "api-user",
+              "name": "admin",
               "timeout": 60,
               "memorySize": 256,
               "runtime": "Nodejs18.15",
               "handler": "index.main",
               "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
-              "triggers": [
-                {
-                  "name": "http-trigger",
-                  "type": "http"
-                }
-              ]
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": []
             },
             {
               "name": "admin-http",
@@ -56,77 +51,153 @@
               "runtime": "Nodejs18.15",
               "handler": "index.main",
               "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "ignore": ["node_modules/**", ".git/**"],
               "triggers": [
-                {
-                  "name": "http-trigger",
-                  "type": "http"
-                }
+                { "name": "http-trigger", "type": "http" }
               ]
             },
             {
-              "name": "admin",
+              "name": "api-admin",
               "timeout": 60,
               "memorySize": 256,
               "runtime": "Nodejs18.15",
               "handler": "index.main",
               "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
-              "triggers": []
-            },
-            {
-              "name": "mobile-auth",
-              "timeout": 60,
-              "memorySize": 256,
-              "runtime": "Nodejs18.15",
-              "handler": "index.main",
-              "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git", "scf_bootstrap"],
-              "triggers": []
-            },
-            {
-              "name": "migrate-permissions",
-              "timeout": 60,
-              "memorySize": 256,
-              "runtime": "Nodejs18.15",
-              "handler": "index.main",
-              "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
-              "triggers": []
-            },
-            {
-              "name": "wechat-pay",
-              "timeout": 15,
-              "memorySize": 256,
-              "runtime": "Nodejs18.15",
-              "handler": "index.main",
-              "envVariables": {
-                "WX_APPID": "wx25aaf895ab86181a",
-                "WX_MCH_ID": "",
-                "WX_API_KEY": "",
-                "WX_NOTIFY_URL": ""
-              },
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "ignore": ["node_modules/**", ".git/**"],
               "triggers": [
-                {
-                  "name": "http-trigger",
-                  "type": "http"
-                }
+                { "name": "http-trigger", "type": "http" }
               ]
             },
             {
-              "name": "db-init",
+              "name": "api-auth",
               "timeout": 60,
               "memorySize": 256,
               "runtime": "Nodejs18.15",
               "handler": "index.main",
               "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "ignore": ["node_modules/**", ".git/**"],
               "triggers": [
-                {
-                  "name": "http-trigger",
-                  "type": "http"
-                }
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "api-course",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "api-exam",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "api-home",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "api-message",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "api-order",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "api-pay",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "api-shop",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "api-source",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "api-training",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "api-user",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
               ]
             },
             {
@@ -136,38 +207,60 @@
               "runtime": "Nodejs18.15",
               "handler": "index.main",
               "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "ignore": ["node_modules/**", ".git/**"],
               "triggers": [
-                {
-                  "name": "http-trigger",
-                  "type": "http"
-                }
+                { "name": "http-trigger", "type": "http" }
               ]
             },
             {
-              "name": "init-dictionaries",
+              "name": "mobile-auth",
               "timeout": 60,
               "memorySize": 256,
               "runtime": "Nodejs18.15",
               "handler": "index.main",
               "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "ignore": ["node_modules/**", ".git/**"],
               "triggers": []
             },
             {
-              "name": "db-optimize",
-              "timeout": 120,
-              "memorySize": 512,
+              "name": "mobile-course",
+              "timeout": 60,
+              "memorySize": 256,
               "runtime": "Nodejs18.15",
               "handler": "index.main",
               "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
-              "triggers": [
-                {
-                  "name": "http-trigger",
-                  "type": "http"
-                }
-              ]
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": []
+            },
+            {
+              "name": "mobile-exam",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": []
+            },
+            {
+              "name": "mobile-learning",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": []
+            },
+            {
+              "name": "mobile-order",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": []
             },
             {
               "name": "submit-exam",
@@ -176,17 +269,64 @@
               "runtime": "Nodejs18.15",
               "handler": "index.main",
               "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "ignore": ["node_modules/**", ".git/**"],
               "triggers": []
             },
             {
-              "name": "addUser",
-              "timeout": 30,
+              "name": "wechat-pay",
+              "timeout": 15,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {
+                "WX_APPID": "",
+                "WX_MCH_ID": "",
+                "WX_API_KEY": "",
+                "WX_NOTIFY_URL": ""
+              },
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": [
+                { "name": "http-trigger", "type": "http" }
+              ]
+            },
+            {
+              "name": "migrate-permissions",
+              "timeout": 60,
               "memorySize": 256,
               "runtime": "Nodejs18.15",
               "handler": "index.main",
               "envVariables": {},
-              "ignore": ["node_modules/**", "node_modules", ".git/**", ".git"],
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": []
+            },
+            {
+              "name": "init-source-data",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": []
+            },
+            {
+              "name": "web-api",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
+              "triggers": []
+            },
+            {
+              "name": "api",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "ignore": ["node_modules/**", ".git/**"],
               "triggers": []
             }
           ]

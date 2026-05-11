@@ -2,7 +2,7 @@
 // 我的培训班页
 
 import { getMyEnrollments } from '../../utils/http'
-import { checkLogin } from '../../utils/util'
+import { checkLogin, getPhone } from '../../utils/util'
 import logger from '../../utils/logger'
 
 Page({
@@ -40,28 +40,17 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const phone = wx.getStorageSync('phone') || ''
-      const userId = wx.getStorageSync('userId') || ''
+      // ★ 统一使用 phone 作为用户标识
+      const phone = getPhone() || ''
 
-      // 同时查询 phone 和 userId，然后合并结果
-      const promises = []
-      if (phone) {
-        promises.push(
-          getMyEnrollments(phone)
-            .then(r => r.data || [])
-            .catch(() => [])
-        )
-      }
-      if (userId) {
-        promises.push(
-          getMyEnrollments(userId)
-            .then(r => r.data || [])
-            .catch(() => [])
-        )
+      if (!phone) {
+        this.setData({ classes: [], loading: false })
+        return
       }
 
-      const results = await Promise.all(promises)
-      let classes = results.flat()
+      // ★ 统一使用 phone 查询
+      const result = await getMyEnrollments(phone)
+      let classes = result.data || []
 
       // 去重
       const seen = new Set()

@@ -13,7 +13,9 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Loading, EmptyState, Card } from '@/components';
+import LazyImage from '@/components/LazyImage';
 import { formatDateStr } from '@/utils/dateUtils';
+import { getUserPhone } from '@/utils/userQuery';
 
 interface LearningCourse {
   _id: string;
@@ -115,79 +117,58 @@ export default function MyLearningPage() {
     try {
       console.log('[MyLearningPage] ========== 开始加载学习数据 ==========');
 
-      const userId = user?.uid || user?.id || (user as any)?._openid || '';
-      const userPhone = user?.phone || localStorage.getItem('user_phone') || '';
-      console.log('[MyLearningPage] 用户身份:', { userId, userPhone });
+      // ★ 统一使用 phone 作为用户标识
+      const userPhone = getUserPhone();
+      console.log('[MyLearningPage] 用户手机号:', userPhone);
+
+      if (!userPhone) {
+        console.warn('[MyLearningPage] 未获取到用户手机号');
+        setCourses([]);
+        setLoading(false);
+        return;
+      }
 
       const { adminService } = await import('@/services/adminService');
 
       // ========================================
-      // 1. 查询学习进度
+      // 1. 查询学习进度（使用 phone）
       // ========================================
       let progressData: any[] = [];
       try {
-        const pr = await adminService.list('user_progress', { userId }, { limit: 500 });
+        const pr = await adminService.list('user_progress', { phone: userPhone }, { limit: 500 });
         progressData = Array.isArray(pr.data) ? pr.data : (pr.data?.list || []);
       } catch (e) {
         try {
-          const pr2 = await adminService.list('learning_progress', { userId }, { limit: 500 });
+          const pr2 = await adminService.list('learning_progress', { phone: userPhone }, { limit: 500 });
           progressData = Array.isArray(pr2.data) ? pr2.data : (pr2.data?.list || []);
         } catch (e2) { /* skip */ }
       }
       console.log('[MyLearningPage] 学习进度:', progressData.length, '条');
 
       // ========================================
-      // 2. 查询课程权限（已购买课程）
-      //    ★ phone 为主键（最稳定），userId/openid 为补充
-      //    ★ 三路数据源兜底：course_permissions → 已支付订单 → members.enrolledCourses
+      // 2. 查询课程权限（已购买课程）- 统一使用 phone 查询
       // ========================================
       const purchasedCourses: LearningCourse[] = [];
       const seenCids = new Set<string>(); // 全局去重
 
-      // --- 数据源 A: course_permissions 集合 ---
       try {
-        // ★ phone 优先查询（新写入的数据都用 phone）
-        if (userPhone) {
-          const permByPhone = await adminService.list('course_permissions', { phone: userPhone }, { limit: 100 });
-          const perms = Array.isArray(permByPhone.data) ? permByPhone.data : (permByPhone.data?.list || []);
-          console.log('[MyLearningPage] A-phone 查到权限:', perms.length);
-          for (const perm of perms) {
-            const cid = perm.courseId || perm.targetId;
-            if (!cid || seenCids.has(cid)) continue;
-            seenCids.add(cid);
-            try {
-              const cr = await adminService.get('courses', cid);
-              const course = cr.data;
-              if (!course || course.status !== 'published') continue;
-              purchasedCourses.push(buildCourse(course, 'purchase', {
-                orderId: perm.orderId, purchaseTime: perm.purchaseTime || perm.createdAt,
-              }, progressData));
-            } catch (e) { console.warn('[MyLearningPage] 课程获取失败:', cid); }
-          }
-        }
+        // ★ 统一使用 phone 查询（数据库已统一）
+        const permResult = await adminService.list('course_permissions', { phone: userPhone }, { limit: 500 });
+        const perms = Array.isArray(permResult.data) ? permResult.data : (permResult.data?.list || []);
+        console.log('[MyLearningPage] course_permissions 查到权限:', perms.length);
 
-        // userId 补充查询（兼容旧数据）
-        if (userId) {
-          const userIdQueries = [{ userId }, { studentId: userId }, { memberId: userId }, { _openid: userId }];
-          for (const q of userIdQueries) {
-            try {
-              const r = await adminService.list('course_permissions', q, { limit: 100 });
-              const arr = Array.isArray(r.data) ? r.data : (r.data?.list || []);
-              for (const perm of arr) {
-                const cid = perm.courseId || perm.targetId;
-                if (!cid || seenCids.has(cid)) continue;
-                seenCids.add(cid);
-                try {
-                  const cr = await adminService.get('courses', cid);
-                  const course = cr.data;
-                  if (!course || course.status !== 'published') continue;
-                  purchasedCourses.push(buildCourse(course, 'purchase', {
-                    orderId: perm.orderId, purchaseTime: perm.purchaseTime || perm.createdAt,
-                  }, progressData));
-                } catch (e) { /* skip */ }
-              }
-            } catch (e) { /* skip */ }
-          }
+        for (const perm of perms) {
+          const cid = perm.courseId || perm.targetId;
+          if (!cid || seenCids.has(cid)) continue;
+          seenCids.add(cid);
+          try {
+            const cr = await adminService.get('courses', cid);
+            const course = cr.data;
+            if (!course || course.status !== 'published') continue;
+            purchasedCourses.push(buildCourse(course, 'purchase', {
+              orderId: perm.orderId, purchaseTime: perm.purchaseTime || perm.createdAt,
+            }, progressData));
+          } catch (e) { console.warn('[MyLearningPage] 课程获取失败:', cid); }
         }
       } catch (e) {
         console.error('[MyLearningPage] course_permissions 查询失败:', e);
@@ -195,19 +176,11 @@ export default function MyLearningPage() {
       console.log('[MyLearningPage] A: course_permissions 购买课程数:', purchasedCourses.length);
 
       // --- 数据源 B: 已支付订单直接查询（兜底，防止 course_permissions 缺失） ---
+      // ★ 统一使用 phone 查询
       if (purchasedCourses.length === 0) {
         console.log('[MyLearningPage] course_permissions 为空，尝试从已支付订单兜底查询...');
         try {
-          const orderQuery: any = {};
-          if (userPhone) {
-            orderQuery.$or = [{ phone: userPhone }];
-          }
-          if (userId) {
-            orderQuery.$or = orderQuery.$or || [];
-            orderQuery.$or.push({ userId }, { _openid: userId });
-          }
-
-          const orderResult = await adminService.list('orders', orderQuery, { limit: 100 });
+          const orderResult = await adminService.list('orders', { phone: userPhone }, { limit: 100 });
           const paidOrders = (Array.isArray(orderResult.data) ? orderResult.data : (orderResult.data?.list || []))
             .filter((o: any) => ['paid', 'completed', 'paid_offline'].includes(o.status));
 
@@ -240,25 +213,17 @@ export default function MyLearningPage() {
 
       // ========================================
       // 3. 查询报班附赠的课程（registrations -> classes -> courses）
-      //    ★ 兼容多种字段匹配：userId / studentId / phone / userPhone
+      // ★ 统一使用 phone 查询
       // ========================================
       const enrolledCourses: LearningCourse[] = [];
       try {
-        const enrollQuery: any = {};
-        if (userId) {
-          enrollQuery.$or = [{ userId }, { studentId: userId }, { _openid: userId }];
-        }
-        if (userPhone) {
-          enrollQuery.$or = enrollQuery.$or || [];
-          enrollQuery.$or.push({ userPhone }, { phone: userPhone });
-        }
-
         let enrollments: any[] = [];
         try {
-          const er = await adminService.list('registrations', enrollQuery, { limit: 100 });
+          // ★ 统一使用 phone 查询
+          const er = await adminService.list('registrations', { phone: userPhone }, { limit: 100 });
           enrollments = Array.isArray(er.data) ? er.data : (er.data?.list || []);
         } catch (e) {
-          const er2 = await adminService.list('enrollments', enrollQuery, { limit: 100 });
+          const er2 = await adminService.list('enrollments', { phone: userPhone }, { limit: 100 });
           enrollments = Array.isArray(er2.data) ? er2.data : (er2.data?.list || []);
         }
         console.log('[MyLearningPage] 报名记录:', enrollments.length);
@@ -454,7 +419,11 @@ export default function MyLearningPage() {
               <Card key={course._id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 {/* 课程封面 */}
                 <div className="relative aspect-video">
-                  <img src={course.coverImage || 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=400'} alt={course.title} className="w-full h-full object-cover" />
+                  <LazyImage
+                    src={course.coverImage || 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=400'}
+                    alt={course.title}
+                    className="w-full h-full object-cover"
+                  />
                   {course.completed && (
                     <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
                       <CheckCircle size={12} />已完成

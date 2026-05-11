@@ -1,7 +1,8 @@
 // pages/course-list/course-list.ts
 // 课程列表页
 
-import { courseApi, systemConfigApi } from '../../utils/api'
+import { courseApi } from '../../utils/api'
+import { SourceService } from '../../utils/SourceService'
 import logger from '../../utils/logger'
 
 Page({
@@ -24,18 +25,15 @@ Page({
 
   onLoad(options: any) {
     wx.setNavigationBarTitle({ title: '课程列表' })
-    // 如果有传入分类参数
     if (options.category) {
       const category = decodeURIComponent(options.category)
       this.setData({ currentCategory: category })
-      // 清除 storage
       wx.removeStorageSync('targetCategory')
     }
     this.loadSources()
   },
 
   onShow() {
-    // 检查是否有从首页跳转过来的分类
     const targetCategory = wx.getStorageSync('targetCategory')
     if (targetCategory && this.data.currentCategory !== targetCategory) {
       this.setData({ currentCategory: targetCategory })
@@ -52,22 +50,23 @@ Page({
   // 加载体系配置
   async loadSources() {
     try {
-      const sources = await systemConfigApi.getSources()
+      const sources = await SourceService.getSources()
       if (sources && sources.length > 0) {
-        const sourceList = sources.map((s: any) => ({
+        const sourceList = sources.map((s) => ({
           key: s.code,
           name: s.name,
           icon: s.icon || '📚',
-          id: s._id || s.id || ''
+          id: s._id || ''
         }))
+        const defaultSource = sources[0]
         this.setData({
           sourceList,
-          currentSource: sources[0].code || 'RENSHE',
-          currentSourceId: sources[0]._id || sources[0].id || ''
+          currentSource: defaultSource.code || 'RENSHE',
+          currentSourceId: defaultSource._id || ''
         })
       }
     } catch (err) {
-      logger.error('课程', '加载体系配置失败', err)
+      logger.error('[课程列表] 加载体系配置失败', err)
     }
     this.loadCategories()
   },
@@ -75,11 +74,17 @@ Page({
   // 加载分类
   async loadCategories() {
     try {
-      const categories = await systemConfigApi.getCategories(this.data.currentSource)
-      const categoryNames = categories.map((c: any) => c.name || c)
+      const sourceId = this.data.currentSourceId
+      if (!sourceId) {
+        this.setData({ categories: ['全部'] })
+        return
+      }
+      
+      const categories = await SourceService.getCategories(sourceId)
+      const categoryNames = categories.map((c) => c.name)
       this.setData({ categories: ['全部', ...categoryNames] })
     } catch (err) {
-      logger.error('课程', '加载分类失败', err)
+      logger.error('[课程列表] 加载分类失败', err)
       this.setData({ categories: ['全部'] })
     }
     this.loadCourses()
@@ -89,21 +94,24 @@ Page({
     this.setData({ loading: true })
     
     try {
-      // 优先使用 _id 查询，如果没有则使用 code
-      const sourceId = this.data.currentSourceId || this.data.currentSource
+      const sourceId = this.data.currentSourceId
+      
+      if (!sourceId) {
+        logger.warn('[课程列表] sourceId 为空')
+        this.setData({ courses: [], loading: false })
+        return
+      }
+      
       const filters: any = { page: 1, pageSize: 10, sourceId }
       
-      // 分类筛选
       if (this.data.currentCategory && this.data.currentCategory !== '全部') {
         filters.category = this.data.currentCategory
       }
       
-      // 搜索关键词
       if (this.data.searchKeyword) {
         filters.keyword = this.data.searchKeyword
       }
       
-      // 排序
       switch (this.data.currentSort) {
         case 'newest':
           filters.sortBy = 'createdAt'
@@ -131,7 +139,7 @@ Page({
         loading: false
       })
     } catch (err) {
-      logger.error('课程', '加载课程失败', err)
+      logger.error('[课程列表] 加载课程失败', err)
       this.setData({ loading: false })
     }
   },
@@ -142,8 +150,9 @@ Page({
     const nextPage = this.data.page + 1
     
     try {
-      // 优先使用 _id 查询，如果没有则使用 code
-      const sourceId = this.data.currentSourceId || this.data.currentSource
+      const sourceId = this.data.currentSourceId
+      if (!sourceId) return
+      
       const filters: any = { page: nextPage, pageSize: 10, sourceId }
       
       if (this.data.currentCategory && this.data.currentCategory !== '全部') {
@@ -181,7 +190,7 @@ Page({
         hasMore: newCourses.length >= 10
       })
     } catch (err) {
-      logger.error('课程', '加载更多失败', err)
+      logger.error('[课程列表] 加载更多失败', err)
     }
   },
 
@@ -202,7 +211,6 @@ Page({
   // 切换体系
   switchSource(e: any) {
     const sourceKey = e.currentTarget.dataset.source
-    // 找到对应的体系信息
     const sourceInfo = this.data.sourceList.find((s: any) => s.key === sourceKey)
     if (sourceKey !== this.data.currentSource && sourceInfo) {
       this.setData({ 

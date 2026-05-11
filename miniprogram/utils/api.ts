@@ -165,16 +165,16 @@ export const systemConfigApi = {
     }
   },
 
-  // 获取学习路径配置 - 从 page_configs_${sourceCode} 集合读取，回退到 categories
+  // 获取学习路径配置 - 从统一的 page_configs 集合读取（按 section + data.sourceId 区分），回退到 categories
   async getLearningPathConfig(sourceId?: string, sourceCode?: string) {
     try {
       console.log('[API] getLearningPathConfig, sourceId:', sourceId, 'sourceCode:', sourceCode)
-      if (!sourceCode) {
+      if (!sourceId) {
         return this.getCategories(sourceId)
       }
       
-      const collectionName = `page_configs_${sourceCode}`
-      const pageConfig = await this.getPageConfigFromCollection(collectionName, 'learningPaths')
+      // 从统一的 page_configs 集合读取，通过 section 和 data.sourceId 精确匹配
+      const pageConfig = await this.getPageConfigBySourceId('learningPaths', sourceId)
       
       if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
         console.log('[API] learningPaths from config, count:', pageConfig.data.items.length)
@@ -192,16 +192,16 @@ export const systemConfigApi = {
     }
   },
 
-  // 获取热门课程配置 - 从 page_configs_${sourceCode} 集合读取，回退到 courses
+  // 获取热门课程配置 - 从统一的 page_configs 集合读取（按 section + data.sourceId 区分），回退到 courses
   async getHotCourseConfig(limit: number = 6, sourceId?: string, sourceCode?: string) {
     try {
       console.log('[API] getHotCourseConfig, limit:', limit, 'sourceId:', sourceId, 'sourceCode:', sourceCode)
-      if (!sourceCode) {
+      if (!sourceId) {
         return courseApi.getHotCourses(limit, sourceId)
       }
       
-      const collectionName = `page_configs_${sourceCode}`
-      const pageConfig = await this.getPageConfigFromCollection(collectionName, 'courses')
+      // 从统一的 page_configs 集合读取，通过 section 和 data.sourceId 精确匹配
+      const pageConfig = await this.getPageConfigBySourceId('courses', sourceId)
       
       if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
         console.log('[API] hotCourses from config, count:', pageConfig.data.items.length)
@@ -219,16 +219,16 @@ export const systemConfigApi = {
     }
   },
 
-  // 获取培训班配置 - 从 page_configs_${sourceCode} 集合读取，回退到 classes
+  // 获取培训班配置 - 从统一的 page_configs 集合读取（按 section + data.sourceId 区分），回退到 classes
   async getClassConfig(limit: number = 6, sourceId?: string, sourceCode?: string) {
     try {
       console.log('[API] getClassConfig, limit:', limit, 'sourceId:', sourceId, 'sourceCode:', sourceCode)
-      if (!sourceCode) {
+      if (!sourceId) {
         return classApi.getList({ status: 'enrolling', sourceId, pageSize: limit })
       }
       
-      const collectionName = `page_configs_${sourceCode}`
-      const pageConfig = await this.getPageConfigFromCollection(collectionName, 'classes')
+      // 从统一的 page_configs 集合读取，通过 section 和 data.sourceId 精确匹配
+      const pageConfig = await this.getPageConfigBySourceId('classes', sourceId)
       
       if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
         console.log('[API] classes from config, count:', pageConfig.data.items.length)
@@ -246,16 +246,28 @@ export const systemConfigApi = {
     }
   },
 
-  // 从指定集合获取页面配置
-  async getPageConfigFromCollection(collection: string, section: string) {
+  // 从统一的 page_configs 集合获取指定体系配置（先按 section 查询，再在代码层面过滤 sourceId）
+  // 注意：CloudBase SDK 不支持点号嵌套字段查询，改为先查询所有该 section 配置，然后在代码层面过滤
+  async getPageConfigBySourceId(section: string, sourceId: string) {
     try {
-      const result = await dbGetList(collection, { where: { section } })
-      return result.data && result.data.length > 0 ? result.data[0] : null
+      const result = await dbGetList('page_configs', { 
+        where: { section },
+        limit: 100
+      })
+      
+      // 在代码层面过滤 sourceId
+      if (result.data && result.data.length > 0) {
+        const matchedConfig = result.data.find((config: any) => {
+          return config.data && config.data.sourceId === sourceId
+        })
+        return matchedConfig || null
+      }
+      return null
     } catch (error) {
-      console.error('getPageConfigFromCollection failed:', error)
+      console.error('getPageConfigBySourceId failed:', error)
       return null
     }
-  }
+  },
 
 }
 

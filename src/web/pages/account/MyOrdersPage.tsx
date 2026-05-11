@@ -14,6 +14,7 @@ import { CloudOrderService } from '@/services/CloudOrderService';
 import { useAuthStore } from '@/store/authStore';
 import { Loading, EmptyState } from '@/components';
 import { app } from '@/utils/cloudbase';
+import { getUserPhone } from '@/utils/userQuery';
 
 interface OrderItem {
   courseId: string;
@@ -61,13 +62,19 @@ export default function MyOrdersPage() {
     try {
       console.log('[MyOrdersPage] 加载用户订单...');
       
-      // 优先从 localStorage 获取手机号
-      const phone = user?.phone || localStorage.getItem('user_phone') || undefined;
+      // ★ 统一使用 phone 作为用户标识
+      const phone = getUserPhone();
       console.log('[MyOrdersPage] 用户手机号:', phone);
       
-      // 1. 获取购买订单
+      if (!phone) {
+        console.warn('[MyOrdersPage] 未获取到用户手机号');
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+      
+      // 1. 获取购买订单 - 统一使用 phone 查询
       const userOrders = await CloudOrderService.getUserOrders({
-        userId: user?.id,
         phone: phone
       });
       console.log('[MyOrdersPage] 获取到购买订单:', userOrders.length, '条');
@@ -92,20 +99,10 @@ export default function MyOrdersPage() {
         isEnrollment: false,
       }));
       
-      // 2. 获取线下报班记录（支持通过 phone 或 userId 查询）
-      if (phone || user?.id) {
-        try {
-          // 构建查询条件 - 同时支持 phone 和 userId
-          const query: any = { $or: [] };
-          if (phone) {
-            query.$or.push({ phone: phone });
-          }
-          if (user?.id) {
-            query.$or.push({ userId: user.id });
-          }
-          if (user?.id) {
-            query.$or.push({ _openid: user.id });
-          }
+      // 2. 获取线下报班记录 - 统一使用 phone 查询
+      try {
+        // ★ 统一使用 phone 查询
+        const query = { phone: phone };
           
           const regResult: any = await new Promise((resolve, reject) => {
             app.callFunction({

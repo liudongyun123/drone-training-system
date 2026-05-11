@@ -4,7 +4,7 @@
  */
 
 // 设置为 true 则在开发环境显示日志，生产环境应设为 false
-const ENABLE_LOG = false
+const ENABLE_LOG = true
 
 const formatLog = (tag: string, message: string, data?: any): string => {
   const time = new Date().toLocaleTimeString('zh-CN', { hour12: false })

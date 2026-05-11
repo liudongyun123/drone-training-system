@@ -349,6 +349,12 @@ export const INDEX_RECOMMENDATIONS: IndexRecommendation[] = [
         type: 'single',
         reason: '按key精确查找配置',
         priority: 'high'
+      },
+      {
+        fields: ['section', 'data.sourceId'],
+        type: 'compound',
+        reason: '按配置类型和体系ID精确查找（生产级别必需）',
+        priority: 'high'
       }
     ]
   },

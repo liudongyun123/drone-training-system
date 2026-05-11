@@ -95,23 +95,32 @@ export async function confirm(title: string, content: string): Promise<boolean> 
 
 /**
  * 检查登录状态
+ * @deprecated 请使用 getUserPhone() 判断
  */
 export function checkLogin(): boolean {
-  return !!wx.getStorageSync('userId')
+  return !!wx.getStorageSync('phone') || !!wx.getStorageSync('userId')
 }
 
 /**
- * 获取用户 ID
+ * 获取用户 ID（内部使用）
+ * @deprecated 建议使用 getUserPhone() 用于数据库查询
  */
 export function getUserId(): string | null {
   return wx.getStorageSync('userId') || null
 }
 
 /**
- * 获取用户手机号
+ * 获取用户手机号（统一用于数据库查询）
+ * 兼容旧数据：优先从 phone 获取，其次从 userId 获取
  */
 export function getPhone(): string | null {
-  return wx.getStorageSync('phone') || null
+  // 优先使用正确的 phone key
+  const phone = wx.getStorageSync('phone');
+  if (phone) return phone;
+  
+  // 兼容旧数据：userId 实际存的是 phone
+  const userId = wx.getStorageSync('userId');
+  return userId || null;
 }
 
 /**

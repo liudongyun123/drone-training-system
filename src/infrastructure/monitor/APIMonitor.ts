@@ -366,7 +366,8 @@ export class APIMonitor {
     // 可以发送到监控服务
     logger.debug('[APIMonitor] Report', data);
     
-    // TODO: 发送到实际监控服务
+    // ⏸️ 监控服务接入预留
+    // 如需接入实际监控服务（如 Sentry、FunDebug 等），在此处调用：
     // await fetch('/api/monitor/report', { method: 'POST', body: JSON.stringify(data) });
   }
   

@@ -1,9 +1,0 @@
-{
-  "name": "registration",
-  "version": "1.0.0",
-  "description": "报名管理云函数 - 处理线下报名、权限开通、审核等业务",
-  "main": "index.js",
-  "dependencies": {
-    "wx-server-sdk": "latest"
-  }
-}

@@ -1,0 +1,27 @@
+#!/usr/bin/expect -f
+set timeout 120
+set functions {api-admin api-auth api-exam api-shop api-training api-pay api-home}
+
+foreach fn $functions {
+    puts "Deploying $fn..."
+    spawn tcb fn deploy $fn --dir cloudfunctions/$fn
+    expect {
+        "Continue deployment with default config? (y/N)" {
+            send "y\r"
+        }
+        "overwrite original function" {
+            send "y\r"
+        }
+        timeout {
+            puts "Timeout for $fn"
+            continue
+        }
+        eof {
+            puts "EOF for $fn"
+        }
+    }
+    expect eof
+    puts "Done: $fn"
+}
+
+puts "All functions deployed!"

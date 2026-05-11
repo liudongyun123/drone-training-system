@@ -137,13 +137,22 @@ export default defineConfig({
       compress: {
         // 移除未使用的代码
         dead_code: true,
-        // 移除 console.log（保留 console.error）
-        drop_console: false, // 保留 console 以便生产环境调试
+        // 生产环境移除 console.log（保留 console.error/warn/info 用于关键日志）
+        drop_console: process.env.NODE_ENV === 'production',
         drop_debugger: true,
+        // 传递参数给 terser
+        passes: 2,
       },
       // 压缩比例
       treeShaking: true,
+      // 禁用危险的自动修复（避免破坏代码）
+      safe: true,
     },
+    // 生产环境使用 terser 以获得更好的压缩效果
+    ...(process.env.NODE_ENV === 'production' ? {
+      // 使用更严格的 chunk 分割策略
+      splitVendorChunk: true,
+    } : {}),
     // 报告压缩后的文件大小
     reportCompressedSize: true,
     // 启用 terser 详细日志

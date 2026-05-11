@@ -1250,12 +1250,13 @@ export const CloudCouponAdminService = {
 export const CloudBannerAdminService = {
   collection: 'banners',
 
-  // ✅ 优化：getAll 方法直接返回 total
+  // ✅ 优化：getAll 方法直接返回 total，并按 order 排序
   async getAll(params?: { offset?: number; limit?: number; search?: string }) {
     try {
       const { offset = 0, limit = 100, search } = params || {}
       const query: any = {}
-      const options: any = { limit, skip: offset }
+      // ✅ 添加排序：按 order 升序（与前端展示一致）
+      const options: any = { limit, skip: offset, orderBy: 'order', order: 'asc' }
 
       if (search) {
         query.$or = [

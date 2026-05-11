@@ -1,5 +1,6 @@
 import React from 'react';
 import type { LearningProgress, LearningPath } from '../types';
+import LazyImage from '@/components/LazyImage';
 
 interface ProgressCardProps {
   /** 学习进度数据 */
@@ -50,7 +51,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
       {/* 课程封面 */}
       <div className="progress-card__cover">
         {progress.coverUrl ? (
-          <img src={progress.coverUrl} alt={progress.courseName} />
+          <LazyImage src={progress.coverUrl} alt={progress.courseName} />
         ) : (
           <div className="progress-card__cover-placeholder">
             <span>{progress.courseName.charAt(0)}</span>
@@ -143,7 +144,7 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({
     <div className="learning-path-card" onClick={handleClick}>
       {/* 路径封面 */}
       <div className="learning-path-card__cover">
-        <img src={path.coverUrl} alt={path.name} />
+        <LazyImage src={path.coverUrl} alt={path.name} />
         <div className="learning-path-card__level">{path.level}</div>
       </div>
 

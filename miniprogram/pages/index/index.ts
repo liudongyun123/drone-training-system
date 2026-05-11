@@ -1,7 +1,9 @@
 // pages/index/index.ts
-// 小程序首页
+// 小程序首页 - 生产级优化版
+// 特性：骨架屏、错误处理、空状态、请求优化
 
-import { courseApi, classApi, productApi, bannerApi, systemConfigApi } from '../../utils/api'
+import { productApi, bannerApi } from '../../utils/api'
+import { SourceService } from '../../utils/SourceService'
 import logger from '../../utils/logger'
 
 // 培训班等级映射
@@ -9,107 +11,174 @@ const CLASS_LEVEL_MAP: Record<string, string> = {
   '入门班': '入门班', '基础班': '基础班', '进阶班': '进阶班', '高级班': '高级班', '考证班': '考证班'
 }
 
+// 数据状态枚举
+enum LoadState {
+  IDLE = 'idle',
+  LOADING = 'loading',
+  SUCCESS = 'success',
+  ERROR = 'error',
+  EMPTY = 'empty'
+}
+
 interface IndexData {
+  // 加载状态
+  loadState: LoadState
+  errorMessage: string
+  
+  // 体系相关
   hotCourses: any[]
   enrollingClasses: any[]
   featuredProducts: any[]
   heroBanners: any[]
-  learningPaths: any[]  // 学习路径分类
-  learningPathLevelCount: number  // 学习路径等级数量
-  currentSource: string  // 当前体系 code
-  currentSourceId: string  // 当前体系 _id
+  learningPaths: any[]
+  learningPathLevelCount: number
+  currentSource: string
+  currentSourceId: string
   sourceList: Array<{ key: string; name: string; icon: string; id: string }>
-  loading: boolean
+  
+  // 骨架屏
+  skeletonVisible: boolean
+  
+  // 空状态
+  isCoursesEmpty: boolean
+  isClassesEmpty: boolean
+  isPathsEmpty: boolean
 }
 
 Page<IndexData>({
   data: {
+    // 初始状态
+    loadState: LoadState.IDLE,
+    errorMessage: '',
+    
     hotCourses: [],
     enrollingClasses: [],
     featuredProducts: [],
     heroBanners: [],
     learningPaths: [],
-    learningPathLevelCount: 5,  // 默认5级
+    learningPathLevelCount: 5,
     currentSource: 'RENSHE',
     currentSourceId: '',
     sourceList: [
       { key: 'RENSHE', name: '人社培训', icon: '🏛️', id: '' },
       { key: 'CAAC', name: 'CAAC培训', icon: '✈️', id: '' }
     ],
-    loading: true
+    
+    // 骨架屏
+    skeletonVisible: true,
+    
+    // 空状态
+    isCoursesEmpty: true,
+    isClassesEmpty: true,
+    isPathsEmpty: true
   },
 
   onLoad() {
-    this.loadSources()
+    this.initApp()
+  },
+
+  onShow() {
+    // 页面显示时刷新数据（可选）
+    // this.refreshData()
   },
 
   onPullDownRefresh() {
-    this.loadData().then(() => {
+    this.refreshData().then(() => {
       wx.stopPullDownRefresh()
     })
+  },
+
+  // 初始化应用
+  async initApp() {
+    try {
+      this.setData({ loadState: LoadState.LOADING })
+      await this.loadSources()
+    } catch (error) {
+      logger.error('[首页] 初始化失败', error)
+      this.handleError('应用初始化失败，请下拉刷新')
+    }
   },
 
   // 加载体系配置
   async loadSources() {
     try {
-      const sources = await systemConfigApi.getSources()
+      const sources = await SourceService.getSources()
+      logger.info('[首页] loadSources', { count: sources.length })
+      
       if (sources && sources.length > 0) {
-        const sourceList = sources.map((s: any) => ({
+        const sourceList = sources.map((s) => ({
           key: s.code,
           name: s.name,
           icon: s.icon || '📚',
-          id: s._id || s.id || ''
+          id: s._id || ''
         }))
+        
+        const defaultSource = sources[0]
+        
         this.setData({
           sourceList,
-          currentSource: sources[0].code || 'RENSHE',
-          currentSourceId: sources[0]._id || sources[0].id || ''
+          currentSource: defaultSource.code || 'RENSHE',
+          currentSourceId: defaultSource._id || ''
         })
+        
+        logger.info('[首页] 默认体系', { 
+          code: defaultSource.code, 
+          _id: defaultSource._id 
+        })
+        
+        // 加载体系数据
+        await this.loadData()
+      } else {
+        logger.warn('[首页] 未获取到体系列表')
+        this.handleEmpty('暂无可用的培训体系')
       }
-    } catch (err) {
-      logger.error('首页', '加载体系配置失败', err)
+    } catch (error) {
+      logger.error('[首页] 加载体系配置失败', error)
+      this.handleError('加载体系配置失败')
     }
-    this.loadData()
   },
 
+  // 加载首页数据
   async loadData() {
-    this.setData({ loading: true })
+    const { currentSourceId, currentSource } = this.data
+    
+    // 验证 sourceId
+    if (!currentSourceId) {
+      logger.error('[首页] sourceId 为空')
+      this.handleEmpty('请先选择培训体系')
+      return
+    }
+    
+    this.setData({ 
+      loadState: LoadState.LOADING,
+      skeletonVisible: true,
+      errorMessage: ''
+    })
 
     try {
-      // 优先使用 _id 查询，如果没有则使用 code
-      const currentSourceId = this.data.currentSourceId || this.data.currentSource
+      logger.info('[首页] loadData', { currentSourceId, currentSource })
       
-      // 先获取字典配置获取首页显示数量
-      let hotCourseCount = 6
-      let enrollingClassCount = 6
-      let productCount = 6
-      
-      try {
-        const dictionaries = await systemConfigApi.getDictionaries()
-        const homePageConfig = dictionaries?.homePage || {}
-        hotCourseCount = homePageConfig.hotCourseCount || 6
-        enrollingClassCount = homePageConfig.enrollingClassCount || 6
-        productCount = homePageConfig.productCount || 6
-      } catch (e) {
-        console.log('获取首页配置失败，使用默认值')
-      }
-      
-      // 并行加载数据 - 从 page_configs_${sourceCode} 读取配置，回退到原始集合
-      const [courses, classes, products, banners, categories] = await Promise.all([
-        systemConfigApi.getHotCourseConfig(hotCourseCount, currentSourceId, currentSource),
-        systemConfigApi.getClassConfig(enrollingClassCount, currentSourceId, currentSource),
-        productApi.getList({ pageSize: productCount }),
+      // 并行加载所有数据
+      const [
+        coursesResult,
+        classesResult,
+        productsResult,
+        bannersResult,
+        pathsResult
+      ] = await Promise.allSettled([
+        SourceService.getHotCoursesConfig(currentSourceId, 6),
+        SourceService.getClassesConfig(currentSourceId, 6),
+        productApi.getList({ pageSize: 6 }),
         bannerApi.getList(10),
-        systemConfigApi.getLearningPathConfig(currentSourceId, currentSource)
+        SourceService.getLearningPathConfig(currentSourceId)
       ])
 
-      // 获取等级数量 - 从 categories 数据中推断
-      let levelCount = 5  // 默认值
-      // 从分类数量推断等级数量（如果有多个分类）
-      if (categories && categories.length > 0) {
-        // 假设等级数等于分类数或默认5
-        levelCount = Math.min(categories.length, 10) || 5
-      }
+      // 处理各模块结果
+      const courses = this.extractResult(coursesResult, '热门课程')
+      const classes = this.extractResult(classesResult, '培训班')
+      const products = this.extractResult(productsResult, '商品')
+      const banners = this.extractResult(bannersResult, '轮播图')
+      const paths = this.extractResult(pathsResult, '学习路径')
 
       // 处理培训班等级显示
       const processedClasses = (classes || []).map((cls: any) => ({
@@ -117,19 +186,84 @@ Page<IndexData>({
         levelText: cls.level || CLASS_LEVEL_MAP[cls.name] || '入门班'
       }))
 
+      // 获取等级数量
+      let levelCount = 5
+      if (paths && paths.length > 0) {
+        levelCount = Math.min(paths.length, 10) || 5
+      }
+
+      // 判断空状态
+      const isCoursesEmpty = !courses || courses.length === 0
+      const isClassesEmpty = !classes || classes.length === 0
+      const isPathsEmpty = !paths || paths.length === 0
+
       this.setData({
-        hotCourses: courses,
-        enrollingClasses: processedClasses,
-        featuredProducts: products,
-        heroBanners: banners,
-        learningPaths: categories || [],
+        loadState: LoadState.SUCCESS,
+        skeletonVisible: false,
+        hotCourses: courses || [],
+        enrollingClasses: processedClasses || [],
+        featuredProducts: products || [],
+        heroBanners: banners || [],
+        learningPaths: paths || [],
         learningPathLevelCount: levelCount,
-        loading: false
+        isCoursesEmpty,
+        isClassesEmpty,
+        isPathsEmpty
       })
-    } catch (err) {
-      logger.error('首页', '加载首页数据失败', err)
-      this.setData({ loading: false })
+
+      logger.info('[首页] 数据加载完成', {
+        courses: courses?.length || 0,
+        classes: classes?.length || 0,
+        paths: paths?.length || 0
+      })
+    } catch (error) {
+      logger.error('[首页] 加载数据失败', error)
+      this.handleError('数据加载失败，请下拉刷新')
     }
+  },
+
+  // 刷新数据（强制从服务器获取）
+  async refreshData() {
+    try {
+      // 刷新体系数据
+      await SourceService.refreshSourceData(this.data.currentSourceId)
+      // 重新加载数据
+      await this.loadData()
+    } catch (error) {
+      logger.error('[首页] 刷新失败', error)
+      this.handleError('刷新失败，请稍后重试')
+    }
+  },
+
+  // 提取 Promise.allSettled 结果
+  extractResult(result: PromiseSettledResult<any>, name: string): any {
+    if (result.status === 'fulfilled') {
+      return result.value
+    } else {
+      logger.warn(`[首页] ${name}加载失败`, result.reason)
+      return null
+    }
+  },
+
+  // 处理错误状态
+  handleError(message: string) {
+    this.setData({
+      loadState: LoadState.ERROR,
+      errorMessage: message,
+      skeletonVisible: false
+    })
+  },
+
+  // 处理空状态
+  handleEmpty(message: string) {
+    this.setData({
+      loadState: LoadState.EMPTY,
+      errorMessage: message,
+      skeletonVisible: false,
+      isCoursesEmpty: true,
+      isClassesEmpty: true,
+      isPathsEmpty: true
+    })
   },
 
   // 轮播图点击
@@ -140,7 +274,6 @@ Page<IndexData>({
         url: `/pages/course-detail/course-detail?id=${banner.courseId}`
       })
     } else if (banner.link) {
-      // 如果是外部链接，复制到剪贴板
       if (banner.link.startsWith('http')) {
         wx.setClipboardData({
           data: banner.link,
@@ -170,8 +303,14 @@ Page<IndexData>({
     const path = e.currentTarget.dataset.path || {}
     const categoryId = path._id || ''
     const categoryName = path.name || ''
-    // 优先使用 _id 查询
-    const sourceId = this.data.currentSourceId || this.data.currentSource
+    const sourceId = this.data.currentSourceId
+    
+    logger.info('[首页] goToPath', { 
+      categoryId, 
+      categoryName, 
+      sourceId 
+    })
+    
     wx.navigateTo({
       url: `/pages/learning-path/learning-path?id=${categoryId}&name=${encodeURIComponent(categoryName)}&source=${this.data.currentSource}&sourceId=${sourceId}`
     })
@@ -180,14 +319,29 @@ Page<IndexData>({
   // 切换体系
   switchSource(e: any) {
     const sourceKey = e.currentTarget.dataset.source
-    // 找到对应的体系信息
     const sourceInfo = this.data.sourceList.find((s: any) => s.key === sourceKey)
+    
+    logger.info('[首页] 切换体系', { 
+      sourceKey, 
+      sourceId: sourceInfo?.id,
+      currentSource: this.data.currentSource 
+    })
+    
     if (sourceKey !== this.data.currentSource && sourceInfo) {
+      // 切换体系时显示骨架屏
       this.setData({ 
+        skeletonVisible: true,
         currentSource: sourceKey,
         currentSourceId: sourceInfo.id || ''
       }, () => {
         this.loadData()
+      })
+      
+      // 提示用户
+      wx.showToast({
+        title: `已切换至${sourceInfo.name}`,
+        icon: 'none',
+        duration: 1500
       })
     }
   },
@@ -216,6 +370,11 @@ Page<IndexData>({
     wx.navigateTo({
       url: `/pages/class-detail/class-detail?id=${classId}`
     })
+  },
+
+  // 重新加载（用于错误状态重试）
+  onRetryTap() {
+    this.refreshData()
   },
 
   onShareAppMessage() {

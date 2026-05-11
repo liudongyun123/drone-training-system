@@ -1,7 +1,7 @@
 // pages/learning-path/learning-path.ts
-// 学习路径详情页 - 按无人机类型展示5个等级的课程和培训班
+// 学习路径详情页 - 按无人机类型展示课程和培训班
 
-import { courseApi, classApi, systemConfigApi } from '../../utils/api'
+import { SourceService } from '../../utils/SourceService'
 import logger from '../../utils/logger'
 
 interface LearningPathStage {
@@ -51,103 +51,65 @@ Page<PageData>({
     if (sourceId) {
       this.setData({ sourceId })
     }
-    this.loadLevels()
-  },
-
-  // 加载等级配置 - 从 learningPathCategories 获取
-  async loadLevels() {
-    try {
-      const dictionaries = await systemConfigApi.getDictionaries()
-      let courseLevels: string[] = []
-      
-      console.log('=== 学习路径等级加载 ===')
-      console.log('source:', this.data.source)
-      console.log('categoryName:', this.data.categoryName)
-      
-      if (dictionaries) {
-        // 优先从 learningPathCategories 获取该分类的等级
-        const learningPathCategories = dictionaries.learningPathCategories || {}
-        const sourceCategories = learningPathCategories[this.data.source] || {}
-        
-        console.log('sourceCategories:', sourceCategories)
-        console.log('配置中包含的分类:', Object.keys(sourceCategories))
-        
-        // 尝试精确匹配
-        if (sourceCategories[this.data.categoryName]) {
-          courseLevels = sourceCategories[this.data.categoryName]
-          console.log('精确匹配到等级:', courseLevels)
-        } else {
-          // 尝试模糊匹配（忽略空格差异）
-          const categoryName = this.data.categoryName
-          for (const key of Object.keys(sourceCategories)) {
-            if (key.trim() === categoryName.trim() || key.includes(categoryName) || categoryName.includes(key)) {
-              courseLevels = sourceCategories[key]
-              console.log('模糊匹配到等级:', key, courseLevels)
-              break
-            }
-          }
-        }
-        
-        // 兜底：从 courseLevels 按体系获取
-        if (courseLevels.length === 0) {
-          const allCourseLevels = (dictionaries.courseLevels || [])
-            .filter((l: any) => l.source === this.data.source)
-            .map((l: any) => l.value)
-          console.log('使用 courseLevels 兜底:', allCourseLevels)
-          courseLevels = allCourseLevels
-        }
-        
-        // 兜底：使用默认值
-        if (courseLevels.length === 0) {
-          courseLevels = this.data.source === 'CAAC' 
-            ? ['视距内驾驶员', '超视距驾驶员', '教员']
-            : ['初级工', '中级工', '高级工', '技师', '高级技师']
-          console.log('使用默认值:', courseLevels)
-        }
-        
-        // 获取培训班等级（统一使用课程等级）
-        const classLevels = courseLevels
-        
-        this.setData({ courseLevels, classLevels })
-        console.log('最终等级:', courseLevels)
-      }
-    } catch (err) {
-      logger.error('学习路径', '加载等级配置失败', err)
-    }
     this.loadData()
   },
 
   async loadData() {
-    if (!this.data.categoryId) {
-      this.setData({ loading: false })
+    if (!this.data.categoryId && !this.data.categoryName) {
+      logger.warn('[学习路径] categoryId 和 categoryName 都为空，跳过数据加载')
+      this.setData({ loading: false, isAllEmpty: true })
       return
     }
 
     this.setData({ loading: true })
 
     try {
-      // 获取等级顺序
-      const levelOrder = this.data.courseLevels.length > 0 
-        ? this.data.courseLevels 
-        : (this.data.source === 'CAAC' 
-          ? ['视距内驾驶员', '超视距驾驶员', '教员'] 
-          : ['初级工', '中级工', '高级工', '技师', '高级技师'])
+      const { categoryId, categoryName, sourceId, source } = this.data
+      
+      logger.info('[学习路径] loadData', { categoryId, categoryName, sourceId, source })
 
-      // 并行加载该分类的课程和培训班（用 category 名称查询更可靠）
+      // 只使用 categoryId 精确查询，确保数据隔离
+      // 不再使用 categoryName 回退查询，避免不同分类的数据混淆
       const [courses, classes] = await Promise.all([
-        courseApi.getList({ category: this.data.categoryName, pageSize: 100 }),
-        classApi.getList({ category: this.data.categoryName, pageSize: 100 })
+        SourceService.getCourses(sourceId, { 
+          categoryId: categoryId,
+          limit: 100 
+        }),
+        SourceService.getClasses(sourceId, { 
+          categoryId: categoryId,
+          limit: 100 
+        })
       ])
+
+      logger.info('[学习路径] 数据加载结果', {
+        categoryId,
+        courses: courses?.length || 0,
+        classes: classes?.length || 0,
+        sampleCourses: courses?.slice(0, 2).map(c => ({ 
+          _id: c._id, 
+          title: c.title, 
+          categoryId: c.categoryId,
+          category: c.category,
+          level: c.level
+        }))
+      })
+
+      // 根据体系确定等级顺序
+      const levelOrder = source === 'CAAC' 
+        ? ['视距内驾驶员', '超视距驾驶员', '教员']
+        : source === 'NATIONAL_DEFENSE'
+        ? ['一级', '二级', '三级']
+        : ['初级工', '中级工', '高级工', '技师', '高级技师']
+
+      logger.info('[学习路径] 等级顺序', { levelOrder, source })
 
       // 构建等级的阶段数据
       const stages = levelOrder.map((level, index) => {
-        // 筛选该等级的课程
         const levelCourses = (courses || []).filter((course: any) => {
-          const courseLevel = course.levelText || course.level || ''
+          const courseLevel = course.levelText || course.level || course.levelName || ''
           return courseLevel === level
         })
 
-        // 筛选该等级的培训班
         const levelClasses = (classes || []).filter((cls: any) => {
           const classLevel = cls.levelText || cls.level || ''
           return classLevel === level
@@ -161,21 +123,19 @@ Page<PageData>({
         }
       })
 
-      // 调试：打印课程levelText分布
-      console.log('=== 学习路径调试 ===')
-      console.log('categoryId:', this.data.categoryId)
-      console.log('source:', this.data.source)
-      console.log('课程总数:', courses?.length)
-      courses?.forEach((c: any) => {
-        console.log(`课程: ${c.title}, level: ${c.level}, levelText: ${c.levelText}`)
-      })
+      const isAllEmpty = stages.every((s: LearningPathStage) => 
+        s.courses.length === 0 && s.classes.length === 0
+      )
 
-      // 计算是否全部为空
-      const isAllEmpty = stages.every((s: LearningPathStage) => s.courses.length === 0 && s.classes.length === 0)
+      logger.info('[学习路径] 阶段数据', { 
+        stagesCount: stages.length,
+        nonEmptyStages: stages.filter(s => s.courses.length > 0 || s.classes.length > 0).length,
+        isAllEmpty 
+      })
 
       this.setData({ stages, isAllEmpty, loading: false })
     } catch (err) {
-      logger.error('学习路径', '加载学习路径数据失败', err)
+      logger.error('[学习路径] 加载数据失败', err)
       this.setData({ loading: false })
     }
   },
@@ -194,5 +154,16 @@ Page<PageData>({
     wx.navigateTo({
       url: `/pages/class-detail/class-detail?id=${classId}`
     })
+  },
+
+  // 合并两个数组，根据 _id 去重
+  mergeById(arr1: any[], arr2: any[]): any[] {
+    const map = new Map()
+    ;[...arr1, ...arr2].forEach(item => {
+      if (item?._id && !map.has(item._id)) {
+        map.set(item._id, item)
+      }
+    })
+    return Array.from(map.values())
   }
 })

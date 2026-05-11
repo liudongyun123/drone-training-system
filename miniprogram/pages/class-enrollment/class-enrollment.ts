@@ -2,7 +2,7 @@
 // 培训班报名页
 
 import { classApi } from '../../utils/api'
-import { checkLogin, getUserId, showToast } from '../../utils/util'
+import { checkLogin, getUserId, getPhone, showToast } from '../../utils/util'
 import { validatePhone, validateName } from '../../utils/validation'
 import { parseError } from '../../utils/error'
 import logger from '../../utils/logger'
@@ -83,7 +83,8 @@ Page({
     this.setData({ submitting: true })
 
     try {
-      const userId = getUserId() || ''
+      // ★ 统一使用 phone 作为用户标识
+      const phone = getPhone() || ''
       const openid = wx.getStorageSync('openid') || ''
 
       // 调用云函数创建报名记录
@@ -93,7 +94,7 @@ Page({
           action: 'enrollClass',
           data: {
             classId: this.classId,
-            userId: userId,
+            phone: phone,  // ★ 统一使用 phone
             userName: this.data.contactName,
             phone: this.data.contactPhone,
             notes: this.data.remark,

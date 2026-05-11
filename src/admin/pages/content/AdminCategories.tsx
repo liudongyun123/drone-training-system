@@ -304,7 +304,7 @@ export default function AdminCategories() {
           >
             <option value="">全部体系</option>
             {sources.map(opt => (
-              <option key={opt.code} value={opt.code}>{opt.name}</option>
+              <option key={opt._id} value={opt._id}>{opt.name}</option>
             ))}
           </select>
           <div className="flex gap-1.5 bg-gray-100 rounded-lg p-1">
@@ -411,11 +411,9 @@ export default function AdminCategories() {
                   </td>
                   <td className="px-5 py-4">
                     <span className={`px-2 py-1 rounded text-xs ${
-                      (category as any).sourceId === 'CAAC'
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-amber-50 text-amber-700'
+                      (category as any).sourceId ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'
                     }`}>
-                      {sources.find(s => s.code === (category as any).sourceId)?.name || (category as any).sourceId || '-'}
+                      {sources.find(s => s._id === (category as any).sourceId)?.name || '-'}
                     </span>
                   </td>
                   <td className="px-5 py-4">
@@ -491,7 +489,7 @@ export default function AdminCategories() {
                 >
                   <option value="">请选择体系</option>
                   {sources.map(opt => (
-                    <option key={opt.code} value={opt.code}>{opt.name}</option>
+                    <option key={opt._id} value={opt._id}>{opt.name}</option>
                   ))}
                 </select>
               </div>

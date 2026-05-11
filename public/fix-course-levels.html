@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>课程等级修复工具</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      padding: 24px;
+      text-align: center;
+    }
+    .header h1 { font-size: 24px; margin-bottom: 8px; }
+    .header p { opacity: 0.9; font-size: 14px; }
+    
+    .content { padding: 24px; }
+    
+    .status {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .status.loading { background: #fef3c7; color: #92400e; display: block; }
+    .status.success { background: #d1fae5; color: #065f46; display: block; }
+    .status.error { background: #fee2e2; color: #991b1b; display: block; }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat {
+      background: #f3f4f6;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value { font-size: 28px; font-weight: bold; color: #4f46e5; }
+    .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    
+    .log {
+      background: #1f2937;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      display: none;
+    }
+    .log.show { display: block; }
+    
+    .course-list {
+      margin-top: 20px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .course-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .course-item:last-child { border-bottom: none; }
+    .course-item .title { flex: 1; color: #374151; }
+    .course-item .level { 
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      min-width: 100px;
+      text-align: center;
+    }
+    .course-item .level.old { background: #fee2e2; color: #991b1b; }
+    .course-item .level.new { background: #d1fae5; color: #065f46; }
+    .course-item .level.empty { background: #fef3c7; color: #92400e; }
+    
+    .section {
+      margin-top: 24px;
+    }
+    .section h3 {
+      font-size: 16px;
+      color: #374151;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #4f46e5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🛠️ 课程等级修复工具</h1>
+      <p>自动修复课程缺失的 level 字段</p>
+    </div>
+    
+    <div class="content">
+      <div id="status" class="status"></div>
+      
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="total">0</div>
+          <div class="stat-label">总课程数</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="fixed">0</div>
+          <div class="stat-label">已修复</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="skipped">0</div>
+          <div class="stat-label">跳过</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="errors">0</div>
+          <div class="stat-label">失败</div>
+        </div>
+      </div>
+      
+      <div class="btn-group">
+        <button class="btn" id="btnFix" onclick="fixCourseLevels()">🔧 一键修复所有课程</button>
+        <button class="btn" style="background: #6b7280;" onclick="checkData()">🔍 检查数据</button>
+        <button class="btn" style="background: #059669;" onclick="showLog()">📋 查看日志</button>
+      </div>
+      
+      <div id="log" class="log"></div>
+      
+      <div class="section">
+        <h3>📚 CAAC 体系课程预览</h3>
+        <div id="caacCourses" class="course-list"></div>
+      </div>
+      
+      <div class="section">
+        <h3>📚 RENSHE 体系课程预览</h3>
+        <div id="rensheCourses" class="course-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com';
+    
+    // CAAC source ID
+    const CAAC_SOURCE_ID = 'e35392d069fc521f0152e2c2537e32ad';
+    
+    let allCourses = [];
+    let logLines = [];
+    
+    function log(msg) {
+      const timestamp = new Date().toLocaleTimeString();
+      const line = `[${timestamp}] ${msg}`;
+      logLines.push(line);
+      console.log(line);
+    }
+    
+    function showLog() {
+      document.getElementById('log').classList.toggle('show');
+    }
+    
+    function setStatus(message, type) {
+      const el = document.getElementById('status');
+      el.textContent = message;
+      el.className = 'status ' + type;
+    }
+    
+    async function queryCollection(collection, query = {}, limit = 100) {
+      try {
+        const res = await fetch(API_BASE + '/db-init', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'query',
+            collection,
+            query,
+            limit
+          })
+        });
+        const data = await res.json();
+        return data.data || [];
+      } catch (e) {
+        log('查询失败: ' + e.message);
+        return [];
+      }
+    }
+    
+    async function updateDocument(collection, id, data) {
+      try {
+        const res = await fetch(API_BASE + '/db-init', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update',
+            collection,
+            id,
+            data
+          })
+        });
+        return await res.json();
+      } catch (e) {
+        log('更新失败: ' + e.message);
+        return { success: false, error: e.message };
+      }
+    }
+    
+    function inferLevel(title) {
+      if (!title) return null;
+      
+      // CAAC 等级
+      if (title.includes('视距内驾驶员')) return '视距内驾驶员';
+      if (title.includes('超视距驾驶员') || title.includes('机长')) return '超视距驾驶员';
+      if (title.includes('教员')) return '教员';
+      
+      // RENSHE 等级
+      if (title.includes('初级工')) return '初级工';
+      if (title.includes('中级工')) return '中级工';
+      if (title.includes('高级工')) return '高级工';
+      if (title.includes('技师') && !title.includes('高级技师')) return '技师';
+      if (title.includes('高级技师')) return '高级技师';
+      
+      return null;
+    }
+    
+    async function checkData() {
+      setStatus('正在检查数据...', 'loading');
+      log('开始检查数据...');
+      
+      allCourses = await queryCollection('courses', {}, 1000);
+      
+      log(`找到 ${allCourses.length} 个课程`);
+      
+      let caacCount = 0, rensheCount = 0, otherCount = 0;
+      let withLevel = 0, withoutLevel = 0;
+      
+      allCourses.forEach(c => {
+        if (c.level) withLevel++;
+        else withoutLevel++;
+        
+        if (c.sourceId === CAAC_SOURCE_ID) caacCount++;
+        else if (c.sourceCode === 'RENSHE' || c.title?.includes('无人机')) rensheCount++;
+        else otherCount++;
+      });
+      
+      log(`CAAC课程: ${caacCount}, RENSHE课程: ${rensheCount}, 其他: ${otherCount}`);
+      log(`有level字段: ${withLevel}, 无level字段: ${withoutLevel}`);
+      
+      // 显示 CAAC 课程
+      const caacCourses = allCourses.filter(c => c.sourceId === CAAC_SOURCE_ID);
+      renderCourseList('caacCourses', caacCourses);
+      
+      // 显示 RENSHE 课程
+      const rensheCourses = allCourses.filter(c => 
+        c.sourceCode === 'RENSHE' || 
+        (c.title && (
+          c.title.includes('无人机') ||
+          c.title.includes('工')
+        ) && c.sourceId !== CAAC_SOURCE_ID
+      );
+      renderCourseList('rensheCourses', rensheCourses.slice(0, 30));
+      
+      document.getElementById('total').textContent = allCourses.length;
+      
+      setStatus(`检查完成！共 ${allCourses.length} 个课程`, 'success');
+    }
+    
+    function renderCourseList(containerId, courses) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = courses.map(c => {
+        const level = c.level || '(未设置)';
+        const levelClass = c.level ? 'new' : 'empty';
+        return `
+          <div class="course-item">
+            <span class="title">${c.title || '未命名'}</span>
+            <span class="level ${levelClass}">${level}</span>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    async function fixCourseLevels() {
+      if (allCourses.length === 0) {
+        await checkData();
+      }
+      
+      setStatus('正在修复课程等级...', 'loading');
+      log('开始修复课程等级...');
+      
+      const btn = document.getElementById('btnFix');
+      btn.disabled = true;
+      
+      let fixed = 0, skipped = 0, errors = 0;
+      
+      for (const course of allCourses) {
+        const title = course.title || '';
+        const oldLevel = course.level || '';
+        const newLevel = inferLevel(title);
+        
+        if (!newLevel) {
+          log(`⚠️ 无法识别等级: ${title}`);
+          skipped++;
+          continue;
+        }
+        
+        if (oldLevel === newLevel) {
+          skipped++;
+          continue;
+        }
+        
+        log(`🔧 更新: ${title} [${oldLevel || '(空)'}] → [${newLevel}]`);
+        
+        const result = await updateDocument('courses', course._id, {
+          level: newLevel,
+          levelText: newLevel,
+          updatedAt: new Date().toISOString()
+        });
+        
+        if (result.success || result.code === 0) {
+          fixed++;
+          log(`  ✓ 成功`);
+        } else {
+          errors++;
+          log(`  ✗ 失败: ${result.message || result.error}`);
+        }
+        
+        // 延迟避免频率限制
+        await new Promise(r => setTimeout(r, 50));
+      }
+      
+      document.getElementById('fixed').textContent = fixed;
+      document.getElementById('skipped').textContent = skipped;
+      document.getElementById('errors').textContent = errors;
+      
+      log('='.repeat(50));
+      log(`修复完成! 总计: ${allCourses.length}, 修复: ${fixed}, 跳过: ${skipped}, 失败: ${errors}`);
+      
+      setStatus(`修复完成！已修复 ${fixed} 个课程`, 'success');
+      btn.disabled = false;
+      
+      // 重新检查数据
+      await checkData();
+    }
+    
+    // 页面加载时自动检查
+    window.onload = checkData;
+  </script>
+</body>
+</html>

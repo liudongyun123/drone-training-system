@@ -176,8 +176,9 @@ export default function AdminSources() {
         <div className="text-sm text-blue-800">
           <p className="font-medium">关于体系</p>
           <p className="mt-1">
-            体系用于区分不同的培训来源，如人社培训和CAAC培训。每个体系有独立的分类和等级体系。
-            新增课程或培训班时需要选择所属体系。
+            体系用于区分不同的培训来源，如人社培训、CAAC培训、国防教育等。每个体系有独立的分类和课程体系。
+            新增课程、培训班或分类时需要选择所属体系。
+            小程序端会动态从数据库加载所有启用的体系。
           </p>
         </div>
       </div>

@@ -1,7 +1,8 @@
 // pages/class-list/class-list.ts
 // 培训班列表页
 
-import { classApi, systemConfigApi } from '../../utils/api'
+import { classApi } from '../../utils/api'
+import { SourceService } from '../../utils/SourceService'
 import logger from '../../utils/logger'
 
 Page({
@@ -35,22 +36,23 @@ Page({
   // 加载体系配置
   async loadSources() {
     try {
-      const sources = await systemConfigApi.getSources()
+      const sources = await SourceService.getSources()
       if (sources && sources.length > 0) {
-        const sourceList = sources.map((s: any) => ({
+        const sourceList = sources.map((s) => ({
           key: s.code,
           name: s.name,
           icon: s.icon || '📚',
-          id: s._id || s.id || ''
+          id: s._id || ''
         }))
+        const defaultSource = sources[0]
         this.setData({
           sourceList,
-          currentSource: sources[0].code || 'RENSHE',
-          currentSourceId: sources[0]._id || sources[0].id || ''
+          currentSource: defaultSource.code || 'RENSHE',
+          currentSourceId: defaultSource._id || ''
         })
       }
     } catch (err) {
-      logger.error('培训班', '加载体系配置失败', err)
+      logger.error('[培训班列表] 加载体系配置失败', err)
     }
     this.loadCategories()
   },
@@ -58,11 +60,17 @@ Page({
   // 加载分类
   async loadCategories() {
     try {
-      const categories = await systemConfigApi.getCategories(this.data.currentSource)
-      const categoryNames = categories.map((c: any) => c.name || c)
+      const sourceId = this.data.currentSourceId
+      if (!sourceId) {
+        this.setData({ categories: [] })
+        return
+      }
+      
+      const categories = await SourceService.getCategories(sourceId)
+      const categoryNames = categories.map((c) => c.name)
       this.setData({ categories: categoryNames })
     } catch (err) {
-      logger.error('培训班', '加载分类失败', err)
+      logger.error('[培训班列表] 加载分类失败', err)
       this.setData({ categories: [] })
     }
     this.loadClassList()
@@ -72,21 +80,24 @@ Page({
     this.setData({ loading: true })
 
     try {
-      // 优先使用 _id 查询，如果没有则使用 code
-      const sourceId = this.data.currentSourceId || this.data.currentSource
+      const sourceId = this.data.currentSourceId
+      
+      if (!sourceId) {
+        logger.warn('[培训班列表] sourceId 为空')
+        this.setData({ classList: [], loading: false })
+        return
+      }
+      
       const filters: any = { page: 1, pageSize: 10, sourceId }
       
-      // 状态筛选
       if (this.data.currentStatus) {
         filters.status = this.data.currentStatus
       }
       
-      // 分类筛选
       if (this.data.currentCategory) {
         filters.category = this.data.currentCategory
       }
       
-      // 搜索关键词
       if (this.data.searchKeyword) {
         filters.keyword = this.data.searchKeyword
       }
@@ -99,7 +110,7 @@ Page({
         loading: false
       })
     } catch (err) {
-      logger.error('培训班', '加载培训班列表失败', err)
+      logger.error('[培训班列表] 加载培训班列表失败', err)
       this.setData({ loading: false })
     }
   },
@@ -110,8 +121,9 @@ Page({
     const nextPage = this.data.page + 1
 
     try {
-      // 优先使用 _id 查询，如果没有则使用 code
-      const sourceId = this.data.currentSourceId || this.data.currentSource
+      const sourceId = this.data.currentSourceId
+      if (!sourceId) return
+      
       const filters: any = { page: nextPage, pageSize: 10, sourceId }
       
       if (this.data.currentStatus) {
@@ -133,7 +145,7 @@ Page({
         hasMore: newClasses.length >= 10
       })
     } catch (err) {
-      logger.error('培训班', '加载更多失败', err)
+      logger.error('[培训班列表] 加载更多失败', err)
     }
   },
 
@@ -142,7 +154,7 @@ Page({
     const category = e.currentTarget.dataset.category
     this.setData({ 
       currentCategory: category,
-      currentStatus: ''  // 切换分类时重置状态
+      currentStatus: ''
     })
     this.loadClassList()
   },
@@ -157,7 +169,6 @@ Page({
   // 切换体系
   switchSource(e: any) {
     const sourceKey = e.currentTarget.dataset.source
-    // 找到对应的体系信息
     const sourceInfo = this.data.sourceList.find((s: any) => s.key === sourceKey)
     if (sourceKey !== this.data.currentSource && sourceInfo) {
       this.setData({ 

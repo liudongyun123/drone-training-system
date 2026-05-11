@@ -2,6 +2,7 @@ import React from 'react';
 import { useLearningPath } from '../hooks';
 import { ProgressRing } from '../components/LearningStats';
 import { LearningPathCard } from '../components/ProgressCard';
+import LazyImage from '@/components/LazyImage';
 
 interface LearningPathPageProps {
   /** 路径 ID */
@@ -70,7 +71,7 @@ export const LearningPathPage: React.FC<LearningPathPageProps> = ({ pathId }) =>
       {/* 页面头部 */}
       <header className="path-header">
         <div className="path-header__cover">
-          <img src={path.coverUrl} alt={path.name} />
+          <LazyImage src={path.coverUrl} alt={path.name} />
           <div className="path-header__level">{path.level}</div>
         </div>
         
@@ -134,7 +135,7 @@ export const LearningPathPage: React.FC<LearningPathPageProps> = ({ pathId }) =>
 
                 {/* 课程封面 */}
                 <div className="course-item__cover">
-                  <img src={course.coverUrl} alt={course.name} />
+                  <LazyImage src={course.coverUrl} alt={course.name} />
                 </div>
 
                 {/* 课程信息 */}

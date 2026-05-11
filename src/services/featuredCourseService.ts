@@ -1,157 +1,170 @@
 /**
- * 热门课程管理服务
- * 管理首页热门课程展示配置
+ * 首页配置服务 - Web端
+ * 从统一的 page_configs 集合读取配置
  */
-import { ensureInit } from '@/utils/cloudbase'
+import { dbService } from './cloudBaseService'
 
-// 热门课程配置集合
-const COLLECTION_NAME = 'featuredCourses'
-
-// 获取数据库实例
-async function getDb() {
-  await ensureInit()
-  const { getCloudBaseApp } = await import('@/utils/cloudbase')
-  const app = getCloudBaseApp()
-  return app.database()
-}
+// page_configs 集合的 section 名称（与小程序端统一）
+export const PAGE_SECTIONS = {
+  HOT_COURSES: 'courses',
+  ENROLLING_CLASSES: 'classes',
+  FEATURED_PATHS: 'learningPaths',
+} as const
 
 /**
- * 获取首页热门课程列表
+ * 获取首页热门课程配置
+ * @returns 课程ID列表
  */
 export async function getFeaturedCourses(): Promise<string[]> {
   try {
-    const db = await getDb()
-    const result = await db.collection(COLLECTION_NAME).doc('home-featured').get()
-    
-    if (result.code) {
-      console.error('获取热门课程失败:', result.code, result.message)
-      return []
-    }
-    
-    if (result.data && result.data.length > 0) {
-      return result.data[0].courseIds || []
+    // 查询 section = 'hotCourses' 的配置
+    const result = await dbService.where('page_configs', { section: PAGE_SECTIONS.HOT_COURSES })
+
+    if (result && result.length > 0) {
+      const config = result[0]
+      return config.data?.items?.map((item: any) => item.courseId || item.id).filter(Boolean) || []
     }
     return []
   } catch (error) {
-    console.error('获取热门课程失败:', error)
+    console.error('[featuredCourseService] 获取热门课程配置失败:', error)
     return []
   }
 }
 
 /**
- * 设置首页热门课程
+ * 获取首页招生班级配置
+ * @returns 班级ID列表
+ */
+export async function getFeaturedClasses(): Promise<string[]> {
+  try {
+    const result = await dbService.where('page_configs', { section: PAGE_SECTIONS.ENROLLING_CLASSES })
+
+    if (result && result.length > 0) {
+      const config = result[0]
+      return config.data?.items?.map((item: any) => item.classId || item.id).filter(Boolean) || []
+    }
+    return []
+  } catch (error) {
+    console.error('[featuredClassService] 获取招生班级配置失败:', error)
+    return []
+  }
+}
+
+/**
+ * 获取首页学习路径配置
+ * @returns 路径ID列表
+ */
+export async function getFeaturedPaths(): Promise<string[]> {
+  try {
+    const result = await dbService.where('page_configs', { section: PAGE_SECTIONS.FEATURED_PATHS })
+
+    if (result && result.length > 0) {
+      const config = result[0]
+      return config.data?.items?.map((item: any) => item.pathId || item.id).filter(Boolean) || []
+    }
+    return []
+  } catch (error) {
+    console.error('[featuredPathService] 获取学习路径配置失败:', error)
+    return []
+  }
+}
+
+/**
+ * 设置首页热门课程配置
  * @param courseIds 课程ID列表
  */
 export async function setFeaturedCourses(courseIds: string[]): Promise<boolean> {
   try {
-    const db = await getDb()
+    const items = courseIds.map((id, index) => ({ courseId: id, order: index }))
     
-    // 先尝试获取现有配置
-    const existing = await db.collection(COLLECTION_NAME).doc('home-featured').get()
+    // 先查询是否存在
+    const existing = await dbService.where('page_configs', { section: PAGE_SECTIONS.HOT_COURSES })
     
-    if (existing.data && existing.data.length > 0) {
-      // 更新现有配置
-      const result = await db.collection(COLLECTION_NAME).doc('home-featured').update({
-        data: {
-          courseIds,
-          updateTime: new Date().toISOString(),
-        }
+    if (existing && existing.length > 0) {
+      // 更新
+      return await dbService.update('page_configs', existing[0]._id, {
+        data: { items },
       })
-      
-      if (result.code) {
-        console.error('更新热门课程失败:', result)
-        return false
-      }
-      return true
     } else {
-      // 创建新配置
-      const result = await db.collection(COLLECTION_NAME).add({
-        data: {
-          _id: 'home-featured',
-          courseIds,
-          createTime: new Date().toISOString(),
-          updateTime: new Date().toISOString(),
-        }
+      // 创建
+      const result = await dbService.add('page_configs', {
+        section: PAGE_SECTIONS.HOT_COURSES,
+        data: { items },
       })
-      
-      if (result.code) {
-        console.error('创建热门课程配置失败:', result)
-        return false
-      }
-      return true
+      return !!result
     }
   } catch (error) {
-    console.error('设置热门课程失败:', error)
+    console.error('[featuredCourseService] 设置热门课程配置失败:', error)
     return false
   }
 }
 
 /**
- * 添加课程到热门列表
- * @param courseId 课程ID
+ * 设置首页招生班级配置
+ * @param classIds 班级ID列表
  */
-export async function addFeaturedCourse(courseId: string): Promise<boolean> {
+export async function setFeaturedClasses(classIds: string[]): Promise<boolean> {
   try {
-    const currentIds = await getFeaturedCourses()
-    if (currentIds.includes(courseId)) {
-      return true // 已经存在
-    }
-    if (currentIds.length >= 8) {
-      console.warn('热门课程数量已达上限(8个)')
-      return false
-    }
-    return await setFeaturedCourses([...currentIds, courseId])
-  } catch (error) {
-    console.error('添加热门课程失败:', error)
-    return false
-  }
-}
-
-/**
- * 从热门列表移除课程
- * @param courseId 课程ID
- */
-export async function removeFeaturedCourse(courseId: string): Promise<boolean> {
-  try {
-    const currentIds = await getFeaturedCourses()
-    const newIds = currentIds.filter(id => id !== courseId)
-    return await setFeaturedCourses(newIds)
-  } catch (error) {
-    console.error('移除热门课程失败:', error)
-    return false
-  }
-}
-
-/**
- * 更新热门课程顺序
- * @param courseIds 新的课程ID顺序
- */
-export async function reorderFeaturedCourses(courseIds: string[]): Promise<boolean> {
-  try {
-    const db = await getDb()
-    const result = await db.collection(COLLECTION_NAME).doc('home-featured').update({
-      data: {
-        courseIds,
-        updateTime: new Date().toISOString(),
-      }
-    })
+    const items = classIds.map((id, index) => ({ classId: id, order: index }))
     
-    if (result.code) {
-      console.error('更新热门课程顺序失败:', result)
-      return false
+    const existing = await dbService.where('page_configs', { section: PAGE_SECTIONS.ENROLLING_CLASSES })
+    
+    if (existing && existing.length > 0) {
+      return await dbService.update('page_configs', existing[0]._id, {
+        data: { items },
+      })
+    } else {
+      const result = await dbService.add('page_configs', {
+        section: PAGE_SECTIONS.ENROLLING_CLASSES,
+        data: { items },
+      })
+      return !!result
     }
-    return true
   } catch (error) {
-    console.error('更新热门课程顺序失败:', error)
+    console.error('[featuredClassService] 设置招生班级配置失败:', error)
     return false
   }
 }
 
-// 导出服务对象
+/**
+ * 设置首页学习路径配置
+ * @param pathIds 路径ID列表
+ */
+export async function setFeaturedPaths(pathIds: string[]): Promise<boolean> {
+  try {
+    const items = pathIds.map((id, index) => ({ pathId: id, order: index }))
+    
+    const existing = await dbService.where('page_configs', { section: PAGE_SECTIONS.FEATURED_PATHS })
+    
+    if (existing && existing.length > 0) {
+      return await dbService.update('page_configs', existing[0]._id, {
+        data: { items },
+      })
+    } else {
+      const result = await dbService.add('page_configs', {
+        section: PAGE_SECTIONS.FEATURED_PATHS,
+        data: { items },
+      })
+      return !!result
+    }
+  } catch (error) {
+    console.error('[featuredPathService] 设置学习路径配置失败:', error)
+    return false
+  }
+}
+
+// 导出服务
 export const featuredCourseService = {
   getFeaturedCourses,
   setFeaturedCourses,
-  addFeaturedCourse,
-  removeFeaturedCourse,
-  reorderFeaturedCourses,
-};
+}
+
+export const featuredClassService = {
+  getFeaturedClasses,
+  setFeaturedClasses,
+}
+
+export const featuredPathService = {
+  getFeaturedPaths,
+  setFeaturedPaths,
+}

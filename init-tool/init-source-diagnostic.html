@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>数据初始化工具</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+    .btn { padding: 12px 24px; margin: 10px 5px; cursor: pointer; font-size: 16px; }
+    .btn-primary { background: #007bff; color: white; border: none; }
+    .btn-danger { background: #dc3545; color: white; border: none; }
+    .btn-success { background: #28a745; color: white; border: none; }
+    pre { background: #f4f4f4; padding: 15px; overflow-x: auto; max-height: 400px; }
+    .status { margin: 20px 0; padding: 15px; border-radius: 5px; }
+    .status-ok { background: #d4edda; color: #155724; }
+    .status-error { background: #f8d7da; color: #721c24; }
+    .status-pending { background: #fff3cd; color: #856404; }
+  </style>
+</head>
+<body>
+  <h1>🛠️ 数据初始化工具</h1>
+  
+  <p>环境ID: <strong id="envId">rcwljy-5ghmq2ex26764978</strong></p>
+  
+  <div id="statusArea"></div>
+  
+  <div id="actions">
+    <button class="btn btn-primary" onclick="initData()">🚀 执行初始化 (init)</button>
+    <button class="btn btn-danger" onclick="clearData()">🗑️ 清空数据 (clear)</button>
+  </div>
+  
+  <h2>📋 执行日志</h2>
+  <pre id="log">等待操作...</pre>
+
+  <script>
+    const ENV_ID = 'rcwljy-5ghmq2ex26764978';
+    const FUNCTION_NAME = 'init-source-data';
+    
+    function log(msg) {
+      const logArea = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      logArea.textContent += `\n[${time}] ${msg}`;
+      logArea.scrollTop = logArea.scrollHeight;
+    }
+    
+    function showStatus(msg, type) {
+      document.getElementById('statusArea').innerHTML = 
+        `<div class="status status-${type}">${msg}</div>`;
+    }
+    
+    async function callFunction(action) {
+      log(`开始执行: ${action}`);
+      showStatus('执行中...', 'pending');
+      
+      try {
+        const url = `https://${ENV_ID}.service.tcloudbase.com/${FUNCTION_NAME}/main`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action })
+        });
+        
+        const data = await response.json();
+        log('响应: ' + JSON.stringify(data, null, 2));
+        
+        if (data.code === 0) {
+          showStatus('✅ 执行成功!', 'ok');
+        } else {
+          showStatus('❌ 执行失败: ' + (data.error || data.message), 'error');
+        }
+        
+        return data;
+      } catch (err) {
+        log('错误: ' + err.message);
+        showStatus('❌ 请求失败: ' + err.message, 'error');
+        return null;
+      }
+    }
+    
+    async function initData() {
+      if (!confirm('⚠️ 这将清空并重新创建 sources、categories、courses、classes、teachers 数据。\n\n是否继续?')) return;
+      await callFunction('init');
+    }
+    
+    async function clearData() {
+      if (!confirm('⚠️ 这将清空所有数据! 确认?')) return;
+      await callFunction('clear');
+    }
+  </script>
+</body>
+</html>

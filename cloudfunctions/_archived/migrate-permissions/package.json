@@ -1,9 +1,0 @@
-{
-  "name": "migrate-permissions",
-  "version": "1.0.0",
-  "description": "迁移已支付订单到 course_permissions",
-  "main": "index.js",
-  "dependencies": {
-    "tcb-admin-node": "^1.23.0"
-  }
-}

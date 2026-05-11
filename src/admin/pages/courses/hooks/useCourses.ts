@@ -99,8 +99,8 @@ export function useCourses() {
   const [sourcesLoading, setSourcesLoading] = useState(false);
 
   // 筛选状态
-  const [selectedSource, setSelectedSource] = useState<string>('');  // 体系的 code
-  const [selectedSourceId, setSelectedSourceId] = useState<string>('');  // 体系的 _id
+  const [selectedSource, setSelectedSource] = useState<string>('');  // 体系的 _id（用于查询）
+  const [selectedSourceId, setSelectedSourceId] = useState<string>('');  // 体系的 _id（别名，统一使用 _id）
 
   // 字典数据
   const { options: levelOptions, loading: levelsLoading } = useDictionary({ groupKey: 'courseLevels' });
@@ -147,11 +147,9 @@ export function useCourses() {
     try {
       // 构建查询条件
       const query: Record<string, any> = {};
-      // 优先使用 selectedSourceId（_id格式），如果没有则使用 selectedSource（code格式）
+      // 使用 selectedSourceId（体系 _id）
       if (selectedSourceId) {
         query.sourceId = selectedSourceId;
-      } else if (selectedSource) {
-        query.sourceId = selectedSource;
       }
       
       // 使用 adminApi（HTTP 方式）查询
@@ -170,7 +168,7 @@ export function useCourses() {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedSource, selectedSourceId]);
+  }, [page, selectedSourceId]);
 
   // 加载体系列表（新增）
   const loadSources = useCallback(async () => {
@@ -178,12 +176,18 @@ export function useCourses() {
     try {
       const result = await adminApi.listSources({ limit: 100 });
       setSources(result.data);
+      // 如果没有选择体系，自动选择第一个
+      if (!selectedSourceId && result.data.length > 0) {
+        const firstSource = result.data[0];
+        setSelectedSource(firstSource._id);
+        setSelectedSourceId(firstSource._id);
+      }
     } catch (error) {
       console.error('加载体系列表失败:', error);
     } finally {
       setSourcesLoading(false);
     }
-  }, []);
+  }, [selectedSourceId]);
 
   // 加载教师列表
   const loadTeachers = useCallback(async () => {
@@ -213,11 +217,17 @@ export function useCourses() {
 
   // 初始化加载
   useEffect(() => {
-    loadCourses();
+    loadSources();
     loadTeachers();
     loadCategories();
-    loadSources(); // 新增：加载体系列表
-  }, [loadCourses, loadTeachers, loadCategories, loadSources]);
+  }, []);
+
+  // 当体系加载完成后，加载课程
+  useEffect(() => {
+    if (selectedSourceId) {
+      loadCourses();
+    }
+  }, [selectedSourceId, page]);
 
   // 当教师列表加载完成后，如果正在编辑课程且 teacherId 为空，自动匹配
   useEffect(() => {
@@ -237,9 +247,12 @@ export function useCourses() {
   // 新增课程
   const handleAdd = useCallback(() => {
     setEditingCourse(null);
-    setFormData(initialCourseFormData);
+    setFormData({
+      ...initialCourseFormData,
+      sourceId: selectedSourceId || '',  // 自动使用当前筛选的体系
+    });
     setIsModalOpen(true);
-  }, []);
+  }, [selectedSourceId]);
 
   // 编辑课程
   const handleEdit = useCallback(
@@ -267,6 +280,8 @@ export function useCourses() {
         title: record.title || '',
         description: record.description || '',
         category: categoryValue || '基础入门',
+        categoryId: (record as any).categoryId || '',
+        sourceId: (record as any).sourceId || selectedSourceId || '',  // 保持原有的 sourceId
         level: record.level || '初级工',
         price: record.price || 0,
         originalPrice: record.originalPrice || 0,
@@ -279,7 +294,7 @@ export function useCourses() {
       });
       setIsModalOpen(true);
     },
-    [teachers, categories]
+    [teachers, categories, selectedSourceId]
   );
 
   // 删除课程
@@ -332,6 +347,7 @@ export function useCourses() {
           description: formData.description,
           category: formData.category,
           categoryId: categoryId,
+          sourceId: formData.sourceId || selectedSourceId,  // 新增：体系ID
           level: formData.level,
           price: Number(formData.price) || 0,
           originalPrice: Number(formData.originalPrice) || 0,

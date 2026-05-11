@@ -1,8 +1,0 @@
-{
-  "name": "create-missing-collections",
-  "version": "1.0.0",
-  "description": "创建缺失的数据库集合",
-  "dependencies": {
-    "wx-server-sdk": "~2.6.3"
-  }
-}

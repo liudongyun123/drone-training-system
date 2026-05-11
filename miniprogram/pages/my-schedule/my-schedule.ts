@@ -2,8 +2,7 @@
 // 我的日程页
 
 import { getMySchedules } from '../../utils/http'
-import { formatDate } from '../../utils/util'
-import { checkLogin } from '../../utils/util'
+import { formatDate, checkLogin, getPhone } from '../../utils/util'
 import logger from '../../utils/logger'
 
 Page({
@@ -49,33 +48,17 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const phone = wx.getStorageSync('phone') || ''
-      const userId = wx.getStorageSync('userId') || ''
+      // ★ 统一使用 phone 作为用户标识
+      const phone = getPhone() || ''
 
-      if (!phone && !userId) {
+      if (!phone) {
         this.setData({ loading: false, schedule: [], daySchedules: [] })
         return
       }
 
-      // 同时查询 phone 和 userId，然后合并结果
-      const promises = []
-      if (phone) {
-        promises.push(
-          getMySchedules({ userId: phone, classId: this.data.classId || undefined })
-            .then(r => r.data || [])
-            .catch(() => [])
-        )
-      }
-      if (userId) {
-        promises.push(
-          getMySchedules({ userId, classId: this.data.classId || undefined })
-            .then(r => r.data || [])
-            .catch(() => [])
-        )
-      }
-
-      const results = await Promise.all(promises)
-      const allSchedules = results.flat()
+      // ★ 统一使用 phone 查询
+      const result = await getMySchedules({ userId: phone, classId: this.data.classId || undefined })
+      const schedule = result.data || []
       
       // 去重
       const seen = new Set()

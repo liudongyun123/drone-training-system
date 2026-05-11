@@ -21,8 +21,11 @@ export default function AdminCourses() {
         page={hook.page}
         categories={hook.categories}
         sources={hook.sources}
-        selectedSource={hook.selectedSource}
-        onSourceChange={hook.setSelectedSource}
+        selectedSource={hook.selectedSourceId}
+        onSourceChange={(sourceId) => {
+          hook.setSelectedSource(sourceId);
+          hook.setSelectedSourceId(sourceId);
+        }}
         onSearch={hook.loadCourses}
         onPageChange={hook.setPage}
         onAdd={hook.handleAdd}

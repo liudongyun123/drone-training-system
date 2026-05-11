@@ -1,0 +1,9 @@
+{
+  "name": "init-source-data",
+  "version": "1.0.0",
+  "description": "数据重新初始化 - 使用统一ID格式",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
