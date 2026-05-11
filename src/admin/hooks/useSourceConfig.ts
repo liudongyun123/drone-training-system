@@ -3,7 +3,6 @@
 // 管理体系、分类、等级的动态加载和关联关系
 // ============================================================================
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { adminService } from '@/services/adminService';
 import { adminApi } from '@/services/adminApiService';
 
 // 类型定义

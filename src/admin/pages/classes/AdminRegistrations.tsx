@@ -10,9 +10,18 @@ import { enrollmentService } from '@/services';
 import type { Registration as Enrollment } from '@/types/registration';
 import {
   Search, User, Phone, BookOpen, CreditCard,
-  ChevronLeft, ChevronRight, Plus, AlertCircle, Calendar, RefreshCw,
+  ChevronLeft, ChevronRight, AlertCircle, RefreshCw,
   TrendingUp
 } from 'lucide-react';
+
+// 扩展的报名记录类型（支持动态字段）
+interface ExtendedEnrollment extends Enrollment {
+  userName?: string;
+  userId?: string;
+  paymentStatus?: string;
+  amount?: number;
+  enrollmentDate?: string;
+}
 
 // 状态标签
 const STATUS_LABELS: Record<string, { text: string; color: string }> = {
@@ -38,7 +47,7 @@ const SOURCE_LABELS: Record<string, { text: string; color: string }> = {
 };
 
 export default function AdminRegistrations() {
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [enrollments, setEnrollments] = useState<ExtendedEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [total, setTotal] = useState(0);
@@ -294,8 +303,7 @@ export default function AdminRegistrations() {
                             <User size={18} className="text-blue-600" />
                           </div>
                           <div>
-                            {/* @ts-expect-error - 兼容扩展字段 */}
-                            <div className="font-medium">{(enrollment as { userName?: string }).userName || (enrollment as { userId?: string }).userId || '-'}</div>
+                            <div className="font-medium">{enrollment.userName || enrollment.userId || '-'}</div>
                             <div className="text-sm text-gray-500 flex items-center gap-1">
                               <Phone size={12} />
                               {enrollment.phone || '-'}
@@ -315,10 +323,8 @@ export default function AdminRegistrations() {
                         </span>
                       </td>
                       <td>
-                        {/* @ts-expect-error - 兼容扩展字段 */}
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${PAYMENT_STATUS_LABELS[(enrollment as { paymentStatus?: string }).paymentStatus || 'unpaid']?.color || 'bg-gray-100 text-gray-600'}`}>
-                          {/* @ts-expect-error - 兼容扩展字段 */}
-                          {PAYMENT_STATUS_LABELS[(enrollment as { paymentStatus?: string }).paymentStatus || 'unpaid']?.text || (enrollment as { paymentStatus?: string }).paymentStatus || '-'}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${PAYMENT_STATUS_LABELS[enrollment.paymentStatus || 'unpaid']?.color || 'bg-gray-100 text-gray-600'}`}>
+                          {PAYMENT_STATUS_LABELS[enrollment.paymentStatus || 'unpaid']?.text || enrollment.paymentStatus || '-'}
                         </span>
                       </td>
                       <td>

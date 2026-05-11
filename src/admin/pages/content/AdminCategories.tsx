@@ -19,6 +19,25 @@ interface Source {
   icon?: string;
 }
 
+// 修正 adminService.list 返回类型
+interface AdminListResult<T = any> {
+  code: number;
+  data: {
+    list: T[];
+    total: number;
+    skip: number;
+    limit: number;
+  };
+  message?: string;
+}
+
+// CRUD 操作返回类型（包含可选的 message）
+interface AdminCRUDResult {
+  code: number;
+  message?: string;
+  data?: { id?: string };
+}
+
 const DEFAULT_SOURCES: Source[] = [
   { code: 'RENSHE', name: '人社培训' },
   { code: 'CAAC', name: 'CAAC培训' },
@@ -68,7 +87,7 @@ export default function AdminCategories() {
 
   const loadSources = async () => {
     try {
-      const result = await adminService.listSources({ limit: 100 });
+      const result = await adminService.listSources({ limit: 100 }) as AdminListResult<Source>;
       if (result.data?.list && result.data.list.length > 0) {
         setSources(result.data.list);
       }
@@ -80,7 +99,7 @@ export default function AdminCategories() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await adminService.list('categories', {}, { limit: 100, orderBy: 'sort', order: 'asc' });
+      const res = await adminService.list('categories', {}, { limit: 100, orderBy: 'sort', order: 'asc' }) as AdminListResult<CourseCategory>;
 
       if (res.code === 0 && Array.isArray(res.data?.list)) {
         const list = res.data.list;
@@ -151,7 +170,7 @@ export default function AdminCategories() {
       setSubmitting(true);
 
       if (editMode && editingId) {
-        const result = await adminService.update('categories', editingId, formData);
+        const result = await adminService.update('categories', editingId, formData) as AdminCRUDResult;
         if (result.code === 0) {
           toast.success('分类更新成功');
         } else {
@@ -165,7 +184,7 @@ export default function AdminCategories() {
           toast.error('分类编码已存在');
           return;
         }
-        const result = await adminService.add('categories', formData);
+        const result = await adminService.add('categories', formData) as AdminCRUDResult;
         if (result.code === 0) {
           toast.success('分类创建成功');
         } else {
@@ -186,7 +205,7 @@ export default function AdminCategories() {
 
   const handleDelete = async (id: string) => {
     try {
-      const result = await adminService.delete('categories', id);
+      const result = await adminService.delete('categories', id) as AdminCRUDResult;
       if (result.code === 0) {
         toast.success('分类删除成功');
         setDeleteConfirm(null);
