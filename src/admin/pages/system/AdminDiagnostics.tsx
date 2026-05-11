@@ -10,7 +10,7 @@ import {
   BookOpen, Users, Calendar, GraduationCap, FileText,
   CreditCard, Award, ClipboardList, Shield, MessageSquare,
   ScrollText, Bell, Wrench, Image, Layers, ShoppingCart,
-  Percent, LogIn, ChevronDown, ChevronUp
+  Percent, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 interface DiagnoseResult {
@@ -111,7 +111,7 @@ export default function AdminDiagnostics() {
         setCloudFunctionStatus('success');
       } else {
         setCloudFunctionStatus('error');
-        setCloudFunctionError(testResult.message || '云函数调用失败');
+        setCloudFunctionError((testResult as { message?: string }).message || '云函数调用失败');
       }
     } catch (error: any) {
       setCloudFunctionStatus('error');

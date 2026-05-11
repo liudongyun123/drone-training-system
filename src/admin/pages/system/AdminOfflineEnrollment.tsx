@@ -31,7 +31,6 @@ interface UserInfo {
 
 export default function AdminOfflineEnrollment() {
   // 状态
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -67,9 +66,9 @@ export default function AdminOfflineEnrollment() {
       const result = await orderService.list(
         { type: 'class', paymentMethod: { $in: ['offline', 'cash', 'transfer'] } },
         { page: 1, pageSize: 20 }
-      );
+      ) as unknown as { code: number; data: { list: any[] } };
       if (result?.code === 0) {
-        const list = result.data?.data?.list || result.data?.list || [];
+        const list = result.data?.list || [];
         setRecentEnrollments(list.slice(0, 10));
       }
     } catch (error) {
@@ -95,10 +94,10 @@ export default function AdminOfflineEnrollment() {
       // 使用 adminService 直接查询
       const result = await adminService.list('classes', {
         name: { $regex: searchKeyword }
-      }, { limit: 20 });
+      }, { limit: 20 }) as unknown as { code: number; data: { list: ClassInfo[] } };
 
       if (result?.code === 0) {
-        const list = result.data?.data?.list || result.data?.list || result.data || [];
+        const list = result.data?.list || [];
         setClasses(list);
       } else {
         setClasses([]);
@@ -124,7 +123,7 @@ export default function AdminOfflineEnrollment() {
       if (result?.success && result.data) {
         // ★ 使用正确的 memberId 字段（对应 members._id）
         setUserInfo({
-          phone: result.data.phone,
+          phone: result.data.phone || phone,
           name: result.data.name || (result.data as any).nickname || '',
           memberId: result.data._id || undefined,  // members._id 是 CloudBase 自动生成的 ID
         });

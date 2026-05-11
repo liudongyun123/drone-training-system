@@ -3,7 +3,7 @@
  * 仅限超级管理员 admin 用户使用
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, Lock, User, ArrowRight, Eye, EyeOff, Phone, Mail, MessageSquare } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
@@ -51,6 +51,7 @@ export default function AdminLogin() {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [countdown])
 
   // 发送验证码

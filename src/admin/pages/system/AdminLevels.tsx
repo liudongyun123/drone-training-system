@@ -26,7 +26,6 @@ interface Source {
 
 export default function AdminLevels() {
   const [levels, setLevels] = useState<Level[]>([]);
-  const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Level>>({});
@@ -55,7 +54,7 @@ export default function AdminLevels() {
       console.log('[AdminLevels] 直接 HTTP 请求结果:', testData);
       
       // 使用 adminService
-      const levelsResult = await adminService.list('levels', {}, { limit: 100 });
+      const levelsResult = await adminService.list('levels', {}, { limit: 100 }) as unknown as { data: { list: Level[] } };
       console.log('[AdminLevels] adminService 结果:', levelsResult);
       
       if (levelsResult.data?.list) {
@@ -93,11 +92,9 @@ export default function AdminLevels() {
 
     setSaving(true);
     try {
-      const source = sources.find(s => s.code === editForm.sourceCode);
-      
-      const levelData = {
+      const levelData: Record<string, any> = {
         sourceCode: editForm.sourceCode,
-        sourceId: source?._id || '',
+        sourceId: editForm.sourceId || '',
         name: editForm.name,
         code: editForm.code,
         description: editForm.description || '',

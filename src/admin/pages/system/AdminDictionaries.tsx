@@ -1,11 +1,10 @@
 // ============================================================================
 // 字典管理页面 - 可视化编辑所有状态标签、等级分类、类型配置
 // ============================================================================
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Settings, Plus, Edit, Trash2, Save, X, ChevronRight, AlertCircle } from 'lucide-react';
 import { useDictionary } from '../../hooks/useDictionary';
 import { useConfirm } from '../../hooks/useConfirm';
-import { DEFAULT_DICTIONARIES } from '@/services/dictionaryService';
 import type { LabelConfig, OptionItem } from '@/services/dictionaryService';
 
 // 字典分组元信息
@@ -194,7 +193,6 @@ export default function AdminDictionaries() {
                   <LearningPathConfigList
                     data={raw}
                     setHasChanges={setHasChanges}
-                    setEditForm={setEditForm}
                   />
                 ) : (
                   <ArrayConfigList
