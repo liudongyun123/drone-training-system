@@ -11,6 +11,7 @@ import { TeacherList } from './components/TeacherList';
 import { TeacherForm } from './components/TeacherForm';
 import { adminService } from '@/services/adminService';
 import type { Teacher, Schedule } from '@/types';
+import { formatTime } from '@/utils/dateUtils';
 
 export default function AdminTeachers() {
   const {

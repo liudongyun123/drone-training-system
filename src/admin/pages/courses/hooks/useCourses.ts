@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CloudAdminService } from '@/services/CloudAdminService';
 import { adminApi } from '@/services/adminApiService';
+import { courseService } from '@/services/database';
 import { useDictionary } from '@/admin/hooks/useDictionary';
 import { useConfirm } from '@/admin/hooks/useConfirm';
 import { toast } from '@/components/Toast';
@@ -130,7 +131,7 @@ export function useCourses() {
   const [videoDragActive, setVideoDragActive] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [pdfProgress, setPdfProgress] = useState(0);
-  const [pdfDragActive, setPdfDragActive] = useState(false);
+  const [pdfDragActive] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverProgress, setCoverProgress] = useState(0);
   const [coverDragActive, setCoverDragActive] = useState(false);
@@ -174,7 +175,7 @@ export function useCourses() {
   const loadSources = useCallback(async () => {
     setSourcesLoading(true);
     try {
-      const result = await adminApi.listSources({ limit: 100 });
+      const result = await adminApi.listSources<{ _id: string; name: string; code: string }>({ limit: 100 });
       setSources(result.data);
       // 如果没有选择体系，自动选择第一个
       if (!selectedSourceId && result.data.length > 0) {
@@ -206,7 +207,7 @@ export function useCourses() {
   const loadCategories = useCallback(async () => {
     setCategoriesLoading(true);
     try {
-      const result = await adminApi.listCategories({ status: 'active' }, { limit: 100 });
+      const result = await adminApi.listCategories<{ _id: string; name: string; code: string }>({ status: 'active' }, { limit: 100 });
       setCategories(result.data);
     } catch (error) {
       console.error('加载分类列表异常:', error);

@@ -56,7 +56,7 @@ export function useTeachers({ autoLoad = true }: UseTeachersOptions = {}): UseTe
         query.status = statusFilter;
       }
 
-      const result = await adminService.listTeachers({ page, pageSize, orderBy: 'createdAt', order: 'desc' }) as AdminListResult<Teacher>;
+      const result = await adminService.listTeachers({ page, pageSize, orderBy: 'createdAt', order: 'desc' }) as unknown as AdminListResult<Teacher>;
 
       let teacherList: Teacher[] = [];
 
