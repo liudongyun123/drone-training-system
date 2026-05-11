@@ -103,79 +103,77 @@ export default function MyOrdersPage() {
       try {
         // ★ 统一使用 phone 查询
         const query = { phone: phone };
-          
-          const regResult: any = await new Promise((resolve, reject) => {
-            app.callFunction({
-              name: 'admin',
-              data: {
-                action: 'list',
-                collection: 'registrations',
-                query: query
-              }
-            }).then(res => resolve(res)).catch(reject);
-          });
-          
-          const regResponse = regResult?.result || regResult;
-          const registrations = regResponse?.data || [];
-          console.log('[MyOrdersPage] 获取到报班记录:', registrations.length, '条', registrations);
-          
-          // 将报班记录转换为订单格式
-          for (const reg of registrations) {
-            // 通过 classId 查询班级详情，获取课程信息
-            let courseId = reg.courseId;
-            let courseName = reg.className || '培训班';
-            const courseCover = reg.classCover;
-            
-            if (reg.classId) {
-              try {
-                const classResult: any = await new Promise((resolve, reject) => {
-                  app.callFunction({
-                    name: 'admin',
-                    data: {
-                      action: 'get',
-                      collection: 'classes',
-                      docId: reg.classId
-                    }
-                  }).then(res => resolve(res)).catch(reject);
-                });
-                
-                const classResponse = classResult?.result || classResult;
-                const classData = classResponse?.data;
-                console.log('[MyOrdersPage] 班级详情:', classData);
-                
-                if (classData) {
-                  courseId = classData.courseId;
-                  courseName = reg.className || classData.name || '培训班';
-                  // 可以进一步查询课程详情获取封面图
-                }
-              } catch (e) {
-                console.error('[MyOrdersPage] 查询班级详情失败:', e);
-              }
+        
+        const regResult: any = await new Promise((resolve, reject) => {
+          app.callFunction({
+            name: 'admin',
+            data: {
+              action: 'list',
+              collection: 'registrations',
+              query: query
             }
-            
-            const enrollmentOrder: Order = {
-              id: `enrollment_${reg._id}`,
-              _id: `enrollment_${reg._id}`,
-              orderNo: `报名-${reg._id.slice(-6).toUpperCase()}`,
-              courseId: courseId,
-              courseName: courseName,
-              courseCover: courseCover,
-              price: 0,
-              total: 0,
-              status: reg.status === 'confirmed' ? 'completed' : 'paid',
-              createdAt: reg.createdAt,
-              paidAt: reg.review?.reviewedAt,
-              isEnrollment: true,
-              className: reg.className,
-              studentName: reg.studentName,
-              source: reg.source,
-            };
-            processedOrders.push(enrollmentOrder);
-            console.log('[MyOrdersPage] 添加报班订单:', enrollmentOrder);
+          }).then(res => resolve(res)).catch(reject);
+        });
+        
+        const regResponse = regResult?.result || regResult;
+        const registrations = regResponse?.data || [];
+        console.log('[MyOrdersPage] 获取到报班记录:', registrations.length, '条', registrations);
+        
+        // 将报班记录转换为订单格式
+        for (const reg of registrations) {
+          // 通过 classId 查询班级详情，获取课程信息
+          let courseId = reg.courseId;
+          let courseName = reg.className || '培训班';
+          const courseCover = reg.classCover;
+          
+          if (reg.classId) {
+            try {
+              const classResult: any = await new Promise((resolve, reject) => {
+                app.callFunction({
+                  name: 'admin',
+                  data: {
+                    action: 'get',
+                    collection: 'classes',
+                    docId: reg.classId
+                  }
+                }).then(res => resolve(res)).catch(reject);
+              });
+              
+              const classResponse = classResult?.result || classResult;
+              const classData = classResponse?.data;
+              console.log('[MyOrdersPage] 班级详情:', classData);
+              
+              if (classData) {
+                courseId = classData.courseId;
+                courseName = reg.className || classData.name || '培训班';
+              }
+            } catch (e) {
+              console.error('[MyOrdersPage] 查询班级详情失败:', e);
+            }
           }
-        } catch (e) {
-          console.error('[MyOrdersPage] 查询报班记录失败:', e);
+          
+          const enrollmentOrder: Order = {
+            id: `enrollment_${reg._id}`,
+            _id: `enrollment_${reg._id}`,
+            orderNo: `报名-${reg._id.slice(-6).toUpperCase()}`,
+            courseId: courseId,
+            courseName: courseName,
+            courseCover: courseCover,
+            price: 0,
+            total: 0,
+            status: reg.status === 'confirmed' ? 'completed' : 'paid',
+            createdAt: reg.createdAt,
+            paidAt: reg.review?.reviewedAt,
+            isEnrollment: true,
+            className: reg.className,
+            studentName: reg.studentName,
+            source: reg.source,
+          };
+          processedOrders.push(enrollmentOrder);
+          console.log('[MyOrdersPage] 添加报班订单:', enrollmentOrder);
         }
+      } catch (e) {
+        console.error('[MyOrdersPage] 查询报班记录失败:', e);
       }
       
       // 按时间排序（最新的在前）
