@@ -5,6 +5,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { adminService } from '@/services/adminService';
 import type { Teacher } from '@/types';
 
+// 修正 adminService.list 返回类型
+interface AdminListResult<T = any> {
+  code: number;
+  data: {
+    list: T[];
+    total: number;
+    skip: number;
+    limit: number;
+  };
+  message?: string;
+}
+
 interface UseTeachersOptions {
   autoLoad?: boolean;
 }
@@ -44,9 +56,9 @@ export function useTeachers({ autoLoad = true }: UseTeachersOptions = {}): UseTe
         query.status = statusFilter;
       }
 
-      const result = await adminService.listTeachers({ page, pageSize, orderBy: 'createdAt', order: 'desc' });
+      const result = await adminService.listTeachers({ page, pageSize, orderBy: 'createdAt', order: 'desc' }) as AdminListResult<Teacher>;
 
-      let teacherList: any[] = [];
+      let teacherList: Teacher[] = [];
 
       if (result.data?.list && Array.isArray(result.data.list)) {
         teacherList = result.data.list;

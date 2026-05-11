@@ -9,10 +9,8 @@ import { useTeachers } from './hooks/useTeachers';
 import { useConfirm } from '@/admin/hooks/useConfirm';
 import { TeacherList } from './components/TeacherList';
 import { TeacherForm } from './components/TeacherForm';
-import { teacherService } from '@/services/teacherService';
+import { adminService } from '@/services/adminService';
 import type { Teacher, Schedule } from '@/types';
-import { parseDate, formatTime } from '@/utils/dateUtils';
-import { app as cloudbaseApp } from '@/utils/cloudbase';
 
 export default function AdminTeachers() {
   const {
@@ -22,12 +20,11 @@ export default function AdminTeachers() {
     total,
     page,
     pageSize,
-    keyword,
+    keyword: _keyword,
     statusFilter,
     setPage,
     setKeyword,
     setStatusFilter,
-    loadTeachers,
     saveTeacher,
     deleteTeacher,
   } = useTeachers();
@@ -254,7 +251,7 @@ export default function AdminTeachers() {
 
 // 排课弹窗组件
 function ScheduleModal({
-  teacherId,
+  teacherId: _teacherId,
   teacherName,
   isOpen,
   onClose,

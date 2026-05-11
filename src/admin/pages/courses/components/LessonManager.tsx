@@ -5,7 +5,6 @@ import {
   X,
   Save,
   Trash2,
-  List,
   Play,
   Plus,
   ArrowUp,

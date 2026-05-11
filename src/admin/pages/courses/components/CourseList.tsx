@@ -4,7 +4,6 @@
 import { User, TrendingUp, List, Save, Trash2 } from 'lucide-react';
 import AdminPageTemplate, { DataRecord } from '@/admin/pages/system/_AdminPageTemplate';
 import { StatusBadge } from '@/admin/components/StatusBadge';
-import { Select } from '@/components/Select';
 import type { Course } from '@/types';
 import React from 'react';
 

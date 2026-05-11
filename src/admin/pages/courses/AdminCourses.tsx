@@ -6,7 +6,6 @@ import CourseList from './components/CourseList';
 import CourseForm from './components/CourseForm';
 import LessonManager from './components/LessonManager';
 import CourseStats from './components/CourseStats';
-import { Select } from '@/components/Select';
 
 export default function AdminCourses() {
   const hook = useCourses();

@@ -100,7 +100,7 @@ export function TeacherList({
               {/* 擅长领域 */}
               <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-1">
-                  {(teacher.specialties || []).slice(0, 3).map((s, idx) => (
+                  {(teacher.specialties || []).slice(0, 3).map((s: string, idx: number) => (
                     <span key={idx} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
                       {s}
                     </span>
@@ -116,7 +116,7 @@ export function TeacherList({
               {/* 资质证书 */}
               <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-1">
-                  {(teacher.certifications || []).slice(0, 2).map((c, idx) => (
+                  {(teacher.certifications || []).slice(0, 2).map((c: string, idx: number) => (
                     <span key={idx} className="px-2 py-0.5 bg-green-50 text-green-700 rounded text-xs">
                       {c}
                     </span>
