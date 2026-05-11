@@ -63,7 +63,7 @@ export default function AdminProducts() {
       // 并行加载商品列表和分类列表
       const [productsResult, categoriesResult] = await Promise.all([
         adminService.listProducts({}, { limit: 100 }) as unknown as { data: { list: Product[] } },
-        adminService.listCategories({ status: 'active' }, { limit: 100 }) as unknown as { data: ProductCategory[] }
+        adminService.listCategories({ limit: 100 }) as unknown as { data: ProductCategory[] }
       ])
       
       // 映射数据字段（兼容不同命名）
@@ -77,7 +77,7 @@ export default function AdminProducts() {
       }))
       
       setProducts(mappedProducts)
-      setCategories(categoriesResult.data?.list || [])
+      setCategories(categoriesResult.data || [])
     } catch (err) {
       console.error('加载商品失败:', err)
     } finally {
@@ -97,7 +97,7 @@ export default function AdminProducts() {
         stock: product.stock,
         categoryId: product.categoryId || '',
         coverImage: product.coverImage || '',
-        status: product.status,
+        status: (product.status === 'onsale' ? 'active' : product.status === 'offsale' ? 'inactive' : product.status) as 'active' | 'inactive',
         isFeatured: product.isFeatured || false
       })
     } else {
@@ -251,7 +251,7 @@ export default function AdminProducts() {
 
       {/* 编辑对话框 */}
       <Modal
-        open={dialogOpen}
+        isOpen={dialogOpen}
         onClose={handleCloseDialog}
         title={editingProduct ? '编辑商品' : '新增商品'}
       >

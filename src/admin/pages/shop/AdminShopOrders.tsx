@@ -171,7 +171,7 @@ export default function AdminShopOrders() {
 
       {/* 详情对话框 */}
       <Modal
-        open={detailDialogOpen}
+        isOpen={detailDialogOpen}
         onClose={() => setDetailDialogOpen(false)}
         title="订单详情"
       >
@@ -238,7 +238,7 @@ export default function AdminShopOrders() {
 
       {/* 发货对话框 */}
       <Modal
-        open={shipDialogOpen}
+        isOpen={shipDialogOpen}
         onClose={() => setShipDialogOpen(false)}
         title="发货"
       >

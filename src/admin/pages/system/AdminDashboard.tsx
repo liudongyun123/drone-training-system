@@ -8,9 +8,9 @@ import {
   ChevronRight, MoreHorizontal, Video, MapPin
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Card, Button, Loading } from '@/components';
+import { Button, Loading } from '@/components';
 import { adminService } from '@/services/adminService';
-import { parseDate, formatDateStr } from '@/utils/dateUtils';
+import { parseDate } from '@/utils/dateUtils';
 
 interface DashboardStats {
   totalStudents: number;
@@ -87,10 +87,10 @@ export default function AdminDashboard() {
 
       // 通过 adminService HTTP 获取数据
       const [coursesResult, enrollmentsResult, ordersResult, membersResult] = await Promise.all([
-        adminService.listCourses({ limit: 1000 }),
-        adminService.listEnrollments({ limit: 1000 }),
-        adminService.listOrders({ limit: 1000 }),
-        adminService.listMembers({ limit: 1000 }),
+        adminService.listCourses({ limit: 1000 }) as unknown as { data: { list: any[] } },
+        adminService.listEnrollments({ limit: 1000 }) as unknown as { data: { list: any[] } },
+        adminService.listOrders({ limit: 1000 }) as unknown as { data: { list: any[] } },
+        adminService.listMembers({ limit: 1000 }) as unknown as { data: { list: any[] } },
       ]);
 
       console.log('[Dashboard] 获取到数据:', {

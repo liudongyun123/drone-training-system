@@ -157,8 +157,8 @@ export default function AdminPageTemplate({
                       <tr key={record._id || idx} className="hover:bg-slate-50 transition-colors">
                         {columns.map((col) => (
                           <td key={col.key} className="px-4 py-3 text-sm text-slate-600">
-                            // @ts-ignore
-                            {col.render ? col.render(record[col.key], record) : record[col.key] as string}
+                            {/* @ts-expect-error col.render 需要特定参数 */}
+                            {col.render ? col.render(record[col.key], record, idx) : String(record[col.key] ?? '')}
                           </td>
                         ))}
                         {(onEdit || onDelete || renderActions) && (
@@ -180,7 +180,7 @@ export default function AdminPageTemplate({
                                   {onDelete && (
                                     <button
                                       className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                      onClick={() => onDelete(record._id)}
+                                      onClick={() => onDelete(record._id || '')}
                                       title="删除"
                                     >
                                       <Trash2 className="w-4 h-4" />
