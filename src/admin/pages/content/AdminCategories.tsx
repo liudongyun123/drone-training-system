@@ -87,7 +87,7 @@ export default function AdminCategories() {
 
   const loadSources = async () => {
     try {
-      const result = await adminService.listSources({ limit: 100 }) as AdminListResult<Source>;
+      const result = await adminService.listSources({ limit: 100 }) as unknown as AdminListResult<Source>;
       if (result.data?.list && result.data.list.length > 0) {
         setSources(result.data.list);
       }
@@ -99,7 +99,7 @@ export default function AdminCategories() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await adminService.list('categories', {}, { limit: 100, orderBy: 'sort', order: 'asc' }) as AdminListResult<CourseCategory>;
+      const res = await adminService.list('categories', {}, { limit: 100, orderBy: 'sort', order: 'asc' }) as unknown as AdminListResult<CourseCategory>;
 
       if (res.code === 0 && Array.isArray(res.data?.list)) {
         const list = res.data.list;
@@ -134,7 +134,7 @@ export default function AdminCategories() {
 
   const handleOpenEdit = (category: CourseCategory) => {
     setEditMode(true);
-    setEditingId(category._id);
+    setEditingId(category._id ?? null);
     setFormData({
       name: category.name,
       code: category.code,
@@ -142,9 +142,8 @@ export default function AdminCategories() {
       description: category.description || '',
       sort: category.sort || 0,
       status: category.status,
-      sourceId: (category as any).sourceId || '',
+      sourceId: (category as { sourceId?: string }).sourceId || '',
     });
-    setEditingId(category._id || null);
     setShowModal(true);
   };
 
@@ -220,9 +219,10 @@ export default function AdminCategories() {
   };
 
   const handleToggleStatus = async (category: CourseCategory) => {
+    if (!category._id) return;
     const newStatus = category.status === 'active' ? 'disabled' : 'active';
     try {
-      const result = await adminService.update('categories', category._id, { status: newStatus });
+      const result = await adminService.update('categories', category._id, { status: newStatus }) as AdminCRUDResult;
       if (result.code === 0) {
         toast.success(newStatus === 'active' ? '分类已启用' : '分类已禁用');
         loadData();
@@ -236,12 +236,14 @@ export default function AdminCategories() {
   };
 
   const handleMoveSort = async (category: CourseCategory, direction: 'up' | 'down') => {
+    if (!category._id) return;
     const idx = categories.findIndex(c => c._id === category._id);
     if (idx === -1) return;
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= categories.length) return;
 
     const swapCategory = categories[swapIdx];
+    if (!swapCategory._id) return;
     try {
       await Promise.all([
         adminService.update('categories', category._id, { sort: swapCategory.sort || swapIdx }),
@@ -257,7 +259,8 @@ export default function AdminCategories() {
   // 过滤分类
   const filteredCategories = categories.filter(c => {
     const matchSearch = !searchQuery || c.name.includes(searchQuery) || c.code.includes(searchQuery)
-    const matchSource = !sourceFilter || c.sourceId === sourceFilter
+    const catSourceId = (c as { sourceId?: string }).sourceId
+    const matchSource = !sourceFilter || catSourceId === sourceFilter
     return matchSearch && matchSource
   })
 

@@ -7,7 +7,7 @@ import { couponService } from '@/services/couponService';
 import { groupBuyService } from '@/services/groupBuyService';
 import {
   TicketPercent, Users, Plus, Search, Edit2, Trash2, Ban, X, Save,
-  Loader2, ChevronRight, Check, AlertTriangle
+  Loader2, AlertTriangle
 } from 'lucide-react';
 
 // 状态标签配置

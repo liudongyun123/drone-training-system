@@ -3,7 +3,7 @@
 // 功能：教师档案管理、排课管理、统计数据
 // ============================================================================
 import { useState } from 'react';
-import { Plus, Search, Calendar, BarChart3, X, Clock, Users, MapPin, Star } from 'lucide-react';
+import { Calendar, X, Clock, Users, MapPin, Star } from 'lucide-react';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { useTeachers } from './hooks/useTeachers';
 import { useConfirm } from '@/admin/hooks/useConfirm';
