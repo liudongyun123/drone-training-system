@@ -141,11 +141,6 @@ export default function AdminDashboard() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const todayEnrollments = enrollmentsList.filter((e: any) => {
-        const enrollDate = parseDate(e.createdAt);
-        return enrollDate !== null && enrollDate >= today;
-      });
-
       const todayOrders = ordersList.filter((o: any) => {
         const orderDate = parseDate(o.createdAt);
         return orderDate !== null && orderDate >= today;
@@ -220,8 +215,6 @@ export default function AdminDashboard() {
       });
 
       // 8. 生成真实最近活动（从数据库记录）
-      const activities: RecentActivity[] = [];
-      
       // 从最近的订单生成活动
       const recentOrders = ordersList
         .slice(0, 3)

@@ -157,7 +157,6 @@ export default function AdminPageTemplate({
                       <tr key={record._id || idx} className="hover:bg-slate-50 transition-colors">
                         {columns.map((col) => (
                           <td key={col.key} className="px-4 py-3 text-sm text-slate-600">
-                            {/* @ts-expect-error col.render 需要特定参数 */}
                             {col.render ? col.render(record[col.key], record, idx) : String(record[col.key] ?? '')}
                           </td>
                         ))}
