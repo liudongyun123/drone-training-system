@@ -6,7 +6,6 @@ import {
   Edit, Trash2, Search, BookOpen, Database, ChevronLeft, ChevronRight, Upload,
 } from 'lucide-react';
 import { useDictionary } from '@/admin/hooks/useDictionary';
-import { StatusBadge } from '@/admin/components/StatusBadge';
 import { useConfirm } from '@/admin/hooks/useConfirm';
 import QuestionImport from '@/components/admin/QuestionImport';
 import type { BankQuestion, QuestionBank } from '@/types';

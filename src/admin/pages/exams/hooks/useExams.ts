@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { examService, questionBankService } from '@/services/database';
 import { examService as examServiceDirect } from '@/services/examService';
 import { safeGetList, safeGetTotal } from '@/utils/safeData';
-import { useConfirm } from '@/admin/hooks/useConfirm';
 import type { Exam, QuestionBank, BankQuestion } from '@/types';
 
 // ==================== 试卷管理 ====================

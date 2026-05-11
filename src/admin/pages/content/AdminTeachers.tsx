@@ -100,7 +100,7 @@ export default function AdminTeachers() {
     setScheduleLoading(true);
     try {
       // 1. 先找到该教师负责的培训班（classes）
-      const classesResult = await adminService.list('classes', { teacherId }, { limit: 100 });
+      const classesResult = await adminService.list('classes', { teacherId }, { limit: 100 }) as unknown as { data: { list: any[] } };
       const classesList = classesResult.data?.list || [];
       
       const classIds = classesList.map((c: any) => c._id) || [];
@@ -115,7 +115,7 @@ export default function AdminTeachers() {
         const schedulesResult = await adminService.list('class_schedules', { 
           classId: { $in: classIds },
           date: date,
-        }, { orderBy: 'startTime', order: 'asc', limit: 100 });
+        }, { orderBy: 'startTime', order: 'asc', limit: 100 }) as unknown as { data: { list: any[] } };
         
         // 为排课添加班级名称
         schedules = (schedulesResult.data?.list || []).map((s: any) => ({

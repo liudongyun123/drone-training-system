@@ -4,7 +4,6 @@
 // 数据来源：orders 集合
 // ============================================================================
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useConfirm } from '@/admin/hooks/useConfirm';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { adminService } from '@/services/adminService';

@@ -175,7 +175,7 @@ export function useCourses() {
   const loadSources = useCallback(async () => {
     setSourcesLoading(true);
     try {
-      const result = await adminApi.listSources<{ _id: string; name: string; code: string }>({ limit: 100 });
+      const result = await adminApi.listSources({ limit: 100 }) as { data: { _id: string; name: string; code: string }[] };
       setSources(result.data);
       // 如果没有选择体系，自动选择第一个
       if (!selectedSourceId && result.data.length > 0) {
@@ -207,7 +207,7 @@ export function useCourses() {
   const loadCategories = useCallback(async () => {
     setCategoriesLoading(true);
     try {
-      const result = await adminApi.listCategories<{ _id: string; name: string; code: string }>({ status: 'active' }, { limit: 100 });
+      const result = await adminApi.listCategories({ status: 'active' }, { limit: 100 }) as { data: { _id: string; name: string; code: string }[] };
       setCategories(result.data);
     } catch (error) {
       console.error('加载分类列表异常:', error);
