@@ -240,11 +240,11 @@ export default function AdminClasses() {
     try {
       // 使用 adminApi 获取课程列表
       const coursesResult = await adminApi.listCourses({}, { limit: 100 });
-      setCourses(coursesResult.data);
+      setCourses((coursesResult.data || []) as Course[]);
       
       // 使用 adminApi 获取教师列表
       const teachersResult = await adminApi.listTeachers({ status: 'active' }, { limit: 100 });
-      setTeachers(teachersResult.data || []);
+      setTeachers((teachersResult.data || []) as Teacher[]);
     } catch (error) {
       console.error('加载关联数据失败:', error);
       // 出错时设置为空数组

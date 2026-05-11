@@ -21,6 +21,33 @@ const STATUS_LABELS: Record<string, { text: string; color: string }> = {
   refunded: { text: '已退款', color: 'bg-purple-100 text-purple-700' },
 };
 
+// 班级类型定义
+interface ClassItem {
+  _id?: string;
+  id?: string;
+  name?: string;
+  className?: string;
+  title?: string;
+  status?: string;
+}
+
+// 订单类型定义
+interface OrderRecord {
+  _id?: string;
+  memberId?: string;
+  memberName?: string;
+  memberPhone?: string;
+  memberSource?: string;
+  memberLevel?: string;
+  courseName?: string;
+  className?: string;
+  userName?: string;
+  buyerName?: string;
+  phone?: string;
+  buyerPhone?: string;
+  [key: string]: unknown;
+}
+
 export default function AdminClassOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +75,7 @@ export default function AdminClassOrders() {
 
   // 开放权限弹窗
   const [grantModalOpen, setGrantModalOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Record<string, unknown>>({});
+  const [selectedOrder, setSelectedOrder] = useState<OrderRecord>({});
   const [granting, setGranting] = useState(false);
 
   // 线下报名弹窗
@@ -63,7 +90,7 @@ export default function AdminClassOrders() {
     amount: 0,
     notes: '',
   });
-  const [availableClasses, setAvailableClasses] = useState<unknown[]>([]);
+  const [availableClasses, setAvailableClasses] = useState<ClassItem[]>([]);
   const { confirm, ConfirmDialog } = useConfirm();
 
   // 加载所有学员信息用于关联查询
@@ -234,9 +261,9 @@ export default function AdminClassOrders() {
       if (result.code === 0) {
         const resultData = result.data as { data?: unknown[]; list?: unknown[] } | undefined;
         const list = Array.isArray(result.data) ? result.data : ((resultData?.data as unknown[]) || (resultData?.list as unknown[]) || []);
-        setAvailableClasses(list as never[]);
+        setAvailableClasses(list as ClassItem[]);
       } else {
-        console.error('[AdminClassOrders] 加载班级失败:', result.message);
+        console.error('[AdminClassOrders] 加载班级失败:', (result as { message?: string }).message || '未知错误');
       }
     } catch (error) {
       console.error('加载班级列表失败:', error);
@@ -322,7 +349,7 @@ export default function AdminClassOrders() {
       });
 
       if (orderResult.code !== 0) {
-        throw new Error(orderResult.message || '创建订单失败');
+        throw new Error((orderResult as { message?: string }).message || '创建订单失败');
       }
 
       const orderResultData = orderResult.data as { _id?: string; id?: string } | undefined;
@@ -666,32 +693,24 @@ export default function AdminClassOrders() {
         <div className="space-y-4">
           <div className="p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-gray-600 mb-2">确认要为以下学员开放培训权限？</p>
-            {/* @ts-expect-error selectedOrder 包含动态字段 */}
             <div className="font-medium text-gray-900 flex items-center gap-2">
-              {selectedOrder?.memberName || (selectedOrder as { userName?: string }).userName || (selectedOrder as { buyerName?: string }).buyerName || '未知学员'}
-              {/* @ts-expect-error selectedOrder 包含动态字段 */}
-              {getSourceBadge((selectedOrder as { memberSource?: string }).memberSource)}
+              <span>{selectedOrder.memberName || selectedOrder.userName || selectedOrder.buyerName || '未知学员'}</span>
+              {getSourceBadge(selectedOrder.memberSource)}
             </div>
             <div className="text-sm text-gray-500">
-              {/* @ts-expect-error selectedOrder 包含动态字段 */}
-              {selectedOrder?.memberPhone || (selectedOrder as { phone?: string }).phone || (selectedOrder as { buyerPhone?: string }).buyerPhone || '-'}
+              {selectedOrder.memberPhone || selectedOrder.phone || selectedOrder.buyerPhone || '-'}
             </div>
-            {/* @ts-expect-error selectedOrder 包含动态字段 */}
-            {selectedOrder?.memberId && (
+            {selectedOrder.memberId && (
               <div className="text-xs text-gray-400 mt-1">
-                {/* @ts-expect-error selectedOrder 包含动态字段 */}
-                会员ID: {(selectedOrder as { memberId: string }).memberId}
+                会员ID: {selectedOrder.memberId}
               </div>
             )}
             <div className="text-sm text-gray-500 mt-1">
-              {/* @ts-expect-error selectedOrder 包含动态字段 */}
-              班级：{selectedOrder?.courseName || (selectedOrder as { className?: string }).className || '-'}
+              班级：{selectedOrder.courseName || selectedOrder.className || '-'}
             </div>
-            {/* @ts-expect-error selectedOrder 包含动态字段 */}
-            {selectedOrder?.memberLevel && (
+            {selectedOrder.memberLevel && (
               <div className="text-sm mt-1">
-                {/* @ts-expect-error selectedOrder 包含动态字段 */}
-                学习等级：{getLevelBadge((selectedOrder as { memberLevel: string }).memberLevel)}
+                学习等级：{getLevelBadge(selectedOrder.memberLevel)}
               </div>
             )}
           </div>
