@@ -111,6 +111,7 @@ export default function AdminLearningProgress() {
     setShowDetailDrawer(true);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleUpdateProgress = async (_progressId: string, _data: any) => {
     // TODO: 实现进度更新功能
   };

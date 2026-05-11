@@ -728,8 +728,7 @@ export default function AdminFinance() {
                                   <div className="flex items-center gap-3">
                                     <span className="font-mono text-gray-500">{order.orderNo}</span>
                                     <span className="text-gray-700">
-                                      // @ts-ignore
-                                      {order.items?.[0]?.courseTitle || '-'}
+                                      {order.items?.[0]?.title || '-'}
                                     </span>
                                     {getStatusBadge(order.status)}
                                   </div>
@@ -750,8 +749,7 @@ export default function AdminFinance() {
                                   <div className="flex items-center gap-3">
                                     <span className="font-mono text-gray-500">{order.orderNo}</span>
                                     <span className="text-gray-700">
-                                      // @ts-ignore
-                                      {order.items?.[0]?.courseTitle || '-'}
+                                      {order.items?.[0]?.title || '-'}
                                     </span>
                                     {getStatusBadge(order.status)}
                                   </div>
@@ -800,8 +798,7 @@ export default function AdminFinance() {
                           <tr key={order._id} className="hover:bg-gray-50">
                             <td className="px-4 py-3 text-sm font-mono text-gray-600">{order.orderNo}</td>
                             <td className="px-4 py-3 text-sm text-gray-800">
-                              // @ts-ignore
-                              {order.items?.[0]?.courseTitle}
+                              {order.items?.[0]?.title}
                               {order.items && order.items.length > 1 && (
                                 <span className="text-gray-500"> +{order.items.length - 1}</span>
                               )}
@@ -957,7 +954,7 @@ export default function AdminFinance() {
                               </div>
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-600">{teacher.orderCount} 单</td>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-800">{formatMoney(teacher.totalRevenue)}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-gray-800">{formatMoney(teacher.totalRevenue || 0)}</td>
                             <td className="px-4 py-3 text-sm text-gray-600">{teacher.studentCount} 人</td>
                           </tr>
                         ))}

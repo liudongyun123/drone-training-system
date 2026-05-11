@@ -10,10 +10,10 @@
 import { useState, useEffect } from 'react'
 import { useConfirm } from '@/admin/hooks/useConfirm'
 import {
-  Search, Filter, RefreshCw, CheckCircle, XCircle, AlertCircle,
-  Clock, Calendar, User, Book, MapPin, FileText, Loader2,
-  ChevronDown, ChevronUp, Eye, Check, X, ArrowRight,
-  BarChart3, Download, Bell
+  Search, RefreshCw, CheckCircle, XCircle, AlertCircle,
+  Clock, Calendar, User, MapPin, FileText, Loader2,
+  Eye, Check, X, ArrowRight,
+  BarChart3
 } from 'lucide-react'
 import { transferService, TransferRequest, TransferStats } from '@/services/transferService'
 import { formatDateStr } from '@/utils/dateUtils'
@@ -267,7 +267,8 @@ export default function AdminTransfers() {
       }
 
       if (result.code === 0) {
-        await confirm({ title: '提示', message: `批量操作完成：成功 ${result.data?.successCount || 0}，失败 ${result.data?.failCount || 0}`, variant: 'info' })
+        const batchResult = result.data as { successCount?: number; failCount?: number } | undefined;
+        await confirm({ title: '提示', message: `批量操作完成：成功 ${batchResult?.successCount || 0}，失败 ${batchResult?.failCount || 0}`, variant: 'info' })
         setBatchModal({ show: false, type: 'approve', reply: '', loading: false })
         setSelectedIds([])
         setSelectAll(false)

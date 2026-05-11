@@ -9,7 +9,7 @@ import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { adminService } from '@/services/adminService';
 import { toast } from '@/components/Toast';
 import {
-  Search, Filter, Download, RefreshCw, Eye, CheckCircle,
+  Search, RefreshCw, Eye, CheckCircle,
   XCircle, Clock, CreditCard, BookOpen, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
@@ -50,7 +50,7 @@ export default function AdminCourseOrders() {
       const query: Record<string, any> = {};
       if (filterStatus) query.status = filterStatus;
       
-      const result = await adminService.list('orders', query, { page, pageSize, orderBy: 'createdAt', order: 'desc' });
+      const result = await adminService.list('orders', query, { page, pageSize, orderBy: 'createdAt', order: 'desc' }) as unknown as { code: number; data: { list: any[] } };
       if (result.code === 0) {
         // 过滤出课程订单（有 courseId 或 items）
         let list = result.data?.list || [];

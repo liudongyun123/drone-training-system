@@ -5,7 +5,6 @@
 import { useState, useEffect } from 'react'
 import { useConfirm } from '@/admin/hooks/useConfirm'
 import { Button, Input, TextArea, Modal } from '@/components'
-import { ConfirmDialog } from '@/components'
 import { Plus, Edit, Trash2 } from 'lucide-react'
 import { adminService } from '@/services/adminService'
 
@@ -63,12 +62,12 @@ export default function AdminProducts() {
       setLoading(true)
       // 并行加载商品列表和分类列表
       const [productsResult, categoriesResult] = await Promise.all([
-        adminService.listProducts({}, { limit: 100 }),
-        adminService.listCategories({ status: 'active' }, { limit: 100 })
+        adminService.listProducts({}, { limit: 100 }) as unknown as { data: { list: Product[] } },
+        adminService.listCategories({ status: 'active' }, { limit: 100 }) as unknown as { data: ProductCategory[] }
       ])
       
       // 映射数据字段（兼容不同命名）
-      const mappedProducts: Product[] = (productsResult.data?.list || []).map(p => ({
+      const mappedProducts: Product[] = (productsResult.data?.list || []).map((p: any) => ({
         ...p,
         name: p.name || p.title || '',
         title: p.title || p.name || '',
