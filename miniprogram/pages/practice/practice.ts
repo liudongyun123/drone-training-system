@@ -50,6 +50,8 @@ interface RecentPractice {
 Page({
   data: {
     questionBanks: [] as QuestionBank[],
+    displayBanks: [] as QuestionBank[], // 显示用的题库（限制数量）
+    displayExams: [] as MockExam[],    // 显示用的考试（限制数量）
     mockExams: [] as MockExam[],
     loading: true,
     refreshing: false,
@@ -124,6 +126,8 @@ Page({
 
       this.setData({
         questionBanks,
+        displayBanks: questionBanks.slice(0, 6),  // 预处理好显示数据
+        displayExams: mockExams.slice(0, 3),      // 预处理好显示数据
         mockExams,
         loading: false
       })

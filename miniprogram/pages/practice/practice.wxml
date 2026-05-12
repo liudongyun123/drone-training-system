@@ -86,13 +86,13 @@
           <text class="section-title">题库练习</text>
           <text class="section-desc">按知识点分类刷题</text>
         </view>
-        <text class="section-more" bindtap="viewAllBanks" wx:if="{{questionBanks.length > 6}}">全部 ></text>
+        <text class="section-more" bindtap="viewAllBanks" wx:if="{{displayBanks.length > 0 && displayBanks.length < questionBanks.length}}">全部 ></text>
       </view>
       
-      <view class="bank-grid" wx:if="{{questionBanks.length > 0}}">
+      <view class="bank-grid" wx:if="{{displayBanks.length > 0}}">
         <view 
           class="bank-card"
-          wx:for="{{questionBanks.slice(0, 6)}}"
+          wx:for="{{displayBanks}}"
           wx:key="_id"
           bindtap="startPractice"
           data-id="{{item._id}}"
@@ -124,13 +124,13 @@
           <text class="section-title">模拟考试</text>
           <text class="section-desc">限时模拟真实考试</text>
         </view>
-        <text class="section-more" bindtap="viewAllExams" wx:if="{{mockExams.length > 3}}">全部 ></text>
+        <text class="section-more" bindtap="viewAllExams" wx:if="{{displayExams.length > 0 && displayExams.length < mockExams.length}}">全部 ></text>
       </view>
       
-      <view class="exam-list" wx:if="{{mockExams.length > 0}}">
+      <view class="exam-list" wx:if="{{displayExams.length > 0}}">
         <view 
           class="exam-card"
-          wx:for="{{mockExams.slice(0, 3)}}"
+          wx:for="{{displayExams}}"
           wx:key="_id"
           bindtap="startMockExam"
           data-id="{{item._id}}"
