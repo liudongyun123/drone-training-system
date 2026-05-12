@@ -1,14 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Box,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Button,
   Dialog,
   DialogTitle,
@@ -531,7 +524,7 @@ export default function CouponManagement() {
             {couponForm.type !== 'free' && (
               <TextField
                 margin="dense"
-                label={couponForm.type === 'discount' ? '折扣比例(%)' : '优惠金额(¥)'}
+                label={(couponForm as { type?: string }).type === 'discount' ? '折扣比例(%)' : '优惠金额(¥)'}
                 fullWidth
                 type="number"
                 variant="outlined"
@@ -579,7 +572,7 @@ export default function CouponManagement() {
             </TextField>
 
             // @ts-ignore
-            {couponForm.courseLimit === 'specific' && (
+            {(couponForm as { courseLimit?: string }).courseLimit === 'specific' && (
               <TextField
                 margin="dense"
                 label="课程ID"
@@ -591,9 +584,7 @@ export default function CouponManagement() {
               />
             )}
 
-            // @ts-ignore
-            // @ts-ignore
-            {couponForm.courseLimit === 'category' && (
+            {(couponForm as { courseLimit?: string }).courseLimit === 'category' && (
               <TextField
                 margin="dense"
                 label="分类ID"

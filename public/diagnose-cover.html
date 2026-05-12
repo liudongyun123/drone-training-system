@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>封面数据诊断</title>
+  <script src="https://cos.branching.fun/tcb.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a2e; color: #eee; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { color: #00d4ff; }
+    .section { background: #16213e; padding: 20px; margin: 20px 0; border-radius: 10px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+    .stat-card { background: #0f3460; padding: 15px; border-radius: 8px; }
+    .stat-label { color: #888; font-size: 14px; }
+    .stat-value { font-size: 24px; font-weight: bold; color: #00d4ff; }
+    .btn { background: #00d4ff; color: #000; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 10px 5px 10px 0; }
+    .btn:hover { background: #00b8d4; }
+    pre { background: #0a0a1a; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; max-height: 400px; }
+    .error { color: #ff6b6b; }
+    .success { color: #4ecdc4; }
+    .warning { color: #ffe66d; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #333; }
+    th { background: #0f3460; color: #00d4ff; }
+    .field-cover { background: #2ecc71; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .field-missing { background: #e74c3c; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .sample-item { display: flex; gap: 15px; padding: 10px; border-bottom: 1px solid #333; }
+    .sample-cover { width: 120px; height: 80px; background: #333; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #888; font-size: 11px; text-align: center; overflow: hidden; }
+    .sample-cover img { max-width: 100%; max-height: 100%; object-fit: cover; }
+    .sample-info { flex: 1; }
+    .sample-title { font-weight: bold; margin-bottom: 5px; }
+    .sample-field { font-size: 12px; color: #888; margin: 2px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📷 封面数据诊断</h1>
+    
+    <div class="section">
+      <h2>检查说明</h2>
+      <p>此工具用于检查数据库中 classes 和 courses 表的封面图片字段配置情况。</p>
+      <button class="btn" onclick="loadData()">🔄 刷新数据</button>
+    </div>
+    
+    <div class="section">
+      <h2>统计概览</h2>
+      <div class="stats" id="stats">
+        <div class="stat-card"><div class="stat-label">加载中...</div></div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>Classes 表封面检查</h2>
+      <div id="classesList"></div>
+    </div>
+    
+    <div class="section">
+      <h2>Courses 表封面检查</h2>
+      <div id="coursesList"></div>
+    </div>
+    
+    <div class="section">
+      <h2>原始数据</h2>
+      <pre id="rawData"></pre>
+    </div>
+  </div>
+  
+  <script>
+    let allClasses = [];
+    let allCourses = [];
+    
+    // 初始化 CloudBase
+    tcb.init({
+      env: 'rcwljy-5ghmq2ex26764978'
+    });
+    
+    async function loadData() {
+      try {
+        const db = tcb.database();
+        
+        // 查询所有培训班
+        const classesResult = await db.collection('classes').limit(100).get();
+        allClasses = classesResult.data || [];
+        
+        // 查询所有课程
+        const coursesResult = await db.collection('courses').limit(100).get();
+        allCourses = coursesResult.data || [];
+        
+        updateStats();
+        renderClasses();
+        renderCourses();
+        
+        document.getElementById('rawData').textContent = JSON.stringify({
+          classesSample: allClasses.slice(0, 3),
+          coursesSample: allCourses.slice(0, 3)
+        }, null, 2);
+        
+      } catch (err) {
+        console.error('加载失败:', err);
+        document.getElementById('stats').innerHTML = `<div class="error">加载失败: ${err.message}</div>`;
+      }
+    }
+    
+    function updateStats() {
+      const classesWithCover = allClasses.filter(c => c.coverImage || c.cover).length;
+      const coursesWithCover = allCourses.filter(c => c.coverImage || c.cover).length;
+      
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">培训班总数</div>
+          <div class="stat-value">${allClasses.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">培训班有封面</div>
+          <div class="stat-value" style="color: ${classesWithCover > 0 ? '#2ecc71' : '#e74c3c'}">${classesWithCover}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">课程总数</div>
+          <div class="stat-value">${allCourses.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">课程有封面</div>
+          <div class="stat-value" style="color: ${coursesWithCover > 0 ? '#2ecc71' : '#e74c3c'}">${coursesWithCover}</div>
+        </div>
+      `;
+    }
+    
+    function renderClasses() {
+      if (allClasses.length === 0) {
+        document.getElementById('classesList').innerHTML = '<p class="warning">没有找到培训班数据</p>';
+        return;
+      }
+      
+      let html = `<table>
+        <tr>
+          <th>预览</th>
+          <th>名称</th>
+          <th>coverImage</th>
+          <th>cover</th>
+          <th>imageUrl</th>
+          <th>thumbnail</th>
+        </tr>`;
+      
+      allClasses.slice(0, 20).forEach(c => {
+        const hasCoverImage = !!c.coverImage;
+        const hasCover = !!c.cover;
+        const hasImageUrl = !!c.imageUrl;
+        const hasThumbnail = !!c.thumbnail;
+        
+        let preview = '<span class="field-missing">无封面</span>';
+        if (c.coverImage) preview = `<div class="sample-cover"><img src="${c.coverImage}" onerror="this.style.display='none';this.parentElement.textContent='加载失败'"/></div>`;
+        else if (c.cover) preview = `<div class="sample-cover"><img src="${c.cover}" onerror="this.style.display='none';this.parentElement.textContent='加载失败'"/></div>`;
+        
+        html += `<tr>
+          <td>${preview}</td>
+          <td>${c.name || '未知'}</td>
+          <td>${hasCoverImage ? `<span class="field-cover">有 ✓</span><br><small>${c.coverImage?.substring(0, 50)}...</small>` : '<span class="field-missing">无</span>'}</td>
+          <td>${hasCover ? `<span class="field-cover">有 ✓</span><br><small>${c.cover?.substring(0, 50)}...</small>` : '<span class="field-missing">无</span>'}</td>
+          <td>${hasImageUrl ? `<span class="field-cover">有 ✓</span>` : '<span class="field-missing">无</span>'}</td>
+          <td>${hasThumbnail ? `<span class="field-cover">有 ✓</span>` : '<span class="field-missing">无</span>'}</td>
+        </tr>`;
+      });
+      
+      html += '</table>';
+      document.getElementById('classesList').innerHTML = html;
+    }
+    
+    function renderCourses() {
+      if (allCourses.length === 0) {
+        document.getElementById('coursesList').innerHTML = '<p class="warning">没有找到课程数据</p>';
+        return;
+      }
+      
+      let html = `<table>
+        <tr>
+          <th>预览</th>
+          <th>标题</th>
+          <th>coverImage</th>
+          <th>cover</th>
+          <th>imageUrl</th>
+          <th>thumbnail</th>
+        </tr>`;
+      
+      allCourses.slice(0, 20).forEach(c => {
+        const hasCoverImage = !!c.coverImage;
+        const hasCover = !!c.cover;
+        const hasImageUrl = !!c.imageUrl;
+        const hasThumbnail = !!c.thumbnail;
+        
+        let preview = '<span class="field-missing">无封面</span>';
+        if (c.coverImage) preview = `<div class="sample-cover"><img src="${c.coverImage}" onerror="this.style.display='none';this.parentElement.textContent='加载失败'"/></div>`;
+        else if (c.cover) preview = `<div class="sample-cover"><img src="${c.cover}" onerror="this.style.display='none';this.parentElement.textContent='加载失败'"/></div>`;
+        
+        html += `<tr>
+          <td>${preview}</td>
+          <td>${c.title || '未知'}</td>
+          <td>${hasCoverImage ? `<span class="field-cover">有 ✓</span><br><small>${c.coverImage?.substring(0, 50)}...</small>` : '<span class="field-missing">无</span>'}</td>
+          <td>${hasCover ? `<span class="field-cover">有 ✓</span><br><small>${c.cover?.substring(0, 50)}...</small>` : '<span class="field-missing">无</span>'}</td>
+          <td>${hasImageUrl ? `<span class="field-cover">有 ✓</span>` : '<span class="field-missing">无</span>'}</td>
+          <td>${hasThumbnail ? `<span class="field-cover">有 ✓</span>` : '<span class="field-missing">无</span>'}</td>
+        </tr>`;
+      });
+      
+      html += '</table>';
+      document.getElementById('coursesList').innerHTML = html;
+    }
+    
+    loadData();
+  </script>
+</body>
+</html>

@@ -30,7 +30,13 @@ export const logger = {
     if (ENABLE_LOG) {
       console.log(formatLog(tag, message, data))
     }
+  },
+
+  warn(tag: string, message: string, data?: any): void {
+    if (ENABLE_LOG) {
+      console.warn(formatLog(tag, message, data))
+    }
   }
 }
 
-export default logger
+export default logger;

@@ -58,11 +58,11 @@ Page({
 
       // ★ 统一使用 phone 查询
       const result = await getMySchedules({ userId: phone, classId: this.data.classId || undefined })
-      const schedule = result.data || []
+      const scheduleData = result.data || []
       
       // 去重
       const seen = new Set()
-      const schedule = allSchedules.filter((s: any) => {
+      const schedule = scheduleData.filter((s: any) => {
         if (seen.has(s._id)) return false
         seen.add(s._id)
         return true

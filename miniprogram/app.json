@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/course-list/course-list",
+    "pages/search/search",
     "pages/course-detail/course-detail",
     "pages/my-learning/my-learning",
     "pages/class-list/class-list",

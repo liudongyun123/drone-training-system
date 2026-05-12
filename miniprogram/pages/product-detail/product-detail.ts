@@ -13,7 +13,8 @@ Page({
     selectedSpecs: {} as Record<string, string>,
     quantity: 1,
     showSkuPicker: false,
-    buyType: 'cart' as 'cart' | 'buy'
+    buyType: 'cart' as 'cart' | 'buy',
+    defaultCover: 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
   },
 
   productId: '',
@@ -27,16 +28,74 @@ Page({
   async loadProduct() {
     try {
       const product = await productApi.getDetail(this.productId)
+      
+      // 如果商品不存在，显示空状态
+      if (!product) {
+        this.setData({ product: null, loading: false })
+        return
+      }
+      
+      // 适配字段：数据库用 title/name, coverImage/cover
+      const adaptedProduct = {
+        ...product,
+        title: product.title || product.name || '未命名商品',
+        coverImage: product.coverImage || product.cover || '',
+        price: product.price || 0,
+        stock: product.stock || 99,
+        specs: product.specs || [],
+        skus: product.skus || []
+      }
       this.setData({
-        product,
+        product: adaptedProduct,
         loading: false,
-        skuList: product.skus || []
+        skuList: adaptedProduct.skus || []
       })
     } catch (err) {
       logger.error('商品', '加载商品失败', err)
       this.setData({ loading: false })
       wx.showToast({ title: '加载失败', icon: 'error' })
     }
+  },
+
+  // 直接加入购物车（无规格）
+  addToCartDirect() {
+    const product = this.data.product
+    if (!product) return
+
+    const cart = wx.getStorageSync('cart') || []
+    const existIndex = cart.findIndex((item: any) => item.productId === this.productId)
+
+    if (existIndex > -1) {
+      cart[existIndex].quantity += 1
+    } else {
+      cart.push({
+        productId: this.productId,
+        product: product,
+        sku: null,
+        specs: {},
+        quantity: 1
+      })
+    }
+
+    wx.setStorageSync('cart', cart)
+    wx.showToast({ title: '已加入购物车', icon: 'success' })
+  },
+
+  // 直接立即购买（无规格）
+  buyNowDirect() {
+    const product = this.data.product
+    if (!product) return
+
+    const orderItem = {
+      productId: this.productId,
+      product: product,
+      sku: null,
+      specs: {},
+      quantity: 1
+    }
+
+    wx.setStorageSync('checkoutItems', [orderItem])
+    wx.navigateTo({ url: '/pages/checkout/checkout?type=shop' })
   },
 
   // 打开 SKU 选择器

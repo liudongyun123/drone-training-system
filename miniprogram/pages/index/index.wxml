@@ -65,6 +65,8 @@
               mode="aspectFill"
               bindtap="onBannerTap"
               data-banner="{{item}}"
+              binderror="onBannerImageError"
+              data-index="{{index}}"
             />
           </swiper-item>
         </swiper>
@@ -72,7 +74,7 @@
         <image 
           wx:if="{{heroBanners.length === 0}}"
           class="hero-banner-image" 
-          src="https://picsum.photos/400/300?random=1" 
+          src="https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png" 
           mode="aspectFill"
         />
       </view>
@@ -177,6 +179,8 @@
               class="course-cover"
               src="{{item.coverImage || item.cover}}" 
               mode="aspectFill"
+              binderror="onCourseImageError"
+              data-index="{{index}}"
             />
             <view class="course-body">
               <view class="course-level-badge" wx:if="{{item.levelText}}">

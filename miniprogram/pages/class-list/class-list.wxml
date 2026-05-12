@@ -27,53 +27,43 @@
   <scroll-view class="category-bar" scroll-x enhanced show-scrollbar="{{false}}">
     <view class="category-scroll">
       <view 
-        class="category-item {{currentCategory === '' ? 'active' : ''}}"
+        class="category-item {{currentCategoryId === '' ? 'active' : ''}}"
         bindtap="switchCategory"
+        data-categoryid=""
         data-category=""
       >
         全部
       </view>
       <view 
-        class="category-item {{currentCategory === item ? 'active' : ''}}"
+        class="category-item {{currentCategoryId === item.id ? 'active' : ''}}"
         wx:for="{{categories}}"
-        wx:key="*this"
+        wx:key="id"
         bindtap="switchCategory"
-        data-category="{{item}}"
+        data-categoryid="{{item.id}}"
+        data-category="{{item.name}}"
       >
-        {{item}}
+        {{item.name}}
       </view>
     </view>
   </scroll-view>
 
-  <!-- 状态筛选（选中分类后显示） -->
-  <view class="status-bar" wx:if="{{currentCategory !== ''}}">
-    <view 
-      class="status-item {{currentStatus === '' ? 'active' : ''}}"
-      bindtap="switchStatus"
-      data-status=""
-    >
-      <text>全部</text>
+  <!-- 排序选项 -->
+  <view class="sort-bar">
+    <view class="sort-item {{currentSort === 'newest' ? 'active' : ''}}" bindtap="switchSort" data-sort="newest">
+      <text>最新</text>
+      <text class="sort-arrow" wx:if="{{currentSort === 'newest'}}">↓</text>
     </view>
-    <view 
-      class="status-item {{currentStatus === 'enrolling' ? 'active' : ''}}"
-      bindtap="switchStatus"
-      data-status="enrolling"
-    >
-      <text>招生中</text>
+    <view class="sort-item {{currentSort === 'startDate' ? 'active' : ''}}" bindtap="switchSort" data-sort="startDate">
+      <text>开班时间</text>
+      <text class="sort-arrow" wx:if="{{currentSort === 'startDate'}}">↓</text>
     </view>
-    <view 
-      class="status-item {{currentStatus === 'ongoing' ? 'active' : ''}}"
-      bindtap="switchStatus"
-      data-status="ongoing"
-    >
-      <text>进行中</text>
+    <view class="sort-item {{currentSort === 'price_asc' ? 'active' : ''}}" bindtap="switchSort" data-sort="price_asc">
+      <text>价格</text>
+      <text class="sort-arrow">↑</text>
     </view>
-    <view 
-      class="status-item {{currentStatus === 'ended' ? 'active' : ''}}"
-      bindtap="switchStatus"
-      data-status="ended"
-    >
-      <text>已结束</text>
+    <view class="sort-item {{currentSort === 'price_desc' ? 'active' : ''}}" bindtap="switchSort" data-sort="price_desc">
+      <text>价格</text>
+      <text class="sort-arrow">↓</text>
     </view>
   </view>
 
@@ -87,7 +77,13 @@
         bindtap="goToDetail"
         data-id="{{item._id}}"
       >
-        <image class="class-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
+        <image 
+          class="class-cover" 
+          src="{{item.coverImage || item.cover}}" 
+          mode="aspectFill" 
+          binderror="onImageError" 
+          data-index="{{index}}"
+        />
         <view class="class-info">
           <view class="class-header">
             <text class="class-level" wx:if="{{item.levelText}}">{{item.levelText}}</text>

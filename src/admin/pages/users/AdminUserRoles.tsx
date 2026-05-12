@@ -11,10 +11,10 @@ import { ADMIN_ROLE_OPTIONS, ROLE_LABELS, PERMISSION_LABELS } from '@/types/user
 import type { UserRoleRecord, SystemRole } from '@/types/userRole'
 import {
   Shield, Users, Plus, Edit2, Trash2, Search, RefreshCw,
-  X, Check, ChevronLeft, ChevronRight, MoreVertical,
+  X, ChevronLeft, ChevronRight, MoreVertical,
   Phone, User, Lock, Unlock, AlertCircle, CheckCircle,
   BookOpen, GraduationCap, Calendar, Award, DollarSign,
-  Layout, Megaphone, Settings, FileText
+  Megaphone, Settings, FileText
 } from 'lucide-react'
 
 // 权限分组 - 增加图标和颜色标识
@@ -83,12 +83,12 @@ export default function AdminUserRoles() {
         ]
       }
       
-      const result = await adminService.list('user_roles', query, { page, limit: pageSize })
+      const result = await adminService.list('user_roles', query, { page, limit: pageSize }) as unknown as { code: number; data: { list: UserRoleRecord[]; total: number } | UserRoleRecord[]; total?: number; message?: string }
       
       if (result.code === 0) {
-        const list = Array.isArray(result.data) ? result.data : (result.data?.data || result.data?.list || [])
+        const list = Array.isArray(result.data) ? result.data : ((result.data as { data?: UserRoleRecord[]; list?: UserRoleRecord[] })?.data || (result.data as { list?: UserRoleRecord[] })?.list || [])
         setRoles(list)
-        setTotal(result.total || list.length)
+        setTotal((result.data as { total?: number })?.total || result.total || list.length)
       } else {
         console.error('加载失败:', result.message)
       }
@@ -229,7 +229,7 @@ export default function AdminUserRoles() {
           await loadData(false)
           setTimeout(closeDialog, 1500)
         } else {
-          setFormError(result.message || '更新失败')
+          setFormError((result as unknown as { message?: string }).message || '更新失败')
         }
       } else {
         // 新增 - 使用云函数
@@ -250,7 +250,7 @@ export default function AdminUserRoles() {
           await loadData(false)
           setTimeout(closeDialog, 1500)
         } else {
-          setFormError(result.message || '创建失败')
+          setFormError((result as unknown as { message?: string }).message || '创建失败')
         }
       }
     } catch (error: any) {
@@ -264,7 +264,7 @@ export default function AdminUserRoles() {
     if (!ok) return
 
     try {
-      const result = await adminService.delete('user_roles', record._id!)
+      const result = await adminService.delete('user_roles', record._id!) as unknown as { code: number; message?: string }
       if (result.code === 0) {
         await loadData(false)
       } else {

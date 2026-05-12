@@ -5,9 +5,7 @@ import { useState, useEffect } from 'react';
 import { Globe, Save, RotateCcw, CheckCircle } from 'lucide-react';
 import {
   getAllConfigs,
-  getConfig,
   updateConfig,
-  clearSiteConfigCache,
 } from '@/services/siteConfigService';
 import type { SiteConfigItem } from '@/services/siteConfigService';
 import siteConfigService from '@/services/siteConfigService';

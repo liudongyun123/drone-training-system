@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
   Container,
-  Paper,
   TextField,
   Button,
   Typography,
@@ -27,7 +26,7 @@ export default function AdminLogin() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading] = useState(false)
   const [error, setError] = useState('')
   
   // 使用 useAuthStore 获取登录函数和状态

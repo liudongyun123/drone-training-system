@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -13,7 +13,6 @@ import {
   DialogActions,
   TextField,
   Paper,
-  CircularProgress,
   Snackbar,
   Alert,
   Chip,
@@ -24,7 +23,6 @@ import {
   InputAdornment,
   Tooltip,
   Checkbox,
-  Divider,
   LinearProgress,
 } from '@mui/material'
 import {
@@ -33,7 +31,6 @@ import {
   Add as AddIcon,
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon,
-  PlayCircle as PlayCircleIcon,
   Search as SearchIcon,
   MenuBook as MenuBookIcon,
   Preview as PreviewIcon,
@@ -156,7 +153,8 @@ export default function ChapterManagement() {
     try {
       setLoading(true)
       const result = await CloudChapterAdminService.getByCourseId(courseId)
-      let filteredData = result || []
+      const rawData: any[] = result || []
+      let filteredData = rawData
       
       if (searchText) {
         filteredData = filteredData.filter((c: any) =>
@@ -952,8 +950,7 @@ export default function ChapterManagement() {
                 <MenuItem value="">不关联测试</MenuItem>
                 {questionBanks.map((bank) => (
                   <MenuItem key={bank.id} value={bank.id}>
-                    // @ts-ignore
-                    {bank.title}
+                    {(bank as { title?: string }).title || (bank as { name?: string }).name || bank.id}
                   </MenuItem>
                 ))}
               </Select>

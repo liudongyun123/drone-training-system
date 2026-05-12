@@ -40,10 +40,9 @@
     <!-- 学习阶段列表 -->
     <view class="stages-container">
       <view
-        class="stage-section"
+        class="stage-section {{item.courses.length === 0 && item.classes.length === 0 ? 'stage-empty' : ''}}"
         wx:for="{{stages}}"
         wx:key="level"
-        wx:if="{{item.courses.length > 0 || item.classes.length > 0}}"
       >
         <!-- 阶段标题 -->
         <view class="stage-header">
@@ -117,10 +116,15 @@
             </view>
           </view>
         </view>
+
+        <!-- 空状态提示 -->
+        <view class="empty-tip" wx:if="{{item.courses.length === 0 && item.classes.length === 0}}">
+          <text class="empty-tip-text">课程即将上线，敬请期待</text>
+        </view>
       </view>
 
-      <!-- 空状态 -->
-      <view class="empty-state" wx:if="{{isAllEmpty && stages.length > 0}}">
+      <!-- 整体空状态（不应该显示，因为已有默认等级） -->
+      <view class="empty-state" wx:if="{{isAllEmpty && stages.length === 0}}">
         <text class="empty-icon">📭</text>
         <text class="empty-text">该分类暂无课程和培训班</text>
       </view>

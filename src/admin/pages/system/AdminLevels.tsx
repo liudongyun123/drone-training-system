@@ -6,6 +6,19 @@ import { Award, Plus, Edit, Trash2, X, Check, AlertCircle, Filter } from 'lucide
 import { useConfirm } from '../../hooks/useConfirm';
 import { adminService } from '@/services/adminService';
 
+// 体系配置
+const DEFAULT_SOURCES: Source[] = [
+  { code: 'RENSHE', name: '人社培训', icon: '🏛️' },
+  { code: 'CAAC', name: 'CAAC培训', icon: '✈️' },
+];
+
+interface Source {
+  _id?: string;
+  code: string;
+  name: string;
+  icon: string;
+}
+
 interface Level {
   _id?: string;
   sourceCode: string;      // 体系代码：RENSHE, CAAC
@@ -17,13 +30,6 @@ interface Level {
   status: 'active' | 'disabled';
 }
 
-interface Source {
-  _id?: string;
-  code: string;
-  name: string;
-  icon: string;
-}
-
 export default function AdminLevels() {
   const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +37,7 @@ export default function AdminLevels() {
   const [editForm, setEditForm] = useState<Partial<Level>>({});
   const [saving, setSaving] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string>(''); // 体系筛选
+  const [sources] = useState<Source[]>(DEFAULT_SOURCES);
   const { confirm, ConfirmDialog } = useConfirm();
 
   // 加载数据
@@ -186,7 +193,7 @@ export default function AdminLevels() {
         <div className="text-sm text-blue-800">
           <p className="font-medium">关于等级管理</p>
           <p className="mt-1">
-            等级是体系下的认证级别，如人社培训有初级工/中级工/高级工等级，
+            等级是体系下的认证级别，如人社培训有初级工/中级工/高级工/技师/高级技师五个等级，
             CAAC培训有视距内驾驶员/超视距驾驶员/教员等级。
             课程和培训班可以关联到相应的等级。
           </p>

@@ -12,9 +12,11 @@ Page({
     page: 1,
     hasMore: true,
     currentStatus: '',
-    currentCategory: '',
-    categories: [] as string[],
+    currentCategoryId: '',  // 使用 categoryId 过滤
+    currentCategoryName: '',  // 当前分类名称
+    categories: [] as { name: string; id: string }[],
     searchKeyword: '',
+    currentSort: 'newest',
     currentSource: 'RENSHE',  // 体系的 code（用于显示）
     currentSourceId: '',      // 体系的 _id（用于查询）
     sourceList: [
@@ -67,8 +69,9 @@ Page({
       }
       
       const categories = await SourceService.getCategories(sourceId)
-      const categoryNames = categories.map((c) => c.name)
-      this.setData({ categories: categoryNames })
+      // 保存 name 和 id 用于显示和过滤
+      const categoryList = categories.map((c) => ({ name: c.name, id: c._id || '' }))
+      this.setData({ categories: categoryList })
     } catch (err) {
       logger.error('[培训班列表] 加载分类失败', err)
       this.setData({ categories: [] })
@@ -94,15 +97,41 @@ Page({
         filters.status = this.data.currentStatus
       }
       
-      if (this.data.currentCategory) {
-        filters.category = this.data.currentCategory
+      // 使用 categoryId 过滤
+      if (this.data.currentCategoryId) {
+        filters.categoryId = this.data.currentCategoryId
       }
       
       if (this.data.searchKeyword) {
         filters.keyword = this.data.searchKeyword
       }
       
+      // 排序
+      switch (this.data.currentSort) {
+        case 'newest':
+          filters.sortBy = 'createdAt'
+          filters.sortOrder = 'desc'
+          break
+        case 'startDate':
+          filters.sortBy = 'startDate'
+          filters.sortOrder = 'asc'
+          break
+        case 'price_asc':
+          filters.sortBy = 'price'
+          filters.sortOrder = 'asc'
+          break
+        case 'price_desc':
+          filters.sortBy = 'price'
+          filters.sortOrder = 'desc'
+          break
+      }
+      
+      console.log('[培训班列表] 加载培训班, filters:', filters)
       const classList = await classApi.getList(filters)
+      console.log('[培训班列表] 获取到 classList, 长度:', classList.length)
+      if (classList.length > 0) {
+        console.log('[培训班列表] 第一个培训班的封面:', classList[0].coverImage || classList[0].cover)
+      }
       this.setData({
         classList,
         page: 1,
@@ -130,12 +159,32 @@ Page({
         filters.status = this.data.currentStatus
       }
       
-      if (this.data.currentCategory) {
-        filters.category = this.data.currentCategory
+      if (this.data.currentCategoryId) {
+        filters.categoryId = this.data.currentCategoryId
       }
       
       if (this.data.searchKeyword) {
         filters.keyword = this.data.searchKeyword
+      }
+      
+      // 排序
+      switch (this.data.currentSort) {
+        case 'newest':
+          filters.sortBy = 'createdAt'
+          filters.sortOrder = 'desc'
+          break
+        case 'startDate':
+          filters.sortBy = 'startDate'
+          filters.sortOrder = 'asc'
+          break
+        case 'price_asc':
+          filters.sortBy = 'price'
+          filters.sortOrder = 'asc'
+          break
+        case 'price_desc':
+          filters.sortBy = 'price'
+          filters.sortOrder = 'desc'
+          break
       }
       
       const newClasses = await classApi.getList(filters)
@@ -151,9 +200,11 @@ Page({
 
   // 切换分类
   switchCategory(e: any) {
-    const category = e.currentTarget.dataset.category
+    const categoryId = e.currentTarget.dataset.categoryid
+    const categoryName = e.currentTarget.dataset.category
     this.setData({ 
-      currentCategory: category,
+      currentCategoryId: categoryId || '',
+      currentCategoryName: categoryName || '',
       currentStatus: ''
     })
     this.loadClassList()
@@ -166,6 +217,14 @@ Page({
     this.loadClassList()
   },
 
+  // 切换排序
+  switchSort(e: any) {
+    const sort = e.currentTarget.dataset.sort
+    console.log('[培训班列表] 切换排序:', sort)
+    this.setData({ currentSort: sort })
+    this.loadClassList()
+  },
+
   // 切换体系
   switchSource(e: any) {
     const sourceKey = e.currentTarget.dataset.source
@@ -174,8 +233,10 @@ Page({
       this.setData({ 
         currentSource: sourceKey,
         currentSourceId: sourceInfo.id || '',
-        currentCategory: '',
+        currentCategoryId: '',
+        currentCategoryName: '',
         currentStatus: '',
+        currentSort: 'newest',
         page: 1,
         hasMore: true,
         classList: []
@@ -185,24 +246,28 @@ Page({
     }
   },
 
-  // 搜索
+  // 搜索 - 跳转到搜索页面
   goToSearch() {
-    wx.showModal({
-      title: '搜索培训班',
-      editable: true,
-      placeholderText: '请输入培训班名称',
-      success: (res) => {
-        if (res.confirm && res.content) {
-          this.setData({ searchKeyword: res.content })
-          this.loadClassList()
-        }
-      }
-    })
+    wx.navigateTo({ url: '/pages/search/search?type=class' })
   },
 
   // 跳转培训班详情
   goToDetail(e: any) {
     const id = e.currentTarget.dataset.id
     wx.navigateTo({ url: `/pages/class-detail/class-detail?id=${id}` })
+  },
+
+  // 图片加载失败处理
+  onImageError(e: any) {
+    const index = e.currentTarget.dataset.index
+    console.log('[培训班列表] 图片加载失败, index:', index)
+    const classList = this.data.classList
+    if (classList[index]) {
+      const defaultCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      classList[index].coverImage = defaultCover
+      classList[index].cover = defaultCover
+      console.log('[培训班列表] 已设置默认封面')
+      this.setData({ classList })
+    }
   }
 })

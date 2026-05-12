@@ -27,13 +27,14 @@
   <scroll-view class="category-bar" scroll-x enhanced show-scrollbar="{{false}}">
     <view class="category-scroll">
       <view 
-        class="category-item {{currentCategory === item ? 'active' : ''}}"
+        class="category-item {{currentCategoryId === item.id ? 'active' : ''}}"
         wx:for="{{categories}}"
-        wx:key="*this"
+        wx:key="id"
         bindtap="switchCategory"
-        data-category="{{item}}"
+        data-categoryid="{{item.id}}"
+        data-category="{{item.name}}"
       >
-        {{item}}
+        {{item.name}}
       </view>
     </view>
   </scroll-view>
@@ -68,7 +69,13 @@
         bindtap="goToDetail"
         data-id="{{item._id}}"
       >
-        <image class="course-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
+        <image 
+          class="course-cover" 
+          src="{{item.coverImage || item.cover}}" 
+          mode="aspectFill"
+          binderror="onImageError"
+          data-index="{{index}}"
+        />
         <view class="course-info">
           <view class="course-level-row" wx:if="{{item.levelText}}">
             <text class="course-level">{{item.levelText}}</text>

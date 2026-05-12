@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -47,7 +47,7 @@ interface Comment {
 export default function CommentManagement() {
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [, setDialogOpen] = useState(false)
   const [replyDialogOpen, setReplyDialogOpen] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null)

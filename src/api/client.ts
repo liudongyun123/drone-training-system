@@ -234,7 +234,9 @@ async function handleTokenExpired(originalConfig?: InternalAxiosRequestConfig) {
   try {
     // CloudBase 项目使用 CloudBase Auth，此处通过 HTTP API 刷新 Token
     const response = await refreshAccessToken(refreshToken)
-    const { access_token, refresh_token: newRefreshToken } = response.data
+    const tokenData = response.data as { access_token?: string; refresh_token?: string } | undefined
+    const access_token = tokenData?.access_token || ''
+    const newRefreshToken = tokenData?.refresh_token || ''
 
     localStorage.setItem('access_token', access_token)
     localStorage.setItem('refresh_token', newRefreshToken)

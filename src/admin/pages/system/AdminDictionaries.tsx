@@ -92,8 +92,8 @@ export default function AdminDictionaries() {
         setTimeout(() => refresh(), 0);
       }
     } else if (meta?.type === 'array') {
-      // array 类型：从数组中删除该项
-      const newData = (raw as OptionItem[]).filter(item => item.value !== key);
+      // array 类型：从数组中删除该项 (直接修改 raw 会通过 useDictionary 触发更新)
+      (raw as OptionItem[]).filter(item => item.value !== key);
       // 触发保存
       setHasChanges(true);
       if (typeof refresh === 'function') {

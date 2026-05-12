@@ -2,6 +2,7 @@
 // 学习路径详情页 - 按无人机类型展示课程和培训班
 
 import { SourceService } from '../../utils/SourceService'
+import { loadLevels, getLevelName } from '../../utils/api'
 import logger from '../../utils/logger'
 
 interface LearningPathStage {
@@ -37,26 +38,51 @@ Page<PageData>({
   },
 
   onLoad(options: any) {
-    const { id, name, source, sourceId } = options || {}
-    if (id) {
-      this.setData({ categoryId: id })
+    const { id, name, source } = options || {}
+    
+    logger.info('[学习路径] onLoad', { id, name, source })
+    
+    if (id || name) {
+      // id 格式是 "SOURCE:CODE"（如 "RENSHE:PLANT_PROTECTION"）
+      // name 是分类中文名称（如 "植保无人机"）
+      const sourceFromId = id ? id.split(':')[0] : source || 'RENSHE'
+      const decodedName = name ? decodeURIComponent(name) : (id.includes(':') ? this.codeToName(id.split(':')[1]) : id)
+      
+      wx.setNavigationBarTitle({ title: decodedName + '学习路径' })
+      
+      this.setData({ 
+        categoryId: id || '',
+        categoryName: decodedName,
+        source: sourceFromId
+      }, () => {
+        this.loadData()
+      })
+    } else {
+      // 没有参数时，显示默认等级进度（人社体系）
+      const levelOrder = ['初级工', '中级工', '高级工', '技师', '高级技师']
+      const stages = levelOrder.map((level, index) => ({ level, levelIndex: index, courses: [], classes: [] }))
+      this.setData({ loading: false, isAllEmpty: true, stages, categoryName: '未选择分类' })
     }
-    if (name) {
-      wx.setNavigationBarTitle({ title: decodeURIComponent(name) })
-      this.setData({ categoryName: decodeURIComponent(name) })
+  },
+
+  // 将分类代码转换为中文名称
+  codeToName(code: string): string {
+    const CATEGORY_CODE_MAP: Record<string, string> = {
+      'PLANT_PROTECTION': '植保无人机',
+      'AERIAL_PHOTOGRAPHY': '航拍',
+      'INSPECTION': '巡检',
+      'MULTI_ROTOR': '多旋翼',
+      'FIXED_WING': '固定翼',
+      'HELICOPTER': '直升机',
+      'DRONE_RACING': '竞速无人机',
+      'OTHER': '其他'
     }
-    if (source) {
-      this.setData({ source })
-    }
-    if (sourceId) {
-      this.setData({ sourceId })
-    }
-    this.loadData()
+    return CATEGORY_CODE_MAP[code?.toUpperCase()] || code || ''
   },
 
   async loadData() {
-    if (!this.data.categoryId && !this.data.categoryName) {
-      logger.warn('[学习路径] categoryId 和 categoryName 都为空，跳过数据加载')
+    const { categoryId, categoryName, source } = this.data
+    if (!categoryId && !categoryName) {
       this.setData({ loading: false, isAllEmpty: true })
       return
     }
@@ -64,79 +90,64 @@ Page<PageData>({
     this.setData({ loading: true })
 
     try {
-      const { categoryId, categoryName, sourceId, source } = this.data
+      // 从 categoryId 中提取 source（如 "RENSHE:PLANT_PROTECTION" -> "RENSHE"）
+      const sourceFromId = categoryId.includes(':') ? categoryId.split(':')[0] : source
       
-      logger.info('[学习路径] loadData', { categoryId, categoryName, sourceId, source })
-
-      // 只使用 categoryId 精确查询，确保数据隔离
-      // 不再使用 categoryName 回退查询，避免不同分类的数据混淆
+      // 使用 categoryId 过滤课程和培训班
+      // categoryId 格式: "RENSHE:PLANT_PROTECTION"
       const [courses, classes] = await Promise.all([
-        SourceService.getCourses(sourceId, { 
-          categoryId: categoryId,
-          limit: 100 
+        SourceService.getCourses(sourceFromId, { 
+          categoryId,  // 使用 categoryId 过滤
+          forceRefresh: true 
         }),
-        SourceService.getClasses(sourceId, { 
-          categoryId: categoryId,
-          limit: 100 
+        SourceService.getClasses(sourceFromId, { 
+          categoryId,  // 使用 categoryId 过滤
+          forceRefresh: true 
         })
       ])
 
-      logger.info('[学习路径] 数据加载结果', {
-        categoryId,
-        courses: courses?.length || 0,
-        classes: classes?.length || 0,
-        sampleCourses: courses?.slice(0, 2).map(c => ({ 
-          _id: c._id, 
-          title: c.title, 
-          categoryId: c.categoryId,
-          category: c.category,
-          level: c.level
-        }))
-      })
+      // 加载等级数据
+      await loadLevels()
 
       // 根据体系确定等级顺序
       const levelOrder = source === 'CAAC' 
         ? ['视距内驾驶员', '超视距驾驶员', '教员']
-        : source === 'NATIONAL_DEFENSE'
-        ? ['一级', '二级', '三级']
-        : ['初级工', '中级工', '高级工', '技师', '高级技师']
+        : ['初级工', '中级工', '高级工', '技师', '高级技师']  // RENSHE 完整等级名称
 
-      logger.info('[学习路径] 等级顺序', { levelOrder, source })
+      // 处理课程和培训班，添加 levelText
+      const processedCourses = (courses || []).map((course: any) => ({
+        ...course,
+        levelText: getLevelName(course.level) || course.level || ''
+      }))
+      const processedClasses = (classes || []).map((cls: any) => ({
+        ...cls,
+        levelText: getLevelName(cls.level) || cls.level || ''
+      }))
 
-      // 构建等级的阶段数据
+      // 按等级分组
       const stages = levelOrder.map((level, index) => {
-        const levelCourses = (courses || []).filter((course: any) => {
-          const courseLevel = course.levelText || course.level || course.levelName || ''
-          return courseLevel === level
+        const levelCourses = processedCourses.filter((course: any) => {
+          return course.levelText === level
         })
-
-        const levelClasses = (classes || []).filter((cls: any) => {
-          const classLevel = cls.levelText || cls.level || ''
-          return classLevel === level
+        const levelClasses = processedClasses.filter((cls: any) => {
+          return cls.levelText === level
         })
-
-        return {
-          level,
-          levelIndex: index,
-          courses: levelCourses,
-          classes: levelClasses
-        }
+        return { level, levelIndex: index, courses: levelCourses, classes: levelClasses }
       })
 
       const isAllEmpty = stages.every((s: LearningPathStage) => 
         s.courses.length === 0 && s.classes.length === 0
       )
 
-      logger.info('[学习路径] 阶段数据', { 
-        stagesCount: stages.length,
-        nonEmptyStages: stages.filter(s => s.courses.length > 0 || s.classes.length > 0).length,
-        isAllEmpty 
-      })
-
       this.setData({ stages, isAllEmpty, loading: false })
     } catch (err) {
-      logger.error('[学习路径] 加载数据失败', err)
-      this.setData({ loading: false })
+      logger.error('[学习路径] 加载失败', err)
+      // 确保即使加载失败也显示页面内容和分类名称
+      const levelOrder = source === 'CAAC' 
+        ? ['视距内驾驶员', '超视距驾驶员', '教员']
+        : ['初级工', '中级工', '高级工', '技师', '高级技师']
+      const stages = levelOrder.map((level, index) => ({ level, levelIndex: index, courses: [], classes: [] }))
+      this.setData({ stages, isAllEmpty: true, loading: false })
     }
   },
 

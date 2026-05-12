@@ -18,9 +18,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  List,
-  ListItem,
-  ListItemText,
   Checkbox,
   IconButton,
   Tooltip,
@@ -71,7 +68,7 @@ function TabPanel(props: TabPanelProps) {
 
 const AuthConfig: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [config, setConfig] = useState<SystemConfig | null>(null);
+  const [, setConfig] = useState<SystemConfig | null>(null);
   const [providers, setProviders] = useState<LoginProviderConfig[]>([]);
   const [roles, setRoles] = useState<RolePermission[]>([]);
   

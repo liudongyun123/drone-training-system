@@ -48,7 +48,7 @@ export default function AdminSources() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const result = await adminService.listSources({ limit: 100 });
+      const result = await adminService.listSources({ limit: 100 }) as unknown as { data: { list: Source[] } };
       if (result.data?.list && result.data.list.length > 0) {
         setSources(result.data.list);
       } else {

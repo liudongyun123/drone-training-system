@@ -136,7 +136,7 @@ export default function AdminDiagnostics() {
             ...module,
             status: 'error',
             count: 0,
-            error: result.message || '加载失败',
+            error: (result as unknown as { message?: string }).message || '加载失败',
           });
         }
       } catch (error: any) {

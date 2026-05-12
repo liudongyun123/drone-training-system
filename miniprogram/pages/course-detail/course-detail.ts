@@ -26,10 +26,15 @@ Page({
   async loadCourse(courseId: string) {
     this.setData({ loading: true })
     try {
+      console.log('[课程详情] 加载课程, courseId:', courseId)
+      
       const [course, lessons] = await Promise.all([
         courseApi.getDetail(courseId),
         courseApi.getLessons(courseId)
       ])
+      
+      console.log('[课程详情] 课程数据:', course)
+      console.log('[课程详情] 课时数据:', lessons)
       
       // 检查是否已购买 - 使用 phone 查询（购买时用手机号绑定）
       let hasPermission = false
@@ -108,6 +113,16 @@ Page({
     return {
       title: this.data.course?.title || '无人机培训课程',
       path: `/pages/course-detail/course-detail?id=${this.data.courseId}`
+    }
+  },
+
+  // 封面图片加载失败处理
+  onCoverError() {
+    const course = this.data.course
+    if (course) {
+      // 使用默认封面图
+      course.coverImage = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      this.setData({ course })
     }
   }
 })

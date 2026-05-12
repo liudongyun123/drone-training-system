@@ -12,7 +12,6 @@ import type {
   VerifyCodeResponse,
   LoginRequest,
   LoginResponse,
-  RefreshTokenRequest,
   RefreshTokenResponse,
   LogoutResponse,
   User

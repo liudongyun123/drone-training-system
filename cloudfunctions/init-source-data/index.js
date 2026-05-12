@@ -69,6 +69,23 @@ const CATEGORIES = [
 ]
 
 // ============================================
+// 等级数据
+// ============================================
+
+const LEVELS = [
+  // CAAC 等级
+  { _id: 'CAAC:VLOS', sourceId: 'CAAC', sourceCode: 'CAAC', name: '视距内驾驶员', code: 'VLOS', description: 'CAAC视距内驾驶员', sortOrder: 1, status: 'active' },
+  { _id: 'CAAC:BVLOS', sourceId: 'CAAC', sourceCode: 'CAAC', name: '超视距驾驶员', code: 'BVLOS', description: 'CAAC超视距驾驶员（机长）', sortOrder: 2, status: 'active' },
+  { _id: 'CAAC:INSTRUCTOR', sourceId: 'CAAC', sourceCode: 'CAAC', name: '教员', code: 'INSTRUCTOR', description: 'CAAC飞行教员', sortOrder: 3, status: 'active' },
+  // RENSHE 等级 - 完整五个等级
+  { _id: 'RENSHE:PRIMARY', sourceId: 'RENSHE', sourceCode: 'RENSHE', name: '初级工', code: 'PRIMARY', description: '人社初级工', sortOrder: 1, status: 'active' },
+  { _id: 'RENSHE:INTERMEDIATE', sourceId: 'RENSHE', sourceCode: 'RENSHE', name: '中级工', code: 'INTERMEDIATE', description: '人社中级工', sortOrder: 2, status: 'active' },
+  { _id: 'RENSHE:SENIOR', sourceId: 'RENSHE', sourceCode: 'RENSHE', name: '高级工', code: 'SENIOR', description: '人社高级工', sortOrder: 3, status: 'active' },
+  { _id: 'RENSHE:TECHNICIAN', sourceId: 'RENSHE', sourceCode: 'RENSHE', name: '技师', code: 'TECHNICIAN', description: '人社技师', sortOrder: 4, status: 'active' },
+  { _id: 'RENSHE:MASTER', sourceId: 'RENSHE', sourceCode: 'RENSHE', name: '高级技师', code: 'MASTER', description: '人社高级技师', sortOrder: 5, status: 'active' },
+]
+
+// ============================================
 // 课程数据
 // ============================================
 
@@ -196,7 +213,7 @@ const COURSES = [
     rating: 4.9,
     maxStudents: 12
   },
-  // RENSHE 植保
+  // RENSHE 植保 - 初级工
   {
     _id: 'RENSHE_PLANT_BASIC',
     sourceId: 'RENSHE',
@@ -205,7 +222,7 @@ const COURSES = [
     description: '农业植保无人机操作技能，零基础入门',
     price: 3500,
     originalPrice: 4500,
-    level: '初级',
+    level: '初级工',
     duration: 48,
     coverImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
     status: 'published',
@@ -214,6 +231,7 @@ const COURSES = [
     rating: 4.7,
     maxStudents: 30
   },
+  // RENSHE 植保 - 中级工
   {
     _id: 'RENSHE_PLANT_ADVANCED',
     sourceId: 'RENSHE',
@@ -222,7 +240,7 @@ const COURSES = [
     description: '植保无人机高级操作，复杂地形作业技能',
     price: 5500,
     originalPrice: 7000,
-    level: '中级',
+    level: '中级工',
     duration: 72,
     coverImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
     status: 'published',
@@ -231,7 +249,61 @@ const COURSES = [
     rating: 4.8,
     maxStudents: 25
   },
-  // RENSHE 航拍
+  // RENSHE 植保 - 高级工
+  {
+    _id: 'RENSHE_PLANT_SENIOR',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:PLANT_PROTECTION',
+    title: '植保无人机技师级培训',
+    description: '植保无人机技师级操作，综合管理、团队培训',
+    price: 8000,
+    originalPrice: 10000,
+    level: '高级工',
+    duration: 96,
+    coverImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
+    status: 'published',
+    instructor: '陈教员',
+    salesCount: 45,
+    rating: 4.9,
+    maxStudents: 15
+  },
+  // RENSHE 植保 - 技师
+  {
+    _id: 'RENSHE_PLANT_TECHNICIAN',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:PLANT_PROTECTION',
+    title: '植保无人机高级技师培训',
+    description: '植保无人机高级技师培训，技术研发、行业标准制定',
+    price: 12000,
+    originalPrice: 15000,
+    level: '技师',
+    duration: 120,
+    coverImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
+    status: 'published',
+    instructor: '陈教员',
+    salesCount: 12,
+    rating: 5.0,
+    maxStudents: 10
+  },
+  // RENSHE 植保 - 高级技师
+  {
+    _id: 'RENSHE_PLANT_MASTER',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:PLANT_PROTECTION',
+    title: '植保无人机高级技师研修班',
+    description: '行业顶尖技术研修，专家指导，资质认证',
+    price: 18000,
+    originalPrice: 22000,
+    level: '高级技师',
+    duration: 160,
+    coverImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
+    status: 'published',
+    instructor: '陈教员',
+    salesCount: 5,
+    rating: 5.0,
+    maxStudents: 8
+  },
+  // RENSHE 航拍 - 初级工
   {
     _id: 'RENSHE_PHOTO_BASIC',
     sourceId: 'RENSHE',
@@ -240,15 +312,16 @@ const COURSES = [
     description: '航拍摄影入门，构图技巧、基础飞行',
     price: 4500,
     originalPrice: 5500,
-    level: '初级',
+    level: '初级工',
     duration: 56,
-    coverImage: 'https://images.unsplash.com/photo-1473741049104-5d自治000bec?w=800',
+    coverImage: 'https://images.unsplash.com/photo-1473741049104-5d000000bec?w=800',
     status: 'published',
     instructor: '林教员',
     salesCount: 189,
     rating: 4.9,
     maxStudents: 25
   },
+  // RENSHE 航拍 - 中级工
   {
     _id: 'RENSHE_PHOTO_ADVANCED',
     sourceId: 'RENSHE',
@@ -257,7 +330,7 @@ const COURSES = [
     description: '专业航拍摄影，运镜技巧、后期处理',
     price: 6800,
     originalPrice: 8800,
-    level: '中级',
+    level: '中级工',
     duration: 80,
     coverImage: 'https://images.unsplash.com/photo-1473741049104-5d000000bec?w=800',
     status: 'published',
@@ -266,7 +339,61 @@ const COURSES = [
     rating: 4.8,
     maxStudents: 20
   },
-  // RENSHE 测绘
+  // RENSHE 航拍 - 高级工
+  {
+    _id: 'RENSHE_PHOTO_SENIOR',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:AERIAL_PHOTOGRAPHY',
+    title: '航拍无人机技师级培训',
+    description: '商业航拍实战，项目管理、客户沟通',
+    price: 9800,
+    originalPrice: 12000,
+    level: '高级工',
+    duration: 100,
+    coverImage: 'https://images.unsplash.com/photo-1473741049104-5d000000bec?w=800',
+    status: 'published',
+    instructor: '林教员',
+    salesCount: 35,
+    rating: 4.9,
+    maxStudents: 15
+  },
+  // RENSHE 航拍 - 技师
+  {
+    _id: 'RENSHE_PHOTO_TECHNICIAN',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:AERIAL_PHOTOGRAPHY',
+    title: '航拍无人机高级技师培训',
+    description: '航拍技术专家培养，影视制作、大型项目',
+    price: 15000,
+    originalPrice: 18000,
+    level: '技师',
+    duration: 140,
+    coverImage: 'https://images.unsplash.com/photo-1473741049104-5d000000bec?w=800',
+    status: 'published',
+    instructor: '林教员',
+    salesCount: 8,
+    rating: 5.0,
+    maxStudents: 10
+  },
+  // RENSHE 航拍 - 高级技师
+  {
+    _id: 'RENSHE_PHOTO_MASTER',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:AERIAL_PHOTOGRAPHY',
+    title: '航拍无人机高级技师研修班',
+    description: '行业顶级技术研修，导演视角、国际标准',
+    price: 22000,
+    originalPrice: 28000,
+    level: '高级技师',
+    duration: 180,
+    coverImage: 'https://images.unsplash.com/photo-1473741049104-5d000000bec?w=800',
+    status: 'published',
+    instructor: '林教员',
+    salesCount: 3,
+    rating: 5.0,
+    maxStudents: 5
+  },
+  // RENSHE 测绘 - 初级工
   {
     _id: 'RENSHE_MAPPING_BASIC',
     sourceId: 'RENSHE',
@@ -275,7 +402,7 @@ const COURSES = [
     description: '测绘无人机入门，正射影像、基础测量',
     price: 5800,
     originalPrice: 7500,
-    level: '初级',
+    level: '初级工',
     duration: 64,
     coverImage: 'https://images.unsplash.com/photo-149下6208066495-0908d6e0ae9a?w=800',
     status: 'published',
@@ -284,7 +411,43 @@ const COURSES = [
     rating: 4.6,
     maxStudents: 20
   },
-  // RENSHE 巡检
+  // RENSHE 测绘 - 高级工
+  {
+    _id: 'RENSHE_MAPPING_SENIOR',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAPPING',
+    title: '测绘无人机技师级培训',
+    description: '三维建模、点云处理、GIS系统集成',
+    price: 9800,
+    originalPrice: 12000,
+    level: '高级工',
+    duration: 100,
+    coverImage: 'https://images.unsplash.com/photo-149下6208066495-0908d6e0ae9a?w=800',
+    status: 'published',
+    instructor: '赵教员',
+    salesCount: 28,
+    rating: 4.8,
+    maxStudents: 15
+  },
+  // RENSHE 测绘 - 技师
+  {
+    _id: 'RENSHE_MAPPING_TECHNICIAN',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAPPING',
+    title: '测绘无人机高级技师培训',
+    description: '航测项目总监培养，大型测绘项目管理',
+    price: 15000,
+    originalPrice: 18000,
+    level: '技师',
+    duration: 140,
+    coverImage: 'https://images.unsplash.com/photo-149下6208066495-0908d6e0ae9a?w=800',
+    status: 'published',
+    instructor: '赵教员',
+    salesCount: 6,
+    rating: 4.9,
+    maxStudents: 10
+  },
+  // RENSHE 巡检 - 初级工
   {
     _id: 'RENSHE_INSPECTION_BASIC',
     sourceId: 'RENSHE',
@@ -293,7 +456,7 @@ const COURSES = [
     description: '电力巡检、基础设施巡检技能',
     price: 6000,
     originalPrice: 7800,
-    level: '初级',
+    level: '初级工',
     duration: 72,
     coverImage: 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800',
     status: 'published',
@@ -302,7 +465,25 @@ const COURSES = [
     rating: 4.7,
     maxStudents: 20
   },
-  // RENSHE 物流
+  // RENSHE 巡检 - 高级工
+  {
+    _id: 'RENSHE_INSPECTION_SENIOR',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:INSPECTION',
+    title: '巡检无人机技师级培训',
+    description: '红外热成像、精细化巡检、数据分析',
+    price: 10000,
+    originalPrice: 12500,
+    level: '高级工',
+    duration: 100,
+    coverImage: 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800',
+    status: 'published',
+    instructor: '周教员',
+    salesCount: 22,
+    rating: 4.8,
+    maxStudents: 15
+  },
+  // RENSHE 物流 - 初级工
   {
     _id: 'RENSHE_LOGISTICS_BASIC',
     sourceId: 'RENSHE',
@@ -311,7 +492,7 @@ const COURSES = [
     description: '物流配送无人机操作技能',
     price: 5500,
     originalPrice: 7000,
-    level: '初级',
+    level: '初级工',
     duration: 64,
     coverImage: 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?w=800',
     status: 'published',
@@ -320,7 +501,25 @@ const COURSES = [
     rating: 4.5,
     maxStudents: 20
   },
-  // RENSHE 安防
+  // RENSHE 物流 - 高级工
+  {
+    _id: 'RENSHE_LOGISTICS_SENIOR',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:LOGISTICS',
+    title: '物流无人机技师级培训',
+    description: '智慧物流系统、集群调度、运营管理',
+    price: 9500,
+    originalPrice: 12000,
+    level: '高级工',
+    duration: 96,
+    coverImage: 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?w=800',
+    status: 'published',
+    instructor: '吴教员',
+    salesCount: 18,
+    rating: 4.7,
+    maxStudents: 15
+  },
+  // RENSHE 安防 - 初级工
   {
     _id: 'RENSHE_SECURITY_BASIC',
     sourceId: 'RENSHE',
@@ -329,7 +528,7 @@ const COURSES = [
     description: '安防监控无人机操作技能',
     price: 5800,
     originalPrice: 7200,
-    level: '初级',
+    level: '初级工',
     duration: 64,
     coverImage: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=800',
     status: 'published',
@@ -338,7 +537,25 @@ const COURSES = [
     rating: 4.6,
     maxStudents: 20
   },
-  // RENSHE 装调检修
+  // RENSHE 安防 - 高级工
+  {
+    _id: 'RENSHE_SECURITY_SENIOR',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:SECURITY',
+    title: '安防无人机技师级培训',
+    description: '智能安防系统集成、应急响应指挥',
+    price: 10000,
+    originalPrice: 12500,
+    level: '高级工',
+    duration: 100,
+    coverImage: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=800',
+    status: 'published',
+    instructor: '郑教员',
+    salesCount: 15,
+    rating: 4.8,
+    maxStudents: 15
+  },
+  // RENSHE 装调检修 - 初级工
   {
     _id: 'RENSHE_MAINTENANCE_BASIC',
     sourceId: 'RENSHE',
@@ -347,7 +564,7 @@ const COURSES = [
     description: '无人机组装、调试、基础维修技能',
     price: 4800,
     originalPrice: 6000,
-    level: '初级',
+    level: '初级工',
     duration: 80,
     coverImage: 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?w=800',
     status: 'published',
@@ -355,6 +572,78 @@ const COURSES = [
     salesCount: 67,
     rating: 4.7,
     maxStudents: 25
+  },
+  // RENSHE 装调检修 - 中级工
+  {
+    _id: 'RENSHE_MAINTENANCE_INTERMEDIATE',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAINTENANCE',
+    title: '无人机装调检修工培训（中级）',
+    description: '飞控系统调校、复杂故障诊断维修',
+    price: 7000,
+    originalPrice: 8800,
+    level: '中级工',
+    duration: 100,
+    coverImage: 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?w=800',
+    status: 'published',
+    instructor: '王技师',
+    salesCount: 42,
+    rating: 4.8,
+    maxStudents: 20
+  },
+  // RENSHE 装调检修 - 高级工
+  {
+    _id: 'RENSHE_MAINTENANCE_SENIOR',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAINTENANCE',
+    title: '无人机装调检修工培训（高级）',
+    description: '整机系统集成、性能优化、检测认证',
+    price: 10000,
+    originalPrice: 12500,
+    level: '高级工',
+    duration: 120,
+    coverImage: 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?w=800',
+    status: 'published',
+    instructor: '王技师',
+    salesCount: 25,
+    rating: 4.9,
+    maxStudents: 15
+  },
+  // RENSHE 装调检修 - 技师
+  {
+    _id: 'RENSHE_MAINTENANCE_TECHNICIAN',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAINTENANCE',
+    title: '无人机装调检修工技师培训',
+    description: '技术培训、质量管理、标准制定',
+    price: 14000,
+    originalPrice: 17000,
+    level: '技师',
+    duration: 140,
+    coverImage: 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?w=800',
+    status: 'published',
+    instructor: '王技师',
+    salesCount: 8,
+    rating: 5.0,
+    maxStudents: 10
+  },
+  // RENSHE 装调检修 - 高级技师
+  {
+    _id: 'RENSHE_MAINTENANCE_MASTER',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAINTENANCE',
+    title: '无人机装调检修工高级技师研修班',
+    description: '行业顶尖技术专家培养，研发创新',
+    price: 20000,
+    originalPrice: 25000,
+    level: '高级技师',
+    duration: 180,
+    coverImage: 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?w=800',
+    status: 'published',
+    instructor: '王技师',
+    salesCount: 3,
+    rating: 5.0,
+    maxStudents: 5
   },
 ]
 
@@ -416,14 +705,14 @@ const CLASSES = [
     instructor: '王教官',
     enrolledStudents: 6
   },
-  // RENSHE 植保
+  // RENSHE 植保 - 初级工
   {
     _id: 'RENSHE_PLANT_CLASS_001',
     sourceId: 'RENSHE',
     categoryId: 'RENSHE:PLANT_PROTECTION',
-    name: '植保无人机操作培训班',
+    name: '植保无人机操作培训班（初级）',
     description: '农业植保无人机操作技能培训',
-    level: '初级',
+    level: '初级工',
     price: 4500,
     maxStudents: 30,
     startDate: '2026-05-20',
@@ -434,13 +723,14 @@ const CLASSES = [
     instructor: '陈教员',
     enrolledStudents: 18
   },
+  // RENSHE 植保 - 中级工
   {
     _id: 'RENSHE_PLANT_CLASS_002',
     sourceId: 'RENSHE',
     categoryId: 'RENSHE:PLANT_PROTECTION',
-    name: '植保无人机高级技能班',
+    name: '植保无人机高级技能班（中级）',
     description: '植保无人机高级操作，复杂地形作业',
-    level: '中级',
+    level: '中级工',
     price: 6500,
     maxStudents: 20,
     startDate: '2026-06-10',
@@ -451,14 +741,68 @@ const CLASSES = [
     instructor: '陈教员',
     enrolledStudents: 10
   },
-  // RENSHE 航拍
+  // RENSHE 植保 - 高级工
+  {
+    _id: 'RENSHE_PLANT_CLASS_003',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:PLANT_PROTECTION',
+    name: '植保无人机技师班（高级）',
+    description: '植保综合管理、团队培训、技术指导',
+    level: '高级工',
+    price: 9500,
+    maxStudents: 15,
+    startDate: '2026-07-01',
+    endDate: '2026-07-10',
+    location: '各地合作基地',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '陈教员',
+    enrolledStudents: 5
+  },
+  // RENSHE 植保 - 技师
+  {
+    _id: 'RENSHE_PLANT_CLASS_004',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:PLANT_PROTECTION',
+    name: '植保无人机技师资格班',
+    description: '技术研发、行业标准制定、资质认证',
+    level: '技师',
+    price: 14000,
+    maxStudents: 10,
+    startDate: '2026-08-01',
+    endDate: '2026-08-15',
+    location: '深圳总部',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '陈教员',
+    enrolledStudents: 3
+  },
+  // RENSHE 植保 - 高级技师
+  {
+    _id: 'RENSHE_PLANT_CLASS_005',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:PLANT_PROTECTION',
+    name: '植保无人机高级技师研修班',
+    description: '行业顶尖技术专家培养',
+    level: '高级技师',
+    price: 20000,
+    maxStudents: 8,
+    startDate: '2026-09-01',
+    endDate: '2026-09-20',
+    location: '深圳总部',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '陈教员',
+    enrolledStudents: 2
+  },
+  // RENSHE 航拍 - 初级工
   {
     _id: 'RENSHE_PHOTO_CLASS_001',
     sourceId: 'RENSHE',
     categoryId: 'RENSHE:AERIAL_PHOTOGRAPHY',
-    name: '航拍无人机操作培训班',
+    name: '航拍无人机操作培训班（初级）',
     description: '航拍摄影入门，构图技巧、基础飞行',
-    level: '初级',
+    level: '初级工',
     price: 5500,
     maxStudents: 25,
     startDate: '2026-05-25',
@@ -469,14 +813,50 @@ const CLASSES = [
     instructor: '林教员',
     enrolledStudents: 15
   },
-  // RENSHE 测绘
+  // RENSHE 航拍 - 中级工
+  {
+    _id: 'RENSHE_PHOTO_CLASS_002',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:AERIAL_PHOTOGRAPHY',
+    name: '航拍无人机高级技能班（中级）',
+    description: '专业航拍摄影，运镜技巧、后期处理',
+    level: '中级工',
+    price: 8000,
+    maxStudents: 20,
+    startDate: '2026-06-15',
+    endDate: '2026-06-25',
+    location: '深圳总部',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '林教员',
+    enrolledStudents: 8
+  },
+  // RENSHE 航拍 - 高级工
+  {
+    _id: 'RENSHE_PHOTO_CLASS_003',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:AERIAL_PHOTOGRAPHY',
+    name: '航拍无人机技师班（高级）',
+    description: '商业航拍实战、项目管理、客户沟通',
+    level: '高级工',
+    price: 11500,
+    maxStudents: 15,
+    startDate: '2026-07-10',
+    endDate: '2026-07-20',
+    location: '深圳总部',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '林教员',
+    enrolledStudents: 4
+  },
+  // RENSHE 测绘 - 初级工
   {
     _id: 'RENSHE_MAPPING_CLASS_001',
     sourceId: 'RENSHE',
     categoryId: 'RENSHE:MAPPING',
-    name: '测绘无人机操作培训班',
+    name: '测绘无人机操作培训班（初级）',
     description: '测绘无人机入门，正射影像、基础测量',
-    level: '初级',
+    level: '初级工',
     price: 6800,
     maxStudents: 20,
     startDate: '2026-06-05',
@@ -487,14 +867,32 @@ const CLASSES = [
     instructor: '赵教员',
     enrolledStudents: 8
   },
-  // RENSHE 巡检
+  // RENSHE 测绘 - 高级工
+  {
+    _id: 'RENSHE_MAPPING_CLASS_002',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAPPING',
+    name: '测绘无人机技师班（高级）',
+    description: '三维建模、点云处理、GIS系统集成',
+    level: '高级工',
+    price: 11500,
+    maxStudents: 15,
+    startDate: '2026-07-15',
+    endDate: '2026-07-25',
+    location: '深圳总部',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '赵教员',
+    enrolledStudents: 3
+  },
+  // RENSHE 巡检 - 初级工
   {
     _id: 'RENSHE_INSPECTION_CLASS_001',
     sourceId: 'RENSHE',
     categoryId: 'RENSHE:INSPECTION',
-    name: '巡检无人机操作培训班',
+    name: '巡检无人机操作培训班（初级）',
     description: '电力巡检、基础设施巡检技能',
-    level: '初级',
+    level: '初级工',
     price: 7000,
     maxStudents: 20,
     startDate: '2026-06-15',
@@ -505,14 +903,32 @@ const CLASSES = [
     instructor: '周教员',
     enrolledStudents: 5
   },
-  // RENSHE 装调检修
+  // RENSHE 巡检 - 高级工
+  {
+    _id: 'RENSHE_INSPECTION_CLASS_002',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:INSPECTION',
+    name: '巡检无人机技师班（高级）',
+    description: '红外热成像、精细化巡检、数据分析',
+    level: '高级工',
+    price: 11500,
+    maxStudents: 15,
+    startDate: '2026-07-20',
+    endDate: '2026-07-30',
+    location: '深圳总部',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '周教员',
+    enrolledStudents: 2
+  },
+  // RENSHE 装调检修 - 初级工
   {
     _id: 'RENSHE_MAINTENANCE_CLASS_001',
     sourceId: 'RENSHE',
     categoryId: 'RENSHE:MAINTENANCE',
     name: '无人机装调检修工培训班（初级）',
     description: '无人机组装、调试、基础维修技能',
-    level: '初级',
+    level: '初级工',
     price: 5800,
     maxStudents: 25,
     startDate: '2026-05-28',
@@ -522,6 +938,78 @@ const CLASSES = [
     status: 'enrolling',
     instructor: '王技师',
     enrolledStudents: 12
+  },
+  // RENSHE 装调检修 - 中级工
+  {
+    _id: 'RENSHE_MAINTENANCE_CLASS_002',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAINTENANCE',
+    name: '无人机装调检修工培训班（中级）',
+    description: '飞控系统调校、复杂故障诊断维修',
+    level: '中级工',
+    price: 8500,
+    maxStudents: 20,
+    startDate: '2026-06-20',
+    endDate: '2026-07-01',
+    location: '深圳总部',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '王技师',
+    enrolledStudents: 6
+  },
+  // RENSHE 装调检修 - 高级工
+  {
+    _id: 'RENSHE_MAINTENANCE_CLASS_003',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAINTENANCE',
+    name: '无人机装调检修工培训班（高级）',
+    description: '整机系统集成、性能优化、检测认证',
+    level: '高级工',
+    price: 12000,
+    maxStudents: 15,
+    startDate: '2026-07-25',
+    endDate: '2026-08-05',
+    location: '深圳总部',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '王技师',
+    enrolledStudents: 3
+  },
+  // RENSHE 装调检修 - 技师
+  {
+    _id: 'RENSHE_MAINTENANCE_CLASS_004',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAINTENANCE',
+    name: '无人机装调检修工技师班',
+    description: '技术培训、质量管理、标准制定',
+    level: '技师',
+    price: 16000,
+    maxStudents: 10,
+    startDate: '2026-08-20',
+    endDate: '2026-09-01',
+    location: '深圳总部',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '王技师',
+    enrolledStudents: 2
+  },
+  // RENSHE 装调检修 - 高级技师
+  {
+    _id: 'RENSHE_MAINTENANCE_CLASS_005',
+    sourceId: 'RENSHE',
+    categoryId: 'RENSHE:MAINTENANCE',
+    name: '无人机装调检修工高级技师研修班',
+    description: '行业顶尖技术专家培养，研发创新',
+    level: '高级技师',
+    price: 22000,
+    maxStudents: 5,
+    startDate: '2026-09-15',
+    endDate: '2026-09-30',
+    location: '深圳总部',
+    schedule: '全日制',
+    status: 'enrolling',
+    instructor: '王技师',
+    enrolledStudents: 1
   },
 ]
 
@@ -653,6 +1141,7 @@ exports.main = async (event, context) => {
       const results = {
         sources: await clearCollection('sources'),
         categories: await clearCollection('categories'),
+        levels: await clearCollection('levels'),
         courses: await clearCollection('courses'),
         classes: await clearCollection('classes'),
         teachers: await clearCollection('teachers'),
@@ -670,6 +1159,7 @@ exports.main = async (event, context) => {
       console.log('【步骤1】清空现有数据...')
       await clearCollection('sources')
       await clearCollection('categories')
+      await clearCollection('levels')
       await clearCollection('courses')
       await clearCollection('classes')
       await clearCollection('teachers')
@@ -684,8 +1174,13 @@ exports.main = async (event, context) => {
       const categoriesResult = await insertData('categories', CATEGORIES)
       console.log(`  Categories: ${categoriesResult.success}/${categoriesResult.total}`)
       
+      // 插入 Levels
+      console.log('【步骤4】插入 Levels...')
+      const levelsResult = await insertData('levels', LEVELS)
+      console.log(`  Levels: ${levelsResult.success}/${levelsResult.total}`)
+      
       // 插入 Teachers
-      console.log('【步骤4】插入 Teachers...')
+      console.log('【步骤5】插入 Teachers...')
       const teachersResult = await insertData('teachers', TEACHERS)
       console.log(`  Teachers: ${teachersResult.success}/${teachersResult.total}`)
       
@@ -693,7 +1188,7 @@ exports.main = async (event, context) => {
       const now = new Date().toISOString()
       
       // 插入 Courses
-      console.log('【步骤5】插入 Courses...')
+      console.log('【步骤6】插入 Courses...')
       const coursesWithTime = COURSES.map(c => ({
         ...c,
         createdAt: now,
@@ -703,7 +1198,7 @@ exports.main = async (event, context) => {
       console.log(`  Courses: ${coursesResult.success}/${coursesResult.total}`)
       
       // 插入 Classes
-      console.log('【步骤6】插入 Classes...')
+      console.log('【步骤7】插入 Classes...')
       const classesWithTime = CLASSES.map(c => ({
         ...c,
         createdAt: now,
@@ -713,10 +1208,11 @@ exports.main = async (event, context) => {
       console.log(`  Classes: ${classesResult.success}/${classesResult.total}`)
       
       // 验证数据
-      console.log('【步骤7】验证数据...')
+      console.log('【步骤8】验证数据...')
       const verify = {
         sources: await db.collection('sources').count(),
         categories: await db.collection('categories').count(),
+        levels: await db.collection('levels').count(),
         courses: await db.collection('courses').count(),
         classes: await db.collection('classes').count(),
         teachers: await db.collection('teachers').count(),
@@ -727,6 +1223,7 @@ exports.main = async (event, context) => {
       console.log('=========================================')
       console.log('Sources:', verify.sources.total)
       console.log('Categories:', verify.categories.total)
+      console.log('Levels:', verify.levels.total)
       console.log('Courses:', verify.courses.total)
       console.log('Classes:', verify.classes.total)
       console.log('Teachers:', verify.teachers.total)
@@ -737,6 +1234,7 @@ exports.main = async (event, context) => {
         results: {
           sources: sourcesResult,
           categories: categoriesResult,
+          levels: levelsResult,
           courses: coursesResult,
           classes: classesResult,
           teachers: teachersResult

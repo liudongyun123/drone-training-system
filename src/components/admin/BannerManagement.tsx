@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Box, Typography, Grid, Card, CardMedia, CardContent, Button, IconButton, CircularProgress, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem, Chip } from '@mui/material'
 import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon, Search as SearchIcon, Link as LinkIcon } from '@mui/icons-material'
 import { CloudBannerAdminService } from '../../services/CloudAdminService'
@@ -145,7 +145,7 @@ export default function BannerManagement() {
       }
 
       if (editMode && selectedBanner) {
-        const result = await CloudBannerAdminService.update(selectedBanner.id, saveData)
+        const result = await CloudBannerAdminService.update((selectedBanner as { id?: string }).id || selectedBanner._id, saveData)
         if (result.success) {
           setSnackbar({ open: true, message: '更新成功', severity: 'success' })
           await loadBanners()
@@ -245,8 +245,7 @@ export default function BannerManagement() {
                     alt={banner.title}
                     sx={{ objectFit: 'cover' }}
                   />
-                  // @ts-ignore
-                  {banner.isHero !== false && (
+                  {(banner as { isHero?: boolean }).isHero !== false && (
                     <Chip
                       label="Hero轮播"
                       size="small"
@@ -259,18 +258,14 @@ export default function BannerManagement() {
                   <Typography variant="subtitle1" fontWeight="bold" noWrap>
                     {banner.title}
                   </Typography>
-                  // @ts-ignore
-                  {banner.subtitle && (
+                  {(banner as { subtitle?: string }).subtitle && (
                     <Typography variant="body2" color="text.secondary" noWrap sx={{ mt: 0.5 }}>
-                      // @ts-ignore
-                      {banner.subtitle}
+                      {(banner as { subtitle?: string }).subtitle}
                     </Typography>
                   )}
-                  // @ts-ignore
-                  {banner.courseId && (
+                  {(banner as { courseId?: string }).courseId && (
                     <Chip
-                      // @ts-ignore
-                      label={getCourseTitle(banner.courseId) || '关联课程'}
+                      label={getCourseTitle((banner as { courseId?: string }).courseId || '') || '关联课程'}
                       size="small"
                       icon={<LinkIcon style={{ fontSize: 14 }} />}
                       sx={{ mt: 1 }}
@@ -282,7 +277,7 @@ export default function BannerManagement() {
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <IconButton size="small" onClick={() => handleOpenDialog(banner)}><EditIcon /></IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDelete(banner.id)}><DeleteIcon /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => handleDelete((banner as { id?: string }).id || (banner as { _id?: string })._id || '')}><DeleteIcon /></IconButton>
                     </Box>
                   </Box>
                 </CardContent>

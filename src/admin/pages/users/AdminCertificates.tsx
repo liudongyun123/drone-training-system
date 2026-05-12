@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { 
-  Award, CheckCircle, XCircle, Clock, Search, Filter, 
-  Download, Upload, Plus, Edit, Trash2, MoreHorizontal,
-  FileText, Calendar, User, Check, X, AlertCircle,
-  ChevronLeft, ChevronRight, Eye
+  Award, CheckCircle, XCircle, Clock, Search, 
+  Download, Trash2,
+  Calendar, User, Check, X,
+  Eye
 } from 'lucide-react';
 import type { Certificate } from '@/types';
 import { adminService } from '@/services/adminService';
@@ -31,7 +31,7 @@ export default function AdminCertificates() {
     try {
       setLoading(true);
       
-      const result = await adminService.list('certificates', {}, { limit: 100 });
+      const result = await adminService.list('certificates', {}, { limit: 100 }) as unknown as { data: { list: Certificate[] } };
       const certList: Certificate[] = result.data?.list || [];
       
       setCertificates(certList);

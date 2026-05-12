@@ -169,6 +169,25 @@ class SourceCache {
 // 全局缓存实例
 const sourceCache = new SourceCache()
 
+// 分类代码到中文名称的映射
+const CATEGORY_CODE_MAP: Record<string, string> = {
+  'PLANT_PROTECTION': '植保无人机',
+  'AERIAL_PHOTOGRAPHY': '航拍',
+  'INSPECTION': '巡检',
+  'MULTI_ROTOR': '多旋翼',
+  'FIXED_WING': '固定翼',
+  'HELICOPTER': '直升机',
+  'DRONE_RACING': '竞速无人机',
+  'OTHER': '其他'
+}
+
+// 分类代码转换为中文名称
+function codeToName(code: string): string {
+  if (!code) return ''
+  const upperCode = code.toUpperCase()
+  return CATEGORY_CODE_MAP[upperCode] || code
+}
+
 // 缓存 Key 生成
 const cacheKeys = {
   sources: () => 'sources:all',
@@ -321,6 +340,9 @@ export const SourceService = {
 
   /**
    * 获取指定体系的课程列表
+   * @param sourceId - 体系ID（可选，如果传入则作为过滤条件）
+   * @param options - 查询选项
+   * @param options.categoryId - 分类ID（格式：{SOURCE}:{CATEGORY}，如 "CAAC:MULTI_ROTOR"）
    */
   async getCourses(sourceId: string, options?: { 
     categoryId?: string
@@ -329,11 +351,8 @@ export const SourceService = {
     limit?: number
     forceRefresh?: boolean
   }): Promise<Course[]> {
-    if (!sourceId) {
-      throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
-    }
-
-    const cacheKey = cacheKeys.courses(sourceId, options?.categoryId)
+    // 优先使用 categoryId 作为缓存 key
+    const cacheKey = cacheKeys.courses(sourceId || 'auto', options?.categoryId)
     
     if (!options?.forceRefresh) {
       const cached = sourceCache.get<Course[]>(cacheKey)
@@ -341,9 +360,16 @@ export const SourceService = {
     }
 
     try {
-      const where: any = { sourceId }
-      if (options?.categoryId) where.categoryId = options.categoryId
-      if (options?.category) where.category = options.category
+      let courses: Course[] = []
+      
+      // 构建查询条件 - 优先使用 categoryId
+      const where: any = {}
+      if (sourceId) where.sourceId = sourceId
+      if (options?.categoryId) {
+        where.categoryId = options.categoryId  // 直接使用 categoryId 过滤
+      } else if (options?.category) {
+        where.category = options.category  // 回退使用 category 名称
+      }
       if (options?.status) where.status = options.status
       
       const result = await dbGetList('courses', {
@@ -351,8 +377,8 @@ export const SourceService = {
         orderBy: 'createdAt desc',
         limit: options?.limit || 100
       })
+      courses = (result.data || []) as Course[]
       
-      const courses = (result.data || []) as Course[]
       sourceCache.set(cacheKey, courses)
       
       logger.info('[SourceService] getCourses', { 
@@ -370,6 +396,10 @@ export const SourceService = {
 
   /**
    * 获取指定体系的培训班列表
+   * @param sourceId - 体系ID（可选，如果传入则作为过滤条件）
+   * @param options - 查询选项
+   * @param options.categoryId - 分类ID（格式：{SOURCE}:{CATEGORY}，如 "CAAC:MULTI_ROTOR"）
+   * @param options.category - 分类名称（如 "植保无人机"）
    */
   async getClasses(sourceId: string, options?: {
     categoryId?: string
@@ -378,11 +408,8 @@ export const SourceService = {
     limit?: number
     forceRefresh?: boolean
   }): Promise<ClassItem[]> {
-    if (!sourceId) {
-      throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
-    }
-
-    const cacheKey = cacheKeys.classes(sourceId, options?.categoryId)
+    // 优先使用 categoryId 作为缓存 key
+    const cacheKey = cacheKeys.classes(sourceId || 'auto', options?.categoryId)
     
     if (!options?.forceRefresh) {
       const cached = sourceCache.get<ClassItem[]>(cacheKey)
@@ -390,9 +417,16 @@ export const SourceService = {
     }
 
     try {
-      const where: any = { sourceId }
-      if (options?.categoryId) where.categoryId = options.categoryId
-      if (options?.category) where.category = options.category
+      let classes: ClassItem[] = []
+      
+      // 构建查询条件 - 优先使用 categoryId
+      const where: any = {}
+      if (sourceId) where.sourceId = sourceId
+      if (options?.categoryId) {
+        where.categoryId = options.categoryId  // 直接使用 categoryId 过滤
+      } else if (options?.category) {
+        where.category = options.category  // 回退使用 category 名称
+      }
       if (options?.status) where.status = options.status
       
       const result = await dbGetList('classes', {
@@ -400,8 +434,8 @@ export const SourceService = {
         orderBy: 'startDate asc',
         limit: options?.limit || 100
       })
+      classes = (result.data || []) as ClassItem[]
       
-      const classes = (result.data || []) as ClassItem[]
       sourceCache.set(cacheKey, classes)
       
       logger.info('[SourceService] getClasses', { 
@@ -529,8 +563,9 @@ export const SourceService = {
         return matchedConfig
       }
       
-      // 没有找到匹配的配置，返回第一个（兼容旧数据）
-      return result.data[0] as PageConfig
+      // 没有找到匹配的配置，返回 null，让调用方使用回退逻辑
+      logger.warn('[SourceService] getPageConfig 未找到匹配配置', { sourceId, section })
+      return null
     } catch (error) {
       logger.error('[SourceService] getPageConfig failed', error)
       return null
@@ -539,6 +574,9 @@ export const SourceService = {
 
   /**
    * 获取首页学习路径配置
+   * 逻辑：
+   * 1. 有 page_config 配置时：按配置的 order 排序，过滤 visible: false，返回配置项
+   * 2. 无配置时：直接查询 categories 表，按 sortOrder 排序
    */
   async getLearningPathConfig(sourceId: string): Promise<Category[]> {
     if (!sourceId) {
@@ -554,16 +592,40 @@ export const SourceService = {
         const items = pageConfig.data.items
           .filter((item: ConfigItem) => item.visible !== false)
           .sort((a: ConfigItem, b: ConfigItem) => (a.order || 0) - (b.order || 0))
-        return items as unknown as Category[]
+        
+        // 获取 categories 表数据，用于匹配正确的 categoryId
+        const categories = await this.getCategories(sourceId, { includeDisabled: false })
+        const categoryMap = new Map(categories.map(c => [c.name, c]))
+        
+        // 为每个 item 补充正确的 _id
+        // 直接使用 categories 表的实际 _id，用于过滤课程和培训班
+        const enrichedItems = items.map((item: any) => {
+          const matchedCategory = categoryMap.get(item.name)
+          // 使用 categories 表的实际 _id（可能是 hash 或新格式）
+          const categoryId = matchedCategory?._id || matchedCategory?.id || item.name
+          
+          return {
+            ...item,
+            _id: categoryId,  // categories 表的实际 _id，用于跳转和过滤
+            categoryId: categoryId,  // 明确标注
+            sourceId: sourceId
+          } as Category
+        })
+        
+        logger.info('[SourceService] getLearningPathConfig from page_config', { 
+          sourceId, 
+          count: enrichedItems.length,
+          items: enrichedItems.map(i => ({ _id: i._id, name: i.name }))
+        })
+        return enrichedItems
       }
       
-      // 2. 配置不存在，回退到直接查询 categories 集合
+      // 2. 配置不存在，回退到直接查询 categories 集合（按 sortOrder 排序）
       const categories = await this.getCategories(sourceId, { includeDisabled: false })
       
-      logger.info('[SourceService] getLearningPathConfig', { 
+      logger.info('[SourceService] getLearningPathConfig fallback to categories', { 
         sourceId, 
-        count: categories.length,
-        fromFallback: !pageConfig 
+        count: categories.length 
       })
       
       return categories
@@ -590,11 +652,20 @@ export const SourceService = {
           .filter((item: ConfigItem) => item.visible !== false)
           .sort((a: ConfigItem, b: ConfigItem) => (a.order || 0) - (b.order || 0))
           .slice(0, limit)
+        logger.info('[SourceService] getHotCoursesConfig from page_config', { 
+          sourceId, 
+          count: items.length 
+        })
         return items as unknown as Course[]
       }
       
       // 2. 配置不存在，回退到直接查询 courses 集合
-      return await this.getHotCourses(sourceId, limit)
+      const courses = await this.getHotCourses(sourceId, limit)
+      logger.info('[SourceService] getHotCoursesConfig fallback to getHotCourses', { 
+        sourceId, 
+        count: courses.length 
+      })
+      return courses
     } catch (error) {
       logger.error('[SourceService] getHotCoursesConfig failed', error)
       return []
@@ -618,11 +689,20 @@ export const SourceService = {
           .filter((item: ConfigItem) => item.visible !== false)
           .sort((a: ConfigItem, b: ConfigItem) => (a.order || 0) - (b.order || 0))
           .slice(0, limit)
+        logger.info('[SourceService] getClassesConfig from page_config', { 
+          sourceId, 
+          count: items.length 
+        })
         return items as unknown as ClassItem[]
       }
       
       // 2. 配置不存在，回退到直接查询 classes 集合
-      return await this.getEnrollingClasses(sourceId, limit)
+      const classes = await this.getEnrollingClasses(sourceId, limit)
+      logger.info('[SourceService] getClassesConfig fallback to getEnrollingClasses', { 
+        sourceId, 
+        count: classes.length 
+      })
+      return classes
     } catch (error) {
       logger.error('[SourceService] getClassesConfig failed', error)
       return []

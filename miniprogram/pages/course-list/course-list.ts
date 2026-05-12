@@ -11,8 +11,9 @@ Page({
     loading: false,
     page: 1,
     hasMore: true,
-    categories: [] as string[],
-    currentCategory: '',
+    categories: [] as { name: string; id: string }[],  // 修改为对象数组
+    currentCategoryId: '',  // 使用 categoryId 过滤
+    currentCategoryName: '',  // 当前分类名称（用于显示）
     currentSort: 'newest',
     searchKeyword: '',
     currentSource: 'RENSHE',  // 体系的 code（用于显示）
@@ -25,19 +26,19 @@ Page({
 
   onLoad(options: any) {
     wx.setNavigationBarTitle({ title: '课程列表' })
-    if (options.category) {
-      const category = decodeURIComponent(options.category)
-      this.setData({ currentCategory: category })
-      wx.removeStorageSync('targetCategory')
+    if (options.categoryId) {
+      const categoryId = decodeURIComponent(options.categoryId)
+      this.setData({ currentCategoryId: categoryId })
+      wx.removeStorageSync('targetCategoryId')
     }
     this.loadSources()
   },
 
   onShow() {
-    const targetCategory = wx.getStorageSync('targetCategory')
-    if (targetCategory && this.data.currentCategory !== targetCategory) {
-      this.setData({ currentCategory: targetCategory })
-      wx.removeStorageSync('targetCategory')
+    const targetCategoryId = wx.getStorageSync('targetCategoryId')
+    if (targetCategoryId && this.data.currentCategoryId !== targetCategoryId) {
+      this.setData({ currentCategoryId: targetCategoryId })
+      wx.removeStorageSync('targetCategoryId')
       this.loadCourses()
     }
   },
@@ -76,16 +77,17 @@ Page({
     try {
       const sourceId = this.data.currentSourceId
       if (!sourceId) {
-        this.setData({ categories: ['全部'] })
+        this.setData({ categories: [] })
         return
       }
       
       const categories = await SourceService.getCategories(sourceId)
-      const categoryNames = categories.map((c) => c.name)
-      this.setData({ categories: ['全部', ...categoryNames] })
+      // 保存 name 和 id 用于显示和过滤
+      const categoryList = categories.map((c) => ({ name: c.name, id: c._id || '' }))
+      this.setData({ categories: categoryList })
     } catch (err) {
       logger.error('[课程列表] 加载分类失败', err)
-      this.setData({ categories: ['全部'] })
+      this.setData({ categories: [] })
     }
     this.loadCourses()
   },
@@ -104,8 +106,9 @@ Page({
       
       const filters: any = { page: 1, pageSize: 10, sourceId }
       
-      if (this.data.currentCategory && this.data.currentCategory !== '全部') {
-        filters.category = this.data.currentCategory
+      // 使用 categoryId 过滤
+      if (this.data.currentCategoryId) {
+        filters.categoryId = this.data.currentCategoryId
       }
       
       if (this.data.searchKeyword) {
@@ -131,6 +134,7 @@ Page({
           break
       }
       
+      console.log('[课程列表] 加载课程, filters:', filters)
       const courses = await courseApi.getList(filters)
       this.setData({
         courses,
@@ -155,8 +159,9 @@ Page({
       
       const filters: any = { page: nextPage, pageSize: 10, sourceId }
       
-      if (this.data.currentCategory && this.data.currentCategory !== '全部') {
-        filters.category = this.data.currentCategory
+      // 使用 categoryId 过滤
+      if (this.data.currentCategoryId) {
+        filters.categoryId = this.data.currentCategoryId
       }
       
       if (this.data.searchKeyword) {
@@ -196,14 +201,19 @@ Page({
 
   // 切换分类
   switchCategory(e: any) {
-    const category = e.currentTarget.dataset.category
-    this.setData({ currentCategory: category })
+    const categoryId = e.currentTarget.dataset.categoryid
+    const categoryName = e.currentTarget.dataset.category
+    this.setData({ 
+      currentCategoryId: categoryId || '',
+      currentCategoryName: categoryName || ''
+    })
     this.loadCourses()
   },
 
   // 切换排序
   switchSort(e: any) {
     const sort = e.currentTarget.dataset.sort
+    console.log('[课程列表] 切换排序:', sort)
     this.setData({ currentSort: sort })
     this.loadCourses()
   },
@@ -216,7 +226,8 @@ Page({
       this.setData({ 
         currentSource: sourceKey,
         currentSourceId: sourceInfo.id || '',
-        currentCategory: '',
+        currentCategoryId: '',
+        currentCategoryName: '',
         page: 1,
         hasMore: true,
         courses: []
@@ -227,24 +238,24 @@ Page({
     }
   },
 
-  // 搜索
+  // 搜索 - 跳转到搜索页面
   goToSearch() {
-    wx.showModal({
-      title: '搜索课程',
-      editable: true,
-      placeholderText: '请输入课程名称',
-      success: (res) => {
-        if (res.confirm && res.content) {
-          this.setData({ searchKeyword: res.content })
-          this.loadCourses()
-        }
-      }
-    })
+    wx.navigateTo({ url: '/pages/search/search' })
   },
 
   // 跳转课程详情
   goToDetail(e: any) {
     const id = e.currentTarget.dataset.id
     wx.navigateTo({ url: `/pages/course-detail/course-detail?id=${id}` })
+  },
+
+  // 图片加载失败处理
+  onImageError(e: any) {
+    const index = e.currentTarget.dataset.index
+    const courses = this.data.courses
+    if (courses[index]) {
+      courses[index].coverImage = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      this.setData({ courses })
+    }
   }
 })

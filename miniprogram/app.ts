@@ -6,7 +6,7 @@ import logger from './utils/logger'
 
 interface IAppOption {
   globalData: {
-    userInfo?: WechatMiniprogram.UserInfo
+    userInfo?: any
     isLoggedIn: boolean
     userId?: string
     phone?: string
@@ -14,7 +14,9 @@ interface IAppOption {
     networkType?: string
     isConnected?: boolean
   }
-  userInfoReadyCallback?: WechatMiniprogram.UserInfoReadyCallback
+  userInfoReadyCallback?: any
+  initNetworkStatus?: () => void
+  checkLoginStatus?: () => void
 }
 
 App<IAppOption>({

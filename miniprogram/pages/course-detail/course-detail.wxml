@@ -10,7 +10,12 @@
     <scroll-view class="content" scroll-y enhanced>
       <!-- 课程封面 -->
       <view class="cover-section">
-        <image class="cover" src="{{course.coverImage || course.cover}}" mode="aspectFill" />
+        <image 
+          class="cover" 
+          src="{{course.coverImage || course.cover}}" 
+          mode="aspectFill"
+          binderror="onCoverError"
+        />
       </view>
 
       <!-- 课程信息 -->

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -20,7 +20,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Paper,
   InputAdornment,
 } from '@mui/material'
 import {
@@ -200,7 +199,7 @@ export default function CourseManagement() {
 
     try {
       if (editMode && selectedCourse) {
-        const result = await CloudCourseAdminService.update(selectedCourse.id, courseForm)
+        const result = await CloudCourseAdminService.update((selectedCourse as { id?: string }).id || '', courseForm)
         if (result.success) {
           setSnackbar({ open: true, message: '更新成功', severity: 'success' })
           await loadCourses()
@@ -297,7 +296,7 @@ export default function CourseManagement() {
                     <IconButton size="small" onClick={() => handleOpenDialog(course)}>
                       <EditIcon />
                     </IconButton>
-                    <IconButton size="small" color="error" onClick={() => handleDeleteCourse(course.id)}>
+                    <IconButton size="small" color="error" onClick={() => handleDeleteCourse((course as { id?: string }).id || '')}>
                       <DeleteIcon />
                     </IconButton>
                   </Box>
@@ -317,9 +316,7 @@ export default function CourseManagement() {
                     ¥{course.price}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    // @ts-ignore
-                    // @ts-ignore
-                    {course.salesCount || 0}人学习
+                    {(course as { salesCount?: number }).salesCount || 0}人学习
                   </Typography>
                 </Box>
               </CardContent>

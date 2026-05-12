@@ -8,7 +8,7 @@ let levelCache: Array<{ code: string; name: string; sourceCode: string }> = []
 let levelCacheLoaded = false
 
 // 加载等级列表（从 levels 集合）
-async function loadLevels() {
+export async function loadLevels() {
   if (levelCacheLoaded) return levelCache
   
   try {
@@ -24,17 +24,24 @@ async function loadLevels() {
       }))
     }
     levelCacheLoaded = true
+    console.log('[等级] 已加载等级数据:', levelCache.length, '个')
   } catch (error) {
     console.error('加载等级列表失败:', error)
   }
   return levelCache
 }
 
-// 根据等级代码获取等级名称
-function getLevelName(levelCode: string): string {
-  if (!levelCode) return ''
-  const level = levelCache.find(l => l.code === levelCode)
-  return level?.name || levelCode
+// 根据等级代码或名称获取等级名称
+export function getLevelName(levelValue: string): string {
+  if (!levelValue) return ''
+  // 先按代码查找
+  let level = levelCache.find(l => l.code === levelValue)
+  if (level) return level.name
+  // 再按名称查找（兼容数据直接存储名称的情况）
+  level = levelCache.find(l => l.name === levelValue)
+  if (level) return level.name
+  // 找不到则返回原始值
+  return levelValue
 }
 
 // 培训班等级中文映射（兼容旧数据）
@@ -111,7 +118,17 @@ export const bannerApi = {
       orderBy: 'order asc',
       limit
     })
-    return result.data || []
+    
+    // 确保图片字段有值，并处理 URL
+    const defaultBanner = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+    const banners = (result.data || []).map((banner: any) => ({
+      ...banner,
+      coverImage: banner.image || banner.coverImage || banner.cover || defaultBanner,
+      cover: banner.image || banner.coverImage || banner.cover || defaultBanner,
+      image: banner.image || defaultBanner
+    }))
+    
+    return banners
   }
 }
 
@@ -276,7 +293,7 @@ export const systemConfigApi = {
  */
 export const courseApi = {
   async getList(filters: any = {}) {
-    const { status = 'published', category, categoryId, sourceId, page = 1, pageSize = 10 } = filters
+    const { status = 'published', category, categoryId, sourceId, page = 1, pageSize = 10, sortBy, sortOrder, keyword } = filters
     const skip = (page - 1) * pageSize
 
     const where: any = {}
@@ -285,25 +302,64 @@ export const courseApi = {
     if (categoryId) where.categoryId = categoryId  // 按ID过滤
     if (sourceId) where.sourceId = sourceId  // 按体系过滤
 
+    // 构建排序参数（db-init 云函数期望 orderBy 和 order 分开）
+    const orderBy = sortBy || 'createdAt'
+    const order = sortOrder || 'desc'
+    console.log('[courseApi.getList] filters:', filters, 'orderBy:', orderBy, 'order:', order)
+
     try {
-      const result = await dbGetList('courses', {
+      let result = await dbGetList('courses', {
         where,
-        orderBy: 'createdAt desc',
+        orderBy,  // 只传字段名
+        order,    // 单独传排序方向
         skip,
         limit: pageSize
       })
+      
       // 先加载等级缓存，再转换
       await loadLevels()
-      const courses = (result.data || []).map(transformCourse)
+      let courses = (result.data || []).map(transformCourse)
+      
+      // 确保封面图片有值
+      const defaultCourseCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      courses = courses.map(course => ({
+        ...course,
+        coverImage: course.coverImage || course.cover || defaultCourseCover,
+        cover: course.cover || course.coverImage || defaultCourseCover
+      }))
+      
+      // 关键词搜索（CloudBase NoSQL 不支持全文搜索，在代码层面过滤）
+      if (keyword && keyword.trim()) {
+        const kw = keyword.trim().toLowerCase()
+        courses = courses.filter(course => {
+          const title = (course.title || '').toLowerCase()
+          const description = (course.description || '').toLowerCase()
+          const category = (course.category || '').toLowerCase()
+          return title.includes(kw) || description.includes(kw) || category.includes(kw)
+        })
+      }
       
       // 如果没有数据且有筛选条件，尝试无筛选查询
-      if (courses.length === 0 && Object.keys(where).length > 0) {
+      if (courses.length === 0 && Object.keys(where).length > 1) {
         const fallbackResult = await dbGetList('courses', {
-          orderBy: 'createdAt desc',
+          orderBy,
+          order,
           skip,
           limit: pageSize
         })
-        return (fallbackResult.data || []).map(transformCourse)
+        let fallbackCourses = (fallbackResult.data || []).map(transformCourse)
+        
+        // 同样处理关键词搜索
+        if (keyword && keyword.trim()) {
+          const kw = keyword.trim().toLowerCase()
+          fallbackCourses = fallbackCourses.filter(course => {
+            const title = (course.title || '').toLowerCase()
+            const description = (course.description || '').toLowerCase()
+            return title.includes(kw) || description.includes(kw)
+          })
+        }
+        
+        return fallbackCourses
       }
       
       return courses
@@ -315,18 +371,42 @@ export const courseApi = {
 
   async getDetail(courseId: string) {
     const result = await dbQuery('courses', { _id: courseId })
-    if (result.data) {
+    console.log('[courseApi.getDetail] result:', result)
+    if (result.data && result.data.length > 0) {
       await loadLevels()
-      return transformCourse(result.data)
+      const course = result.data[0]  // 取数组第一个元素
+      // 映射字段确保兼容性
+      const mapped = {
+        ...course,
+        coverImage: course.coverImage || course.cover || '',
+        cover: course.cover || course.coverImage || ''
+      }
+      return transformCourse(mapped)
     }
-    return result.data
+    return null
   },
 
   async getLessons(courseId: string) {
+    console.log('[courseApi.getLessons] 查询课时, courseId:', courseId)
+    // 尝试多种字段名
     const result = await dbGetList('lessons', {
-      where: { courseId },
-      orderBy: 'order asc'
+      where: { courseId },  // 尝试 courseId
+      orderBy: 'order asc',
+      limit: 100
     })
+    
+    // 如果没有结果，尝试 parentId
+    if (!result.data || result.data.length === 0) {
+      const result2 = await dbGetList('lessons', {
+        where: { parentId: courseId },  // 尝试 parentId
+        orderBy: 'order asc',
+        limit: 100
+      })
+      console.log('[courseApi.getLessons] parentId 查询结果:', result2.data?.length)
+      return result2.data || []
+    }
+    
+    console.log('[courseApi.getLessons] courseId 查询结果:', result.data?.length)
     return result.data || []
   },
 
@@ -385,32 +465,102 @@ export const courseApi = {
  */
 export const classApi = {
   async getList(filters: any = {}) {
-    const { status, sourceId, page = 1, pageSize = 100, category } = filters
+    const { status, sourceId, page = 1, pageSize = 10, category, categoryId, sortBy, sortOrder, keyword } = filters
     const skip = (page - 1) * pageSize
 
     const where: any = {}
     if (status) where.status = status
     if (sourceId) where.sourceId = sourceId  // 按体系过滤
-    if (category) where.category = category  // 支持按分类过滤
+    if (category) where.category = category  // 按分类名称过滤
+    if (categoryId) where.categoryId = categoryId  // 按分类ID过滤
 
-    const result = await dbGetList('classes', {
+    // 构建排序参数
+    const orderBy = sortBy || 'startDate'
+    const order = sortOrder || 'asc'
+    console.log('[classApi.getList] filters:', filters, 'orderBy:', orderBy, 'order:', order)
+
+    let result = await dbGetList('classes', {
       where,
-      orderBy: 'startDate asc',
+      orderBy,
+      order,
       skip,
       limit: pageSize
     })
+    
     // 先加载等级缓存，再转换
     await loadLevels()
-    return (result.data || []).map(transformClass)
+    let classes = (result.data || []).map(transformClass)
+    
+    // 确保封面图片有值（数据库可能没有封面字段）
+    const defaultCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+    classes = classes.map(cls => ({
+      ...cls,
+      coverImage: cls.coverImage || cls.cover || defaultCover,
+      cover: cls.cover || cls.coverImage || defaultCover
+    }))
+    console.log('[classApi.getList] 返回数据:', classes.length, '条')
+    if (classes.length > 0) {
+      console.log('[classApi.getList] 第一个封面 URL:', classes[0].coverImage || classes[0].cover)
+    }
+    
+    // 关键词搜索
+    if (keyword && keyword.trim()) {
+      const kw = keyword.trim().toLowerCase()
+      classes = classes.filter(cls => {
+        const name = (cls.name || '').toLowerCase()
+        const description = (cls.description || '').toLowerCase()
+        const category = (cls.category || '').toLowerCase()
+        return name.includes(kw) || description.includes(kw) || category.includes(kw)
+      })
+    }
+    
+    // 如果没有数据且有筛选条件，尝试无筛选查询
+    if (classes.length === 0 && Object.keys(where).length > 1) {
+      const fallbackResult = await dbGetList('classes', {
+        orderBy,
+        order,
+        skip,
+        limit: pageSize
+      })
+      let fallbackClasses = (fallbackResult.data || []).map(transformClass)
+      
+      // 确保封面图片有值
+      fallbackClasses = fallbackClasses.map(cls => ({
+        ...cls,
+        coverImage: cls.coverImage || cls.cover || defaultCover,
+        cover: cls.cover || cls.coverImage || defaultCover
+      }))
+      
+      if (keyword && keyword.trim()) {
+        const kw = keyword.trim().toLowerCase()
+        fallbackClasses = fallbackClasses.filter(cls => {
+          const name = (cls.name || '').toLowerCase()
+          const description = (cls.description || '').toLowerCase()
+          return name.includes(kw) || description.includes(kw)
+        })
+      }
+      
+      return fallbackClasses
+    }
+    
+    return classes
   },
 
   async getDetail(classId: string) {
     const result = await dbQuery('classes', { _id: classId })
-    if (result.data) {
+    console.log('[classApi.getDetail] result:', result)
+    if (result.data && result.data.length > 0) {
       await loadLevels()
-      return transformClass(result.data)
+      const classInfo = result.data[0]  // 取数组第一个元素
+      // 映射字段确保兼容性
+      const mapped = {
+        ...classInfo,
+        coverImage: classInfo.coverImage || classInfo.cover || '',
+        cover: classInfo.cover || classInfo.coverImage || ''
+      }
+      return transformClass(mapped)
     }
-    return result.data
+    return null
   }
 }
 
@@ -434,11 +584,13 @@ export const productApi = {
     })
 
     // 映射字段：数据库 title -> name, cover -> coverImage
+    const defaultProductCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
     const products = (result.data || []).map((p: any) => {
-      let cover = p.cover || p.coverImage
-      // 如果图片 URL 包含 unsplash（未配置合法域名），使用占位图
-      if (cover && cover.includes('unsplash.com')) {
-        cover = 'https://via.placeholder.com/400x320/2563eb/ffffff?text=' + encodeURIComponent(p.title || '商品')
+      // 优先使用 coverImage（新字段），其次 cover（旧字段）
+      let cover = p.coverImage || p.cover
+      // 如果图片 URL 无效或包含不支持的域名，使用默认图
+      if (!cover || cover.includes('unsplash.com') || cover.includes('via.placeholder.com')) {
+        cover = defaultProductCover
       }
       return {
         _id: p._id,
@@ -457,8 +609,31 @@ export const productApi = {
   },
 
   async getDetail(productId: string) {
-    const result = await dbQuery('products', { _id: productId })
-    return result.data
+    const result = await dbGetList('products', { where: { _id: productId } })
+    if (result.data && result.data.length > 0) {
+      const p = result.data[0]
+      // 映射字段确保兼容性
+      const defaultProductCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      let cover = p.coverImage || p.cover
+      if (!cover || cover.includes('unsplash.com') || cover.includes('via.placeholder.com')) {
+        cover = defaultProductCover
+      }
+      return {
+        _id: p._id,
+        name: p.title || p.name,
+        title: p.title || p.name,
+        price: p.price || 0,
+        originalPrice: p.originalPrice || p.price || 0,
+        coverImage: cover,
+        cover: cover,
+        stock: p.stock || 99,
+        description: p.description || '',
+        category: p.category || p.categoryId,
+        specs: p.specs || [],
+        skus: p.skus || []
+      }
+    }
+    return null
   },
 
   async getCategories() {

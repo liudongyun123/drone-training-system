@@ -1,22 +1,21 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2020",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": false,
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "experimentalDecorators": true,
-    "lib": ["ES2017"],
-    "typeRoots": ["./typings"],
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./*"]
-    }
+    "lib": ["ES2020"],
+    "skipLibCheck": true,
+    "typeRoots": ["./typings", "node_modules/@types", "node_modules/miniprogram-api-typings"],
+    "ignoreDeprecations": "5.0"
   },
   "include": [
-    "./**/*.ts"
+    "./**/*.ts",
+    "./typings/**/*.d.ts"
   ],
   "exclude": [
     "node_modules"
