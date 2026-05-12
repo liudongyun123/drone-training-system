@@ -1,0 +1,178 @@
+/* pages/practice-history/practice-history.wxss */
+
+.page {
+  min-height: 100vh;
+  background: #f5f6fa;
+  padding: 24rpx;
+}
+
+.loading-container {
+  padding: 24rpx 0;
+}
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.skeleton-item {
+  height: 200rpx;
+  background: linear-gradient(90deg, #e0e5ec 25%, #f0f0f0 50%, #e0e5ec 75%);
+  background-size: 200% 100%;
+  border-radius: 20rpx;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 记录列表 */
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.record-item {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.record-type {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.type-icon {
+  font-size: 32rpx;
+}
+
+.type-text {
+  font-size: 26rpx;
+  color: #667eea;
+  font-weight: 500;
+  background: #f0f1ff;
+  padding: 6rpx 16rpx;
+  border-radius: 12rpx;
+}
+
+.record-time {
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+.record-body {
+  margin-bottom: 20rpx;
+}
+
+.record-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 20rpx;
+}
+
+.record-stats {
+  display: flex;
+  gap: 32rpx;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.stat-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.stat-value.success {
+  color: #22c55e;
+}
+
+.stat-value.error {
+  color: #ef4444;
+}
+
+.record-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16rpx;
+  gap: 12rpx;
+}
+
+.action-text {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #fff;
+}
+
+.action-arrow {
+  font-size: 28rpx;
+  color: #fff;
+}
+
+/* 空状态 */
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 160rpx 64rpx;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 32rpx;
+}
+
+.empty-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16rpx;
+}
+
+.empty-desc {
+  font-size: 28rpx;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* 加载更多 */
+.loading-more,
+.no-more {
+  display: flex;
+  justify-content: center;
+  padding: 32rpx;
+}
+
+.loading-more text,
+.no-more text {
+  font-size: 26rpx;
+  color: #94a3b8;
+}

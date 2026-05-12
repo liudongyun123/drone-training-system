@@ -1,0 +1,58 @@
+<view class="page">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading && !refreshing}}" class="loading-container">
+    <view class="skeleton-list">
+      <view class="skeleton-item" wx:for="{{5}}" wx:key="*this"></view>
+    </view>
+  </view>
+
+  <!-- 错题列表 -->
+  <view class="question-list" wx:if="{{questions.length > 0}}">
+    <view 
+      class="question-item"
+      wx:for="{{questions}}"
+      wx:key="_id"
+      bindtap="viewDetail"
+      data-question="{{item}}"
+    >
+      <view class="question-header">
+        <view class="question-badge">
+          <text class="badge-icon">❌</text>
+          <text class="badge-text">错误{{item.wrongCount}}次</text>
+        </view>
+        <text class="question-time">{{item.lastWrongAt}}</text>
+      </view>
+      
+      <view class="question-content">
+        <text class="question-text">{{item.question}}</text>
+      </view>
+      
+      <view class="question-answer">
+        <view class="answer-row">
+          <text class="answer-label">正确答案:</text>
+          <text class="answer-value correct">{{item.correctAnswer}}</text>
+        </view>
+        <view class="answer-row">
+          <text class="answer-label">你的答案:</text>
+          <text class="answer-value wrong">{{item.yourAnswer}}</text>
+        </view>
+      </view>
+      
+      <view class="question-action" catchtap="retryQuestion" data-question="{{item}}">
+        <text class="action-text">重新练习</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{!loading && questions.length === 0}}" class="empty-container">
+    <text class="empty-icon">🎉</text>
+    <text class="empty-title">暂无错题</text>
+    <text class="empty-desc">继续保持，做题正确率越来越高！</text>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="tip-bar" wx:if="{{questions.length > 0}}">
+    <text class="tip-text">点击题目查看详情和解析</text>
+  </view>
+</view>

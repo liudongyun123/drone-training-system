@@ -18,6 +18,8 @@
     "pages/login/login",
     "pages/profile/profile",
     "pages/practice/practice",
+    "pages/practice-history/practice-history",
+    "pages/wrong-questions/wrong-questions",
     "pages/exam/exam",
     "pages/result/result",
     "pages/my-certificates/my-certificates",

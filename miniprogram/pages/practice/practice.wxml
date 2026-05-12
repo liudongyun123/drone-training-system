@@ -1,66 +1,180 @@
 <view class="page">
   <!-- 加载状态 -->
-  <view wx:if="{{loading}}" class="loading-container">
-    <text>加载中...</text>
+  <view wx:if="{{loading && !refreshing}}" class="loading-container">
+    <view class="skeleton-stats">
+      <view class="skeleton-stat-card" wx:for="{{4}}" wx:key="*this"></view>
+    </view>
+    <view class="skeleton-section" wx:for="{{2}}" wx:key="*this">
+      <view class="skeleton-header"></view>
+      <view class="skeleton-grid">
+        <view class="skeleton-card" wx:for="{{3}}" wx:key="*this"></view>
+      </view>
+    </view>
   </view>
 
-  <block wx:if="{{!loading}}">
+  <block wx:if="{{!loading || refreshing}}">
+    <!-- 练习统计 -->
+    <view class="stats-section">
+      <view class="stats-header">
+        <text class="stats-title">练习统计</text>
+        <text class="stats-subtitle">坚持练习，提升技能</text>
+      </view>
+      <view class="stats-grid">
+        <view class="stat-card">
+          <text class="stat-value">{{stats.totalPractices}}</text>
+          <text class="stat-label">练习次数</text>
+        </view>
+        <view class="stat-card">
+          <text class="stat-value">{{stats.totalQuestions}}</text>
+          <text class="stat-label">累计做题</text>
+        </view>
+        <view class="stat-card">
+          <text class="stat-value">{{stats.accuracy}}%</text>
+          <text class="stat-label">正确率</text>
+        </view>
+        <view class="stat-card">
+          <text class="stat-value">{{stats.todayQuestions}}</text>
+          <text class="stat-label">今日做题</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 快捷入口 -->
+    <view class="quick-actions">
+      <view class="action-card" bindtap="viewHistory">
+        <text class="action-icon">📊</text>
+        <text class="action-text">练习记录</text>
+      </view>
+      <view class="action-card" bindtap="viewWrongQuestions">
+        <text class="action-icon">📝</text>
+        <text class="action-text">错题本</text>
+      </view>
+    </view>
+
+    <!-- 最近练习 -->
+    <view class="section" wx:if="{{recentPractices.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">最近练习</text>
+        <text class="section-more" bindtap="viewHistory">查看全部 ></text>
+      </view>
+      <view class="recent-list">
+        <view 
+          class="recent-item"
+          wx:for="{{recentPractices}}"
+          wx:key="_id"
+          bindtap="continueLastPractice"
+          data-item="{{item}}"
+        >
+          <view class="recent-icon">{{item.type === 'bank' ? '📚' : '📋'}}</view>
+          <view class="recent-info">
+            <text class="recent-title">{{item.targetName}}</text>
+            <text class="recent-meta">{{item.correctCount}}/{{item.totalCount}}题 · {{item.score}}分</text>
+          </view>
+          <view class="recent-right">
+            <text class="recent-score" wx:if="{{item.score >= 60}}">✅</text>
+            <text class="recent-score error" wx:else>❌</text>
+            <text class="recent-time">{{item.createdAt}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- 题库练习 -->
     <view class="section">
       <view class="section-header">
-        <text class="section-title">题库练习</text>
-        <text class="section-desc">按知识点分类刷题</text>
+        <view class="section-title-group">
+          <text class="section-title">题库练习</text>
+          <text class="section-desc">按知识点分类刷题</text>
+        </view>
+        <text class="section-more" bindtap="viewAllBanks" wx:if="{{questionBanks.length > 6}}">全部 ></text>
       </view>
-      <view class="bank-grid">
+      
+      <view class="bank-grid" wx:if="{{questionBanks.length > 0}}">
         <view 
           class="bank-card"
-          wx:for="{{questionBanks}}"
+          wx:for="{{questionBanks.slice(0, 6)}}"
           wx:key="_id"
           bindtap="startPractice"
           data-id="{{item._id}}"
+          data-title="{{item.title}}"
+          data-count="{{item.questionCount}}"
         >
-          <text class="bank-icon">{{item.icon || '📝'}}</text>
+          <view class="bank-icon-wrap">
+            <text class="bank-icon">{{item.icon}}</text>
+          </view>
           <text class="bank-title">{{item.title}}</text>
-          <text class="bank-count">{{item.questionCount}}题</text>
+          <view class="bank-meta">
+            <text class="bank-level">{{item.level}}</text>
+            <text class="bank-count">{{item.questionCount}}题</text>
+          </view>
         </view>
+      </view>
+      
+      <view class="empty-bank" wx:if="{{questionBanks.length === 0}}">
+        <text class="empty-icon">📚</text>
+        <text class="empty-text">暂无题库</text>
+        <text class="empty-desc">题库正在准备中，敬请期待</text>
       </view>
     </view>
 
     <!-- 模拟考试 -->
     <view class="section">
       <view class="section-header">
-        <text class="section-title">模拟考试</text>
-        <text class="section-desc">限时模拟真实考试</text>
+        <view class="section-title-group">
+          <text class="section-title">模拟考试</text>
+          <text class="section-desc">限时模拟真实考试</text>
+        </view>
+        <text class="section-more" bindtap="viewAllExams" wx:if="{{mockExams.length > 3}}">全部 ></text>
       </view>
-      <view class="exam-list">
+      
+      <view class="exam-list" wx:if="{{mockExams.length > 0}}">
         <view 
           class="exam-card"
-          wx:for="{{mockExams}}"
+          wx:for="{{mockExams.slice(0, 3)}}"
           wx:key="_id"
           bindtap="startMockExam"
           data-id="{{item._id}}"
+          data-title="{{item.title}}"
+          data-duration="{{item.duration}}"
         >
+          <view class="exam-icon">📋</view>
           <view class="exam-info">
             <text class="exam-title">{{item.title}}</text>
-            <text class="exam-desc">{{item.description}}</text>
+            <text class="exam-desc">{{item.description || '模拟真实考试环境'}}</text>
             <view class="exam-meta">
-              <text class="meta-item">⏱ {{item.duration}}分钟</text>
-              <text class="meta-item">📝 {{item.questionCount}}题</text>
-              <text class="meta-item">✅ {{item.passScore}}分及格</text>
+              <view class="meta-item">
+                <text class="meta-icon">⏱</text>
+                <text class="meta-text">{{item.duration}}分钟</text>
+              </view>
+              <view class="meta-item">
+                <text class="meta-icon">📝</text>
+                <text class="meta-text">{{item.questionCount}}题</text>
+              </view>
+              <view class="meta-item">
+                <text class="meta-icon">✅</text>
+                <text class="meta-text">{{item.passScore}}分及格</text>
+              </view>
             </view>
           </view>
           <view class="exam-action">
-            <text class="start-text">开始考试</text>
+            <text class="start-text">开始</text>
             <text class="arrow">></text>
           </view>
         </view>
       </view>
+      
+      <view class="empty-exam" wx:if="{{mockExams.length === 0}}">
+        <text class="empty-icon">📋</text>
+        <text class="empty-text">暂无模拟考试</text>
+        <text class="empty-desc">模拟考试正在准备中，敬请期待</text>
+      </view>
     </view>
 
-    <!-- 空状态 -->
-    <view wx:if="{{questionBanks.length === 0 && mockExams.length === 0}}" class="empty-container">
+    <!-- 完全空状态 -->
+    <view wx:if="{{questionBanks.length === 0 && mockExams.length === 0 && !loading}}" class="empty-container">
       <text class="empty-icon">📝</text>
-      <text>暂无练习内容</text>
+      <text class="empty-title">暂无练习内容</text>
+      <text class="empty-desc">练习内容正在准备中，请先浏览课程学习</text>
     </view>
   </block>
 </view>

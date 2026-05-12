@@ -1,7 +1,7 @@
 // pages/exam/exam.ts
 // 考试/练习答题页
 
-import { getQuestions, dbQuery, dbGetList } from '../../utils/http'
+import { getQuestions, dbGetList } from '../../utils/http'
 import logger from '../../utils/logger'
 
 interface Question {
@@ -49,7 +49,7 @@ Page({
 
       if (type === 'exam' && examId) {
         // 模拟考试 - 加载考试信息
-        const examResult = await dbGetList('mock_exams', {
+        const examResult = await dbGetList('exams', {
           where: { _id: examId }
         })
         const exam = examResult.data?.[0]

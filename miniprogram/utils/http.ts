@@ -167,16 +167,28 @@ export async function getMySchedules(params: { userId?: string; classId?: string
  * 获取题库列表
  */
 export async function getQuestionBanks() {
-  return dbGetList('question_banks', {
-    orderBy: 'sort asc'
+  return dbGetList('questionBanks', {
+    where: { status: 'active' },
+    orderBy: 'createdAt desc'
   })
+}
+
+/**
+ * 获取题库详情
+ */
+export async function getQuestionBank(bankId: string) {
+  const result = await dbGetList('questionBanks', {
+    where: { _id: bankId },
+    limit: 1
+  })
+  return result.data?.[0] || null
 }
 
 /**
  * 获取模拟考试列表
  */
 export async function getMockExams() {
-  return dbGetList('mock_exams', {
+  return dbGetList('exams', {
     where: { status: 'published' },
     orderBy: 'createdAt desc',
     limit: 5
@@ -184,16 +196,170 @@ export async function getMockExams() {
 }
 
 /**
- * 获取题目列表
+ * 获取考试详情
  */
-export async function getQuestions(params: { bankId?: string; examId?: string }) {
+export async function getExam(examId: string) {
+  const result = await dbGetList('exams', {
+    where: { _id: examId },
+    limit: 1
+  })
+  return result.data?.[0] || null
+}
+
+/**
+ * 获取题库题目列表
+ */
+export async function getBankQuestions(bankId: string, limit: number = 50) {
+  return dbGetList('questions', {
+    where: { bankId },
+    limit
+  })
+}
+
+/**
+ * 获取考试题目列表
+ */
+export async function getExamQuestions(examId: string) {
+  return dbGetList('questions', {
+    where: { examId },
+    limit: 100
+  })
+}
+
+/**
+ * 获取练习/考试题目（统一接口）
+ * @param params bankId 或 examId
+ */
+export async function getQuestions(params: { bankId?: string; examId?: string; limit?: number }) {
   const where: any = {}
   if (params.bankId) where.bankId = params.bankId
   if (params.examId) where.examId = params.examId
+  
   return dbGetList('questions', {
     where,
+    limit: params.limit || 100
+  })
+}
+
+/**
+ * 保存练习记录
+ */
+export async function savePracticeRecord(data: {
+  type: 'bank' | 'exam'
+  targetId: string
+  targetName: string
+  score: number
+  correctCount: number
+  totalCount: number
+  duration: number
+  answers: Record<string, any>
+}) {
+  return dbAdd('practiceRecords', {
+    ...data,
+    userId: wx.getStorageSync('userId') || '',
+    createdAt: new Date().toISOString()
+  })
+}
+
+/**
+ * 获取练习记录列表
+ */
+export async function getPracticeRecords(userId?: string, limit: number = 10) {
+  const where: any = {}
+  if (userId) where.userId = userId
+  return dbGetList('practiceRecords', {
+    where,
+    orderBy: 'createdAt desc',
+    limit
+  })
+}
+
+/**
+ * 获取错题列表
+ */
+export async function getWrongQuestions(userId?: string) {
+  const where: any = {}
+  if (userId) where.userId = userId
+  return dbGetList('wrongQuestions', {
+    where,
+    orderBy: 'createdAt desc',
     limit: 50
   })
+}
+
+/**
+ * 添加错题
+ */
+export async function addWrongQuestion(data: {
+  userId: string
+  bankId: string
+  questionId: string
+  question: string
+  yourAnswer: string
+  correctAnswer: string
+}) {
+  // 先查询是否已存在
+  const existing = await dbGetList('wrongQuestions', {
+    where: { userId: data.userId, questionId: data.questionId }
+  })
+  if (existing.data?.length > 0) {
+    // 已存在，更新
+    return dbUpdate('wrongQuestions', existing.data[0]._id, {
+      ...data,
+      wrongCount: (existing.data[0].wrongCount || 1) + 1,
+      lastWrongAt: new Date().toISOString()
+    })
+  }
+  return dbAdd('wrongQuestions', {
+    ...data,
+    wrongCount: 1,
+    createdAt: new Date().toISOString()
+  })
+}
+
+/**
+ * 获取练习统计
+ */
+export async function getPracticeStats(userId: string) {
+  try {
+    // 获取总练习次数
+    const records = await dbGetList('practiceRecords', {
+      where: { userId },
+      limit: 100
+    })
+    
+    const totalPractices = records.data?.length || 0
+    let totalQuestions = 0
+    let totalCorrect = 0
+    let todayQuestions = 0
+    
+    const today = new Date().toDateString()
+    
+    records.data?.forEach((record: any) => {
+      totalQuestions += record.totalCount || 0
+      totalCorrect += record.correctCount || 0
+      if (new Date(record.createdAt).toDateString() === today) {
+        todayQuestions += record.totalCount || 0
+      }
+    })
+    
+    return {
+      totalPractices,
+      totalQuestions,
+      totalCorrect,
+      todayQuestions,
+      accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0
+    }
+  } catch (err) {
+    logger.error('练习', '获取统计失败', err)
+    return {
+      totalPractices: 0,
+      totalQuestions: 0,
+      totalCorrect: 0,
+      todayQuestions: 0,
+      accuracy: 0
+    }
+  }
 }
 
 /**
