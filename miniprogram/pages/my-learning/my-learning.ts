@@ -1,8 +1,8 @@
 // pages/my-learning/my-learning.ts
-// 我的学习页面 - 小程序个人中心
+// 我的学习页面
 
 import { checkLogin, getUserId, getPhone } from '../../utils/util'
-import { courseApi, newUserApi, learningPathApi } from '../../utils/api'
+import { courseApi, newUserApi } from '../../utils/api'
 import { dbGetList } from '../../utils/http'
 import logger from '../../utils/logger'
 
@@ -21,8 +21,14 @@ Page({
     completedCourses: [] as any[],
     notStartedCourses: [] as any[],
     // 学习统计
-    learningStats: null as any,
-    loading: false
+    totalStats: {
+      totalCourses: 0,
+      totalHours: 0,
+      completedCourses: 0,
+      certificates: 0
+    },
+    loading: false,
+    refreshing: false
   },
 
   onLoad() {
@@ -42,6 +48,21 @@ Page({
     }
   },
 
+  onPullDownRefresh() {
+    this.setData({ refreshing: true })
+    Promise.all([
+      this.loadMyData(),
+      this.loadLearningStats()
+    ]).then(() => {
+      this.setData({ refreshing: false })
+      wx.stopPullDownRefresh()
+    })
+  },
+
+  onRefresh() {
+    this.onPullDownRefresh()
+  },
+
   checkStatus() {
     const userInfo = wx.getStorageSync('userInfo')
     this.setData({
@@ -51,12 +72,20 @@ Page({
     })
   },
 
-  // 加载学习统计（使用新 API）
+  // 加载学习统计
   async loadLearningStats() {
     try {
       const result = await newUserApi.getLearningStats()
       if (result.success && result.data) {
-        this.setData({ learningStats: result.data })
+        const stats = result.data
+        this.setData({
+          totalStats: {
+            totalCourses: (stats.courseCount || 0) + (stats.learningCount || 0),
+            totalHours: stats.learningHours || 0,
+            completedCourses: stats.completedCount || 0,
+            certificates: stats.certificateCount || 0
+          }
+        })
       }
     } catch (err) {
       logger.error('我的学习', '加载学习统计失败', err)
@@ -66,7 +95,6 @@ Page({
   async loadMyData() {
     this.setData({ loading: true })
     try {
-      // ★ 统一使用 phone 作为用户标识
       const phone = getPhone() || ''
 
       if (!phone) {
@@ -82,31 +110,17 @@ Page({
         return
       }
 
-      // ★ 统一使用 phone 查询（数据库已统一）
+      // 获取进度数据
       const progressResults: any[] = []
-      
       const r1 = await dbGetList('user_progress', {
         where: { phone },
         orderBy: 'updatedAt desc'
       })
       if (r1.data) progressResults.push(...r1.data)
-      
-      // 去重（根据 courseId + lessonId）
-      const progressMap = new Map<string, any>()
-      for (const p of progressResults) {
-        const key = `${p.courseId}-${p.lessonId}`
-        if (!progressMap.has(key)) {
-          progressMap.set(key, p)
-        }
-      }
-      const progressData = Array.from(progressMap.values())
-      
-      logger.debug('我的学习', '进度数据', progressData)
 
-      // 按课程分组统计进度
+      // 按课程分组
       const courseProgressMap = new Map<string, any>()
-
-      for (const p of progressData) {
+      for (const p of progressResults) {
         const courseId = p.courseId
         if (!courseProgressMap.has(courseId)) {
           courseProgressMap.set(courseId, {
@@ -127,33 +141,28 @@ Page({
         }
       }
 
-      // 获取用户已购买的课程（从 course_permissions 表 - 使用 phone 查询）
+      // 获取已购课程
       const permResult = await dbGetList('course_permissions', {
         where: { phone },
         orderBy: 'createdAt desc'
       })
-      
       const permData = permResult.data || []
       const purchasedCourseIds = new Set<string>()
-      
       for (const p of permData) {
         if (p.courseId) {
           purchasedCourseIds.add(p.courseId)
         }
       }
-      logger.debug('我的学习', '已购课程', Array.from(purchasedCourseIds))
 
-      // 获取课程详情并计算进度
+      // 获取课程列表
       const allCourses = await courseApi.getList({ pageSize: 100 })
       const publishedCourses = allCourses.filter((c: any) => c.status === 'published')
 
-      // 获取每个课程的课时数
       const learningCourses: any[] = []
       const completedCourses: any[] = []
       const notStartedCourses: any[] = []
 
       for (const course of publishedCourses) {
-        // 只处理已购买的课程
         if (!purchasedCourseIds.has(course._id)) {
           continue
         }
@@ -164,10 +173,9 @@ Page({
         })
         const lessons = lessonsResult.data || []
         const totalLessons = lessons.length
-
         const cp = courseProgressMap.get(course._id)
 
-        // 未开始：没有学习记录或没有任何课时被看完
+        // 未开始
         if (!cp || (cp.learnedLessons === 0 && !cp.lastLearnTime)) {
           notStartedCourses.push({
             ...course,
@@ -187,17 +195,20 @@ Page({
           progress: cp.progress,
           learnedLessons: cp.learnedLessons,
           totalLessons: totalLessons,
-          lastLearnTime: cp.lastLearnTime
+          lastLearnTime: cp.lastLearnTime,
+          lastLearnTimeStr: this.formatTime(cp.lastLearnTime)
         }
 
         if (cp.progress >= 100) {
-          completedCourses.push(courseData)
+          completedCourses.push({
+            ...courseData,
+            completeTime: cp.lastLearnTime,
+            completeTimeStr: this.formatTime(cp.lastLearnTime)
+          })
         } else {
           learningCourses.push(courseData)
         }
       }
-
-      logger.debug('我的学习', '课程统计', { learning: learningCourses.length, completed: completedCourses.length, notStarted: notStartedCourses.length })
 
       this.setData({
         learningCourses,
@@ -212,6 +223,23 @@ Page({
       logger.error('我的学习', '加载数据失败', err)
       this.setData({ loading: false })
     }
+  },
+
+  // 格式化时间
+  formatTime(timeStr: string): string {
+    if (!timeStr) return ''
+    const date = new Date(timeStr)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const days = Math.floor(diff / 86400000)
+    
+    if (days === 0) return '今天'
+    if (days === 1) return '昨天'
+    if (days < 7) return `${days}天前`
+    
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${month}-${day}`
   },
 
   // Tab 切换
@@ -246,31 +274,6 @@ Page({
   getCertificate(e: any) {
     const id = e.currentTarget.dataset.id
     wx.navigateTo({ url: `/pages/my-certificates/my-certificates?courseId=${id}` })
-  },
-
-  // 去订单页
-  goToOrders() {
-    wx.navigateTo({ url: '/pages/my-orders/my-orders' })
-  },
-
-  // 去班级页
-  goToClasses() {
-    wx.navigateTo({ url: '/pages/my-classes/my-classes' })
-  },
-
-  // 去证书页
-  goToCertificates() {
-    wx.navigateTo({ url: '/pages/my-certificates/my-certificates' })
-  },
-
-  // 去个人中心
-  goToProfile() {
-    wx.navigateTo({ url: '/pages/profile/profile' })
-  },
-
-  // 去练习
-  goToPractice() {
-    wx.navigateTo({ url: '/pages/practice/practice' })
   },
 
   onShareAppMessage() {
