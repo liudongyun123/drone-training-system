@@ -3,7 +3,7 @@
 <view class="page">
   <!-- 加载状态 -->
   <view wx:if="{{loading}}" class="loading-container">
-    <text class="loading-spinner">⏳</text>
+    <view class="loading-ring"></view>
     <text class="loading-text">加载中...</text>
   </view>
 
@@ -11,117 +11,186 @@
     <!-- ==================== 用户头部 ==================== -->
     <view class="user-header">
       <view class="user-header-bg"></view>
+      
+      <!-- 用户信息 -->
       <view class="user-info">
-        <view class="avatar-box" bindtap="chooseAvatar">
+        <view class="avatar-wrap" bindtap="chooseAvatar">
           <image 
             class="avatar" 
-            src="{{userInfo.avatarUrl || 'https://via.placeholder.com/100?text=头像'}}" 
+            src="{{userInfo.avatarUrl || '/assets/icons/profile.png'}}" 
             mode="aspectFill" 
           />
-        </view>
-        <view class="user-detail">
-          <text class="user-name">{{userInfo.nickName || '未登录'}}</text>
-          <view class="user-phone-row">
-            <text class="user-phone">{{userInfo.phone || '未绑定手机'}}</text>
-            <text wx:if="{{!userInfo.phone}}" class="bind-btn" bindtap="bindPhone">去绑定</text>
+          <view class="avatar-edit">
+            <text>编辑</text>
           </view>
         </view>
+        
+        <view class="user-detail">
+          <view class="user-name-row">
+            <text class="user-name">{{userInfo.nickName || '未登录'}}</text>
+            <view class="member-badge" wx:if="{{memberLevel !== 'free'}}">
+              <text class="badge-icon">⭐</text>
+              <text class="badge-text">{{memberLevel === 'gold' ? '金牌' : '银牌'}}</text>
+            </view>
+          </view>
+          <text class="user-phone" wx:if="{{userInfo.phone}}">{{userInfo.phone}}</text>
+          <text class="user-phone bind-hint" wx:else bindtap="bindPhone">点击绑定手机号</text>
+        </view>
+      </view>
+
+      <!-- 学习统计 -->
+      <view class="stats-bar" wx:if="{{stats}}">
+        <view class="stat-item">
+          <text class="stat-num">{{stats.courseCount || 0}}</text>
+          <text class="stat-label">在学课程</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-num">{{stats.learningHours || 0}}</text>
+          <text class="stat-label">学习时长</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-num">{{stats.certificateCount || 0}}</text>
+          <text class="stat-label">获得证书</text>
+        </view>
       </view>
     </view>
 
-    <!-- ==================== 学习相关 ==================== -->
-    <view class="section">
-      <view class="menu-card" bindtap="goToMyLearning">
-        <view class="menu-icon-box blue">
-          <text class="menu-icon">📚</text>
+    <!-- ==================== 会员卡片（可升级） ==================== -->
+    <view class="member-card" wx:if="{{memberLevel === 'free'}}" bindtap="upgradeMember">
+      <view class="member-left">
+        <text class="member-icon">👑</text>
+        <view class="member-info">
+          <text class="member-title">开通金牌会员</text>
+          <text class="member-desc">享受更多特权与服务</text>
         </view>
-        <text class="menu-title">我的学习</text>
-        <text class="menu-desc">在线课程进度</text>
-        <text class="menu-arrow">›</text>
       </view>
-      
-      <view class="menu-card" bindtap="goToMyClasses">
-        <view class="menu-icon-box amber">
-          <text class="menu-icon">🎓</text>
-        </view>
-        <text class="menu-title">我的培训班</text>
-        <text class="menu-desc">线下培训报名</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      
-      <view class="menu-card" bindtap="goToMySchedule">
-        <view class="menu-icon-box green">
-          <text class="menu-icon">📅</text>
-        </view>
-        <text class="menu-title">我的日程</text>
-        <text class="menu-desc">上课时间安排</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      
-      <view class="menu-card" bindtap="goToPractice">
-        <view class="menu-icon-box purple">
-          <text class="menu-icon">✏️</text>
-        </view>
-        <text class="menu-title">练习记录</text>
-        <text class="menu-desc">模拟考试备考</text>
-        <text class="menu-arrow">›</text>
+      <view class="member-action">
+        <text>立即开通</text>
+        <text class="action-arrow">›</text>
       </view>
     </view>
 
-    <!-- ==================== 购物相关 ==================== -->
+    <!-- ==================== 学习服务 ==================== -->
     <view class="section">
-      <view class="menu-card" bindtap="goToCart">
-        <view class="menu-icon-box orange">
-          <text class="menu-icon">🛒</text>
-        </view>
-        <text class="menu-title">购物车</text>
-        <text class="menu-desc" wx:if="{{cartCount > 0}}">{{cartCount}}件商品</text>
-        <text class="menu-arrow">›</text>
+      <view class="section-header">
+        <text class="section-title">学习服务</text>
       </view>
       
-      <view class="menu-card" bindtap="goToMyOrders">
-        <view class="menu-icon-box cyan">
-          <text class="menu-icon">📦</text>
+      <view class="grid-menu">
+        <view class="grid-item" bindtap="goToMyLearning">
+          <view class="grid-icon blue">
+            <text>📚</text>
+          </view>
+          <text class="grid-label">我的学习</text>
+          <text class="grid-badge" wx:if="{{stats?.courseCount > 0}}">{{stats.courseCount}}</text>
         </view>
-        <text class="menu-title">我的订单</text>
-        <text class="menu-desc">配件购买记录</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      
-      <view class="menu-card" bindtap="goToMyCertificates">
-        <view class="menu-icon-box gold">
-          <text class="menu-icon">📜</text>
+        
+        <view class="grid-item" bindtap="goToMyClasses">
+          <view class="grid-icon amber">
+            <text>🎓</text>
+          </view>
+          <text class="grid-label">我的培训班</text>
         </view>
-        <text class="menu-title">我的证书</text>
-        <text class="menu-desc">培训结业证明</text>
-        <text class="menu-arrow">›</text>
+        
+        <view class="grid-item" bindtap="goToMySchedule">
+          <view class="grid-icon green">
+            <text>📅</text>
+          </view>
+          <text class="grid-label">我的日程</text>
+        </view>
+        
+        <view class="grid-item" bindtap="goToPractice">
+          <view class="grid-icon purple">
+            <text>✏️</text>
+          </view>
+          <text class="grid-label">练习中心</text>
+        </view>
       </view>
     </view>
 
-    <!-- ==================== 其他 ==================== -->
+    <!-- ==================== 订单服务 ==================== -->
     <view class="section">
-      <view class="menu-card" bindtap="contactService">
-        <view class="menu-icon-box gray">
-          <text class="menu-icon">📞</text>
-        </view>
-        <text class="menu-title">联系客服</text>
-        <text class="menu-desc">咨询答疑</text>
-        <text class="menu-arrow">›</text>
+      <view class="section-header">
+        <text class="section-title">订单服务</text>
+        <text class="section-more" bindtap="goToMyOrders">全部订单 ›</text>
       </view>
       
-      <view class="menu-card" bindtap="showAbout">
-        <view class="menu-icon-box gray">
-          <text class="menu-icon">ℹ️</text>
+      <view class="order-cards">
+        <view class="order-card" bindtap="goToCart">
+          <view class="order-icon-wrap orange">
+            <text class="order-icon">🛒</text>
+            <view class="order-badge" wx:if="{{cartCount > 0}}">{{cartCount}}</view>
+          </view>
+          <text class="order-label">购物车</text>
         </view>
-        <text class="menu-title">关于我们</text>
-        <text class="menu-desc">无人机培训中心</text>
-        <text class="menu-arrow">›</text>
+        
+        <view class="order-card" bindtap="goToMyOrders" data-status="pending">
+          <view class="order-icon-wrap blue">
+            <text class="order-icon">⏰</text>
+          </view>
+          <text class="order-label">待支付</text>
+        </view>
+        
+        <view class="order-card" bindtap="goToMyOrders" data-status="shipped">
+          <view class="order-icon-wrap green">
+            <text class="order-icon">🚚</text>
+          </view>
+          <text class="order-label">待收货</text>
+        </view>
+        
+        <view class="order-card" bindtap="goToMyCertificates">
+          <view class="order-icon-wrap gold">
+            <text class="order-icon">🏆</text>
+          </view>
+          <text class="order-label">我的证书</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ==================== 快捷工具 ==================== -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">快捷工具</text>
+      </view>
+      
+      <view class="tool-grid">
+        <view class="tool-item" bindtap="contactService">
+          <view class="tool-icon">
+            <text>📞</text>
+          </view>
+          <text class="tool-label">联系客服</text>
+        </view>
+        
+        <view class="tool-item" bindtap="showAbout">
+          <view class="tool-icon">
+            <text>ℹ️</text>
+          </view>
+          <text class="tool-label">关于我们</text>
+        </view>
+        
+        <view class="tool-item" bindtap="showHelp">
+          <view class="tool-icon">
+            <text>❓</text>
+          </view>
+          <text class="tool-label">帮助中心</text>
+        </view>
+        
+        <view class="tool-item" bindtap="showSettings">
+          <view class="tool-icon">
+            <text>⚙️</text>
+          </view>
+          <text class="tool-label">设置</text>
+        </view>
       </view>
     </view>
 
     <!-- ==================== 退出登录 ==================== -->
     <view class="logout-section">
-      <button class="btn-logout" bindtap="logout">退出登录</button>
+      <view class="logout-btn" bindtap="logout">
+        <text>退出登录</text>
+      </view>
     </view>
 
     <!-- 底部间距 -->

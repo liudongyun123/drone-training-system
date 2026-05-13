@@ -17,78 +17,74 @@ Page({
 
   onLoad() {
     wx.setNavigationBarTitle({ title: '个人中心' })
-    logger.debug('个人中心', 'onLoad 被调用')
     
-    // 优先从全局数据获取
-    const app = getApp()
-    let userId = app.globalData.userId
-    logger.debug('个人中心', '全局数据 userId', userId)
-    
-    // 如果全局数据没有，尝试 Storage
+    const userId = this.getUserId()
     if (!userId) {
-      userId = wx.getStorageSync('userId')
-      logger.debug('个人中心', 'Storage userId', userId)
+      wx.navigateTo({ url: '/pages/login/login' })
+      return
     }
     
-    if (userId) {
-      this.loadUserInfo()
-      this.loadMemberInfo()
-      this.loadUserStats()
-    } else {
-      logger.debug('个人中心', '没有 userId，跳转登录')
-      wx.navigateTo({ url: '/pages/login/login' })
-    }
+    this.loadUserInfo()
+    this.loadMemberInfo()
+    this.loadUserStats()
+    this.loadCartCount()
   },
 
   onShow() {
-    // 每次显示页面时刷新会员状态
-    this.loadMemberInfo()
+    if (checkLogin()) {
+      this.loadMemberInfo()
+      this.loadCartCount()
+    }
   },
 
-  // 加载用户信息（支持新 API）
-  async loadUserInfo() {
-    logger.debug('个人中心', 'loadUserInfo 开始')
-    try {
-      const userId = getUserId()
-      let result = null
+  // 获取用户 ID
+  getUserId(): string {
+    const app = getApp()
+    return app.globalData.userId || wx.getStorageSync('userId') || ''
+  },
 
-      // 优先使用新 API
+  // 加载用户信息
+  async loadUserInfo() {
+    try {
       const newResult = await newUserApi.getProfile()
       if (newResult.success && newResult.data?.user) {
-        result = newResult.data.user
-      } else {
-        // 兜底使用旧 API
-        result = await userApi.getUser(userId)
-      }
-
-      logger.debug('个人中心', 'result', result)
-      
-      if (result) {
-        // 从全局数据获取基本信息，合并数据库详细信息
+        const user = newResult.data.user
         const app = getApp()
         const basicInfo = app.globalData.userInfo || {}
         
         this.setData({
           userInfo: {
-            _id: result._id || result.userId,
-            nickName: result.nickname || result.name || basicInfo.nickName || '用户' + (userId?.slice(-4) || ''),
-            phone: result.phone || basicInfo.phone || '',
-            avatarUrl: result.avatar || basicInfo.avatarUrl || '/assets/icons/profile.png',
-            createdAt: result.createdAt
+            _id: user._id || user.userId,
+            nickName: user.nickname || user.name || basicInfo.nickName || '用户',
+            phone: user.phone || basicInfo.phone || '',
+            avatarUrl: user.avatar || basicInfo.avatarUrl || '/assets/icons/profile.png'
           },
           loading: false
         })
-        logger.debug('个人中心', '用户信息已更新')
       } else {
-        this.setData({ loading: false })
+        const userId = this.getUserId()
+        const result = await userApi.getUser(userId)
+        if (result) {
+          this.setData({
+            userInfo: {
+              _id: result._id,
+              nickName: result.nickname || result.name || '用户',
+              phone: result.phone || '',
+              avatarUrl: result.avatar || '/assets/icons/profile.png'
+            },
+            loading: false
+          })
+        } else {
+          this.setData({ loading: false })
+        }
       }
     } catch (err) {
-      logger.error('个人中心', '错误', err)
+      logger.error('个人中心', '加载用户信息失败', err)
       this.setData({ loading: false })
     }
   },
 
-  // 加载会员信息（使用新 API）
+  // 加载会员信息
   async loadMemberInfo() {
     try {
       const result = await newUserApi.getMemberLevel()
@@ -103,7 +99,7 @@ Page({
     }
   },
 
-  // 加载用户统计（使用新 API）
+  // 加载用户统计
   async loadUserStats() {
     try {
       const result = await newUserApi.getStats()
@@ -112,6 +108,16 @@ Page({
       }
     } catch (err) {
       logger.error('个人中心', '加载用户统计失败', err)
+    }
+  },
+
+  // 加载购物车数量
+  loadCartCount() {
+    try {
+      const cart = wx.getStorageSync('cart') || []
+      this.setData({ cartCount: cart.length })
+    } catch (err) {
+      logger.error('个人中心', '加载购物车数量失败', err)
     }
   },
 
@@ -124,9 +130,10 @@ Page({
       success: async (res) => {
         const tempFilePath = res.tempFiles[0].tempFilePath
         wx.showLoading({ title: '上传中...' })
+        
         setTimeout(() => {
           wx.hideLoading()
-          const userInfo = { ...this.data.userInfo, avatar: tempFilePath }
+          const userInfo = { ...this.data.userInfo, avatarUrl: tempFilePath }
           this.setData({ userInfo })
           showToast('头像已更新')
         }, 1000)
@@ -140,22 +147,23 @@ Page({
   },
 
   // 升级会员
-  async upgradeMember() {
+  upgradeMember() {
     wx.showModal({
-      title: '升级会员',
-      content: '确定要升级为金牌会员吗？',
+      title: '开通金牌会员',
+      content: '开通后可享受：\n• 专属课程折扣\n• 优先客服响应\n• 线下培训优惠\n\n确认开通吗？',
+      confirmText: '立即开通',
       success: async (res) => {
         if (res.confirm) {
           try {
             const result = await newUserApi.upgradeMember('gold', 12)
             if (result.success) {
-              wx.showToast({ title: '升级成功！', icon: 'success' })
+              wx.showToast({ title: '开通成功！', icon: 'success' })
               this.loadMemberInfo()
             } else {
-              wx.showToast({ title: result.error || '升级失败', icon: 'none' })
+              wx.showToast({ title: result.error || '开通失败', icon: 'none' })
             }
           } catch (err) {
-            wx.showToast({ title: '升级失败', icon: 'none' })
+            wx.showToast({ title: '开通失败', icon: 'none' })
           }
         }
       }
@@ -184,22 +192,60 @@ Page({
     wx.navigateTo({ url: '/pages/cart/cart' })
   },
 
-  goToMyOrders() {
-    wx.navigateTo({ url: '/pages/my-orders/my-orders' })
+  goToMyOrders(e: any) {
+    const status = e?.currentTarget?.dataset?.status
+    const url = status ? `/pages/my-orders/my-orders?status=${status}` : '/pages/my-orders/my-orders'
+    wx.navigateTo({ url })
   },
 
   goToMyCertificates() {
     wx.navigateTo({ url: '/pages/my-certificates/my-certificates' })
   },
 
+  // 联系客服
   contactService() {
-    wx.showToast({ title: '客服功能开发中', icon: 'none' })
+    wx.showModal({
+      title: '联系客服',
+      content: '客服电话：400-888-8888\n工作时间：周一至周五 9:00-18:00',
+      showCancel: true,
+      cancelText: '复制电话',
+      confirmText: '拨打热线',
+      success: (res) => {
+        if (res.confirm) {
+          wx.makePhoneCall({ phoneNumber: '4008888888' })
+        } else if (res.cancel) {
+          wx.setClipboardData({ data: '400-888-8888' })
+          wx.showToast({ title: '已复制', icon: 'success' })
+        }
+      }
+    })
   },
 
+  // 关于我们
   showAbout() {
     wx.showModal({
       title: '关于我们',
-      content: '无人机培训中心\n中国航空运输协会认证培训机构',
+      content: '无人机培训中心\n\n中国航空运输协会认证培训机构\n专业无人机驾驶员培训机构\n\n版本：V1.0.0',
+      showCancel: false,
+      confirmText: '知道了'
+    })
+  },
+
+  // 帮助中心
+  showHelp() {
+    wx.showModal({
+      title: '帮助中心',
+      content: '常见问题：\n\n1. 如何报名培训？\n进入课程详情页，点击立即报名即可。\n\n2. 证书如何获取？\n完成培训课程并通过考试后自动生成。\n\n3. 如何联系客服？\n点击联系客服查看电话。',
+      showCancel: false,
+      confirmText: '知道了'
+    })
+  },
+
+  // 设置
+  showSettings() {
+    wx.showModal({
+      title: '设置',
+      content: '设置功能开发中...\n\n即将上线：\n• 消息通知\n• 隐私设置\n• 清除缓存',
       showCancel: false,
       confirmText: '知道了'
     })
