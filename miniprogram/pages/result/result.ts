@@ -7,6 +7,7 @@ Page({
     totalQuestions: 0,
     correctCount: 0,
     score: 0,
+    accuracy: 0,
     questionResults: [] as any[],
     showAnalysis: false,
     currentAnalysisIndex: 0
@@ -16,11 +17,15 @@ Page({
     wx.setNavigationBarTitle({ title: '答题结果' })
     const result = wx.getStorageSync('examResult')
     if (result) {
+      const accuracy = result.totalQuestions > 0
+        ? Math.round(result.correctCount / result.totalQuestions * 100)
+        : 0
       this.setData({
         type: result.type,
         totalQuestions: result.totalQuestions,
         correctCount: result.correctCount,
         score: result.score,
+        accuracy,
         questionResults: result.questionResults
       })
       wx.removeStorageSync('examResult')
