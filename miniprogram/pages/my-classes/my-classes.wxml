@@ -1,54 +1,139 @@
+<!--pages/my-classes/my-classes.wxml-->
+
 <view class="page">
-  <!-- Tab 栏 -->
-  <view class="tab-bar">
-    <view 
-      class="tab-item {{currentTab === item.key ? 'active' : ''}}"
-      wx:for="{{tabs}}"
-      wx:key="key"
-      bindtap="switchTab"
-      data-key="{{item.key}}"
-    >
-      {{item.title}}
+  <!-- 未登录状态 -->
+  <view wx:if="{{!isLoggedIn}}" class="login-prompt">
+    <view class="prompt-icon-wrap">
+      <text class="prompt-icon">🎓</text>
+    </view>
+    <text class="prompt-title">登录后查看培训班</text>
+    <text class="prompt-desc">线下培训，理论与实操结合</text>
+    <view class="prompt-btn" bindtap="goToLogin">
+      <text>立即登录</text>
     </view>
   </view>
 
-  <!-- 加载状态 -->
-  <view wx:if="{{loading}}" class="loading-container">
-    <text>加载中...</text>
-  </view>
-
-  <!-- 培训班列表 -->
-  <view class="class-list" wx:if="{{!loading}}">
-    <view class="class-card" wx:for="{{classes}}" wx:key="_id">
-      <view class="card-header">
-        <text class="class-title">{{item.classInfo.title}}</text>
-        <text class="class-status status-{{item.status}}">{{item.status === 'ongoing' ? '进行中' : item.status === 'ended' ? '已结束' : item.status}}</text>
-      </view>
-      <view class="card-body">
-        <view class="info-row">
-          <text class="info-label">培训时间</text>
-          <text class="info-value">{{item.classInfo.startDate}} - {{item.classInfo.endDate}}</text>
+  <block wx:else>
+    <!-- 统计卡片 -->
+    <view class="stats-card">
+      <view class="stats-left">
+        <view class="stats-icon-wrap">
+          <text class="stats-icon">🏢</text>
         </view>
-        <view class="info-row">
-          <text class="info-label">培训地点</text>
-          <text class="info-value">{{item.classInfo.location}}</text>
-        </view>
-        <view class="info-row">
-          <text class="info-label">报名状态</text>
-          <text class="info-value status-{{item.enrollmentStatus}}">{{item.enrollmentStatus === 'confirmed' ? '已确认' : item.enrollmentStatus === 'pending' ? '待确认' : '已完成'}}</text>
+        <view class="stats-info">
+          <text class="stats-title">我的培训班</text>
+          <text class="stats-desc">线下专业培训课程</text>
         </view>
       </view>
-      <view class="card-footer">
-        <button class="action-btn" bindtap="goToDetail" data-id="{{item.classId}}">查看详情</button>
-        <button class="action-btn primary" bindtap="goToSchedule" data-id="{{item.classId}}">我的日程</button>
+      <view class="stats-right">
+        <view class="stats-count-item">
+          <text class="count-num">{{ongoingCount}}</text>
+          <text class="count-label">进行中</text>
+        </view>
+        <view class="count-divider"></view>
+        <view class="stats-count-item">
+          <text class="count-num">{{endedCount}}</text>
+          <text class="count-label">已结束</text>
+        </view>
       </view>
     </view>
-  </view>
 
-  <!-- 空状态 -->
-  <view wx:if="{{!loading && classes.length === 0}}" class="empty-container">
-    <text class="empty-icon">📚</text>
-    <text>暂无培训班记录</text>
-    <button class="go-btn" bindtap="goToClassList">浏览培训班</button>
-  </view>
+    <!-- Tab 切换 -->
+    <view class="tab-bar">
+      <view 
+        class="tab-item {{currentTab === item.key ? 'active' : ''}}"
+        wx:for="{{tabs}}"
+        wx:key="key"
+        bindtap="switchTab"
+        data-key="{{item.key}}"
+      >
+        <text class="tab-name">{{item.title}}</text>
+        <view class="tab-line" wx:if="{{currentTab === item.key}}"></view>
+        <view class="tab-badge" wx:if="{{item.count > 0}}">{{item.count}}</view>
+      </view>
+    </view>
+
+    <!-- 加载骨架屏 -->
+    <view wx:if="{{loading}}" class="skeleton-container">
+      <view class="skeleton-card" wx:for="{{3}}" wx:key="*this">
+        <view class="skeleton-header"></view>
+        <view class="skeleton-body">
+          <view class="skeleton-row"></view>
+          <view class="skeleton-row short"></view>
+        </view>
+        <view class="skeleton-footer"></view>
+      </view>
+    </view>
+
+    <!-- 培训班列表 -->
+    <scroll-view wx:if="{{!loading && classes.length > 0}}" class="content" scroll-y enhanced refresher-enabled bindrefresherrefresh="onRefresh" refresher-triggered="{{refreshing}}">
+      <view class="class-list">
+        <view class="class-card" wx:for="{{classes}}" wx:key="_id">
+          <!-- 卡片封面 -->
+          <view class="card-cover">
+            <image class="cover-img" src="{{item.classInfo.coverImage || '/assets/images/default-cover.png'}}" mode="aspectFill" />
+            <view class="cover-status status-{{item.status}}">
+              <text>{{item.statusText}}</text>
+            </view>
+          </view>
+          
+          <!-- 卡片内容 -->
+          <view class="card-content">
+            <text class="card-title">{{item.classInfo.title}}</text>
+            
+            <view class="card-tags">
+              <view class="tag">
+                <text class="tag-icon">📅</text>
+                <text>{{item.classInfo.startDate}}</text>
+              </view>
+              <view class="tag">
+                <text class="tag-icon">📍</text>
+                <text>{{item.classInfo.location}}</text>
+              </view>
+            </view>
+
+            <view class="card-info">
+              <view class="info-item">
+                <text class="info-label">报名状态</text>
+                <text class="info-value enrollment-{{item.enrollmentStatus}}">{{item.enrollmentStatusText}}</text>
+              </view>
+              <view class="info-item" wx:if="{{item.classInfo.instructor}}">
+                <text class="info-label">培训讲师</text>
+                <text class="info-value">{{item.classInfo.instructor}}</text>
+              </view>
+            </view>
+
+            <view class="card-footer">
+              <view class="btn-outline" bindtap="goToDetail" data-id="{{item.classId}}">
+                <text>查看详情</text>
+              </view>
+              <view class="btn-primary" wx:if="{{item.status === 'ongoing'}}" bindtap="goToSchedule" data-id="{{item.classId}}">
+                <text>我的日程</text>
+              </view>
+              <view class="btn-secondary" wx:elif="{{item.status === 'ended'}}" bindtap="reEnroll" data-id="{{item.classId}}">
+                <text>再次报名</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部提示 -->
+      <view class="list-footer" wx:if="{{classes.length > 0}}">
+        <text>— 没有更多了 —</text>
+      </view>
+    </scroll-view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{!loading && classes.length === 0}}" class="empty-container">
+      <view class="empty-icon-wrap">
+        <text class="empty-icon">🏢</text>
+      </view>
+      <text class="empty-title">暂无培训班记录</text>
+      <text class="empty-desc">浏览线下培训课程，开启专业飞行之旅</text>
+      <view class="empty-btn" bindtap="goToClassList">
+        <text>浏览培训班</text>
+      </view>
+    </view>
+  </block>
 </view>
