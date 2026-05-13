@@ -181,7 +181,7 @@ Page({
   },
 
   goToCart() {
-    wx.switchTab({ url: '/pages/shop/shop' })
+    wx.navigateTo({ url: '/pages/cart/cart' })
   },
 
   goToMyOrders() {
