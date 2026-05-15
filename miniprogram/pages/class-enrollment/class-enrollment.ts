@@ -1,9 +1,9 @@
 // pages/class-enrollment/class-enrollment.ts
 // 培训班报名页
 
-import { classApi } from '../../utils/api'
-import { dbAdd, dbGetList } from '../../utils/http'
-import { checkLogin, getUserId, getPhone, showToast } from '../../utils/util'
+import { classApi, orderApi } from '../../utils/api'
+import { dbGetList, callFunction } from '../../utils/http'
+import { checkLogin, getPhone, showToast } from '../../utils/util'
 import { validatePhone, validateName, validateIdCard } from '../../utils/validation'
 import { parseError } from '../../utils/error'
 import logger from '../../utils/logger'
@@ -65,7 +65,7 @@ Page({
     this.setData({ remark: e.detail.value })
   },
 
-  // 提交报名
+  // 提交报名（购买培训班 = 创建订单 + 完成报名）
   async submitEnrollment() {
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
@@ -97,61 +97,92 @@ Page({
     this.setData({ submitting: true })
 
     try {
-      // ★ 统一使用 phone 作为用户标识
       const phone = getPhone() || ''
+      const openid = wx.getStorageSync('openid') || ''
 
-      // 检查是否已报名
-      const existingResult = await dbGetList('class_members', {
-        where: {
-          classId: this.classId,
-          phone: phone
-        }
-      })
+      if (!phone) {
+        showToast('请先登录')
+        return
+      }
+
+      // 检查是否已报名（通过订单查询）
+      const existingOrders = await orderApi.getByUserId('', 'class')
+      const alreadyEnrolled = existingOrders.some((o: any) => 
+        o.classId === this.classId && ['pending', 'paid', 'completed'].includes(o.status)
+      )
       
-      if (existingResult.data && existingResult.data.length > 0) {
+      if (alreadyEnrolled) {
         showToast('您已报名此培训班')
         return
       }
 
-      // 使用 db-init 直接创建报名记录
-      const now = new Date().toISOString()
-      console.log('[培训班报名] 开始创建报名记录', {
-        classId: this.classId,
-        phone: phone,
-        userName: this.data.contactName
-      })
+      // ★ 培训班报名 = 创建订单 + 完成报名
+      const classInfo = this.data.classInfo
       
-      const res = await dbAdd('class_members', {
+      // 1. 创建培训班订单
+      console.log('[培训班报名] 创建订单', {
         classId: this.classId,
-        className: this.data.classInfo?.name || '',
-        courseId: this.data.classInfo?.courseId || '',
-        phone: phone,
-        userName: this.data.contactName,
-        idCard: this.data.idCard,
-        emergencyContact: '',
-        emergencyPhone: this.data.contactPhone,
-        notes: this.data.remark,
-        status: 'pending',  // 待审核
-        source: this.data.payMethod === 'online' ? 'online_purchase' : 'offline_enroll',
-        enrollmentTime: now,
-        createdAt: now,
-        updatedAt: now
+        className: classInfo?.name,
+        phone: phone
       })
 
-      console.log('[培训班报名] 报名返回:', JSON.stringify(res))
+      const orderRes = await callFunction('api-order', {
+        action: 'create',
+        data: {
+          orderType: 'class',
+          classId: this.classId,
+          className: classInfo?.name || '',
+          phone: phone,
+          openid: openid,
+          totalPrice: classInfo?.price || 0,
+          finalAmount: classInfo?.price || 0,
+          items: [{
+            classId: this.classId,
+            className: classInfo?.name || '',
+            price: classInfo?.price || 0
+          }],
+          remark: this.data.remark
+        }
+      })
 
-      // 检查返回结果 - db-init 返回格式: { code, data: { id }, message }
-      const recordId = res?.data?.id
-      if (recordId) {
-        wx.showToast({ title: '报名成功', icon: 'success' })
+      console.log('[培训班报名] 订单创建结果:', orderRes)
 
-        setTimeout(() => {
-          wx.redirectTo({ url: '/pages/my-classes/my-classes' })
-        }, 1500)
-      } else {
-        console.error('[培训班报名] 报名失败，返回结果:', res)
-        throw new Error(res?.message || res?.error || '报名失败')
+      if (!orderRes || !orderRes.success) {
+        throw new Error(orderRes?.error || '创建订单失败')
       }
+
+      const orderId = orderRes.data?.orderId || orderRes.data?._id
+
+      // 2. 模拟支付成功（虚拟商品自动完成）
+      console.log('[培训班报名] 更新订单状态为已完成')
+      await callFunction('api-order', {
+        action: 'updateStatus',
+        data: { orderId, status: 'completed' }
+      })
+
+      // 3. 完成培训班报名
+      console.log('[培训班报名] 创建报名记录')
+      await callFunction('api-order', {
+        action: 'enrollClass',
+        data: {
+          classId: this.classId,
+          phone,
+          openid,
+          status: 'confirmed',
+          source: 'online_purchase',
+          userName: this.data.contactName,
+          idCard: this.data.idCard,
+          contactPhone: this.data.contactPhone,
+          remark: this.data.remark
+        }
+      })
+
+      wx.showToast({ title: '报名成功', icon: 'success' })
+
+      setTimeout(() => {
+        // 跳转到我的订单页面
+        wx.redirectTo({ url: '/pages/my-orders/my-orders' })
+      }, 1500)
 
     } catch (err: any) {
       logger.error('培训班', '报名失败', err)

@@ -147,10 +147,11 @@
       </view>
       <view class="action-right">
         <view 
-          class="btn-enroll {{classInfo.status !== 'enrolling' ? 'disabled' : ''}}" 
+          class="btn-enroll {{classInfo.status !== 'enrolling' && !isEnrolled ? 'disabled' : ''}}" 
           bindtap="goToEnrollment"
         >
-          <text wx:if="{{classInfo.status === 'enrolling'}}">立即报名</text>
+          <text wx:if="{{isEnrolled}}">已报名</text>
+          <text wx:elif="{{classInfo.status === 'enrolling'}}">立即报名</text>
           <text wx:else>报名已截止</text>
         </view>
       </view>

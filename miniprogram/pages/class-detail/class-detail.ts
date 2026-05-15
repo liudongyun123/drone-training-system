@@ -1,8 +1,8 @@
 // pages/class-detail/class-detail.ts
 // 培训班详情页
 
-import { classApi } from '../../utils/api'
-import { checkLogin, getUserId, showToast } from '../../utils/util'
+import { classApi, orderApi } from '../../utils/api'
+import { checkLogin, getPhone, showToast } from '../../utils/util'
 import { dbGetList } from '../../utils/http'
 import logger from '../../utils/logger'
 
@@ -12,7 +12,8 @@ Page({
     classInfo: null as any,
     includedCourses: [] as any[],
     schedules: [] as any[],
-    loading: true
+    loading: true,
+    isEnrolled: false  // 是否已购买/已报名
   },
 
   onLoad(options: any) {
@@ -46,9 +47,13 @@ Page({
         classInfo.coverImage = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
       }
       
+      // 检查用户是否已购买/已报名
+      const isEnrolled = await this.checkEnrollmentStatus(classId)
+      
       this.setData({
         classInfo,
         schedules: schedulesResult.data || [],
+        isEnrolled,
         loading: false
       })
     } catch (err) {
@@ -58,11 +63,63 @@ Page({
     }
   },
 
+  // 检查用户是否已购买/已报名该培训班
+  async checkEnrollmentStatus(classId: string): Promise<boolean> {
+    const phone = getPhone()
+    if (!phone) {
+      return false
+    }
+    
+    try {
+      // 检查 class_members 表
+      const membersResult = await dbGetList('class_members', {
+        where: {
+          classId,
+          phone,
+          status: { $in: ['enrolled', 'learning', 'pending', 'confirmed'] }
+        }
+      })
+      
+      if (membersResult.data && membersResult.data.length > 0) {
+        console.log('[培训班详情] 已在 class_members 中找到报名记录')
+        return true
+      }
+      
+      // 检查 orders 表
+      const orders = await orderApi.getByUserId('', 'class')
+      const hasOrder = orders.some((o: any) => 
+        o.classId === classId && ['pending', 'paid', 'completed'].includes(o.status)
+      )
+      
+      console.log('[培训班详情] 订单检查结果:', hasOrder)
+      return hasOrder
+    } catch (err) {
+      console.error('[培训班详情] 检查报名状态失败:', err)
+      return false
+    }
+  },
+
   goToEnrollment() {
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
       return
     }
+    
+    // 如果已报名，提示并跳转到我的班级
+    if (this.data.isEnrolled) {
+      wx.showModal({
+        title: '已报名',
+        content: '您已报名此培训班，是否查看详情？',
+        confirmText: '查看',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({ url: '/pages/my-classes/my-classes' })
+          }
+        }
+      })
+      return
+    }
+    
     wx.navigateTo({
       url: `/pages/class-enrollment/class-enrollment?id=${this.data.classId}`
     })

@@ -43,8 +43,8 @@
         <!-- 订单头部 -->
         <view class="order-header">
           <view class="order-source">
-            <text class="source-icon">{{item.orderType === 'course' ? '📚' : '🛒'}}</text>
-            <text class="source-text">{{item.orderType === 'course' ? '课程订单' : '商品订单'}}</text>
+            <text class="source-icon">{{item.orderType === 'course' ? '📚' : (item.orderType === 'class' ? '🎓' : '🛒')}}</text>
+            <text class="source-text">{{item.orderType === 'course' ? '课程订单' : (item.orderType === 'class' ? '培训班订单' : '商品订单')}}</text>
           </view>
           <view class="order-status-box status-{{item.status}}">
             <text class="status-dot"></text>

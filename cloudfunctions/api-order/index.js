@@ -78,6 +78,10 @@ exports.main = async (event, context) => {
         return await getOrderList(data)
       case 'getDetail':
         return await getOrderDetail(data)
+      case 'createCoursePermission':
+        return await createCoursePermission(data)
+      case 'enrollClass':
+        return await enrollClass(data)
       default:
         return createResponse({ 
           code: 400, 
@@ -337,6 +341,253 @@ async function getOrderDetail(data) {
       code: 500,
       success: false,
       error: '获取订单详情失败: ' + error.message
+    })
+  }
+}
+
+// 创建课程学习权限
+async function createCoursePermission(data) {
+  const { courseId, phone, openid, source = 'purchase', expiresAt = null } = data
+
+  console.log('[api-order] createCoursePermission 请求:', { courseId, phone, openid, source })
+
+  if (!courseId) {
+    return createResponse({
+      code: 400,
+      success: false,
+      error: '缺少课程ID'
+    })
+  }
+  if (!phone && !openid) {
+    return createResponse({
+      code: 400,
+      success: false,
+      error: '缺少用户标识'
+    })
+  }
+
+  try {
+    // 检查课程是否存在
+    const courseRes = await db.collection('courses').doc(courseId).get()
+    if (!courseRes.data) {
+      console.error('[api-order] 课程不存在:', courseId)
+      return createResponse({
+        code: 404,
+        success: false,
+        error: '课程不存在'
+      })
+    }
+
+    // 检查是否已有权限
+    const existingWhere = {}
+    existingWhere.courseId = courseId
+    if (phone) existingWhere.phone = phone
+    if (openid) existingWhere.openid = openid
+
+    const existing = await db.collection('course_permissions')
+      .where(existingWhere)
+      .get()
+
+    console.log('[api-order] 检查已有权限:', existingWhere, '结果:', existing.data?.length || 0)
+
+    if (existing.data && existing.data.length > 0) {
+      // 已存在权限，直接返回
+      return createResponse({
+        code: 0,
+        success: true,
+        data: {
+          permissionId: existing.data[0]._id,
+          courseId,
+          alreadyExists: true
+        },
+        message: '权限已存在'
+      })
+    }
+
+    // 创建权限记录
+    const now = new Date().toISOString()
+    const permissionData = {
+      courseId,
+      courseName: courseRes.data.title || '',
+      phone: phone || '',
+      openid: openid || '',
+      source,
+      status: 'active',
+      expiresAt: expiresAt,
+      grantedAt: now,
+      createdAt: now,
+      updatedAt: now
+    }
+
+    // 如果有 openid，添加 _openid 字段（CloudBase 安全规则需要）
+    if (openid) {
+      permissionData._openid = openid
+    }
+
+    const result = await db.collection('course_permissions').add({
+      data: permissionData
+    })
+
+    console.log('[api-order] 权限创建成功:', result.id)
+
+    return createResponse({
+      code: 0,
+      success: true,
+      data: {
+        permissionId: result.id,
+        courseId,
+        courseName: courseRes.data.title,
+        phone: phone,
+        alreadyExists: false
+      },
+      message: '权限创建成功'
+    })
+  } catch (error) {
+    console.error('[api-order] 创建权限失败:', error)
+    return createResponse({
+      code: 500,
+      success: false,
+      error: '创建权限失败: ' + error.message
+    })
+  }
+}
+
+// 班级报名
+async function enrollClass(data) {
+  const {
+    classId,
+    userName = '',
+    phone = '',
+    idCard = '',
+    emergencyContact = '',
+    emergencyPhone = '',
+    notes = '',
+    userId = '',
+    status = 'pending',
+    source = 'online_enroll'
+  } = data
+
+  console.log('[api-order] enrollClass 请求:', { classId, phone, userName, source })
+
+  if (!classId) {
+    return createResponse({
+      code: 400,
+      success: false,
+      error: '缺少班级ID'
+    })
+  }
+  if (!userName && !phone) {
+    return createResponse({
+      code: 400,
+      success: false,
+      error: '缺少用户信息（姓名或手机号）'
+    })
+  }
+
+  try {
+    // 检查班级是否存在
+    const classRes = await db.collection('classes').doc(classId).get()
+    if (!classRes.data) {
+      return createResponse({
+        code: 404,
+        success: false,
+        error: '班级不存在'
+      })
+    }
+
+    const cls = classRes.data
+
+    // 检查是否已满员
+    const memberCount = await db.collection('class_members')
+      .where({
+        classId: classId,
+        status: db.command.in(['enrolled', 'learning'])
+      })
+      .count()
+
+    const maxStudents = cls.maxStudents || 30
+    if (memberCount.total >= maxStudents) {
+      return createResponse({
+        code: 400,
+        success: false,
+        error: '班级已满员'
+      })
+    }
+
+    // 检查是否已报名（检查 class_members 表）
+    const existing = await db.collection('class_members')
+      .where({
+        classId: classId,
+        phone: phone,
+        status: db.command.in(['enrolled', 'learning', 'pending'])
+      })
+      .get()
+
+    if (existing.data && existing.data.length > 0) {
+      return createResponse({
+        code: 400,
+        success: false,
+        error: '您已报名此班级（class_members）'
+      })
+    }
+
+    // 同时检查 orders 表是否有该班级的订单
+    const existingOrder = await db.collection('orders')
+      .where({
+        classId: classId,
+        phone: phone,
+        status: db.command.in(['pending', 'paid', 'completed'])
+      })
+      .get()
+
+    if (existingOrder.data && existingOrder.data.length > 0) {
+      return createResponse({
+        code: 400,
+        success: false,
+        error: '您已有该班级的订单，请到订单页面处理'
+      })
+    }
+
+    // 创建报名记录
+    const now = new Date().toISOString()
+    const result = await db.collection('class_members').add({
+      data: {
+        classId,
+        className: cls.name,
+        courseId: cls.courseId || '',
+        userId,
+        userName,
+        phone,
+        idCard,
+        emergencyContact,
+        emergencyPhone,
+        notes,
+        status,
+        source,
+        enrollmentTime: now,
+        createdAt: now,
+        updatedAt: now
+      }
+    })
+
+    console.log('[api-order] 班级报名成功:', result.id)
+
+    return createResponse({
+      code: 0,
+      success: true,
+      data: {
+        enrollmentId: result.id,
+        classId,
+        className: cls.name
+      },
+      message: '报名成功'
+    })
+  } catch (error) {
+    console.error('[api-order] 班级报名失败:', error)
+    return createResponse({
+      code: 500,
+      success: false,
+      error: '报名失败: ' + error.message
     })
   }
 }

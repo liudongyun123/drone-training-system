@@ -675,16 +675,25 @@ export const productApi = {
  * 订单 API
  */
 export const orderApi = {
-  async getByUserId(userId: string, orderType?: 'course' | 'shop') {
+  async getByUserId(_userId: string, orderType?: 'course' | 'shop') {
     const phone = wx.getStorageSync('phone') || ''
-    const where: any = phone ? { phone } : { userId }
-    if (orderType) where.orderType = orderType
-
-    const result = await dbGetList('orders', {
-      where,
-      orderBy: 'createdAt desc'
-    })
-    return result.data || []
+    if (!phone) {
+      console.warn('[orderApi.getByUserId] 未获取到手机号，返回空列表')
+      return []
+    }
+    
+    // 使用 api-order 云函数的 getList 接口（db-init 不稳定）
+    const result = await callApiOrder('getList', { phone })
+    if (result && result.success && result.data) {
+      let orders = result.data.list || []
+      // 如果指定了订单类型，进行过滤
+      if (orderType) {
+        orders = orders.filter((o: any) => o.orderType === orderType)
+      }
+      return orders
+    }
+    console.error('[orderApi.getByUserId] 获取订单失败:', result)
+    return []
   },
 
   async create(orderData: any) {
@@ -779,10 +788,7 @@ export const learningPathApi = {
    * 获取学习路径列表
    */
   async getList(filters: any = {}) {
-    const res = await callMobileLearning({
-      action: 'getLearningPaths',
-      data: filters
-    })
+    const res = await callMobileLearning('getLearningPaths', filters)
     // 云函数返回 { list, total, page, pageSize }
     return res.data?.list || res.data || []
   },
@@ -791,10 +797,7 @@ export const learningPathApi = {
    * 获取学习路径详情
    */
   async getDetail(pathId: string) {
-    const res = await callMobileLearning({
-      action: 'getLearningPathDetail',
-      data: { pathId }
-    })
+    const res = await callMobileLearning('getLearningPathDetail', { pathId })
     return res.data
   },
 
@@ -802,10 +805,7 @@ export const learningPathApi = {
    * 获取路径学习进度
    */
   async getProgress(pathId: string) {
-    const res = await callMobileLearning({
-      action: 'getPathProgress',
-      data: { pathId }
-    })
+    const res = await callMobileLearning('getPathProgress', { pathId })
     return res.data
   },
 
@@ -813,10 +813,7 @@ export const learningPathApi = {
    * 开始学习路径
    */
   async start(pathId: string) {
-    const res = await callMobileLearning({
-      action: 'startPath',
-      data: { pathId }
-    })
+    const res = await callMobileLearning('startPath', { pathId })
     return res.data
   },
 
@@ -824,10 +821,7 @@ export const learningPathApi = {
    * 更新学习进度
    */
   async updateProgress(pathId: string, courseId: string, lessonId: string) {
-    const res = await callMobileLearning({
-      action: 'updateProgress',
-      data: { pathId, courseId, lessonId }
-    })
+    const res = await callMobileLearning('updateProgress', { pathId, courseId, lessonId })
     return res.data
   },
 
@@ -835,10 +829,7 @@ export const learningPathApi = {
    * 完成学习路径
    */
   async complete(pathId: string) {
-    const res = await callMobileLearning({
-      action: 'completePath',
-      data: { pathId }
-    })
+    const res = await callMobileLearning('completePath', { pathId })
     return res.data
   }
 }
@@ -851,10 +842,7 @@ export const certificateApi = {
    * 获取证书列表
    */
   async getList(filters: any = {}) {
-    const res = await callMobileLearning({
-      action: 'getCertificates',
-      data: filters
-    })
+    const res = await callMobileLearning('getCertificates', filters)
     // 云函数返回 { list, total, page, pageSize }
     return res.data?.list || res.data || []
   },
@@ -863,10 +851,7 @@ export const certificateApi = {
    * 获取证书详情
    */
   async getDetail(certificateId: string) {
-    const res = await callMobileLearning({
-      action: 'getCertificateDetail',
-      data: { certificateId }
-    })
+    const res = await callMobileLearning('getCertificateDetail', { certificateId })
     return res.data
   },
 
@@ -874,10 +859,7 @@ export const certificateApi = {
    * 下载证书
    */
   async download(certificateId: string) {
-    const res = await callMobileLearning({
-      action: 'downloadCertificate',
-      data: { certificateId }
-    })
+    const res = await callMobileLearning('downloadCertificate', { certificateId })
     return res.data
   },
 
@@ -885,10 +867,7 @@ export const certificateApi = {
    * 生成证书
    */
   async generate(params: { courseId?: string; examId?: string; pathId?: string }) {
-    const res = await callMobileLearning({
-      action: 'generateCertificate',
-      data: params
-    })
+    const res = await callMobileLearning('generateCertificate', params)
     return res.data
   },
 
@@ -896,10 +875,7 @@ export const certificateApi = {
    * 验证证书
    */
   async verify(certificateCode: string) {
-    const res = await callMobileLearning({
-      action: 'verifyCertificate',
-      data: { certificateCode }
-    })
+    const res = await callMobileLearning('verifyCertificate', { certificateCode })
     return res.data
   }
 }
@@ -943,10 +919,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'getProfile',
-      openid
-    })
+    const res = await callApiUser('getProfile', { openid })
     return res
   },
 
@@ -958,11 +931,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'updateProfile',
-      openid,
-      data
-    })
+    const res = await callApiUser('updateProfile', { openid, ...data })
     return res
   },
 
@@ -974,10 +943,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'getMemberLevel',
-      openid
-    })
+    const res = await callApiUser('getMemberLevel', { openid })
     return res
   },
 
@@ -989,11 +955,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'upgradeMember',
-      openid,
-      data: { level, months }
-    })
+    const res = await callApiUser('upgradeMember', { openid, level, months })
     return res
   },
 
@@ -1001,10 +963,7 @@ export const newUserApi = {
    * 获取会员权益
    */
   async getMemberBenefits(level: string) {
-    const res = await callApiUser({
-      action: 'getMemberBenefits',
-      data: { level }
-    })
+    const res = await callApiUser('getMemberBenefits', { level })
     return res.data
   },
 
@@ -1016,10 +975,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'getSettings',
-      openid
-    })
+    const res = await callApiUser('getSettings', { openid })
     return res
   },
 
@@ -1031,11 +987,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'updateSettings',
-      openid,
-      data
-    })
+    const res = await callApiUser('updateSettings', { openid, ...data })
     return res
   },
 
@@ -1047,10 +999,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'getStats',
-      openid
-    })
+    const res = await callApiUser('getStats', { openid })
     return res
   },
 
@@ -1062,10 +1011,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'getLearningStats',
-      openid
-    })
+    const res = await callApiUser('getLearningStats', { openid })
     return res
   },
 
@@ -1077,11 +1023,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'getDailyStats',
-      openid,
-      data: { date }
-    })
+    const res = await callApiUser('getDailyStats', { openid, date })
     return res
   },
 
@@ -1093,11 +1035,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'updateDailyStats',
-      openid,
-      data
-    })
+    const res = await callApiUser('updateDailyStats', { openid, ...data })
     return res
   },
 
@@ -1109,11 +1047,7 @@ export const newUserApi = {
     if (!openid) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser({
-      action: 'incrementStat',
-      openid,
-      data: { field }
-    })
+    const res = await callApiUser('incrementStat', { openid, field })
     return res
   }
 }
@@ -1126,10 +1060,7 @@ export const newOrderApi = {
    * 获取订单列表
    */
   async getList(filters: any = {}) {
-    const res = await callApiOrder({
-      action: 'getList',
-      data: filters
-    })
+    const res = await callApiOrder('getList', filters)
     return res.data || []
   },
 
@@ -1137,10 +1068,7 @@ export const newOrderApi = {
    * 获取订单详情
    */
   async getDetail(orderId: string) {
-    const res = await callApiOrder({
-      action: 'getDetail',
-      data: { orderId }
-    })
+    const res = await callApiOrder('getDetail', { orderId })
     return res.data
   },
 
@@ -1148,10 +1076,7 @@ export const newOrderApi = {
    * 创建订单
    */
   async create(params: any) {
-    const res = await callApiOrder({
-      action: 'create',
-      data: params
-    })
+    const res = await callApiOrder('create', params)
     return res
   },
 
@@ -1159,10 +1084,7 @@ export const newOrderApi = {
    * 更新订单状态
    */
   async updateStatus(orderId: string, status: string) {
-    const res = await callApiOrder({
-      action: 'updateStatus',
-      data: { orderId, status }
-    })
+    const res = await callApiOrder('updateStatus', { orderId, status })
     return res
   },
 
@@ -1170,10 +1092,7 @@ export const newOrderApi = {
    * 取消订单
    */
   async cancel(orderId: string, reason?: string) {
-    const res = await callApiOrder({
-      action: 'cancel',
-      data: { orderId, reason }
-    })
+    const res = await callApiOrder('cancel', { orderId, reason })
     return res
   },
 
@@ -1181,9 +1100,7 @@ export const newOrderApi = {
    * 获取购物车
    */
   async getCart() {
-    const res = await callApiOrder({
-      action: 'getCart'
-    })
+    const res = await callApiOrder('getCart')
     return res.data
   },
 
@@ -1191,10 +1108,7 @@ export const newOrderApi = {
    * 添加到购物车
    */
   async addToCart(item: { type: string; id: string; name: string; price: number; cover?: string }) {
-    const res = await callApiOrder({
-      action: 'addToCart',
-      data: { item }
-    })
+    const res = await callApiOrder('addToCart', { item })
     return res
   },
 
@@ -1202,10 +1116,7 @@ export const newOrderApi = {
    * 从购物车移除
    */
   async removeFromCart(itemId: string) {
-    const res = await callApiOrder({
-      action: 'removeFromCart',
-      data: { itemId }
-    })
+    const res = await callApiOrder('removeFromCart', { itemId })
     return res
   },
 
@@ -1213,9 +1124,7 @@ export const newOrderApi = {
    * 清空购物车
    */
   async clearCart() {
-    const res = await callApiOrder({
-      action: 'clearCart'
-    })
+    const res = await callApiOrder('clearCart')
     return res
   },
 
@@ -1223,10 +1132,7 @@ export const newOrderApi = {
    * 获取优惠券列表
    */
   async getCoupons(status?: string) {
-    const res = await callApiOrder({
-      action: 'getCoupons',
-      data: { status }
-    })
+    const res = await callApiOrder('getCoupons', { status })
     return res.data || []
   },
 
@@ -1234,10 +1140,7 @@ export const newOrderApi = {
    * 验证优惠券
    */
   async validateCoupon(code: string, amount: number) {
-    const res = await callApiOrder({
-      action: 'validateCoupon',
-      data: { code, amount }
-    })
+    const res = await callApiOrder('validateCoupon', { code, amount })
     return res.data
   },
 
@@ -1245,10 +1148,7 @@ export const newOrderApi = {
    * 使用优惠券
    */
   async useCoupon(couponId: string, orderId?: string) {
-    const res = await callApiOrder({
-      action: 'useCoupon',
-      data: { couponId, orderId }
-    })
+    const res = await callApiOrder('useCoupon', { couponId, orderId })
     return res
   },
 
@@ -1256,10 +1156,7 @@ export const newOrderApi = {
    * 领取优惠券
    */
   async claimCoupon(couponTemplateId: string) {
-    const res = await callApiOrder({
-      action: 'claimCoupon',
-      data: { couponTemplateId }
-    })
+    const res = await callApiOrder('claimCoupon', { couponTemplateId })
     return res
   }
 }
@@ -1429,6 +1326,100 @@ export const messageApi = {
     } catch (error) {
       console.error('[消息] 标记全部已读失败', error)
       return false
+    }
+  }
+}
+
+// ============== 课程权限 API ==============
+
+/**
+ * 课程权限 API - 统一管理课程学习权限
+ */
+export const coursePermissionApi = {
+  /**
+   * 创建课程学习权限（购买课程后调用）
+   */
+  async create(courseId: string, source: 'purchase' | 'enroll' | 'admin' = 'purchase'): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 获取用户标识
+      const phone = wx.getStorageSync('phone') || ''
+      const openid = wx.getStorageSync('openid') || ''
+      
+      if (!phone && !openid) {
+        console.error('[coursePermissionApi] 缺少用户标识')
+        return { success: false, error: '未登录' }
+      }
+      
+      console.log('[coursePermissionApi] 创建权限:', { courseId, phone, openid, source })
+      
+      // 使用 api-order 云函数
+      const res: any = await callFunction('api-order', {
+        action: 'createCoursePermission',
+        data: {
+          courseId,
+          phone,
+          openid,
+          source,
+          expiresAt: null
+        }
+      })
+      
+      console.log('[coursePermissionApi] 创建结果:', res)
+      
+      if (res && res.success) {
+        return { success: true }
+      } else {
+        return { success: false, error: res?.error || '创建失败' }
+      }
+    } catch (error) {
+      console.error('[coursePermissionApi] 创建失败:', error)
+      return { success: false, error: (error as Error).message || '网络错误' }
+    }
+  },
+
+  /**
+   * 检查课程权限
+   */
+  async check(courseId: string): Promise<boolean> {
+    try {
+      const phone = wx.getStorageSync('phone') || ''
+      
+      if (!phone) {
+        return false
+      }
+      
+      const result = await dbGetList('course_permissions', {
+        where: { phone, courseId },
+        limit: 1
+      })
+      
+      return (result.data || []).length > 0
+    } catch (error) {
+      console.error('[coursePermissionApi] 检查权限失败:', error)
+      return false
+    }
+  },
+
+  /**
+   * 获取用户的所有课程权限
+   */
+  async getMyPermissions(): Promise<any[]> {
+    try {
+      const phone = wx.getStorageSync('phone') || ''
+      
+      if (!phone) {
+        return []
+      }
+      
+      const result = await dbGetList('course_permissions', {
+        where: { phone },
+        orderBy: 'createdAt desc'
+      })
+      
+      return result.data || []
+    } catch (error) {
+      console.error('[coursePermissionApi] 获取权限列表失败:', error)
+      return []
     }
   }
 }

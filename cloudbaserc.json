@@ -20,6 +20,20 @@
                   "type": "http"
                 }
               ]
+            },
+            {
+              "name": "login-http",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "triggers": [
+                {
+                  "name": "http-trigger",
+                  "type": "http"
+                }
+              ]
             }
           ]
         }
