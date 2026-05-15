@@ -31,6 +31,7 @@ import {
 import { CloudCourseAdminService } from '../../services/CloudAdminService'
 import AdminTablePagination from './AdminTablePagination'
 import ImageUpload from './ImageUpload'
+import VideoUpload from './VideoUpload'
 import type { Course } from '@/types/service'
 
 // 等级转换函数 - 将旧值转换为正确等级
@@ -69,6 +70,7 @@ export default function CourseManagement() {
     category: '',
     categoryId: '',
     thumbnail: '',
+    videoUrl: '',
     duration: 0,
     status: 'published' as const,
   })
@@ -151,6 +153,7 @@ export default function CourseManagement() {
         category: course.category || '',
         categoryId: course.categoryId || '',
         thumbnail: course.thumbnail || '',
+        videoUrl: course.videoUrl || '',
         duration: course.duration || 0,
         status: course.status || 'published',
       })
@@ -435,6 +438,12 @@ export default function CourseManagement() {
               label="封面图片"
               value={courseForm.thumbnail}
               onChange={(url) => setCourseForm({ ...courseForm, thumbnail: url })}
+            />
+            <VideoUpload
+              label="课程视频"
+              value={courseForm.videoUrl || ''}
+              onChange={(url) => setCourseForm({ ...courseForm, videoUrl: url })}
+              maxSize={500}
             />
             <FormControl fullWidth>
               <InputLabel>状态</InputLabel>

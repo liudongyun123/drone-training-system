@@ -215,6 +215,20 @@ export const app = {
       payload = data;
     }
     return cloudbaseApp.callFunction({ name, data: payload });
+  },
+  uploadFile: async (options: { cloudPath: string; filePath: File; onUploadProgress?: (progress: any) => void }) => {
+    await ensureInit();
+    if (!cloudbaseApp?.uploadFile) {
+      throw new Error('uploadFile 不可用');
+    }
+    return cloudbaseApp.uploadFile(options);
+  },
+  getTempFileURL: async (options: { fileList: string[] }) => {
+    await ensureInit();
+    if (!cloudbaseApp?.getTempFileURL) {
+      throw new Error('getTempFileURL 不可用');
+    }
+    return cloudbaseApp.getTempFileURL(options);
   }
 };
 
