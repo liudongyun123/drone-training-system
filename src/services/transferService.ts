@@ -1,45 +1,63 @@
 /**
- * 调课请求服务 v1.0
- * 版本: v20260406-production
+ * 调课请求服务 v2.0
+ * 版本: v20260515-unified
+ * 统一使用 CloudDBService (HTTP → db-init)
  * 
  * 功能:
  * - 学员提交调课申请
  * - 查询调课记录
  * - 取消申请
+ * - 管理端审核
  */
-import app from '../config/tcb'
+import { CloudDBService } from './CloudDBService'
 
-const CLOUD_FUNCTION_NAME = 'transfer-request'
+const COLLECTION = 'transferRequests'
 
-// 错误日志开关（开发时设为 true）
-const ENABLE_ERROR_LOG = true
+// 调课请求类型
+export interface TransferRequest {
+  _id?: string
+  id?: string
+  studentId: string
+  studentName: string
+  studentPhone: string
+  originalScheduleId: string
+  originalCourseId: string
+  originalCourseName: string
+  originalDate: string
+  originalTime: string
+  originalTeacher: string
+  originalTeacherId: string
+  originalLocation: string
+  targetScheduleId?: string
+  targetCourseId?: string
+  targetCourseName?: string
+  targetDate?: string
+  targetTime?: string
+  targetTeacher?: string
+  targetTeacherId?: string
+  targetLocation?: string
+  transferType: 'time' | 'teacher' | 'location' | 'course' | 'leave'
+  reason: string
+  remark?: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  adminId?: string
+  adminName?: string
+  adminReply?: string
+  reviewedAt?: string
+  createdAt: string
+  updatedAt: string
+}
 
-/**
- * 调用调课云函数
- */
-async function callFunction(action: string, data: Record<string, unknown> = {}, options?: Record<string, unknown>) {
-  try {
-    const result = await app.callFunction({
-      name: CLOUD_FUNCTION_NAME,
-      data: { action, ...data, options }
-    })
-
-    const response = result.result as { code: number; message?: string; data?: unknown }
-
-    if (response.code !== 0) {
-      if (ENABLE_ERROR_LOG) {
-        console.error(`[调课服务] ${action} 失败:`, response)
-      }
-      throw new Error(response.message || '操作失败')
-    }
-
-    return response
-  } catch (error: any) {
-    if (ENABLE_ERROR_LOG) {
-      console.error(`[调课服务] ${action} 异常:`, error)
-    }
-    throw error
-  }
+export interface TransferStats {
+  total: number
+  pending: number
+  approved: number
+  rejected: number
+  today: number
+  thisWeek: number
+  thisMonth: number
+  byType: Record<string, number>
+  approvalRate: number
 }
 
 /**
@@ -90,8 +108,15 @@ export const transferService = {
       throw new Error('调课原因至少5个字符')
     }
 
-    const result = await callFunction('createRequest', data)
-    return result
+    const now = new Date().toISOString()
+    const result = await CloudDBService.add<TransferRequest>(COLLECTION, {
+      ...data,
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now,
+    })
+
+    return { code: 0, data: { id: result.id } }
   },
 
   /**
@@ -109,17 +134,39 @@ export const transferService = {
       throw new Error('学员ID或手机号不能都为空')
     }
 
-    const result = await callFunction('listMyRequests', {
-      studentId: params.studentId,
-      phone: params.phone,
-      status: params.status,
-      transferType: params.transferType
-    }, {
-      page: params.page || 1,
-      pageSize: params.pageSize || 20
+    const where: Record<string, any> = {}
+    if (params.studentId) {
+      where.studentId = params.studentId
+    }
+    if (params.phone) {
+      where.studentPhone = params.phone
+    }
+    if (params.status && params.status !== 'all') {
+      where.status = params.status
+    }
+    if (params.transferType && params.transferType !== 'all') {
+      where.transferType = params.transferType
+    }
+
+    const page = params.page || 1
+    const pageSize = params.pageSize || 20
+    const skip = (page - 1) * pageSize
+
+    const result = await CloudDBService.query<TransferRequest>(COLLECTION, {
+      where,
+      orderBy: 'createdAt',
+      order: 'desc',
+      skip,
+      limit: pageSize,
     })
 
-    return result
+    return {
+      code: 0,
+      data: result.data,
+      total: result.total,
+      page,
+      pageSize,
+    }
   },
 
   /**
@@ -130,26 +177,44 @@ export const transferService = {
       throw new Error('申请ID不能为空')
     }
 
-    const result = await callFunction('cancelRequest', {
-      studentId
-    }, { requestId })
-    return result
+    await CloudDBService.update(COLLECTION, requestId, {
+      status: 'cancelled',
+      updatedAt: new Date().toISOString(),
+    })
+
+    return { code: 0, message: '取消成功' }
   },
 
   /**
    * 检查排课冲突
    */
   async checkConflict(studentId: string, targetScheduleId: string, excludeRequestId?: string) {
-    const result = await callFunction('checkConflict', {
+    const where: Record<string, any> = {
       studentId,
       targetScheduleId,
-      excludeRequestId
+      status: { $in: ['pending', 'approved'] },
+    }
+
+    if (excludeRequestId) {
+      where._id = { $ne: excludeRequestId }
+    }
+
+    const result = await CloudDBService.query<TransferRequest>(COLLECTION, {
+      where,
+      limit: 1,
     })
-    return result
+
+    return {
+      code: 0,
+      data: {
+        hasConflict: result.data.length > 0,
+        existingRequest: result.data[0] || null,
+      },
+    }
   },
 
   /**
-   * 获取可选的排课列表
+   * 获取可选的排课列表（查询 schedules 集合）
    */
   async getAvailableSchedules(params: {
     courseId?: string
@@ -159,12 +224,38 @@ export const transferService = {
     page?: number
     pageSize?: number
   }) {
-    const result = await callFunction('getAvailableSchedules', params)
-    return result
+    const where: Record<string, any> = {}
+
+    if (params.courseId) {
+      where.courseId = params.courseId
+    }
+    if (params.startDate) {
+      where.date = { $gte: params.startDate }
+    }
+    if (params.endDate) {
+      where.date = { ...where.date, $lte: params.endDate }
+    }
+
+    const page = params.page || 1
+    const pageSize = params.pageSize || 20
+
+    const result = await CloudDBService.query('schedules', {
+      where,
+      orderBy: 'date',
+      order: 'asc',
+      skip: (page - 1) * pageSize,
+      limit: pageSize,
+    })
+
+    return {
+      code: 0,
+      data: result.data,
+      total: result.total,
+    }
   },
 
   // =========================================================================
-  // 管理端接口（前端调用，但使用 admin 云函数）
+  // 管理端接口
   // =========================================================================
 
   /**
@@ -180,13 +271,56 @@ export const transferService = {
     page?: number
     pageSize?: number
   } = {}) {
-    const result = await callFunction('listAllRequests', {}, {
-      ...params,
-      page: params.page || 1,
-      pageSize: params.pageSize || 20,
-      needStats: true
+    const where: Record<string, any> = {}
+
+    if (params.status && params.status !== 'all') {
+      where.status = params.status
+    }
+    if (params.transferType && params.transferType !== 'all') {
+      where.transferType = params.transferType
+    }
+    if (params.studentId) {
+      where.studentId = params.studentId
+    }
+    if (params.startDate || params.endDate) {
+      where.createdAt = {}
+      if (params.startDate) {
+        where.createdAt.$gte = params.startDate
+      }
+      if (params.endDate) {
+        where.createdAt.$lte = params.endDate
+      }
+    }
+    if (params.keyword) {
+      where.$or = [
+        { studentName: { $regex: params.keyword, $options: 'i' } },
+        { studentPhone: { $regex: params.keyword, $options: 'i' } },
+        { originalCourseName: { $regex: params.keyword, $options: 'i' } },
+      ]
+    }
+
+    const page = params.page || 1
+    const pageSize = params.pageSize || 20
+
+    const result = await CloudDBService.query<TransferRequest>(COLLECTION, {
+      where,
+      orderBy: 'createdAt',
+      order: 'desc',
+      skip: (page - 1) * pageSize,
+      limit: pageSize,
     })
-    return result
+
+    // 获取统计数据
+    const stats = await this.getStats()
+
+    return {
+      code: 0,
+      data: result.data,
+      total: result.total,
+      page,
+      pageSize,
+      stats,
+    }
   },
 
   /**
@@ -196,8 +330,14 @@ export const transferService = {
     if (!requestId) {
       throw new Error('申请ID不能为空')
     }
-    const result = await callFunction('getRequestDetail', {}, { requestId })
-    return result
+
+    const request = await CloudDBService.get<TransferRequest>(COLLECTION, requestId)
+
+    if (!request) {
+      throw new Error('申请不存在')
+    }
+
+    return { code: 0, data: request }
   },
 
   /**
@@ -211,11 +351,32 @@ export const transferService = {
     if (!requestId) {
       throw new Error('申请ID不能为空')
     }
-    const result = await callFunction('approveRequest', {
-      ...adminInfo,
-      autoUpdateAttendance: true
-    }, { requestId })
-    return result
+
+    const now = new Date().toISOString()
+
+    await CloudDBService.update(COLLECTION, requestId, {
+      status: 'approved',
+      adminId: adminInfo.adminId,
+      adminName: adminInfo.adminName || '管理员',
+      adminReply: adminInfo.adminReply,
+      reviewedAt: now,
+      updatedAt: now,
+    })
+
+    // 如果有目标排课，更新出勤记录
+    const request = await CloudDBService.get<TransferRequest>(COLLECTION, requestId)
+    if (request?.targetScheduleId) {
+      // 更新出勤记录
+      await CloudDBService.updateWhere('attendance', {
+        studentId: request.studentId,
+        scheduleId: request.originalScheduleId,
+      }, {
+        scheduleId: request.targetScheduleId,
+        updatedAt: now,
+      })
+    }
+
+    return { code: 0, message: '审核通过' }
   },
 
   /**
@@ -232,8 +393,19 @@ export const transferService = {
     if (!adminInfo.adminReply || adminInfo.adminReply.trim().length < 2) {
       throw new Error('请填写拒绝原因')
     }
-    const result = await callFunction('rejectRequest', adminInfo, { requestId })
-    return result
+
+    const now = new Date().toISOString()
+
+    await CloudDBService.update(COLLECTION, requestId, {
+      status: 'rejected',
+      adminId: adminInfo.adminId,
+      adminName: adminInfo.adminName || '管理员',
+      adminReply: adminInfo.adminReply,
+      reviewedAt: now,
+      updatedAt: now,
+    })
+
+    return { code: 0, message: '已拒绝' }
   },
 
   /**
@@ -247,8 +419,21 @@ export const transferService = {
     if (!requestIds || requestIds.length === 0) {
       throw new Error('请选择要通过的申请')
     }
-    const result = await callFunction('batchApprove', adminInfo, { requestIds })
-    return result
+
+    const now = new Date().toISOString()
+
+    for (const requestId of requestIds) {
+      await CloudDBService.update(COLLECTION, requestId, {
+        status: 'approved',
+        adminId: adminInfo.adminId,
+        adminName: adminInfo.adminName || '管理员',
+        adminReply: adminInfo.adminReply,
+        reviewedAt: now,
+        updatedAt: now,
+      })
+    }
+
+    return { code: 0, message: `已通过 ${requestIds.length} 个申请` }
   },
 
   /**
@@ -265,64 +450,66 @@ export const transferService = {
     if (!adminInfo.adminReply || adminInfo.adminReply.trim().length < 2) {
       throw new Error('请填写拒绝原因')
     }
-    const result = await callFunction('batchReject', adminInfo, { requestIds })
-    return result
+
+    const now = new Date().toISOString()
+
+    for (const requestId of requestIds) {
+      await CloudDBService.update(COLLECTION, requestId, {
+        status: 'rejected',
+        adminId: adminInfo.adminId,
+        adminName: adminInfo.adminName || '管理员',
+        adminReply: adminInfo.adminReply,
+        reviewedAt: now,
+        updatedAt: now,
+      })
+    }
+
+    return { code: 0, message: `已拒绝 ${requestIds.length} 个申请` }
   },
 
   /**
    * 获取统计数据
    */
-  async getStats() {
-    const result = await callFunction('getStats')
-    return result
-  }
-}
+  async getStats(): Promise<TransferStats> {
+    const today = new Date().toISOString().split('T')[0]
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-// 导出类型
-export type TransferRequest = {
-  _id?: string
-  id?: string
-  studentId: string
-  studentName: string
-  studentPhone: string
-  originalScheduleId: string
-  originalCourseId: string
-  originalCourseName: string
-  originalDate: string
-  originalTime: string
-  originalTeacher: string
-  originalTeacherId: string
-  originalLocation: string
-  targetScheduleId?: string
-  targetCourseId?: string
-  targetCourseName?: string
-  targetDate?: string
-  targetTime?: string
-  targetTeacher?: string
-  targetTeacherId?: string
-  targetLocation?: string
-  transferType: 'time' | 'teacher' | 'location' | 'course' | 'leave'
-  reason: string
-  remark?: string
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
-  adminId?: string
-  adminName?: string
-  adminReply?: string
-  reviewedAt?: string
-  createdAt: string
-  updatedAt: string
-}
+    const [total, pending, approved, rejected, todayCount, weekCount, monthCount] = await Promise.all([
+      CloudDBService.count(COLLECTION, {}),
+      CloudDBService.count(COLLECTION, { status: 'pending' }),
+      CloudDBService.count(COLLECTION, { status: 'approved' }),
+      CloudDBService.count(COLLECTION, { status: 'rejected' }),
+      CloudDBService.count(COLLECTION, { createdAt: { $gte: today } }),
+      CloudDBService.count(COLLECTION, { createdAt: { $gte: weekAgo } }),
+      CloudDBService.count(COLLECTION, { createdAt: { $gte: monthAgo } }),
+    ])
 
-export type TransferStats = {
-  total: number
-  pending: number
-  approved: number
-  rejected: number
-  today: number
-  thisWeek: number
-  thisMonth: number
-  byType: Record<string, number>
-  approvalRate: number
+    // 按类型统计
+    const byTypeResult = await CloudDBService.query(COLLECTION, {
+      field: { transferType: true },
+      limit: 1000,
+    })
+    const byType: Record<string, number> = {}
+    byTypeResult.data.forEach((item: any) => {
+      const type = item.transferType || 'unknown'
+      byType[type] = (byType[type] || 0) + 1
+    })
+
+    const approvalRate = total > 0 ? Math.round((approved / total) * 100) : 0
+
+    return {
+      total,
+      pending,
+      approved,
+      rejected,
+      today: todayCount,
+      thisWeek: weekCount,
+      thisMonth: monthCount,
+      byType,
+      approvalRate,
+    }
+  },
 }
 
 export default transferService

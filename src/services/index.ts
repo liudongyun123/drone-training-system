@@ -42,3 +42,12 @@ export { ChapterService } from './ChapterService'
 
 // Feature API 服务（新云函数）
 export { featureApi, adminUserApi, adminOrderApi, adminLearningApi } from './featureApi'
+
+// 调课服务 v2.0（统一 CloudDBService）
+export { transferService, type TransferRequest, type TransferStats } from './transferService'
+
+// 学习进度服务 v2.0（统一 CloudDBService）
+export { progressApi } from './progressApi'
+
+// 消息服务
+export { messageService } from './messageService'
