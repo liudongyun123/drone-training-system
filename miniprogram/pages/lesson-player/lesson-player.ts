@@ -2,7 +2,7 @@
 // 课程视频播放页面 - 支持进度同步、断点续播、完成记录
 
 import { showToast } from '../../utils/util'
-import { callFunction, dbGetList } from '../../utils/http'
+import { dbGetList } from '../../utils/http'
 import logger from '../../utils/logger'
 
 interface Lesson {
@@ -80,13 +80,13 @@ Page({
     try {
       // 并行加载课程信息、课时列表、学习进度
       const [courseRes, lessonsRes, progressRes] = await Promise.all([
-        callFunction('api-course', { action: 'getDetail', courseId }),
-        callFunction('api-course', { action: 'getLessons', courseId }),
+        dbGetList('courses', { where: { _id: courseId }, limit: 1 }),
+        dbGetList('lessons', { where: { courseId }, orderBy: 'order asc' }),
         this.loadProgress(courseId, lessonId)
       ])
 
-      const course = courseRes?.data || courseRes
-      const lessons = lessonsRes?.data || lessonsRes || []
+      const course = courseRes?.data?.[0] || null
+      const lessons = lessonsRes?.data || []
       const lesson = lessons.find((l: Lesson) => l._id === lessonId) || lessons[0]
 
       if (!lesson) {
@@ -188,15 +188,29 @@ Page({
     this.setData({ watchedDuration: newWatchedDuration })
 
     try {
-      await callFunction('api-course', {
-        action: 'saveProgress',
+      const { dbAdd, dbUpdate, dbGetList } = require('../../utils/http')
+      
+      // 查找已有记录
+      const existing = await dbGetList('user_progress', {
+        where: { phone, courseId, lessonId }
+      })
+      
+      const now = new Date().toISOString()
+      const progressData = {
         phone,
         courseId,
         lessonId,
         watchedDuration: newWatchedDuration,
         duration,
-        completed: _completed
-      })
+        completed: _completed,
+        updatedAt: now
+      }
+      
+      if (existing.data && existing.data.length > 0) {
+        await dbUpdate('user_progress', existing.data[0]._id, progressData)
+      } else {
+        await dbAdd('user_progress', { ...progressData, createdAt: now })
+      }
     } catch (e) {
       logger.error('播放', '保存进度失败', e)
     }
@@ -243,12 +257,19 @@ Page({
 
     try {
       // 记录完成
-      await callFunction('api-course', {
-        action: 'markCompleted',
-        phone,
-        courseId,
-        lessonId
+      const { dbUpdate, dbGetList } = require('../../utils/http')
+      const existing = await dbGetList('user_progress', {
+        where: { phone, courseId, lessonId }
       })
+      
+      const now = new Date().toISOString()
+      if (existing.data && existing.data.length > 0) {
+        await dbUpdate('user_progress', existing.data[0]._id, {
+          completed: true,
+          completedAt: now,
+          updatedAt: now
+        })
+      }
 
       showToast('本课时学习完成', 'success')
 
@@ -281,26 +302,38 @@ Page({
     try {
       // 检查课程是否配置了证书
       const course = this.data.course
-      if (!course) return
+      if (!course || !course.certificateTemplate) return
 
-      // 调用证书颁发逻辑
-      const result = await callFunction('api-course', {
-        action: 'issueCertificate',
+      // 颁发证书
+      const { dbAdd, dbGetList } = require('../../utils/http')
+      
+      // 检查是否已颁发
+      const existing = await dbGetList('certificates', {
+        where: { phone, courseId }
+      })
+      
+      if (existing.data && existing.data.length > 0) return
+
+      const now = new Date().toISOString()
+      await dbAdd('certificates', {
         phone,
-        courseId
+        courseId,
+        courseName: course.title,
+        certificateNo: `CERT${Date.now()}`,
+        issuedAt: now,
+        createdAt: now,
+        status: 'active'
       })
 
-      if (result?.success) {
-        wx.showModal({
-          title: '恭喜',
-          content: '您已完成全部课程学习，证书已颁发！',
-          showCancel: false,
-          confirmText: '查看证书',
-          success: () => {
-            wx.navigateTo({ url: '/pages/my-certificates/my-certificates' })
-          }
-        })
-      }
+      wx.showModal({
+        title: '恭喜',
+        content: '您已完成全部课程学习，证书已颁发！',
+        showCancel: false,
+        confirmText: '查看证书',
+        success: () => {
+          wx.navigateTo({ url: '/pages/my-certificates/my-certificates' })
+        }
+      })
     } catch (e) {
       logger.error('播放', '证书颁发失败', e)
     }
