@@ -350,19 +350,18 @@ export default function AdminTransfers() {
         
         // 批量发送消息通知
         try {
-          const { adminService: adminSvc } = await import('@/services/adminService')
           const status = batchModal.type === 'approve' ? 'approved' : 'rejected'
           
           const selectedRequests = requests.filter(r => selectedIds.includes(r._id || r.id || ''))
           for (const req of selectedRequests) {
             if (req.studentPhone) {
-              await adminSvc.callFunction('api-message', {
-                action: 'notifyTransferResult',
+              await messageService.sendTransferNotification({
+                _id: req._id || '',
                 phone: req.studentPhone,
                 studentName: req.studentName,
+                originalCourseName: req.originalCourseName,
                 status,
-                originalCourse: req.originalCourseName,
-                reply: batchModal.reply
+                adminReply: batchModal.reply
               })
             }
           }
