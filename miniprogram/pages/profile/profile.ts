@@ -50,41 +50,77 @@ Page({
   // 加载用户信息
   async loadUserInfo() {
     try {
+      // 优先从本地存储获取手机号（登录时已保存）
+      const localPhone = wx.getStorageSync('phone') || ''
+      const loginInfo = wx.getStorageSync('loginInfo') || {}
+      const app = getApp()
+
+      // 尝试从服务器获取用户信息
       const newResult = await newUserApi.getProfile()
       if (newResult.success && newResult.data?.user) {
         const user = newResult.data.user
-        const app = getApp()
         const basicInfo = app.globalData.userInfo || {}
-        
+
+        // 服务器手机号或本地手机号
+        const phone = user.phone || localPhone || loginInfo.phone || basicInfo.phone || ''
+
+        // 如果服务器有手机号但本地没有，同步到本地
+        if (user.phone && !localPhone) {
+          wx.setStorageSync('phone', user.phone)
+          loginInfo.phone = user.phone
+          wx.setStorageSync('loginInfo', loginInfo)
+        }
+
         this.setData({
           userInfo: {
             _id: user._id || user.userId,
             nickName: user.nickname || user.name || basicInfo.nickName || '用户',
-            phone: user.phone || basicInfo.phone || '',
+            phone: phone,
             avatarUrl: user.avatar || basicInfo.avatarUrl || '/assets/icons/profile.png'
           },
           loading: false
         })
       } else {
+        // 服务器获取失败，使用本地数据
         const userId = this.getUserId()
-        const result = await userApi.getUser(userId)
+        const result = userId ? await userApi.getUser(userId) : null
         if (result) {
+          const phone = result.phone || localPhone || loginInfo.phone || ''
           this.setData({
             userInfo: {
               _id: result._id,
               nickName: result.nickname || result.name || '用户',
-              phone: result.phone || '',
+              phone: phone,
               avatarUrl: result.avatar || '/assets/icons/profile.png'
             },
             loading: false
           })
         } else {
-          this.setData({ loading: false })
+          // 完全使用本地数据
+          this.setData({
+            userInfo: {
+              nickName: app.globalData.userInfo?.nickName || '用户',
+              phone: localPhone || loginInfo.phone || '',
+              avatarUrl: app.globalData.userInfo?.avatarUrl || '/assets/icons/profile.png'
+            },
+            loading: false
+          })
         }
       }
     } catch (err) {
       logger.error('个人中心', '加载用户信息失败', err)
-      this.setData({ loading: false })
+      // 出错时也使用本地数据
+      const localPhone = wx.getStorageSync('phone') || ''
+      const loginInfo = wx.getStorageSync('loginInfo') || {}
+      const app = getApp()
+      this.setData({
+        userInfo: {
+          nickName: app.globalData.userInfo?.nickName || '用户',
+          phone: localPhone || loginInfo.phone || '',
+          avatarUrl: app.globalData.userInfo?.avatarUrl || '/assets/icons/profile.png'
+        },
+        loading: false
+      })
     }
   },
 
@@ -134,20 +170,145 @@ Page({
       success: async (res) => {
         const tempFilePath = res.tempFiles[0].tempFilePath
         wx.showLoading({ title: '上传中...' })
-        
-        setTimeout(() => {
+
+        try {
+          // 上传到云存储
+          const cloudPath = `avatars/${wx.getStorageSync('openid') || 'user'}_${Date.now()}.jpg`
+
+          const uploadResult = await wx.cloud.uploadFile({
+            cloudPath: cloudPath,
+            filePath: tempFilePath
+          })
+
+          const fileID = uploadResult.fileID
+          console.log('[头像] 上传成功:', fileID)
+
+          // 获取永久链接
+          const getUrlResult = await wx.cloud.getTempFileURL({
+            fileList: [fileID]
+          })
+
+          const avatarUrl = getUrlResult.fileList[0]?.tempFileURL || fileID
+
+          // 更新本地显示
+          const userInfo = { ...this.data.userInfo, avatarUrl: avatarUrl }
+          this.setData({ userInfo })
+
+          // 保存到本地存储
+          const loginInfo = wx.getStorageSync('loginInfo') || {}
+          loginInfo.userInfo = loginInfo.userInfo || {}
+          loginInfo.userInfo.avatarUrl = avatarUrl
+          wx.setStorageSync('loginInfo', loginInfo)
+          wx.setStorageSync('userInfo', loginInfo.userInfo)
+
+          // 更新到服务器
+          const openid = wx.getStorageSync('openid')
+          if (openid) {
+            await this.updateUserAvatarToServer(avatarUrl)
+          }
+
           wx.hideLoading()
+          showToast('头像已更新', 'success')
+
+        } catch (err) {
+          console.error('[头像] 上传失败:', err)
+          wx.hideLoading()
+          // 上传到云存储失败，仅保存本地临时路径
           const userInfo = { ...this.data.userInfo, avatarUrl: tempFilePath }
           this.setData({ userInfo })
-          showToast('头像已更新')
-        }, 1000)
+
+          const loginInfo = wx.getStorageSync('loginInfo') || {}
+          loginInfo.userInfo = loginInfo.userInfo || {}
+          loginInfo.userInfo.avatarUrl = tempFilePath
+          wx.setStorageSync('loginInfo', loginInfo)
+          wx.setStorageSync('userInfo', loginInfo.userInfo)
+
+          showToast('头像已保存（本地）', 'success')
+        }
+      },
+      fail: (err) => {
+        console.error('[头像] 选择失败:', err)
+        if (err.errMsg !== 'chooseMedia:fail cancel') {
+          showToast('选择图片失败')
+        }
       }
     })
   },
 
-  // 绑定手机号
-  bindPhone() {
-    wx.showToast({ title: '手机号绑定功能开发中', icon: 'none' })
+  // 更新头像到服务器
+  async updateUserAvatarToServer(avatarUrl: string) {
+    try {
+      const openid = wx.getStorageSync('openid')
+      if (!openid) return
+
+      // 使用 callFunction 调用 login-http 云函数
+      const { callFunction } = require('../../utils/http')
+      const res = await callFunction('login-http', {
+        action: 'updateUserInfo',
+        openid: openid,
+        userInfo: { avatarUrl: avatarUrl }
+      })
+      
+      console.log('[头像] 服务器更新结果:', res)
+    } catch (err) {
+      console.error('[头像] 更新服务器失败:', err)
+    }
+  },
+
+  // 绑定手机号 - 使用微信 getPhoneNumber 组件
+  async bindPhone(e: any) {
+    // 检查是否获取到手机号授权码
+    if (!e.detail || !e.detail.code) {
+      wx.showModal({
+        title: '提示',
+        content: '需要获取您的手机号才能绑定，请允许授权',
+        showCancel: false,
+        confirmText: '知道了'
+      })
+      return
+    }
+
+    wx.showLoading({ title: '绑定中...' })
+
+    try {
+      // 使用统一的 HTTP API 调用云函数
+      const { callFunction } = require('../../utils/http')
+      const res: any = await callFunction('login-http', {
+        action: 'getPhoneNumber',
+        code: e.detail.code
+      })
+      
+      wx.hideLoading()
+      console.log('[绑定手机号] 返回:', res)
+
+      if (res && res.success && res.data && res.data.phone) {
+        const { phone } = res.data
+
+        // 保存手机号
+        const loginInfo = wx.getStorageSync('loginInfo') || {}
+        loginInfo.phone = phone
+        loginInfo.phoneBindTime = Date.now()
+        wx.setStorageSync('loginInfo', loginInfo)
+        wx.setStorageSync('phone', phone)
+
+        // 更新全局数据
+        const app = getApp()
+        app.globalData.phone = phone
+
+        // 更新页面显示
+        const userInfo = { ...this.data.userInfo, phone }
+        this.setData({ userInfo })
+
+        wx.showToast({ title: '手机号绑定成功', icon: 'success' })
+      } else {
+        console.error('[绑定手机号] 失败:', res)
+        wx.showToast({ title: res?.error || '绑定失败，请重试', icon: 'none' })
+      }
+    } catch (err) {
+      wx.hideLoading()
+      console.error('[绑定手机号] 请求失败:', err)
+      wx.showToast({ title: '网络请求失败', icon: 'none' })
+    }
   },
 
   // 升级会员

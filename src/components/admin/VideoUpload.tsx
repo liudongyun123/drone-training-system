@@ -41,13 +41,17 @@ export default function VideoUpload({
         }
       })
       
-      // 获取永久链接
+      // 获取永久链接（设置较长有效期）
       const getUrlResult = await app.getTempFileURL({
-        fileList: [uploadResult.fileID]
+        fileList: [{
+          fileID: uploadResult.fileID,
+          maxAge: 365 * 24 * 60 * 60 // 1年有效期
+        }]
       })
       
       if (getUrlResult.fileList && getUrlResult.fileList[0]) {
-        return getUrlResult.fileList[0].tempFileURL || getUrlResult.fileList[0].download_url
+        // 返回 cloud:// 格式的 fileID，方便后续获取临时链接
+        return uploadResult.fileID
       }
       return null
     } catch (err: any) {

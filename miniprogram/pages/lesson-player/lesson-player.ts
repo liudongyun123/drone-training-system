@@ -2,8 +2,11 @@
 // 课程视频播放页面 - 支持进度同步、断点续播、完成记录
 
 import { showToast } from '../../utils/util'
-import { dbGetList } from '../../utils/http'
+import { dbGetList, request } from '../../utils/http'
 import logger from '../../utils/logger'
+
+// 云存储临时链接缓存
+const tempUrlCache = new Map<string, string>()
 
 interface Lesson {
   _id: string
@@ -73,6 +76,39 @@ Page({
     this.saveProgress()
   },
 
+  // 获取云存储视频的临时链接
+  getCloudVideoUrl(fileId: string): Promise<string> {
+    // 如果已经有缓存的直接返回
+    if (tempUrlCache.has(fileId)) {
+      return Promise.resolve(tempUrlCache.get(fileId)!)
+    }
+
+    return new Promise((resolve) => {
+      // 通过 db-init 云函数获取临时链接
+      request('/db-init', 'POST', {
+        action: 'getTempFileURL',
+        fileList: [fileId]
+      }).then((res: any) => {
+        console.log('[lesson-player] 获取视频URL结果:', res)
+        if (res.fileList && res.fileList[0]) {
+          const file = res.fileList[0]
+          if (file.code === 'SUCCESS') {
+            const url = file.tempFileURL || file.download_url
+            tempUrlCache.set(fileId, url) // 缓存结果
+            resolve(url)
+          } else {
+            resolve(fileId)
+          }
+        } else {
+          resolve(fileId)
+        }
+      }).catch((err: any) => {
+        console.error('[lesson-player] 获取视频URL失败:', err)
+        resolve(fileId)
+      })
+    })
+  },
+
   // 加载数据
   async loadData(courseId: string, lessonId: string) {
     this.setData({ loading: true })
@@ -95,8 +131,14 @@ Page({
         return
       }
 
+      // 处理视频URL（cloud://格式需要转换为临时链接）
+      let videoUrl = lesson.videoUrl || ''
+      if (videoUrl.startsWith('cloud://')) {
+        videoUrl = await this.getCloudVideoUrl(videoUrl)
+      }
+
       // 如果视频URL为空，显示占位提示但不阻止页面加载
-      const hasVideo = !!(lesson.videoUrl && lesson.videoUrl.trim())
+      const hasVideo = !!(videoUrl && videoUrl.trim())
 
       // 计算进度百分比
       const watchedDuration = progressRes?.watchedDuration || 0
@@ -106,7 +148,7 @@ Page({
         course,
         lesson,
         lessons,
-        currentVideoUrl: lesson.videoUrl || '',
+        currentVideoUrl: videoUrl,
         hasVideo,
         watchedDuration,
         progress,
@@ -340,9 +382,9 @@ Page({
   },
 
     // 切换课时
-    switchLesson(e: any) {
+    async switchLesson(e: any) {
     const lessonId = e.currentTarget.dataset.id
-    const lesson = this.data.lessons.find(l => l._id === lessonId)
+    const lesson = this.data.lessons.find((l: Lesson) => l._id === lessonId)
 
     if (!lesson || !lesson.videoUrl) {
       showToast('该课时暂无视频')
@@ -353,15 +395,21 @@ Page({
     this.saveProgress()
 
     // 计算下一课时ID
-    const currentIndex = this.data.lessons.findIndex(l => l._id === lessonId)
+    const currentIndex = this.data.lessons.findIndex((l: Lesson) => l._id === lessonId)
     const nextLesson = this.data.lessons[currentIndex + 1]
     const nextLessonId = nextLesson ? nextLesson._id : ''
+
+    // 处理视频URL（cloud://格式需要转换为临时链接）
+    let videoUrl = lesson.videoUrl || ''
+    if (videoUrl.startsWith('cloud://')) {
+      videoUrl = await this.getCloudVideoUrl(videoUrl)
+    }
 
     // 切换到新课时
     this.setData({
       lessonId,
       lesson,
-      currentVideoUrl: lesson.videoUrl,
+      currentVideoUrl: videoUrl,
       currentTime: 0,
       watchedDuration: 0,
       progress: 0,
@@ -370,7 +418,7 @@ Page({
     })
 
     // 加载新课时进度
-    this.loadProgress(this.data.courseId, lessonId).then(progress => {
+    this.loadProgress(this.data.courseId, lessonId).then((progress: any) => {
       if (progress?.watchedDuration) {
         this.setData({ watchedDuration: progress.watchedDuration })
       }

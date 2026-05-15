@@ -16,7 +16,13 @@ export interface FeaturedClassConfig {
 export async function getFeaturedClasses(): Promise<string[]> {
   try {
     const result = await CloudAdminService.get(COLLECTION_NAME, CONFIG_ID);
-    if (result.success && result.data && result.data.classIds) {
+    // 处理记录不存在的情况
+    if (!result.success) {
+      console.log('[featuredClassService] 记录不存在，将创建默认记录');
+      await CloudAdminService.upsert(COLLECTION_NAME, CONFIG_ID, { classIds: [] });
+      return [];
+    }
+    if (result.data && result.data.classIds) {
       return result.data.classIds;
     }
     return [];

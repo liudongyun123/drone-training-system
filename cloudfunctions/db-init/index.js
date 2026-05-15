@@ -1,18 +1,17 @@
 /**
- * db-init 云函数 - 简化版
- * 确保基础功能稳定运行
+ * db-init 云函数 - 支持 getTempFileURL
  */
 
 'use strict';
 
-const cloud = require('wx-server-sdk');
+const tcb = require('tcb-admin-node');
 
 // 使用固定环境ID初始化
-cloud.init({
+const app = tcb.init({
   env: 'rcwljy-5ghmq2ex26764978'
 });
 
-const db = cloud.database();
+const db = app.database();
 const _ = db.command;
 
 // 主入口
@@ -34,7 +33,7 @@ exports.main = async (event, context) => {
       }
     }
     
-    const { action, collection, id, data, query, where, skip, limit, orderBy, order } = params;
+    const { action, collection, id, data, query, where, skip, limit, orderBy, order, fileList } = params;
     
     console.log('[db-init] action:', action, 'collection:', collection);
     
@@ -109,7 +108,7 @@ exports.main = async (event, context) => {
         delete updateData._openid;
         delete updateData.createdAt;
         
-        const updateResult = await db.collection(collection).doc(id).update({ data: updateData });
+        const updateResult = await db.collection(collection).doc(id).update(updateData);
         result = { code: 0, updated: updateResult.updated, message: '更新成功' };
         break;
       }
@@ -131,6 +130,32 @@ exports.main = async (event, context) => {
         
         const countResult = await countColl.count();
         result = { code: 0, total: countResult.total };
+        break;
+      }
+        
+      case 'getTempFileURL': {
+        // 获取云存储文件的临时链接
+        if (!fileList || !Array.isArray(fileList) || fileList.length === 0) {
+          result = { code: 400, message: 'fileList 参数无效' };
+          break;
+        }
+        
+        try {
+          console.log('[db-init] getTempFileURL fileList:', fileList);
+          
+          const urlResult = await app.getTempFileURL({
+            fileList: fileList.map((fileId) => ({
+              fileID: fileId,
+              maxAge: 7 * 24 * 60 * 60 // 7天有效期
+            }))
+          });
+          
+          console.log('[db-init] getTempFileURL result:', JSON.stringify(urlResult));
+          result = { code: 0, fileList: urlResult.fileList };
+        } catch (err) {
+          console.error('[db-init] getTempFileURL 错误:', err);
+          result = { code: 500, message: err.message || '获取文件链接失败' };
+        }
         break;
       }
         

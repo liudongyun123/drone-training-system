@@ -8,7 +8,7 @@
 // 数据来源: systemConfig 集合的 dictionaries 字段
 // ============================================================================
 
-import { app } from '@/utils/cloudbase';
+import { app, ensureInit, isReady } from '@/utils/cloudbase';
 
 const CONFIG_COLLECTION = 'systemConfig';
 
@@ -268,9 +268,14 @@ export async function getDictionaries(): Promise<Record<string, any>> {
 
   try {
     // 检查 SDK 是否已初始化
-    if (!app || !app.database) {
-      console.warn('[DictionaryService] SDK 未初始化，使用默认值');
-      return DEFAULT_DICTIONARIES;
+    if (!isReady()) {
+      console.warn('[DictionaryService] SDK 未初始化，尝试初始化...');
+      try {
+        await ensureInit();
+      } catch (initError) {
+        console.warn('[DictionaryService] SDK 初始化失败，使用默认值');
+        return DEFAULT_DICTIONARIES;
+      }
     }
     
     const db = app.database();

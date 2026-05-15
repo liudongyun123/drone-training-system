@@ -1,8 +1,8 @@
 // pages/checkout/checkout.ts
 // 结算页 - 支持微信支付
 
-import { orderApi, courseApi } from '../../utils/api'
-import { checkLogin, getUserId, showToast, getOpenId } from '../../utils/util'
+import { orderApi, courseApi, coursePermissionApi } from '../../utils/api'
+import { checkLogin, getUserId, showToast, getOpenId, getPhone } from '../../utils/util'
 import { callFunction } from '../../utils/http'
 import { validatePhone, validateName, validateAddress } from '../../utils/validation'
 import { parseError } from '../../utils/error'
@@ -411,20 +411,25 @@ Page({
     try {
       // 更新订单状态
       await orderApi.updateStatus(orderId, 'paid')
-      
+
       // 课程订单：创建学习权限
       if (this.data.type === 'course' && this.data.courseInfo) {
-        await this.createCoursePermission(this.data.courseInfo._id)
+        const result = await coursePermissionApi.create(this.data.courseInfo._id, 'purchase')
+        if (result.success) {
+          console.log('[Checkout] 课程权限创建成功')
+        } else {
+          console.error('[Checkout] 课程权限创建失败:', result.error)
+        }
       }
-      
+
       // 培训班订单：创建报名记录
       if (this.data.type === 'class' && this.data.courseInfo) {
         await this.createClassEnrollment(this.data.courseInfo._id)
       }
-      
+
       wx.hideLoading()
       wx.showToast({ title: '模拟支付成功', icon: 'success' })
-      
+
       setTimeout(() => {
         wx.redirectTo({ url: '/pages/my-orders/my-orders' })
       }, 1500)
@@ -433,34 +438,6 @@ Page({
       console.error('[Checkout] 模拟支付更新失败', err)
       // 即使更新失败，也跳转到订单列表
       wx.redirectTo({ url: '/pages/my-orders/my-orders' })
-    }
-  },
-
-  // 创建课程学习权限
-  async createCoursePermission(courseId: string) {
-    try {
-      const phone = getPhone() || ''
-      const openid = wx.getStorageSync('openid') || ''
-      
-      if (!phone && !openid) {
-        console.warn('[Checkout] 创建权限失败：缺少用户标识')
-        return
-      }
-      
-      // 直接使用 HTTP API 创建权限记录
-      await callFunction('web-api', {
-        action: 'createCoursePermission',
-        data: {
-          courseId,
-          phone,
-          openid,
-          source: 'purchase', // 购买获得
-          expiresAt: null // 永不过期
-        }
-      })
-      console.log('[Checkout] 课程权限创建成功')
-    } catch (err) {
-      console.error('[Checkout] 创建课程权限失败', err)
     }
   },
 
@@ -476,7 +453,7 @@ Page({
       }
       
       // 使用已有的 enrollClass action
-      await callFunction('web-api', {
+      await callFunction('api-order', {
         action: 'enrollClass',
         data: {
           classId,

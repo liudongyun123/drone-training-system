@@ -3,7 +3,10 @@
 .page {
   background: var(--bg-color);
   min-height: 100vh;
-  padding-bottom: 80rpx;
+  /* 为底部固定栏预留空间：按钮高度 + padding + 安全区域 */
+  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(200rpx + constant(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 .section {
@@ -23,18 +26,23 @@
 /* 培训班摘要 */
 .class-summary {
   display: flex;
+  align-items: flex-start;
 }
 
 .class-cover {
-  width: 160rpx;
-  height: 160rpx;
+  width: 180rpx;
+  height: 180rpx;
   border-radius: 16rpx;
   flex-shrink: 0;
   margin-right: 24rpx;
+  background: #f5f5f5;
 }
 
 .class-detail {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .class-title {
@@ -42,7 +50,10 @@
   font-size: 30rpx;
   font-weight: 600;
   color: var(--text-color);
-  margin-bottom: 8rpx;
+  margin-bottom: 12rpx;
+  line-height: 1.4;
+  word-wrap: break-word;
+  word-break: break-all;
 }
 
 .class-time,
@@ -51,23 +62,26 @@
   font-size: 24rpx;
   color: var(--text-secondary);
   margin-bottom: 8rpx;
+  line-height: 1.4;
 }
 
 .price-row {
   display: flex;
   align-items: baseline;
-  margin-top: 16rpx;
+  margin-top: auto;
+  padding-top: 12rpx;
 }
 
 .price-symbol {
-  color: var(--error-color);
+  color: var(--danger);
   font-size: 24rpx;
+  font-weight: 500;
 }
 
 .price-num {
-  color: var(--error-color);
+  color: var(--danger);
   font-size: 40rpx;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* 表单 */
@@ -104,52 +118,54 @@
 /* 支付方式 */
 .pay-options {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 24rpx;
 }
 
 .pay-option {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 24rpx;
-  border: 1rpx solid var(--border-color);
+  padding: 32rpx 24rpx;
+  border: 2rpx solid var(--border-color);
   border-radius: 16rpx;
+  position: relative;
 }
 
 .pay-option.active {
-  border-color: var(--primary-color);
-  background: rgba(24, 144, 255, 0.05);
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.05);
 }
 
 .pay-radio {
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
-  border: 1rpx solid var(--border-color);
+  border: 2rpx solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 24rpx;
+  margin-bottom: 16rpx;
   font-size: 24rpx;
   color: #fff;
 }
 
 .pay-option.active .pay-radio {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+  background: var(--primary);
+  border-color: var(--primary);
 }
 
 .pay-label {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: var(--text-color);
-  font-weight: 500;
+  font-weight: 600;
+  margin-bottom: 8rpx;
 }
 
 .pay-desc {
-  flex: 1;
-  text-align: right;
   font-size: 24rpx;
-  color: var(--text-placeholder);
+  color: var(--text-secondary);
 }
 
 /* 费用 */
@@ -186,33 +202,51 @@
   align-items: center;
   justify-content: space-between;
   background: #fff;
-  padding: 16rpx 32rpx;
-  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.12);
+  z-index: 999;
+  box-sizing: border-box;
 }
 
 .total-area {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  flex: 1;
 }
 
 .total-text {
   font-size: 28rpx;
   color: var(--text-color);
+  line-height: 1;
 }
 
 .total-price {
   font-size: 40rpx;
-  font-weight: 600;
-  color: var(--error-color);
+  font-weight: 700;
+  color: var(--danger);
+  line-height: 1;
+  margin-left: 8rpx;
 }
 
 .submit-btn {
-  background: var(--error-color);
-  color: #fff;
-  border: none;
-  border-radius: 40rpx;
-  font-size: 32rpx;
-  padding: 24rpx 64rpx;
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 40rpx !important;
+  font-size: 30rpx;
+  font-weight: 600;
+  padding: 0 40rpx;
+  line-height: 80rpx;
+  margin: 0;
+  min-width: 220rpx;
+  height: 80rpx;
+  text-align: center;
+}
+
+.submit-btn::after {
+  border: none !important;
 }
 
 .submit-btn.disabled {

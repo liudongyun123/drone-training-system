@@ -34,7 +34,12 @@
             </view>
           </view>
           <text class="user-phone" wx:if="{{userInfo.phone}}">{{userInfo.phone}}</text>
-          <text class="user-phone bind-hint" wx:else bindtap="bindPhone">点击绑定手机号</text>
+          <button 
+            wx:else 
+            class="phone-bind-btn" 
+            open-type="getPhoneNumber" 
+            bind:getphonenumber="bindPhone"
+          >点击绑定手机号</button>
         </view>
       </view>
 

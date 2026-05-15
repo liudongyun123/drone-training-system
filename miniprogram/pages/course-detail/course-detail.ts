@@ -3,8 +3,11 @@
 
 import { courseApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
-import { dbGetList } from '../../utils/http'
+import { dbGetList, request } from '../../utils/http'
 import logger from '../../utils/logger'
+
+// 云存储临时链接缓存（避免重复请求）
+const tempUrlCache = new Map<string, string>()
 
 Page({
   data: {
@@ -36,6 +39,22 @@ Page({
       console.log('[课程详情] 课程数据:', course)
       console.log('[课程详情] 课时数据:', lessons)
       
+      // 处理课程预览视频URL（cloud://格式需要转换为临时链接）
+      if (course && course.videoUrl) {
+        if (course.videoUrl.startsWith('cloud://')) {
+          course.videoUrl = await this.getCloudVideoUrl(course.videoUrl)
+        }
+      }
+      
+      // 处理课时视频URL
+      if (lessons && lessons.length > 0) {
+        for (let i = 0; i < lessons.length; i++) {
+          if (lessons[i].videoUrl && lessons[i].videoUrl.startsWith('cloud://')) {
+            lessons[i].videoUrl = await this.getCloudVideoUrl(lessons[i].videoUrl)
+          }
+        }
+      }
+      
       // 检查是否已购买 - 使用 phone 查询（购买时用手机号绑定）
       let hasPermission = false
       const phone = wx.getStorageSync('phone') || ''
@@ -53,6 +72,39 @@ Page({
       this.setData({ loading: false })
       showToast('加载课程失败')
     }
+  },
+
+  // 获取云存储视频的临时链接
+  getCloudVideoUrl(fileId: string): Promise<string> {
+    // 如果已经有缓存的直接返回
+    if (tempUrlCache.has(fileId)) {
+      return Promise.resolve(tempUrlCache.get(fileId)!)
+    }
+
+    return new Promise((resolve) => {
+      // 通过 db-init 云函数获取临时链接
+      request('/db-init', 'POST', {
+        action: 'getTempFileURL',
+        fileList: [fileId]
+      }).then((res: any) => {
+        console.log('[课程详情] 获取视频URL结果:', res)
+        if (res.fileList && res.fileList[0]) {
+          const file = res.fileList[0]
+          if (file.code === 'SUCCESS') {
+            const url = file.tempFileURL || file.download_url
+            tempUrlCache.set(fileId, url) // 缓存结果
+            resolve(url)
+          } else {
+            resolve(fileId)
+          }
+        } else {
+          resolve(fileId)
+        }
+      }).catch((err: any) => {
+        console.error('[课程详情] 获取视频URL失败:', err)
+        resolve(fileId)
+      })
+    })
   },
 
   startLearning(e: any) {
@@ -125,8 +177,14 @@ Page({
     const course = this.data.course
     if (course) {
       // 使用默认封面图
-      course.coverImage = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      course.coverImage = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
       this.setData({ course })
     }
+  },
+
+  // 视频加载失败处理
+  onVideoError(e: any) {
+    console.error('[课程详情] 视频加载失败:', e.detail)
+    showToast('视频加载失败，请稍后重试')
   }
 })

@@ -170,7 +170,7 @@ export const adminService = {
   deleteClass: (id: string) => adminService.delete('classes', id),
 
   // 分类
-  listCategories: (options: Record<string, any> = {}) => adminService.list('categories', { status: 'active' }, options),
+  listCategories: (query: Record<string, any> = {}, options: Record<string, any> = {}) => adminService.list('categories', { status: 'active', ...query }, { orderBy: 'sort', order: 'asc', ...options }),
   getCategory: (id: string) => adminService.get('categories', id),
   createCategory: (data: Record<string, any>) => adminService.add('categories', data),
   updateCategory: (id: string, data: Record<string, any>) => adminService.update('categories', id, data),
@@ -221,8 +221,8 @@ export const adminService = {
   updateExam: (id: string, data: Record<string, any>) => adminService.update('exams', id, data),
   deleteExam: (id: string) => adminService.delete('exams', id),
 
-  // 体系
-  listSources: (options: Record<string, any> = {}) => adminService.list('sources', { status: 'active' }, options),
+  // 体系 - 不再默认过滤状态，由调用方决定
+  listSources: (query: Record<string, any> = {}, options: Record<string, any> = {}) => adminService.list('sources', query, { orderBy: 'sortOrder', order: 'asc', ...options }),
   getSource: (id: string) => adminService.get('sources', id),
   createSource: (data: Record<string, any>) => adminService.add('sources', data),
   updateSource: (id: string, data: Record<string, any>) => adminService.update('sources', id, data),

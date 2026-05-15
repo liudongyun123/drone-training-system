@@ -97,7 +97,8 @@ Page<IndexData>({
   // 加载体系配置
   async loadSources() {
     try {
-      const sources = await SourceService.getSources()
+      // 强制刷新获取最新体系数据
+      const sources = await SourceService.getSources({ forceRefresh: true })
       logger.info('[首页] loadSources', { count: sources.length })
       
       if (sources && sources.length > 0) {
@@ -333,12 +334,14 @@ Page<IndexData>({
     })
     
     if (sourceKey !== this.data.currentSource && sourceInfo) {
-      // 切换体系时显示骨架屏
+      // 切换体系时清除缓存并显示骨架屏
+      SourceService.clearCache(this.data.currentSourceId)
       this.setData({ 
         skeletonVisible: true,
         currentSource: sourceKey,
         currentSourceId: sourceInfo.id || ''
       }, () => {
+        // 强制刷新数据
         this.loadData()
       })
       

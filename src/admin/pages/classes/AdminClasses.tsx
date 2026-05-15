@@ -214,6 +214,7 @@ export default function AdminClasses() {
     try {
       const query: Record<string, unknown> = {};
       if (filterStatus) query.status = filterStatus;
+      if (filterSource) query.sourceId = filterSource;
       if (searchKeyword) query.keyword = searchKeyword;
 
       const result = await classService.getList({
@@ -256,7 +257,7 @@ export default function AdminClasses() {
   useEffect(() => {
     loadClasses();
     loadRelatedData();
-  }, [page, filterStatus]);
+  }, [page, filterStatus, filterSource]);
 
   // ★ 加载班级学员来源统计
   const loadClassMemberStats = async (classId: string) => {

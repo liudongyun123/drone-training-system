@@ -540,10 +540,17 @@ export const SourceService = {
 
     const cacheKey = cacheKeys.pageConfig(sourceId, section)
     const cached = sourceCache.get<PageConfig>(cacheKey)
-    if (cached) return cached
+    if (cached) {
+      // 验证缓存数据的 sourceId 是否匹配
+      if (cached.data?.sourceId === sourceId) {
+        return cached
+      }
+      // 缓存不匹配，清除
+      sourceCache.delete(cacheKey)
+    }
 
     try {
-      // 先查询该 section 的所有配置
+      // 查询所有该 section 的配置
       const result = await dbGetList('page_configs', {
         where: { section },
         limit: 100
@@ -553,9 +560,22 @@ export const SourceService = {
         return null
       }
       
-      // 在代码层面过滤 sourceId
+      // 在代码层面精确过滤 sourceId
+      // 支持两种数据格式：
+      // 1. 每个体系独立文档：config.data.sourceId === sourceId
+      // 2. 所有体系在一个文档：config.data.items 中包含 sourceId/sourceCode
       const matchedConfig = (result.data as PageConfig[]).find((config: any) => {
-        return config.data && config.data.sourceId === sourceId
+        // 检查顶层 sourceId（格式1）
+        if (config.data && config.data.sourceId === sourceId) {
+          return true
+        }
+        // 检查 items 中的 sourceId（格式2）
+        if (config.data && config.data.items) {
+          return config.data.items.some((item: any) => 
+            item.sourceId === sourceId || item.sourceCode === sourceId
+          )
+        }
+        return false
       })
       
       if (matchedConfig) {
@@ -575,7 +595,7 @@ export const SourceService = {
   /**
    * 获取首页学习路径配置
    * 逻辑：
-   * 1. 有 page_config 配置时：按配置的 order 排序，过滤 visible: false，返回配置项
+   * 1. 有 page_config 配置时：按 sourceId 过滤，按 order 排序，过滤 visible: false
    * 2. 无配置时：直接查询 categories 表，按 sortOrder 排序
    */
   async getLearningPathConfig(sourceId: string): Promise<Category[]> {
@@ -588,8 +608,19 @@ export const SourceService = {
       const pageConfig = await this.getPageConfig(sourceId, 'learningPaths')
       
       if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
+        // 按 sourceId 过滤 items（数据库中可能包含多个体系的数据）
+        const filteredItems = pageConfig.data.items.filter((item: any) => {
+          return item.sourceId === sourceId || item.sourceCode === sourceId
+        })
+        
+        if (filteredItems.length === 0) {
+          logger.warn('[SourceService] page_config 中无当前体系数据，回退到 categories', { sourceId })
+          const categories = await this.getCategories(sourceId, { includeDisabled: false })
+          return categories
+        }
+        
         // 按配置的 order 排序，并过滤掉 visible: false 的项
-        const items = pageConfig.data.items
+        const items = filteredItems
           .filter((item: ConfigItem) => item.visible !== false)
           .sort((a: ConfigItem, b: ConfigItem) => (a.order || 0) - (b.order || 0))
         
@@ -598,16 +629,14 @@ export const SourceService = {
         const categoryMap = new Map(categories.map(c => [c.name, c]))
         
         // 为每个 item 补充正确的 _id
-        // 直接使用 categories 表的实际 _id，用于过滤课程和培训班
         const enrichedItems = items.map((item: any) => {
           const matchedCategory = categoryMap.get(item.name)
-          // 使用 categories 表的实际 _id（可能是 hash 或新格式）
-          const categoryId = matchedCategory?._id || matchedCategory?.id || item.name
+          const categoryId = matchedCategory?._id || matchedCategory?.id || item.id || item.name
           
           return {
             ...item,
-            _id: categoryId,  // categories 表的实际 _id，用于跳转和过滤
-            categoryId: categoryId,  // 明确标注
+            _id: categoryId,
+            categoryId: categoryId,
             sourceId: sourceId
           } as Category
         })

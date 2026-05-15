@@ -6,17 +6,11 @@ import { Award, Plus, Edit, Trash2, X, Check, AlertCircle, Filter } from 'lucide
 import { useConfirm } from '../../hooks/useConfirm';
 import { adminService } from '@/services/adminService';
 
-// 体系配置
-const DEFAULT_SOURCES: Source[] = [
-  { code: 'RENSHE', name: '人社培训', icon: '🏛️' },
-  { code: 'CAAC', name: 'CAAC培训', icon: '✈️' },
-];
-
 interface Source {
   _id?: string;
   code: string;
   name: string;
-  icon: string;
+  icon?: string;
 }
 
 interface Level {
@@ -32,12 +26,12 @@ interface Level {
 
 export default function AdminLevels() {
   const [levels, setLevels] = useState<Level[]>([]);
+  const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Level>>({});
   const [saving, setSaving] = useState(false);
-  const [sourceFilter, setSourceFilter] = useState<string>(''); // 体系筛选
-  const [sources] = useState<Source[]>(DEFAULT_SOURCES);
+  const [sourceFilter, setSourceFilter] = useState<string>(''); // 体系筛选（使用sourceId）
   const { confirm, ConfirmDialog } = useConfirm();
 
   // 加载数据
@@ -46,23 +40,16 @@ export default function AdminLevels() {
     try {
       console.log('[AdminLevels] 开始加载数据...');
       
-      // 测试直接 HTTP 请求
-      const testResponse = await fetch('https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com/db-init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'query',
-          collection: 'levels',
-          query: {},
-          limit: 100
-        })
-      });
-      const testData = await testResponse.json();
-      console.log('[AdminLevels] 直接 HTTP 请求结果:', testData);
+      // 1. 加载体系列表
+      const sourcesResult = await adminService.listSources({}, { limit: 100 }) as unknown as { data: { list: Source[] } };
+      console.log('[AdminLevels] 体系列表:', sourcesResult);
+      if (sourcesResult.data?.list) {
+        setSources(sourcesResult.data.list);
+      }
       
-      // 使用 adminService
+      // 2. 加载等级列表
       const levelsResult = await adminService.list('levels', {}, { limit: 100 }) as unknown as { data: { list: Level[] } };
-      console.log('[AdminLevels] adminService 结果:', levelsResult);
+      console.log('[AdminLevels] 等级列表:', levelsResult);
       
       if (levelsResult.data?.list) {
         setLevels(levelsResult.data.list);
@@ -81,13 +68,20 @@ export default function AdminLevels() {
   // 根据筛选获取显示的等级
   const getFilteredLevels = () => {
     if (!sourceFilter) return levels;
-    return levels.filter(l => l.sourceCode === sourceFilter);
+    // 同时匹配 sourceId 和 sourceCode
+    return levels.filter(l => l.sourceId === sourceFilter || l.sourceCode === sourceFilter);
   };
 
   // 获取体系名称
   const getSourceName = (sourceCode: string) => {
     const source = sources.find(s => s.code === sourceCode);
     return source ? source.name : sourceCode;
+  };
+
+  // 获取体系ID
+  const getSourceId = (sourceCode: string) => {
+    const source = sources.find(s => s.code === sourceCode);
+    return source?._id || '';
   };
 
   // 保存修改
@@ -99,9 +93,13 @@ export default function AdminLevels() {
 
     setSaving(true);
     try {
+      // 确保同时存储 sourceCode 和 sourceId
+      const sourceCode = editForm.sourceCode || '';
+      const sourceId = editForm.sourceId || getSourceId(sourceCode);
+      
       const levelData: Record<string, any> = {
-        sourceCode: editForm.sourceCode,
-        sourceId: editForm.sourceId || '',
+        sourceCode: sourceCode,
+        sourceId: sourceId,
         name: editForm.name,
         code: editForm.code,
         description: editForm.description || '',
@@ -154,12 +152,15 @@ export default function AdminLevels() {
   // 新增
   const handleAdd = () => {
     setEditingId('new');
+    const defaultSource = sources[0];
+    const defaultSourceCode = sourceFilter ? sources.find(s => s._id === sourceFilter)?.code : defaultSource?.code;
     setEditForm({
-      sourceCode: sourceFilter || (sources[0]?.code || ''),
+      sourceCode: defaultSourceCode || '',
+      sourceId: sourceFilter || defaultSource?._id || '',
       name: '',
       code: '',
       description: '',
-      sortOrder: levels.filter(l => !sourceFilter || l.sourceCode === sourceFilter).length + 1,
+      sortOrder: getFilteredLevels().length + 1,
       status: 'active'
     });
   };
@@ -211,7 +212,7 @@ export default function AdminLevels() {
         >
           <option value="">全部体系</option>
           {sources.map(source => (
-            <option key={source.code} value={source.code}>
+            <option key={source._id} value={source._id}>
               {source.icon} {source.name}
             </option>
           ))}
@@ -247,32 +248,27 @@ export default function AdminLevels() {
                 </td>
               </tr>
             ) : (
-              getFilteredLevels().map(level => (
-                <tr key={level._id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4">
-                    {editingId === level._id ? (
+              <>
+                {/* 新增行 */}
+                {editingId === 'new' && (
+                  <tr className="bg-blue-50">
+                    <td className="px-6 py-4">
                       <select
-                        value={editForm.sourceCode || ''}
+                        value={editForm.sourceId || ''}
                         onChange={e => {
-                          const source = sources.find(s => s.code === e.target.value);
-                          setEditForm({ ...editForm, sourceCode: e.target.value, sourceId: source?._id });
+                          const source = sources.find(s => s._id === e.target.value);
+                          setEditForm({ ...editForm, sourceCode: source?.code || '', sourceId: e.target.value });
                         }}
                         className="px-2 py-1 border rounded text-sm"
                       >
                         {sources.map(source => (
-                          <option key={source.code} value={source.code}>
+                          <option key={source._id} value={source._id}>
                             {source.icon} {source.name}
                           </option>
                         ))}
                       </select>
-                    ) : (
-                      <span className="text-sm text-slate-600">
-                        {sources.find(s => s.code === level.sourceCode)?.icon} {getSourceName(level.sourceCode)}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === level._id ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <input
                         type="text"
                         value={editForm.name || ''}
@@ -280,12 +276,8 @@ export default function AdminLevels() {
                         className="w-32 px-2 py-1 border rounded"
                         placeholder="等级名称"
                       />
-                    ) : (
-                      <span className="font-medium text-slate-900">{level.name}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === level._id ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <input
                         type="text"
                         value={editForm.code || ''}
@@ -293,12 +285,8 @@ export default function AdminLevels() {
                         className="w-24 px-2 py-1 border rounded text-sm"
                         placeholder="如: beginner"
                       />
-                    ) : (
-                      <code className="text-xs bg-slate-100 px-2 py-1 rounded">{level.code}</code>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === level._id ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <input
                         type="text"
                         value={editForm.description || ''}
@@ -306,12 +294,8 @@ export default function AdminLevels() {
                         className="w-40 px-2 py-1 border rounded text-sm"
                         placeholder="描述"
                       />
-                    ) : (
-                      <span className="text-sm text-slate-500">{level.description || '-'}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === level._id ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <input
                         type="number"
                         value={editForm.sortOrder || 1}
@@ -319,12 +303,8 @@ export default function AdminLevels() {
                         className="w-16 px-2 py-1 border rounded text-center"
                         min={1}
                       />
-                    ) : (
-                      <span className="text-sm text-slate-500">{level.sortOrder}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === level._id ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <select
                         value={editForm.status || 'active'}
                         onChange={e => setEditForm({ ...editForm, status: e.target.value as 'active' | 'disabled' })}
@@ -333,18 +313,8 @@ export default function AdminLevels() {
                         <option value="active">启用</option>
                         <option value="disabled">禁用</option>
                       </select>
-                    ) : (
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        level.status === 'active' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {level.status === 'active' ? '启用' : '禁用'}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {editingId === level._id ? (
+                    </td>
+                    <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={handleSave}
@@ -360,25 +330,143 @@ export default function AdminLevels() {
                           <X className="w-4 h-4" />
                         </button>
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(level)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                    </td>
+                  </tr>
+                )}
+                {/* 现有数据行 */}
+                {getFilteredLevels().map(level => (
+                  <tr key={level._id} className="hover:bg-slate-50">
+                    <td className="px-6 py-4">
+                      {editingId === level._id ? (
+                        <select
+                          value={editForm.sourceId || ''}
+                          onChange={e => {
+                            const source = sources.find(s => s._id === e.target.value);
+                            setEditForm({ ...editForm, sourceCode: source?.code || '', sourceId: e.target.value });
+                          }}
+                          className="px-2 py-1 border rounded text-sm"
                         >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(level._id!, level.name)}
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                          {sources.map(source => (
+                            <option key={source._id} value={source._id}>
+                              {source.icon} {source.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-sm text-slate-600">
+                          {sources.find(s => s.code === level.sourceCode)?.icon} {getSourceName(level.sourceCode)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === level._id ? (
+                        <input
+                          type="text"
+                          value={editForm.name || ''}
+                          onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                          className="w-32 px-2 py-1 border rounded"
+                          placeholder="等级名称"
+                        />
+                      ) : (
+                        <span className="font-medium text-slate-900">{level.name}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === level._id ? (
+                        <input
+                          type="text"
+                          value={editForm.code || ''}
+                          onChange={e => setEditForm({ ...editForm, code: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+                          className="w-24 px-2 py-1 border rounded text-sm"
+                          placeholder="如: beginner"
+                        />
+                      ) : (
+                        <code className="text-xs bg-slate-100 px-2 py-1 rounded">{level.code}</code>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === level._id ? (
+                        <input
+                          type="text"
+                          value={editForm.description || ''}
+                          onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                          className="w-40 px-2 py-1 border rounded text-sm"
+                          placeholder="描述"
+                        />
+                      ) : (
+                        <span className="text-sm text-slate-500">{level.description || '-'}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === level._id ? (
+                        <input
+                          type="number"
+                          value={editForm.sortOrder || 1}
+                          onChange={e => setEditForm({ ...editForm, sortOrder: parseInt(e.target.value) || 1 })}
+                          className="w-16 px-2 py-1 border rounded text-center"
+                          min={1}
+                        />
+                      ) : (
+                        <span className="text-sm text-slate-500">{level.sortOrder}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === level._id ? (
+                        <select
+                          value={editForm.status || 'active'}
+                          onChange={e => setEditForm({ ...editForm, status: e.target.value as 'active' | 'disabled' })}
+                          className="px-2 py-1 border rounded text-sm"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))
+                          <option value="active">启用</option>
+                          <option value="disabled">禁用</option>
+                        </select>
+                      ) : (
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          level.status === 'active' 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {level.status === 'active' ? '启用' : '禁用'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {editingId === level._id ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={handleCancel}
+                            className="p-1.5 text-slate-400 hover:bg-slate-100 rounded"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(level)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(level._id!, level.name)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </>
             )}
           </tbody>
         </table>

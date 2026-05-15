@@ -6,6 +6,7 @@
 // ============================================================================
 import { useState, useEffect } from 'react';
 import { useConfirm } from '@/admin/hooks/useConfirm';
+import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { adminService } from '@/services/adminService';
 import { messageService } from '@/services/messageService';
@@ -13,7 +14,7 @@ import { toast } from '@/components/Toast';
 import {
   Search, RefreshCw, Eye, CheckCircle,
   XCircle, Clock, CreditCard, BookOpen, ChevronLeft, ChevronRight,
-  Bell, BellOff
+  Bell, BellOff, Filter
 } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, { text: string; color: string }> = {
@@ -33,9 +34,13 @@ export default function AdminCourseOrders() {
   const [pageSize] = useState(15);
 
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterSource, setFilterSource] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+
+  // ★ 使用统一配置hook获取体系
+  const { sourceOptions } = useSourceConfig();
 
   // 统计数据
   const [stats, setStats] = useState({
@@ -52,6 +57,7 @@ export default function AdminCourseOrders() {
       // 课程订单：获取所有订单
       const query: Record<string, any> = {};
       if (filterStatus) query.status = filterStatus;
+      if (filterSource) query.sourceId = filterSource;
       
       const result = await adminService.list('orders', query, { page, pageSize, orderBy: 'createdAt', order: 'desc' }) as unknown as { code: number; data: { list: any[] } };
       if (result.code === 0) {
@@ -95,7 +101,7 @@ export default function AdminCourseOrders() {
 
   useEffect(() => {
     loadOrders();
-  }, [page, filterStatus, searchKeyword]);
+  }, [page, filterStatus, filterSource, searchKeyword]);
 
   // 确认支付
   const handleConfirmPayment = async (order: any) => {
@@ -352,6 +358,26 @@ export default function AdminCourseOrders() {
             <option value="cancelled">已取消</option>
             <option value="refunded">已退款</option>
           </select>
+
+          {/* ★ 体系筛选 */}
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-gray-400" />
+            <select
+              value={filterSource}
+              onChange={(e) => {
+                setFilterSource(e.target.value);
+                setPage(1);
+              }}
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="">全部体系</option>
+              {sourceOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.icon} {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <button
             onClick={loadOrders}

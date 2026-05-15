@@ -141,6 +141,22 @@
   border-radius: 16rpx;
 }
 
+/* 手机号绑定按钮 - 样式化为文本 */
+.phone-bind-btn {
+  display: inline-block;
+  font-size: 26rpx;
+  color: #fef3c7;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6rpx 16rpx;
+  border-radius: 16rpx;
+  margin: 0;
+  line-height: inherit;
+}
+
+.phone-bind-btn::after {
+  border: none;
+}
+
 /* 学习统计 */
 .stats-bar {
   position: relative;

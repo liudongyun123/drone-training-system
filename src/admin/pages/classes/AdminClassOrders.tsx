@@ -5,10 +5,11 @@
 import { useState, useEffect } from 'react';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { useConfirm } from '@/admin/hooks/useConfirm';
+import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
 import { orderService, adminService, membersService } from '@/services';
 import {
   Search, RefreshCw, CheckCircle, Clock, CreditCard, 
-  Users, ChevronLeft, ChevronRight, Plus, Key, User
+  Users, ChevronLeft, ChevronRight, Plus, Key, User, Filter
 } from 'lucide-react';
 import { Modal } from '@/components';
 
@@ -57,7 +58,11 @@ export default function AdminClassOrders() {
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
+  const [filterSource, setFilterSource] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
+
+  // ★ 使用统一配置hook获取体系
+  const { sourceOptions } = useSourceConfig();
 
   // 统计数据
   const [stats, setStats] = useState({

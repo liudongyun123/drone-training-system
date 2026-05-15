@@ -8,14 +8,31 @@
 
   <block wx:elif="{{course}}">
     <scroll-view class="content" scroll-y enhanced>
-      <!-- 课程封面 -->
+      <!-- 课程视频/封面 -->
       <view class="cover-section">
+        <!-- 有预览视频时显示视频播放器 -->
+        <video
+          wx:if="{{course.videoUrl}}"
+          class="preview-video"
+          src="{{course.videoUrl}}"
+          poster="{{course.coverImage || course.cover}}"
+          object-fit="cover"
+          show-center-play-btn
+          enable-progress-gesture
+          binderror="onVideoError"
+        ></video>
+        <!-- 无视频时显示封面图片 -->
         <image 
+          wx:else
           class="cover" 
           src="{{course.coverImage || course.cover}}" 
           mode="aspectFill"
           binderror="onCoverError"
         />
+        <!-- 视频播放指示器 -->
+        <view wx:if="{{course.videoUrl}}" class="video-badge">
+          <text class="video-badge-text">🎬 预览视频</text>
+        </view>
       </view>
 
       <!-- 课程信息 -->

@@ -42,13 +42,19 @@ export default function AdminSources() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Source>>({});
   const [saving, setSaving] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'disabled'>('all');
   const { confirm, ConfirmDialog } = useConfirm();
 
   // 加载数据
   const loadData = async () => {
     setLoading(true);
     try {
-      const result = await adminService.listSources({ limit: 100 }) as unknown as { data: { list: Source[] } };
+      // 根据筛选状态构建查询条件
+      const query: Record<string, any> = {};
+      if (filterStatus !== 'all') {
+        query.status = filterStatus;
+      }
+      const result = await adminService.listSources(query, { limit: 100 }) as unknown as { data: { list: Source[] } };
       if (result.data?.list && result.data.list.length > 0) {
         setSources(result.data.list);
       } else {
@@ -64,7 +70,7 @@ export default function AdminSources() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [filterStatus]);
 
   // 保存修改
   const handleSave = async () => {
@@ -161,13 +167,25 @@ export default function AdminSources() {
           <Settings className="w-6 h-6 text-slate-600" />
           <h1 className="text-2xl font-bold">体系管理</h1>
         </div>
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4" />
-          新增体系
-        </button>
+        <div className="flex items-center gap-4">
+          {/* 状态筛选 */}
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value as any)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">全部</option>
+            <option value="active">仅启用</option>
+            <option value="disabled">仅停用</option>
+          </select>
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4" />
+            新增体系
+          </button>
+        </div>
       </div>
 
       {/* 提示 */}
@@ -207,10 +225,11 @@ export default function AdminSources() {
                 <td colSpan={7} className="px-6 py-12 text-center text-slate-400">暂无数据</td>
               </tr>
             ) : (
-              sources.map(source => (
-                <tr key={source._id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4">
-                    {editingId === source._id ? (
+              <>
+                {/* 新增行 */}
+                {editingId === 'new' && (
+                  <tr className="bg-blue-50">
+                    <td className="px-6 py-4">
                       <input
                         type="text"
                         value={editForm.icon || ''}
@@ -218,12 +237,8 @@ export default function AdminSources() {
                         className="w-16 px-2 py-1 text-center border rounded"
                         placeholder="图标"
                       />
-                    ) : (
-                      <span className="text-2xl">{source.icon}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === source._id ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <input
                         type="text"
                         value={editForm.name || ''}
@@ -231,12 +246,8 @@ export default function AdminSources() {
                         className="w-32 px-2 py-1 border rounded"
                         placeholder="体系名称"
                       />
-                    ) : (
-                      <span className="font-medium text-slate-900">{source.name}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === source._id ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <input
                         type="text"
                         value={editForm.code || ''}
@@ -244,12 +255,8 @@ export default function AdminSources() {
                         className="w-24 px-2 py-1 border rounded font-mono text-sm"
                         placeholder="代码"
                       />
-                    ) : (
-                      <code className="text-sm bg-slate-100 px-2 py-1 rounded">{source.code}</code>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === source._id ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <input
                         type="text"
                         value={editForm.description || ''}
@@ -257,24 +264,16 @@ export default function AdminSources() {
                         className="w-48 px-2 py-1 border rounded"
                         placeholder="描述"
                       />
-                    ) : (
-                      <span className="text-sm text-slate-500">{source.description}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === source._id ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <input
                         type="number"
                         value={editForm.sortOrder || 0}
                         onChange={e => setEditForm({ ...editForm, sortOrder: parseInt(e.target.value) })}
                         className="w-16 px-2 py-1 border rounded"
                       />
-                    ) : (
-                      <span className="text-sm text-slate-500">{source.sortOrder}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingId === source._id ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <select
                         value={editForm.status || 'active'}
                         onChange={e => setEditForm({ ...editForm, status: e.target.value as any })}
@@ -283,18 +282,8 @@ export default function AdminSources() {
                         <option value="active">启用</option>
                         <option value="disabled">停用</option>
                       </select>
-                    ) : (
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        source.status === 'active'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {source.status === 'active' ? '启用' : '停用'}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {editingId === source._id ? (
+                    </td>
+                    <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={handleSave}
@@ -310,25 +299,133 @@ export default function AdminSources() {
                           <X className="w-5 h-5" />
                         </button>
                       </div>
-                    ) : (
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(source)}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                    </td>
+                  </tr>
+                )}
+                {/* 现有数据行 */}
+                {sources.map(source => (
+                  <tr key={source._id} className="hover:bg-slate-50">
+                    <td className="px-6 py-4">
+                      {editingId === source._id ? (
+                        <input
+                          type="text"
+                          value={editForm.icon || ''}
+                          onChange={e => setEditForm({ ...editForm, icon: e.target.value })}
+                          className="w-16 px-2 py-1 text-center border rounded"
+                          placeholder="图标"
+                        />
+                      ) : (
+                        <span className="text-2xl">{source.icon}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === source._id ? (
+                        <input
+                          type="text"
+                          value={editForm.name || ''}
+                          onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                          className="w-32 px-2 py-1 border rounded"
+                          placeholder="体系名称"
+                        />
+                      ) : (
+                        <span className="font-medium text-slate-900">{source.name}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === source._id ? (
+                        <input
+                          type="text"
+                          value={editForm.code || ''}
+                          onChange={e => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })}
+                          className="w-24 px-2 py-1 border rounded font-mono text-sm"
+                          placeholder="代码"
+                        />
+                      ) : (
+                        <code className="text-sm bg-slate-100 px-2 py-1 rounded">{source.code}</code>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === source._id ? (
+                        <input
+                          type="text"
+                          value={editForm.description || ''}
+                          onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                          className="w-48 px-2 py-1 border rounded"
+                          placeholder="描述"
+                        />
+                      ) : (
+                        <span className="text-sm text-slate-500">{source.description}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === source._id ? (
+                        <input
+                          type="number"
+                          value={editForm.sortOrder || 0}
+                          onChange={e => setEditForm({ ...editForm, sortOrder: parseInt(e.target.value) })}
+                          className="w-16 px-2 py-1 border rounded"
+                        />
+                      ) : (
+                        <span className="text-sm text-slate-500">{source.sortOrder}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === source._id ? (
+                        <select
+                          value={editForm.status || 'active'}
+                          onChange={e => setEditForm({ ...editForm, status: e.target.value as any })}
+                          className="px-2 py-1 border rounded"
                         >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(source._id!)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))
+                          <option value="active">启用</option>
+                          <option value="disabled">停用</option>
+                        </select>
+                      ) : (
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          source.status === 'active'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {source.status === 'active' ? '启用' : '停用'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {editingId === source._id ? (
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                          >
+                            <Check className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={handleCancel}
+                            className="p-1 text-slate-400 hover:bg-slate-100 rounded"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(source)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(source._id!)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </>
             )}
           </tbody>
         </table>

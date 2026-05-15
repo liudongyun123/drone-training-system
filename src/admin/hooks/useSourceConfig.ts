@@ -3,7 +3,7 @@
 // 管理体系、分类、等级的动态加载和关联关系
 // ============================================================================
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { adminApi } from '@/services/adminApiService';
+import { adminService } from '@/services/adminService';
 
 // 类型定义
 export interface Source {
@@ -57,21 +57,34 @@ export function useSourceConfig() {
   const loadSources = useCallback(async () => {
     setSourcesLoading(true);
     try {
-      // 使用 adminApi（HTTP 方式）查询
-      const result = await adminApi.listSources({ limit: 100 });
+      // 使用 adminService（CloudBase SDK）查询
+      const result = await adminService.listSources({}, { limit: 100 }) as any;
+      console.log('[useSourceConfig] listSources result:', result);
       
-      if (result.data && result.data.length > 0) {
-        setSources(result.data as Source[]);
+      // 兼容多种返回格式
+      let sourcesData: any[] = [];
+      if (result.data?.list && Array.isArray(result.data.list)) {
+        sourcesData = result.data.list;
+      } else if (Array.isArray(result.data)) {
+        sourcesData = result.data;
+      }
+      
+      if (sourcesData.length > 0) {
+        setSources(sourcesData as Source[]);
         // 构建映射
         sourceIdToCodeMap = {};
         sourceCodeToIdMap = {};
-        result.data.forEach((s: any) => {
+        sourcesData.forEach((s: any) => {
           sourceIdToCodeMap[s._id] = s.code;
           sourceCodeToIdMap[s.code] = s._id;
         });
+        console.log('[useSourceConfig] sources loaded:', sourcesData.length, '构建映射:', sourceIdToCodeMap);
+      } else {
+        setSources([]);
       }
     } catch (error) {
       console.error('加载体系列表失败:', error);
+      setSources([]);
     } finally {
       setSourcesLoading(false);
     }
@@ -81,18 +94,32 @@ export function useSourceConfig() {
   const loadCategories = useCallback(async () => {
     setCategoriesLoading(true);
     try {
-      // 使用 adminApi（HTTP 方式）查询
-      const result = await adminApi.listCategories({ status: 'active' }, { limit: 100 });
-      if (result.data && Array.isArray(result.data)) {
+      // 使用 adminService（CloudBase SDK）查询
+      const result = await adminService.listCategories({}, { limit: 100 }) as any;
+      console.log('[useSourceConfig] listCategories result:', result);
+      
+      // 兼容多种返回格式
+      let categoriesData: any[] = [];
+      if (result.data?.list && Array.isArray(result.data.list)) {
+        categoriesData = result.data.list;
+      } else if (Array.isArray(result.data)) {
+        categoriesData = result.data;
+      }
+      
+      if (categoriesData.length > 0) {
         // 构建 sourceCode 映射
-        const categoriesWithSourceCode: Category[] = result.data.map((c: any) => ({
+        const categoriesWithSourceCode: Category[] = categoriesData.map((c: any) => ({
           ...c,
           sourceCode: sourceIdToCodeMap[c.sourceId] || c.sourceId
         }));
         setCategories(categoriesWithSourceCode);
+        console.log('[useSourceConfig] categories loaded:', categoriesData.length);
+      } else {
+        setCategories([]);
       }
     } catch (error) {
       console.error('加载分类列表失败:', error);
+      setCategories([]);
     } finally {
       setCategoriesLoading(false);
     }
@@ -102,14 +129,31 @@ export function useSourceConfig() {
   const loadLevels = useCallback(async () => {
     setLevelsLoading(true);
     try {
-      // 使用 adminApi（HTTP 方式）查询
-      const result = await adminApi.listLevels({ limit: 100 });
+      // 使用 adminService（CloudBase SDK）查询
+      const result = await adminService.listLevels({}, { limit: 100 }) as any;
+      console.log('[useSourceConfig] listLevels result:', result);
       
-      if (result.data && result.data.length > 0) {
-        setLevels(result.data as Level[]);
+      // 兼容多种返回格式
+      let levelsData: any[] = [];
+      if (result.data?.list && Array.isArray(result.data.list)) {
+        levelsData = result.data.list;
+      } else if (Array.isArray(result.data)) {
+        levelsData = result.data;
+      }
+      
+      console.log('[useSourceConfig] levelsData:', levelsData);
+      console.log('[useSourceConfig] levelsData.length:', levelsData.length);
+      
+      if (levelsData.length > 0) {
+        console.log('[useSourceConfig] 加载到等级数据:', levelsData.length, '条');
+        setLevels(levelsData as Level[]);
+      } else {
+        console.warn('[useSourceConfig] 等级数据为空');
+        setLevels([]);
       }
     } catch (error) {
       console.error('加载等级列表失败:', error);
+      setLevels([]);
     } finally {
       setLevelsLoading(false);
     }
@@ -151,9 +195,32 @@ export function useSourceConfig() {
 
   // 根据体系ID筛选等级
   const getLevelsBySource = useCallback((sourceId: string): Level[] => {
+    console.log('[useSourceConfig] getLevelsBySource called with sourceId:', sourceId);
+    console.log('[useSourceConfig] current levels:', levels);
+    console.log('[useSourceConfig] sourceIdToCodeMap:', sourceIdToCodeMap);
+    
+    if (!sourceId) return levels;
+    
+    // 获取对应的 sourceCode（如果映射存在）
     const sourceCode = sourceIdToCodeMap[sourceId];
-    if (!sourceCode) return levels;
-    return levels.filter(l => l.sourceCode === sourceCode);
+    console.log('[useSourceConfig] sourceCode for', sourceId, ':', sourceCode);
+    
+    const filtered = levels.filter(l => {
+      // 直接匹配 sourceId（最可靠的方式）
+      if (l.sourceId === sourceId) {
+        console.log('[useSourceConfig] matched by sourceId:', l);
+        return true;
+      }
+      // 匹配 sourceCode（如果两者都存在）
+      if (l.sourceCode && sourceCode && l.sourceCode === sourceCode) {
+        console.log('[useSourceConfig] matched by sourceCode:', l);
+        return true;
+      }
+      return false;
+    });
+    
+    console.log('[useSourceConfig] filtered levels:', filtered);
+    return filtered;
   }, [levels]);
 
   // 根据体系代码筛选等级

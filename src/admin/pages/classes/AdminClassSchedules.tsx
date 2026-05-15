@@ -7,13 +7,14 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { useConfirm } from '@/admin/hooks/useConfirm';
+import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
 import { classService } from '@/services';
 import { CloudAdminService } from '@/services/CloudAdminService';
 import type { ClassV2 as Class, ClassScheduleV2 as ClassSchedule } from '@/types';
 import type { MemberSource } from '@/types/member';
 import {
   Plus, Edit, Trash2, Calendar, MapPin, ArrowLeft,
-  X, Layers,
+  X, Layers, Filter,
   Users, Clock, Smartphone, UserCheck
 } from 'lucide-react';
 
@@ -33,6 +34,12 @@ export default function AdminClassSchedules() {
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [schedules, setSchedules] = useState<ClassSchedule[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // ★ 体系筛选
+  const [filterSource, setFilterSource] = useState('');
+
+  // ★ 使用统一配置hook获取体系
+  const { sourceOptions } = useSourceConfig();
 
   // 模态框状态
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,7 +77,10 @@ export default function AdminClassSchedules() {
   // 加载班级列表
   const loadClasses = async () => {
     try {
-      const result = await classService.getList({ page: 1, pageSize: 100 });
+      const query: Record<string, unknown> = {};
+      if (filterSource) query.sourceId = filterSource;
+
+      const result = await classService.getList({ page: 1, pageSize: 100, ...query });
       if (result.code === 0 && result.data?.list) {
         setClasses(result.data.list);
         // 如果有classId参数，自动选中
@@ -107,7 +117,7 @@ export default function AdminClassSchedules() {
 
   useEffect(() => {
     loadClasses();
-  }, []);
+  }, [filterSource]);
 
   // 选择班级
   const handleSelectClass = (cls: Class) => {
@@ -228,41 +238,79 @@ export default function AdminClassSchedules() {
   const renderClassSelector = () => (
     <div>
       <div className="bg-white rounded-xl border p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">选择班级</h2>
-        <p className="text-gray-500 mb-6">请先选择要管理排课的班级</p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">选择班级</h2>
+            <p className="text-gray-500">请先选择要管理排课的班级</p>
+          </div>
+          
+          {/* ★ 体系筛选 */}
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-gray-400" />
+            <select
+              value={filterSource}
+              onChange={(e) => setFilterSource(e.target.value)}
+              className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+            >
+              <option value="">全部体系</option>
+              {sourceOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.icon} {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* 班级统计 */}
+        <div className="text-sm text-gray-500 mb-4">
+          共 {classes.length} 个班级
+          {filterSource && (
+            <span className="ml-2 text-blue-600">
+              (已筛选)
+            </span>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {classes.map(cls => (
-            <button
-              key={cls._id}
-              onClick={() => handleSelectClass(cls)}
-              className="text-left p-5 border rounded-xl hover:border-blue-500 hover:shadow-md transition-all group"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                  {cls.name}
-                </h3>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${STATUS_LABELS[cls.status]?.color || 'bg-gray-100'}`}>
-                  {STATUS_LABELS[cls.status]?.text || cls.status}
-                </span>
-              </div>
+          {classes.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-gray-500">
+              <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
+              <p>暂无班级{filterSource ? '（该体系下没有班级）' : ''}</p>
+            </div>
+          ) : (
+            classes.map(cls => (
+              <button
+                key={cls._id}
+                onClick={() => handleSelectClass(cls)}
+                className="text-left p-5 border rounded-xl hover:border-blue-500 hover:shadow-md transition-all group"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                    {cls.name}
+                  </h3>
+                  <span className={`px-2 py-0.5 rounded-full text-xs ${STATUS_LABELS[cls.status]?.color || 'bg-gray-100'}`}>
+                    {STATUS_LABELS[cls.status]?.text || cls.status}
+                  </span>
+                </div>
 
-              <div className="space-y-1.5 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Calendar size={14} />
-                  <span>{cls.startDate} ~ {cls.endDate}</span>
+                <div className="space-y-1.5 text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <Calendar size={14} />
+                    <span>{cls.startDate} ~ {cls.endDate}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin size={14} />
+                    <span className="truncate">{cls.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock size={14} />
+                    <span>排课数: {cls.scheduleCount || 0}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MapPin size={14} />
-                  <span className="truncate">{cls.location}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={14} />
-                  <span>排课数: {cls.scheduleCount || 0}</span>
-                </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))
+          )}
         </div>
       </div>
     </div>

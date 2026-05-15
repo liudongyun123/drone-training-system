@@ -37,6 +37,8 @@ export default function AdminDictionaries() {
   const [editForm, setEditForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [newItem, setNewItem] = useState<any>(null);
 
   const { raw, loading, refresh } = useDictionary({ groupKey: selectedGroup });
   const meta = GROUP_META[selectedGroup];
@@ -100,6 +102,38 @@ export default function AdminDictionaries() {
         setTimeout(() => refresh(), 0);
       }
     }
+  };
+
+  // 开始新增
+  const handleStartAdd = () => {
+    const meta = GROUP_META[selectedGroup];
+    if (meta?.type === 'object') {
+      // object 类型：初始化一个新对象
+      setNewItem({ text: '', color: 'bg-gray-100 text-gray-700' });
+      setIsAdding(true);
+    } else if (meta?.type === 'array') {
+      // array 类型：初始化一个新数组项
+      setNewItem({ label: '', value: '' });
+      setIsAdding(true);
+    }
+  };
+
+  // 保存新增项
+  const handleSaveNew = () => {
+    if (!newItem) return;
+    setHasChanges(true);
+    setIsAdding(false);
+    setNewItem(null);
+    // 通知父组件更新
+    if (typeof refresh === 'function') {
+      setTimeout(() => refresh(), 0);
+    }
+  };
+
+  // 取消新增
+  const handleCancelAdd = () => {
+    setIsAdding(false);
+    setNewItem(null);
   };
 
   return (
@@ -168,7 +202,10 @@ export default function AdminDictionaries() {
                       {saving ? '保存中...' : '保存更改'}
                     </button>
                   )}
-                  <button className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
+                  <button
+                    onClick={handleStartAdd}
+                    className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors"
+                  >
                     <Plus className="w-4 h-4" />
                     新增
                   </button>
@@ -188,6 +225,11 @@ export default function AdminDictionaries() {
                     setEditForm={setEditForm}
                     setHasChanges={setHasChanges}
                     onDelete={handleDelete}
+                    isAdding={isAdding}
+                    newItem={newItem}
+                    setNewItem={setNewItem}
+                    onSaveNew={handleSaveNew}
+                    onCancelAdd={handleCancelAdd}
                   />
                 ) : meta?.type === 'learningPath' ? (
                   <LearningPathConfigList
@@ -203,6 +245,11 @@ export default function AdminDictionaries() {
                     setEditForm={setEditForm}
                     setHasChanges={setHasChanges}
                     onDelete={handleDelete}
+                    isAdding={isAdding}
+                    newItem={newItem}
+                    setNewItem={setNewItem}
+                    onSaveNew={handleSaveNew}
+                    onCancelAdd={handleCancelAdd}
                   />
                 )}
               </div>
@@ -236,6 +283,11 @@ function ObjectConfigList({
   setEditForm,
   setHasChanges,
   onDelete,
+  isAdding,
+  newItem,
+  setNewItem,
+  onSaveNew,
+  onCancelAdd,
 }: {
   data: Record<string, LabelConfig>;
   editingKey: string | null;
@@ -244,12 +296,49 @@ function ObjectConfigList({
   setEditForm: (f: any) => void;
   setHasChanges: (v: boolean) => void;
   onDelete: (k: string) => void;
+  isAdding: boolean;
+  newItem: any;
+  setNewItem: (f: any) => void;
+  onSaveNew: () => void;
+  onCancelAdd: () => void;
 }) {
   if (!data) return <div className="text-slate-400">暂无数据</div>;
   const entries = Object.entries(data);
 
   return (
     <div className="space-y-2">
+      {/* 新增项 */}
+      {isAdding && (
+        <div className="flex items-center gap-4 p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
+          <code className="text-sm text-blue-600 font-mono bg-white px-2 py-1 rounded">新配置项</code>
+          <div className="flex-1 flex gap-3">
+            <input
+              type="text"
+              value={newItem?.text || ''}
+              onChange={(e) => setNewItem({ ...newItem, text: e.target.value })}
+              className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="显示文本"
+            />
+            <input
+              type="text"
+              value={newItem?.color || ''}
+              onChange={(e) => setNewItem({ ...newItem, color: e.target.value })}
+              className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="样式类"
+            />
+            <button
+              onClick={onSaveNew}
+              className="p-1.5 text-green-600 hover:bg-green-100 rounded"
+              title="保存"
+            >
+              <Save className="w-4 h-4" />
+            </button>
+            <button onClick={onCancelAdd} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded" title="取消">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
       {entries.map(([key, val]) => (
         <div
           key={key}
@@ -329,6 +418,11 @@ function ArrayConfigList({
   setEditForm,
   setHasChanges,
   onDelete,
+  isAdding,
+  newItem,
+  setNewItem,
+  onSaveNew,
+  onCancelAdd,
 }: {
   data: OptionItem[];
   editingKey: string | null;
@@ -337,11 +431,48 @@ function ArrayConfigList({
   setEditForm: (f: any) => void;
   setHasChanges: (v: boolean) => void;
   onDelete: (k: string) => void;
+  isAdding: boolean;
+  newItem: any;
+  setNewItem: (f: any) => void;
+  onSaveNew: () => void;
+  onCancelAdd: () => void;
 }) {
   if (!data || data.length === 0) return <div className="text-slate-400">暂无数据</div>;
 
   return (
     <div className="space-y-2">
+      {/* 新增项 */}
+      {isAdding && (
+        <div className="flex items-center gap-4 p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
+          <code className="text-sm text-blue-600 font-mono bg-white px-2 py-1 rounded">new</code>
+          <div className="flex-1 flex gap-3">
+            <input
+              type="text"
+              value={newItem?.label || ''}
+              onChange={(e) => setNewItem({ ...newItem, label: e.target.value })}
+              className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="显示文本"
+            />
+            <input
+              type="text"
+              value={newItem?.value || ''}
+              onChange={(e) => setNewItem({ ...newItem, value: e.target.value.toLowerCase() })}
+              className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
+              placeholder="value值"
+            />
+            <button
+              onClick={onSaveNew}
+              className="p-1.5 text-green-600 hover:bg-green-100 rounded"
+              title="保存"
+            >
+              <Save className="w-4 h-4" />
+            </button>
+            <button onClick={onCancelAdd} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded" title="取消">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
       {data.map((item, idx) => (
         <div
           key={item.value || idx}
