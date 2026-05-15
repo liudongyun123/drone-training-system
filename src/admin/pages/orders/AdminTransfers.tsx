@@ -16,6 +16,7 @@ import {
   BarChart3
 } from 'lucide-react'
 import { transferService, TransferRequest, TransferStats } from '@/services/transferService'
+import { messageService } from '@/services/messageService'
 import { formatDateStr } from '@/utils/dateUtils'
 
 // 调课类型配置
@@ -123,11 +124,8 @@ export default function AdminTransfers() {
   // 加载统计
   const loadStats = async () => {
     try {
-      const result = await transferService.getStats()
-      if (result.code === 0) {
-        // @ts-ignore
-        setStats(result.data)
-      }
+      const stats = await transferService.getStats()
+      setStats(stats)
     } catch (error) {
       console.error('加载统计失败:', error)
     }
@@ -290,15 +288,14 @@ export default function AdminTransfers() {
       // 发送消息通知
       if (result.code === 0) {
         try {
-          const { adminService } = await import('@/services/adminService')
           const status = auditModal.type === 'approve' ? 'approved' : 'rejected'
-          await adminService.callFunction('api-message', {
-            action: 'notifyTransferResult',
+          await messageService.sendTransferNotification({
+            _id: auditModal.request._id || '',
             phone: auditModal.request.studentPhone,
             studentName: auditModal.request.studentName,
+            originalCourseName: auditModal.request.originalCourseName,
             status,
-            originalCourse: auditModal.request.originalCourseName,
-            reply: auditModal.reply
+            adminReply: auditModal.reply
           })
           console.log('[调课审核] 消息通知已发送')
         } catch (notifyErr) {

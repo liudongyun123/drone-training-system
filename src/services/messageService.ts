@@ -153,6 +153,69 @@ export const messageService = {
   },
 
   /**
+   * 发送调课审核结果通知
+   */
+  async sendTransferNotification(transfer: {
+    _id: string
+    studentId?: string
+    phone?: string
+    studentName?: string
+    originalCourseName?: string
+    status: 'approved' | 'rejected'
+    adminReply?: string
+  }) {
+    const statusTexts: Record<string, string> = {
+      approved: '已通过',
+      rejected: '已拒绝'
+    }
+
+    const title = '调课申请结果'
+    const statusText = statusTexts[transfer.status] || transfer.status
+
+    let content = `您好 ${transfer.studentName || ''}，您的调课申请已${statusText}`
+    if (transfer.originalCourseName) {
+      content += `\n课程：《${transfer.originalCourseName}》`
+    }
+
+    if (transfer.status === 'approved') {
+      content += `\n您的调课申请已审核通过，请关注新的上课安排`
+    } else if (transfer.status === 'rejected') {
+      content += `\n拒绝原因：${transfer.adminReply || '无'}`
+      content += `\n如有疑问，请联系客服`
+    }
+
+    const message: Partial<AppMessage> = {
+      type: 'system',
+      title,
+      content,
+      data: {
+        transferId: transfer._id,
+        courseName: transfer.originalCourseName,
+        status: transfer.status,
+        adminReply: transfer.adminReply
+      },
+      status: 'unread',
+      createdAt: new Date().toISOString()
+    }
+
+    if (transfer.phone) {
+      message.phone = transfer.phone
+    }
+    if (transfer.studentId) {
+      message.userId = transfer.studentId
+    }
+
+    try {
+      const result = await adminService.add(this.collection, message)
+      console.log('[消息通知] 调课通知已发送', result)
+      return result
+    } catch (error) {
+      console.error('[消息通知] 发送调课通知失败', error)
+      return null
+    }
+  },
+
+  /**
    * 发送系统公告通知
    */
   async sendAnnouncementNotification(announcement: {
