@@ -2,6 +2,7 @@
 // 个人中心
 
 import { userApi, newUserApi } from '../../utils/api'
+import { dbQuery } from '../../utils/http'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
 import logger from '../../utils/logger'
 
@@ -12,7 +13,8 @@ Page({
     memberStatus: 'active',
     stats: null as any,
     loading: true,
-    cartCount: 0
+    cartCount: 0,
+    notificationCount: 0
   },
 
   onLoad() {
@@ -28,12 +30,14 @@ Page({
     this.loadMemberInfo()
     this.loadUserStats()
     this.loadCartCount()
+    this.loadNotificationCount()
   },
 
   onShow() {
     if (checkLogin()) {
       this.loadMemberInfo()
       this.loadCartCount()
+      this.loadNotificationCount()
     }
   },
 
@@ -245,10 +249,36 @@ Page({
   showSettings() {
     wx.showModal({
       title: '设置',
-      content: '设置功能开发中...\n\n即将上线：\n• 消息通知\n• 隐私设置\n• 清除缓存',
+      content: '设置功能开发中...\n\n即将上线：\n• 隐私设置\n• 清除缓存',
       showCancel: false,
       confirmText: '知道了'
     })
+  },
+
+  // 加载未读消息数量
+  async loadNotificationCount() {
+    try {
+      const phone = wx.getStorageSync('userPhone') || ''
+      if (!phone) {
+        this.setData({ notificationCount: 0 })
+        return
+      }
+
+      const result = await dbQuery('messages', {
+        phone: phone,
+        status: 'unread'
+      })
+
+      const count = result.data?.length || 0
+      this.setData({ notificationCount: count })
+    } catch (err) {
+      logger.error('消息', '加载未读数量失败', err)
+    }
+  },
+
+  // 跳转消息通知页面
+  goToNotifications() {
+    wx.navigateTo({ url: '/pages/notifications/notifications' })
   },
 
   // 退出登录

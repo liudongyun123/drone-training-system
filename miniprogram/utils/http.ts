@@ -8,7 +8,7 @@ const API_BASE = 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com'
 /**
  * HTTP 请求封装
  */
-async function request<T = any>(
+export async function request<T = any>(
   path: string,
   method: 'GET' | 'POST' = 'POST',
   data?: any
@@ -142,12 +142,48 @@ export async function testConnection() {
 
 /**
  * 获取我的报名记录
+ * @param phone 手机号（主要标识）
+ * @param userId 用户ID（备用）
  */
-export async function getMyEnrollments(userId: string) {
-  return dbGetList('enrollments', {
-    where: { userId },
-    orderBy: 'createdAt desc'
+export async function getMyEnrollments(phoneOrUserId: string, userId?: string) {
+  // 优先使用 phone 查询，因为报名时使用 phone 作为标识
+  const where: any = phoneOrUserId.includes('@') || /^\d{11}$/.test(phoneOrUserId) 
+    ? { phone: phoneOrUserId } 
+    : { userId: phoneOrUserId }
+  
+  // 同时查询两个集合并合并
+  const [classMembers, enrollments] = await Promise.all([
+    dbGetList('class_members', {
+      where,
+      orderBy: 'enrollmentTime desc'
+    }),
+    dbGetList('enrollments', {
+      where,
+      orderBy: 'createdAt desc'
+    })
+  ])
+  
+  // 合并两个集合的数据，标记来源
+  const members = (classMembers.data || []).map((item: any) => ({
+    ...item,
+    _source: 'class_members'
+  }))
+  const enrolls = (enrollments.data || []).map((item: any) => ({
+    ...item,
+    _source: 'enrollments'
+  }))
+  
+  // 合并并去重
+  const all = [...members, ...enrolls]
+  const seen = new Set()
+  const unique = all.filter((item: any) => {
+    const key = item._id || item.classId || item._source
+    if (seen.has(key + (item.classId || ''))) return false
+    seen.add(key + (item.classId || ''))
+    return true
   })
+  
+  return { data: unique }
 }
 
 /**

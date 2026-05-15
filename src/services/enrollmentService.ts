@@ -1,77 +1,16 @@
 /**
- * 报名管理服务
- * 处理课程报名、调课申请、出勤记录等功能
- * 版本：v20260413-fix-parse
+ * 报名管理服务 v3.0
+ * 版本: v20260515-unified
+ * 
+ * 统一使用 CloudDBService (HTTP → db-init)
  */
 
-import app from '../config/tcb'
-import type { Enrollment, AttendanceRecord, Schedule, PaginationParams } from '../types/service'
+import { CloudDBService } from './CloudDBService'
+import type { Enrollment, AttendanceRecord, PaginationParams } from '../types/service'
 import { membersService } from './membersService'
-import { parseCloudFunctionListResponse } from '@/utils/safeData'
 
-const CLOUD_FUNCTION_NAME = 'api-admin'
+// ==================== 报名服务 ====================
 
-// 错误日志开关（生产环境设为 false）
-const ENABLE_ERROR_LOG = false
-
-/**
- * 调用管理后台云函数
- */
-async function callAdminFunction(action: string, params: Record<string, unknown> = {}) {
-  try {
-    const result = await app.callFunction({
-      name: CLOUD_FUNCTION_NAME,
-      data: {
-        ...params,
-        action
-      }
-    })
-
-    const response = result.result as { code: number; message?: string; data?: unknown }
-
-    if (response.code !== 0) {
-      if (ENABLE_ERROR_LOG) {
-        console.error(`云函数调用失败:`, response)
-      }
-      throw new Error(response.message || '操作失败')
-    }
-
-    return response
-  } catch (error) {
-    if (ENABLE_ERROR_LOG) {
-      console.error('报名管理服务错误:', error)
-    }
-    throw error
-  }
-}
-
-/**
- * 安全解析云函数列表响应
- */
-function parseListResponse(response: any, page: number = 1, pageSize: number = 20): { list: any[]; total: number } {
-  if (!response) return { list: [], total: 0 };
-  
-  // 处理直接返回数组的情况
-  if (Array.isArray(response)) {
-    return { list: response, total: response.length };
-  }
-  
-  // 处理 { data: [...] } 格式
-  if (response.data && Array.isArray(response.data)) {
-    return { list: response.data, total: response.total || response.data.length };
-  }
-  
-  // 处理 { list: [...] } 格式
-  if (response.list && Array.isArray(response.list)) {
-    return { list: response.list, total: response.total || response.list.length };
-  }
-  
-  return { list: [], total: 0 };
-}
-
-/**
- * 报名管理服务
- */
 export const enrollmentService = {
   /**
    * 获取报名列表
@@ -80,18 +19,17 @@ export const enrollmentService = {
     const { page = 1, pageSize = 20 } = options
     
     try {
-      const result = await callAdminFunction('list', {
-        collection: 'enrollments',
-        query,
-        options
+      const result = await CloudDBService.query<Enrollment>('enrollments', {
+        where: query,
+        orderBy: 'enrollmentTime',
+        order: 'desc',
+        skip: (page - 1) * pageSize,
+        limit: pageSize
       })
-
-      // 解析云函数响应
-      const { list, total } = parseListResponse(result, page, pageSize)
 
       return {
         code: 0,
-        data: { list, total, page, pageSize }
+        data: { list: result.data, total: result.total, page, pageSize }
       }
     } catch (error: any) {
       console.error('获取报名列表失败:', error)
@@ -107,10 +45,13 @@ export const enrollmentService = {
    * 获取报名详情
    */
   async getDetail(enrollmentId: string) {
-    return await callAdminFunction('get', {
-      collection: 'enrollments',
-      docId: enrollmentId
-    })
+    try {
+      const data = await CloudDBService.get<Enrollment>('enrollments', enrollmentId)
+      return { code: 0, data }
+    } catch (error: any) {
+      console.error('获取报名详情失败:', error)
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
@@ -126,61 +67,56 @@ export const enrollmentService = {
       updatedAt: new Date().toISOString()
     }
 
-    const result = await callAdminFunction('add', {
-      collection: 'enrollments',
-      data: enrollmentData
-    })
+    const result = await CloudDBService.add('enrollments', enrollmentData)
 
     // ★ 报名成功后，授予课程权限
-    // @ts-ignore
-    if (result?.code === 0 && data.phone && data.courseId) {
+    if (result?.id && data.phone && data.courseId) {
       try {
-        // @ts-ignore
         await membersService.grantCoursePermission(data.phone, data.courseId, {
           source: 'enrollment',
-          // @ts-ignore
-          enrollmentId: result.data?._id || result.data?.id
+          enrollmentId: result.id
         })
-        // @ts-ignore
         console.log('[enrollmentService] 报名成功，课程权限已授予:', { phone: data.phone, courseId: data.courseId })
       } catch (err) {
         console.error('[enrollmentService] 授予课程权限失败:', err)
-        // 不阻塞主流程，仅记录错误
       }
     }
 
-    return result
+    return { code: 0, data: { _id: result?.id || result?.id } }
   },
 
   /**
    * 更新报名记录
    */
   async update(enrollmentId: string, data: Partial<Enrollment>) {
-    const updateData = {
-      ...data,
-      updatedAt: new Date().toISOString()
+    try {
+      await CloudDBService.update('enrollments', enrollmentId, {
+        ...data,
+        updatedAt: new Date().toISOString()
+      })
+      return { code: 0 }
+    } catch (error: any) {
+      console.error('更新报名失败:', error)
+      return { code: -1, message: error.message }
     }
-
-    return await callAdminFunction('update', {
-      collection: 'enrollments',
-      docId: enrollmentId,
-      data: updateData
-    })
   },
 
   /**
    * 取消报名
    */
   async cancel(enrollmentId: string, reason: string) {
-    return await callAdminFunction('update', {
-      collection: 'enrollments',
-      docId: enrollmentId,
-      data: {
+    try {
+      await CloudDBService.update('enrollments', enrollmentId, {
         status: 'cancelled',
         cancelReason: reason,
-        cancelledAt: new Date().toISOString()
-      }
-    })
+        cancelledAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+      return { code: 0 }
+    } catch (error: any) {
+      console.error('取消报名失败:', error)
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
@@ -190,21 +126,17 @@ export const enrollmentService = {
     const { page = 1, pageSize = 20 } = options
     
     try {
-      const result = await callAdminFunction('list', {
-        collection: 'enrollments',
-        query: {
-          userId,
-          ...query
-        },
-        options
+      const result = await CloudDBService.query<Enrollment>('enrollments', {
+        where: { userId, ...query },
+        orderBy: 'enrollmentTime',
+        order: 'desc',
+        skip: (page - 1) * pageSize,
+        limit: pageSize
       })
-
-      // @ts-ignore
-      const { list, total } = parseCloudFunctionListResponse<Enrollment>(result, page, pageSize)
 
       return {
         code: 0,
-        data: { list, total, page, pageSize }
+        data: { list: result.data, total: result.total, page, pageSize }
       }
     } catch (error: any) {
       console.error('获取用户报名列表失败:', error)
@@ -223,21 +155,17 @@ export const enrollmentService = {
     const { page = 1, pageSize = 20 } = options
     
     try {
-      const result = await callAdminFunction('list', {
-        collection: 'enrollments',
-        query: {
-          courseId,
-          ...query
-        },
-        options
+      const result = await CloudDBService.query<Enrollment>('enrollments', {
+        where: { courseId, ...query },
+        orderBy: 'enrollmentTime',
+        order: 'desc',
+        skip: (page - 1) * pageSize,
+        limit: pageSize
       })
-
-      // @ts-ignore
-      const { list, total } = parseCloudFunctionListResponse<Enrollment>(result, page, pageSize)
 
       return {
         code: 0,
-        data: { list, total, page, pageSize }
+        data: { list: result.data, total: result.total, page, pageSize }
       }
     } catch (error: any) {
       console.error('获取课程报名列表失败:', error)
@@ -250,27 +178,34 @@ export const enrollmentService = {
   }
 }
 
-/**
- * 调课管理服务
- */
+// ==================== 调课服务 ====================
+
 export const scheduleChangeService = {
   /**
    * 获取调课申请列表
    */
   async getList(query: Record<string, unknown> = {}, options: PaginationParams = {}) {
-    // @ts-ignore
-    const result = await callAdminFunction('list', {
-      collection: 'schedule_changes',
-      query,
-      options
-    }) as { data: unknown[]; total: number }
+    const { page = 1, pageSize = 20 } = options
+    
+    try {
+      const result = await CloudDBService.query('schedule_changes', {
+        where: query,
+        orderBy: 'applyTime',
+        order: 'desc',
+        skip: (page - 1) * pageSize,
+        limit: pageSize
+      })
 
-    return {
-      code: 0,
-      data: {
-        list: result.data || [],
-        total: result.total || 0
+      return {
+        code: 0,
+        data: {
+          list: result.data || [],
+          total: result.total || 0
+        }
       }
+    } catch (error: any) {
+      console.error('获取调课申请列表失败:', error)
+      return { code: -1, message: error.message, data: { list: [], total: 0 } }
     }
   },
 
@@ -278,10 +213,12 @@ export const scheduleChangeService = {
    * 获取调课申请详情
    */
   async getDetail(changeId: string) {
-    return await callAdminFunction('get', {
-      collection: 'schedule_changes',
-      docId: changeId
-    })
+    try {
+      const data = await CloudDBService.get('schedule_changes', changeId)
+      return { code: 0, data }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
@@ -296,91 +233,103 @@ export const scheduleChangeService = {
       updatedAt: new Date().toISOString()
     }
 
-    return await callAdminFunction('add', {
-      collection: 'schedule_changes',
-      data: changeData
-    })
+    const result = await CloudDBService.add('schedule_changes', changeData)
+    return { code: 0, data: { _id: result?.id } }
   },
 
   /**
    * 更新调课申请
    */
   async update(changeId: string, data: Record<string, unknown>) {
-    const updateData = {
-      ...data,
-      updatedAt: new Date().toISOString()
+    try {
+      await CloudDBService.update('schedule_changes', changeId, {
+        ...data,
+        updatedAt: new Date().toISOString()
+      })
+      return { code: 0 }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
     }
-
-    return await callAdminFunction('update', {
-      collection: 'schedule_changes',
-      docId: changeId,
-      data: updateData
-    })
   },
 
   /**
    * 审批调课申请
    */
   async approve(changeId: string, approved: boolean, remark: string, approverId: string) {
-    return await callAdminFunction('update', {
-      collection: 'schedule_changes',
-      docId: changeId,
-      data: {
+    try {
+      await CloudDBService.update('schedule_changes', changeId, {
         status: approved ? 'approved' : 'rejected',
         approverId,
         approveTime: new Date().toISOString(),
-        approveRemark: remark
-      }
-    })
+        approveRemark: remark,
+        updatedAt: new Date().toISOString()
+      })
+      return { code: 0 }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
    * 撤销调课申请
    */
   async cancel(changeId: string, reason: string) {
-    return await callAdminFunction('update', {
-      collection: 'schedule_changes',
-      docId: changeId,
-      data: {
+    try {
+      await CloudDBService.update('schedule_changes', changeId, {
         status: 'cancelled',
         cancelReason: reason,
-        cancelledAt: new Date().toISOString()
-      }
-    })
+        cancelledAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+      return { code: 0 }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
    * 获取用户的调课申请列表
    */
   async getUserChanges(userId: string, query: Record<string, unknown> = {}, options: PaginationParams = {}) {
-    return await callAdminFunction('list', {
-      collection: 'schedule_changes',
-      query: {
-        userId,
-        ...query
-      },
-      options
+    const { page = 1, pageSize = 20 } = options
+    
+    const result = await CloudDBService.query('schedule_changes', {
+      where: { userId, ...query },
+      orderBy: 'applyTime',
+      order: 'desc',
+      skip: (page - 1) * pageSize,
+      limit: pageSize
     })
+
+    return {
+      code: 0,
+      data: { list: result.data || [], total: result.total || 0 }
+    }
   },
 
   /**
    * 获取待审批的调课申请列表
    */
   async getPendingApprovals(query: Record<string, unknown> = {}, options: PaginationParams = {}) {
-    return await callAdminFunction('list', {
-      collection: 'schedule_changes',
-      query: {
-        status: 'pending',
-        ...query
-      },
-      options
+    const { page = 1, pageSize = 20 } = options
+    
+    const result = await CloudDBService.query('schedule_changes', {
+      where: { status: 'pending', ...query },
+      orderBy: 'applyTime',
+      order: 'desc',
+      skip: (page - 1) * pageSize,
+      limit: pageSize
     })
+
+    return {
+      code: 0,
+      data: { list: result.data || [], total: result.total || 0 }
+    }
   }
 }
 
-/**
- * 出勤管理服务
- */
+// ==================== 出勤服务 ====================
+
 export const attendanceService = {
   /**
    * 获取出勤记录列表
@@ -389,18 +338,17 @@ export const attendanceService = {
     const { page = 1, pageSize = 20 } = options
     
     try {
-      const result = await callAdminFunction('list', {
-        collection: 'attendance_records',
-        query,
-        options
+      const result = await CloudDBService.query<AttendanceRecord>('attendance_records', {
+        where: query,
+        orderBy: 'checkInTime',
+        order: 'desc',
+        skip: (page - 1) * pageSize,
+        limit: pageSize
       })
-
-      // @ts-ignore
-      const { list, total } = parseCloudFunctionListResponse<AttendanceRecord>(result, page, pageSize)
 
       return {
         code: 0,
-        data: { list, total, page, pageSize }
+        data: { list: result.data, total: result.total, page, pageSize }
       }
     } catch (error: any) {
       console.error('获取出勤记录列表失败:', error)
@@ -416,10 +364,12 @@ export const attendanceService = {
    * 获取出勤记录详情
    */
   async getDetail(attendanceId: string) {
-    return await callAdminFunction('get', {
-      collection: 'attendance_records',
-      docId: attendanceId
-    })
+    try {
+      const data = await CloudDBService.get<AttendanceRecord>('attendance_records', attendanceId)
+      return { code: 0, data }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
@@ -430,74 +380,75 @@ export const attendanceService = {
       ...data,
       attendanceStatus: data.attendanceStatus || 'present',
       checkInTime: new Date().toISOString(),
+      checkOutTime: '',
       duration: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
 
-    return await callAdminFunction('add', {
-      collection: 'attendance_records',
-      data: attendanceData
-    })
+    const result = await CloudDBService.add('attendance_records', attendanceData)
+    return { code: 0, data: { _id: result?.id } }
   },
 
   /**
    * 更新出勤记录
    */
   async update(attendanceId: string, data: Partial<AttendanceRecord>) {
-    const updateData = {
-      ...data,
-      updatedAt: new Date().toISOString()
+    try {
+      await CloudDBService.update('attendance_records', attendanceId, {
+        ...data,
+        updatedAt: new Date().toISOString()
+      })
+      return { code: 0 }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
     }
-
-    return await callAdminFunction('update', {
-      collection: 'attendance_records',
-      docId: attendanceId,
-      data: updateData
-    })
   },
 
   /**
    * 签到
    */
   async checkIn(scheduleId: string, userId: string, courseId: string, enrollmentId: string, teacherId: string) {
-    return await callAdminFunction('add', {
-      collection: 'attendance_records',
-      data: {
-        scheduleId,
-        userId,
-        courseId,
-        enrollmentId,
-        teacherId,
-        attendanceStatus: 'present',
-        checkInTime: new Date().toISOString(),
-        checkOutTime: '',
-        duration: 0,
-        remark: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+    const result = await CloudDBService.add('attendance_records', {
+      scheduleId,
+      userId,
+      courseId,
+      enrollmentId,
+      teacherId,
+      attendanceStatus: 'present',
+      checkInTime: new Date().toISOString(),
+      checkOutTime: '',
+      duration: 0,
+      remark: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     })
+    return { code: 0, data: { _id: result?.id } }
   },
 
   /**
    * 签退
    */
   async checkOut(attendanceId: string) {
-    const attendance = await this.getDetail(attendanceId) as { data: AttendanceRecord }
-    const checkInTime = new Date(attendance.data.checkInTime)
-    const checkOutTime = new Date()
-    const duration = Math.floor((checkOutTime.getTime() - checkInTime.getTime()) / 1000 / 60)
+    try {
+      const attendance = await CloudDBService.get<AttendanceRecord>('attendance_records', attendanceId)
+      if (!attendance) {
+        return { code: -1, message: '出勤记录不存在' }
+      }
+      
+      const checkInTime = new Date(attendance.checkInTime)
+      const checkOutTime = new Date()
+      const duration = Math.floor((checkOutTime.getTime() - checkInTime.getTime()) / 1000 / 60)
 
-    return await callAdminFunction('update', {
-      collection: 'attendance_records',
-      docId: attendanceId,
-      data: {
+      await CloudDBService.update('attendance_records', attendanceId, {
         checkOutTime: checkOutTime.toISOString(),
         duration,
         updatedAt: new Date().toISOString()
-      }
-    })
+      })
+      return { code: 0 }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
@@ -507,24 +458,19 @@ export const attendanceService = {
     const { page = 1, pageSize = 20 } = options
     
     try {
-      const result = await callAdminFunction('list', {
-        collection: 'attendance_records',
-        query: {
-          scheduleId,
-          ...query
-        },
-        options
+      const result = await CloudDBService.query<AttendanceRecord>('attendance_records', {
+        where: { scheduleId, ...query },
+        orderBy: 'checkInTime',
+        order: 'desc',
+        skip: (page - 1) * pageSize,
+        limit: pageSize
       })
-
-      // @ts-ignore
-      const { list, total } = parseCloudFunctionListResponse<AttendanceRecord>(result, page, pageSize)
 
       return {
         code: 0,
-        data: { list, total, page, pageSize }
+        data: { list: result.data, total: result.total, page, pageSize }
       }
     } catch (error: any) {
-      console.error('获取排课出勤记录失败:', error)
       return {
         code: -1,
         message: error.message || '获取排课出勤记录失败',
@@ -540,24 +486,19 @@ export const attendanceService = {
     const { page = 1, pageSize = 20 } = options
     
     try {
-      const result = await callAdminFunction('list', {
-        collection: 'attendance_records',
-        query: {
-          userId,
-          ...query
-        },
-        options
+      const result = await CloudDBService.query<AttendanceRecord>('attendance_records', {
+        where: { userId, ...query },
+        orderBy: 'checkInTime',
+        order: 'desc',
+        skip: (page - 1) * pageSize,
+        limit: pageSize
       })
-
-      // @ts-ignore
-      const { list, total } = parseCloudFunctionListResponse<AttendanceRecord>(result, page, pageSize)
 
       return {
         code: 0,
-        data: { list, total, page, pageSize }
+        data: { list: result.data, total: result.total, page, pageSize }
       }
     } catch (error: any) {
-      console.error('获取用户出勤记录失败:', error)
       return {
         code: -1,
         message: error.message || '获取用户出勤记录失败',

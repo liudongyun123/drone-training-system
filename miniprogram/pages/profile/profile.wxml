@@ -177,11 +177,12 @@
           <text class="tool-label">帮助中心</text>
         </view>
         
-        <view class="tool-item" bindtap="showSettings">
-          <view class="tool-icon">
-            <text>⚙️</text>
+        <view class="tool-item" bindtap="goToNotifications">
+          <view class="tool-icon notification-icon">
+            <text>🔔</text>
+            <view class="notification-badge" wx:if="{{notificationCount > 0}}">{{notificationCount > 99 ? '99+' : notificationCount}}</view>
           </view>
-          <text class="tool-label">设置</text>
+          <text class="tool-label">消息通知</text>
         </view>
       </view>
     </view>

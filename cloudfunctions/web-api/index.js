@@ -426,23 +426,22 @@ async function getMySchedules(params = {}) {
 async function enrollClass(data) {
   const {
     classId,
-    userName,
-    phone,
-    idCard,
-    emergencyContact,
-    emergencyPhone,
-    notes,
-    userId
+    userName = '',
+    phone = '',
+    idCard = '',
+    emergencyContact = '',
+    emergencyPhone = '',
+    notes = '',
+    userId = '',
+    status = 'pending', // 默认待审核
+    source = 'online_enroll' // 默认线上报名
   } = data
 
   if (!classId) {
     return { success: false, error: '缺少班级ID' }
   }
-  if (!userName) {
-    return { success: false, error: '缺少姓名' }
-  }
-  if (!phone) {
-    return { success: false, error: '缺少手机号' }
+  if (!userName && !phone) {
+    return { success: false, error: '缺少用户信息（姓名或手机号）' }
   }
 
   // 检查班级是否存在
@@ -486,14 +485,15 @@ async function enrollClass(data) {
       classId,
       className: cls.name,
       courseId: cls.courseId,
-      userId: userId || '',
+      userId,
       userName,
       phone,
-      idCard: idCard || '',
-      emergencyContact: emergencyContact || '',
-      emergencyPhone: emergencyPhone || '',
-      notes: notes || '',
-      status: 'pending',
+      idCard,
+      emergencyContact,
+      emergencyPhone,
+      notes,
+      status, // 使用传入的状态
+      source, // 添加来源字段
       enrollmentTime: now,
       createdAt: now,
       updatedAt: now
@@ -508,6 +508,76 @@ async function enrollClass(data) {
       className: cls.name
     },
     message: '报名成功'
+  }
+}
+
+/**
+ * 创建课程学习权限（购买课程后调用）
+ */
+async function createCoursePermission(data) {
+  const { courseId, phone, openid, source = 'purchase', expiresAt = null } = data
+
+  if (!courseId) {
+    return { success: false, error: '缺少课程ID' }
+  }
+  if (!phone && !openid) {
+    return { success: false, error: '缺少用户标识' }
+  }
+
+  // 检查课程是否存在
+  const courseRes = await db.collection('courses').doc(courseId).get()
+  if (!courseRes.data) {
+    return { success: false, error: '课程不存在' }
+  }
+
+  // 检查是否已有权限
+  const existingWhere = { courseId }
+  if (phone) existingWhere.phone = phone
+  if (openid) existingWhere.openid = openid
+
+  const existing = await db.collection('course_permissions')
+    .where(existingWhere)
+    .get()
+
+  if (existing.data && existing.data.length > 0) {
+    // 已存在权限，直接返回
+    return {
+      success: true,
+      data: {
+        permissionId: existing.data[0]._id,
+        courseId,
+        alreadyExists: true
+      },
+      message: '权限已存在'
+    }
+  }
+
+  // 创建权限记录
+  const now = new Date().toISOString()
+  const result = await db.collection('course_permissions').add({
+    data: {
+      courseId,
+      courseName: courseRes.data.title || '',
+      phone: phone || '',
+      openid: openid || '',
+      source, // purchase: 购买获得, enroll: 报名获得, admin: 管理员授权
+      status: 'active', // active: 有效, expired: 已过期, revoked: 已撤销
+      expiresAt: expiresAt, // null 表示永不过期
+      grantedAt: now,
+      createdAt: now,
+      updatedAt: now
+    }
+  })
+
+  return {
+    success: true,
+    data: {
+      permissionId: result.id,
+      courseId,
+      courseName: courseRes.data.title,
+      alreadyExists: false
+    },
+    message: '权限创建成功'
   }
 }
 
@@ -738,6 +808,11 @@ exports.main = async (event, context) => {
       case 'enrollClass':
       case 'enroll':
         result = await enrollClass(data)
+        break
+
+      // 创建课程学习权限
+      case 'createCoursePermission':
+        result = await createCoursePermission(data)
         break
 
       // 排课

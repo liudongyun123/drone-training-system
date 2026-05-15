@@ -2,6 +2,9 @@
  * 服务层统一导出
  */
 
+// 统一数据访问服务（所有端通用）
+export { CloudDBService, db, type QueryOptions, type ListResponse, type DBResponse } from './CloudDBService'
+
 // 认证服务
 export { authService, LoginMethod, type AuthUser } from './authService'
 export { useAuthStore, type User, type UserRole } from '../store/authStore'

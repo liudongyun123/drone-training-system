@@ -71,7 +71,7 @@
         <view class="class-card" wx:for="{{classes}}" wx:key="_id">
           <!-- 卡片封面 -->
           <view class="card-cover">
-            <image class="cover-img" src="{{item.classInfo.coverImage || '/assets/images/default-cover.png'}}" mode="aspectFill" />
+            <image class="cover-img" src="{{item.coverImage || '/assets/images/default-cover.png'}}" mode="aspectFill" binderror="onCoverError" data-index="{{index}}" />
             <view class="cover-status status-{{item.status}}">
               <text>{{item.statusText}}</text>
             </view>
@@ -79,36 +79,39 @@
           
           <!-- 卡片内容 -->
           <view class="card-content">
-            <text class="card-title">{{item.classInfo.title}}</text>
+            <text class="card-title">{{item.className || item.name || '未命名培训班'}}</text>
             
             <view class="card-tags">
-              <view class="tag">
+              <view class="tag" wx:if="{{item.startDate || item.enrollmentTime}}">
                 <text class="tag-icon">📅</text>
-                <text>{{item.classInfo.startDate}}</text>
+                <text>{{item.startDate || item.enrollmentTime}}</text>
               </view>
-              <view class="tag">
+              <view class="tag" wx:if="{{item.location}}">
                 <text class="tag-icon">📍</text>
-                <text>{{item.classInfo.location}}</text>
+                <text>{{item.location}}</text>
               </view>
             </view>
 
             <view class="card-info">
               <view class="info-item">
                 <text class="info-label">报名状态</text>
-                <text class="info-value enrollment-{{item.enrollmentStatus}}">{{item.enrollmentStatusText}}</text>
+                <text class="info-value enrollment-{{item.status}}">{{item.enrollmentStatusText}}</text>
               </view>
-              <view class="info-item" wx:if="{{item.classInfo.instructor}}">
+              <view class="info-item" wx:if="{{item.instructor || item.teacherName}}">
                 <text class="info-label">培训讲师</text>
-                <text class="info-value">{{item.classInfo.instructor}}</text>
+                <text class="info-value">{{item.instructor || item.teacherName}}</text>
               </view>
             </view>
 
             <view class="card-footer">
-              <view class="btn-outline" bindtap="goToDetail" data-id="{{item.classId}}">
-                <text>查看详情</text>
+              <view class="btn-outline {{!item.hasDetail ? 'disabled' : ''}}" bindtap="{{item.hasDetail ? 'goToDetail' : ''}}" data-id="{{item.classId}}">
+                <text>{{item.hasDetail ? '查看详情' : '暂无详情'}}</text>
               </view>
               <view class="btn-primary" wx:if="{{item.status === 'ongoing'}}" bindtap="goToSchedule" data-id="{{item.classId}}">
                 <text>我的日程</text>
+              </view>
+              <view class="btn-transfer" wx:if="{{item.status === 'ongoing'}}" bindtap="goToTransfer" data-id="{{item.classId}}">
+                <text>调整日程</text>
               </view>
               <view class="btn-secondary" wx:elif="{{item.status === 'ended'}}" bindtap="reEnroll" data-id="{{item.classId}}">
                 <text>再次报名</text>

@@ -18,6 +18,33 @@
   height: 422rpx; /* 16:9 比例 */
 }
 
+/* 视频占位提示 */
+.video-placeholder {
+  width: 100%;
+  height: 422rpx;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.placeholder-text {
+  font-size: 32rpx;
+  color: #fff;
+  margin-bottom: 12rpx;
+}
+
+.placeholder-sub {
+  font-size: 26rpx;
+  color: #999;
+}
+
 /* 课程信息 */
 .lesson-info {
   padding: 24rpx;

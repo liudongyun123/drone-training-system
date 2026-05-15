@@ -2,15 +2,18 @@
 // 管理后台 - 课程订单管理
 // 功能：管理线上购买视频课程的订单
 // 数据来源：orders 集合
+// 版本：v20260515-linkage - 增加消息通知功能
 // ============================================================================
 import { useState, useEffect } from 'react';
 import { useConfirm } from '@/admin/hooks/useConfirm';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { adminService } from '@/services/adminService';
+import { messageService } from '@/services/messageService';
 import { toast } from '@/components/Toast';
 import {
   Search, RefreshCw, Eye, CheckCircle,
-  XCircle, Clock, CreditCard, BookOpen, ChevronLeft, ChevronRight
+  XCircle, Clock, CreditCard, BookOpen, ChevronLeft, ChevronRight,
+  Bell, BellOff
 } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, { text: string; color: string }> = {
@@ -140,6 +143,11 @@ export default function AdminCourseOrders() {
       const result = await orderService.refund(order._id);
       if (result.code === 0) {
         toast.success('退款成功');
+        // 发送退款通知
+        await messageService.sendOrderNotification({
+          ...order,
+          status: 'refunded'
+        });
         loadOrders();
       } else {
         toast.error(result.message || '操作失败');
@@ -147,6 +155,21 @@ export default function AdminCourseOrders() {
     } catch (error) {
       console.error('退款失败:', error);
       toast.error('操作失败，请重试');
+    }
+  };
+
+  // 发送通知
+  const handleSendNotification = async (order: any) => {
+    try {
+      const result = await messageService.sendOrderNotification(order);
+      if (result) {
+        toast.success('已发送通知给用户');
+      } else {
+        toast.error('发送通知失败');
+      }
+    } catch (error) {
+      console.error('发送通知失败:', error);
+      toast.error('发送通知失败');
     }
   };
 
@@ -224,6 +247,16 @@ export default function AdminCourseOrders() {
               title="退款"
             >
               <CreditCard size={18} className="text-purple-600" />
+            </button>
+          )}
+          {/* 发送通知按钮 */}
+          {(order.phone || order.userId) && (
+            <button
+              onClick={() => handleSendNotification(order)}
+              className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+              title="发送通知"
+            >
+              <Bell size={18} className="text-blue-600" />
             </button>
           )}
         </div>

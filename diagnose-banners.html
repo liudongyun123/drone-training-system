@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据库诊断 - 轮播图检查</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { color: #333; margin-bottom: 20px; }
+    .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .card h2 { font-size: 18px; color: #1976d2; margin-bottom: 15px; border-bottom: 2px solid #1976d2; padding-bottom: 10px; }
+    .status { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .status-dot.success { background: #4caf50; }
+    .status-dot.error { background: #f44336; }
+    .status-dot.warning { background: #ff9800; }
+    .status-text { font-size: 14px; color: #666; }
+    button { background: #1976d2; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 10px; margin-top: 10px; }
+    button:hover { background: #1565c0; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    pre { background: #263238; color: #aed581; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 13px; line-height: 1.5; max-height: 400px; overflow-y: auto; }
+    .result-item { padding: 10px; border-bottom: 1px solid #eee; }
+    .result-item:last-child { border-bottom: none; }
+    .result-item .title { font-weight: bold; color: #333; margin-bottom: 5px; }
+    .result-item .meta { font-size: 12px; color: #999; }
+    .result-item .data { font-size: 13px; color: #666; margin-top: 5px; background: #f5f5f5; padding: 8px; border-radius: 4px; }
+    .loading { color: #ff9800; }
+    .success-text { color: #4caf50; }
+    .error-text { color: #f44336; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>数据库诊断 - 轮播图同步检查</h1>
+    
+    <div class="card">
+      <h2>API 连接测试</h2>
+      <div id="connectionStatus">
+        <div class="status">
+          <div class="status-dot warning"></div>
+          <span class="status-text">正在测试连接...</span>
+        </div>
+      </div>
+      <button onclick="testConnection()">测试连接</button>
+    </div>
+
+    <div class="card">
+      <h2>轮播图数据检查</h2>
+      <div id="bannerCheck">
+        <p class="loading">点击按钮开始检查...</p>
+      </div>
+      <button onclick="checkBanners()">检查 banners 集合</button>
+      <button onclick="checkPageConfigs()">检查 page_configs 集合</button>
+      <button onclick="refreshAll()">全部刷新</button>
+    </div>
+
+    <div class="card">
+      <h2>测试数据添加</h2>
+      <p style="color: #666; margin-bottom: 10px;">添加测试轮播图数据到 banners 集合</p>
+      <button onclick="addTestBanner()">添加测试轮播图</button>
+      <button onclick="addMultipleBanners()">添加多条测试数据</button>
+    </div>
+
+    <div class="card">
+      <h2>调试日志</h2>
+      <pre id="debugLog">等待操作...</pre>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com';
+    
+    function log(message, type = 'info') {
+      const logEl = document.getElementById('debugLog');
+      const time = new Date().toLocaleTimeString();
+      const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+      logEl.textContent = `${time} ${prefix} ${message}\n` + logEl.textContent;
+    }
+
+    async function apiRequest(action, params = {}) {
+      try {
+        const response = await fetch(`${API_BASE}/db-init`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, ...params })
+        });
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        log(`API 请求失败: ${error.message}`, 'error');
+        throw error;
+      }
+    }
+
+    async function testConnection() {
+      const statusEl = document.getElementById('connectionStatus');
+      statusEl.innerHTML = '<div class="status"><div class="status-dot warning"></div><span class="status-text">测试中...</span></div>';
+      
+      try {
+        const result = await apiRequest('ping');
+        if (result.code === 0) {
+          statusEl.innerHTML = `
+            <div class="status">
+              <div class="status-dot success"></div>
+              <span class="status-text success-text">连接成功！db-init 云函数正常运行</span>
+            </div>
+            <p class="data">响应时间: ${result.timestamp}</p>
+          `;
+          log('db-init 云函数连接成功', 'success');
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        statusEl.innerHTML = `
+          <div class="status">
+            <div class="status-dot error"></div>
+            <span class="status-text error-text">连接失败</span>
+          </div>
+          <p class="data">错误: ${error.message}</p>
+        `;
+        log(`连接失败: ${error.message}`, 'error');
+      }
+    }
+
+    async function checkBanners() {
+      const checkEl = document.getElementById('bannerCheck');
+      checkEl.innerHTML = '<p class="loading">正在查询 banners 集合...</p>';
+      
+      try {
+        // 查询所有 banners
+        const result = await apiRequest('getList', { collection: 'banners', limit: 50 });
+        
+        if (result.code === 0) {
+          const banners = result.data || [];
+          log(`banners 集合查询成功，共 ${banners.length} 条记录`, 'success');
+          
+          if (banners.length === 0) {
+            checkEl.innerHTML = `
+              <p class="error-text">banners 集合为空！请先在后台添加轮播图。</p>
+            `;
+          } else {
+            let html = `<p class="success-text">banners 集合共有 ${banners.length} 条数据:</p>`;
+            banners.forEach((banner, index) => {
+              html += `
+                <div class="result-item">
+                  <div class="title">${index + 1}. ${banner.title || '无标题'}</div>
+                  <div class="meta">ID: ${banner._id} | 状态: ${banner.status} | 排序: ${banner.order || 0}</div>
+                  <div class="data">图片: ${banner.image || '无'}</div>
+                </div>
+              `;
+            });
+            checkEl.innerHTML = html;
+          }
+          
+          // 检查 active 状态的数据
+          const activeBanners = banners.filter(b => b.status === 'active');
+          log(`其中 ${activeBanners.length} 条状态为 active（小程序会显示这些）`, activeBanners.length > 0 ? 'success' : 'warning');
+          
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        checkEl.innerHTML = `<p class="error-text">查询失败: ${error.message}</p>`;
+        log(`banners 查询失败: ${error.message}`, 'error');
+      }
+    }
+
+    async function checkPageConfigs() {
+      const checkEl = document.getElementById('bannerCheck');
+      checkEl.innerHTML = '<p class="loading">正在查询 page_configs 集合...</p>';
+      
+      try {
+        const result = await apiRequest('getList', { collection: 'page_configs', limit: 50 });
+        
+        if (result.code === 0) {
+          const configs = result.data || [];
+          const bannersConfig = configs.filter(c => c.section === 'banners');
+          
+          log(`page_configs 集合查询成功，共 ${configs.length} 条记录，其中 ${bannersConfig.length} 条是轮播图配置`, 'success');
+          
+          if (bannersConfig.length === 0) {
+            checkEl.innerHTML = `<p>page_configs 中没有轮播图配置。</p>`;
+          } else {
+            let html = `<p>page_configs 中有 ${bannersConfig.length} 条轮播图配置:</p>`;
+            bannersConfig.forEach((config, index) => {
+              const items = config.data?.items || config.items || [];
+              html += `
+                <div class="result-item">
+                  <div class="title">${index + 1}. section: ${config.section}</div>
+                  <div class="meta">ID: ${config._id} | 数据项数量: ${items.length}</div>
+                  <div class="data">${JSON.stringify(config.data || config, null, 2).substring(0, 200)}...</div>
+                </div>
+              `;
+            });
+            checkEl.innerHTML = html;
+          }
+          
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        checkEl.innerHTML = `<p class="error-text">查询失败: ${error.message}</p>`;
+        log(`page_configs 查询失败: ${error.message}`, 'error');
+      }
+    }
+
+    async function addTestBanner() {
+      const testBanner = {
+        title: '测试轮播图 - ' + new Date().toLocaleString(),
+        subtitle: '这是自动生成的测试数据',
+        image: 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png',
+        link: '/courses',
+        order: Date.now() % 100,
+        status: 'active',
+        isHero: true
+      };
+      
+      try {
+        const result = await apiRequest('add', { collection: 'banners', data: testBanner });
+        if (result.code === 0) {
+          log(`测试轮播图添加成功，ID: ${result.data?.id}`, 'success');
+          checkBanners();
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        log(`添加失败: ${error.message}`, 'error');
+      }
+    }
+
+    async function addMultipleBanners() {
+      const banners = [
+        { title: '首页Banner1', image: 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png', status: 'active', order: 1 },
+        { title: '首页Banner2', image: 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png', status: 'active', order: 2 },
+        { title: '首页Banner3', image: 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png', status: 'active', order: 3 }
+      ];
+      
+      let successCount = 0;
+      for (const banner of banners) {
+        try {
+          const result = await apiRequest('add', { collection: 'banners', data: banner });
+          if (result.code === 0) {
+            successCount++;
+          }
+        } catch (error) {
+          log(`添加 ${banner.title} 失败: ${error.message}`, 'error');
+        }
+      }
+      
+      log(`成功添加 ${successCount}/${banners.length} 条测试轮播图`, successCount === banners.length ? 'success' : 'warning');
+      checkBanners();
+    }
+
+    async function refreshAll() {
+      await testConnection();
+      await checkBanners();
+      await checkPageConfigs();
+    }
+
+    // 页面加载时自动检查
+    window.onload = () => {
+      log('页面加载完成，开始自动检查...');
+      refreshAll();
+    };
+  </script>
+</body>
+</html>

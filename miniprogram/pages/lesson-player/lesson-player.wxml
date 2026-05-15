@@ -2,21 +2,30 @@
 <view class="lesson-player">
   <!-- 视频播放器 -->
   <view class="video-container">
-    <video
-      id="lessonVideo"
-      class="video-player"
-      src="{{currentVideoUrl}}"
-      poster=""
-      controls
-      show-progress
-      show-fullscreen-btn
-      enable-progress-gesture
-      bindplay="onVideoPlay"
-      bindpause="onVideoPause"
-      bindended="onVideoEnded"
-      bindtimeupdate="onTimeUpdate"
-      binderror="onError"
-    />
+    <block wx:if="{{hasVideo}}">
+      <video
+        id="lessonVideo"
+        class="video-player"
+        src="{{currentVideoUrl}}"
+        poster=""
+        controls
+        show-progress
+        show-fullscreen-btn
+        enable-progress-gesture
+        bindplay="onVideoPlay"
+        bindpause="onVideoPause"
+        bindended="onVideoEnded"
+        bindtimeupdate="onTimeUpdate"
+        binderror="onError"
+      />
+    </block>
+    <block wx:else>
+      <view class="video-placeholder">
+        <text class="placeholder-icon">🎬</text>
+        <text class="placeholder-text">该课时暂无视频</text>
+        <text class="placeholder-sub">课程内容准备中，敬请期待</text>
+      </view>
+    </block>
   </view>
 
   <!-- 课程信息 -->

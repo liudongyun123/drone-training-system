@@ -4,6 +4,7 @@
     "pages/course-list/course-list",
     "pages/search/search",
     "pages/course-detail/course-detail",
+    "pages/lesson-player/lesson-player",
     "pages/my-learning/my-learning",
     "pages/class-list/class-list",
     "pages/class-detail/class-detail",
@@ -23,7 +24,9 @@
     "pages/exam/exam",
     "pages/result/result",
     "pages/my-certificates/my-certificates",
-    "pages/learning-path/learning-path"
+    "pages/learning-path/learning-path",
+    "pages/transfer-request/transfer-request",
+    "pages/notifications/notifications"
   ],
   "window": {
     "navigationBarTitleText": "无人机培训",

@@ -89,6 +89,7 @@
 
         <!-- 订单操作 -->
         <view class="order-actions">
+          <!-- 待支付状态 -->
           <block wx:if="{{item.status === 'pending'}}">
             <view class="action-btn btn-cancel" bindtap="cancelOrder" data-id="{{item._id}}">
               <text>取消订单</text>
@@ -97,17 +98,29 @@
               <text>立即支付</text>
             </view>
           </block>
-          <block wx:elif="{{item.status === 'paid'}}">
+          <!-- 课程/培训班已支付/已完成：显示"去学习" -->
+          <block wx:elif="{{(item.orderType === 'course' || item.orderType === 'class') && (item.status === 'paid' || item.status === 'completed')}}">
+            <view class="action-btn btn-text" bindtap="deleteOrder" data-id="{{item._id}}">
+              <text>删除订单</text>
+            </view>
+            <view class="action-btn btn-primary" bindtap="goToLearn" data-order="{{item}}">
+              <text>去学习</text>
+            </view>
+          </block>
+          <!-- 商品订单：待发货 -->
+          <block wx:elif="{{item.status === 'paid' && item.orderType === 'shop'}}">
             <view class="action-btn btn-outline">
               <text>等待发货</text>
             </view>
           </block>
-          <block wx:elif="{{item.status === 'shipped'}}">
+          <!-- 商品订单：待收货 -->
+          <block wx:elif="{{item.status === 'shipped' && item.orderType === 'shop'}}">
             <view class="action-btn btn-outline">
               <text>确认收货</text>
             </view>
           </block>
-          <block wx:elif="{{item.status === 'completed'}}">
+          <!-- 商品订单：已完成 -->
+          <block wx:elif="{{item.status === 'completed' && item.orderType === 'shop'}}">
             <view class="action-btn btn-text" bindtap="deleteOrder" data-id="{{item._id}}">
               <text>删除订单</text>
             </view>
@@ -115,6 +128,7 @@
               <text>再来一单</text>
             </view>
           </block>
+          <!-- 已取消状态 -->
           <block wx:elif="{{item.status === 'cancelled'}}">
             <view class="action-btn btn-text" bindtap="deleteOrder" data-id="{{item._id}}">
               <text>删除订单</text>

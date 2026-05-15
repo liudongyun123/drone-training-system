@@ -1,0 +1,29 @@
+{
+  "version": "2.0",
+  "envId": "rcwljy-5ghmq2ex26764978",
+  "framework": {
+    "plugins": {
+      "function": {
+        "use": "@cloudbase/framework-plugin-function",
+        "inputs": {
+          "functions": [
+            {
+              "name": "db-init",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {},
+              "triggers": [
+                {
+                  "name": "http-trigger",
+                  "type": "http"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

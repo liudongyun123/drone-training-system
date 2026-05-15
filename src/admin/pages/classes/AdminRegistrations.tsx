@@ -1,17 +1,19 @@
 // ============================================================================
 // 管理后台 - 报名管理
 // 功能：课程选课记录管理
-// 版本：v20260415-member-layout-fix
+// 版本：v20260515-linkage - 增加消息通知功能
 // 数据来源：enrollments 集合
 // ============================================================================
 import { useState, useEffect } from 'react';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { enrollmentService } from '@/services';
+import { messageService } from '@/services/messageService';
 import type { Registration as Enrollment } from '@/types/registration';
+import { toast } from '@/components/Toast';
 import {
   Search, User, Phone, BookOpen, CreditCard,
   ChevronLeft, ChevronRight, AlertCircle, RefreshCw,
-  TrendingUp
+  TrendingUp, Hash, Bell, Check, X
 } from 'lucide-react';
 
 // 扩展的报名记录类型（支持动态字段）
@@ -78,6 +80,7 @@ export default function AdminRegistrations() {
         query.$or = [
           { userName: { $regex: searchKeyword, $options: 'i' } },
           { phone: { $regex: searchKeyword, $options: 'i' } },
+          { idCard: { $regex: searchKeyword, $options: 'i' } },
           { userId: { $regex: searchKeyword, $options: 'i' } },
           { courseName: { $regex: searchKeyword, $options: 'i' } }
         ];
@@ -117,6 +120,77 @@ export default function AdminRegistrations() {
   const handleRefresh = () => {
     setRefreshing(true);
     loadRegistrations(false);
+  };
+
+  // 确认报名
+  const handleConfirm = async (enrollment: any) => {
+    if (!confirm(`确定要确认 "${enrollment.userName || enrollment.userId}" 的报名吗？`)) return;
+    try {
+      const result = await enrollmentService.update(enrollment._id, {
+        status: 'confirmed',
+        confirmedAt: new Date().toISOString()
+      });
+      if (result.code === 0) {
+        toast.success('报名已确认');
+        // 发送通知
+        await messageService.sendRegistrationNotification({
+          ...enrollment,
+          status: 'confirmed'
+        });
+        loadRegistrations();
+      } else {
+        toast.error('操作失败');
+      }
+    } catch (error) {
+      console.error('确认报名失败:', error);
+      toast.error('操作失败');
+    }
+  };
+
+  // 拒绝报名
+  const handleReject = async (enrollment: any) => {
+    const reason = prompt('请输入拒绝原因（可选）：');
+    if (reason === null) return; // 用户取消
+    try {
+      const result = await enrollmentService.update(enrollment._id, {
+        status: 'cancelled',
+        rejectedReason: reason || '审核未通过',
+        rejectedAt: new Date().toISOString()
+      });
+      if (result.code === 0) {
+        toast.success('报名已拒绝');
+        // 发送通知
+        await messageService.sendRegistrationNotification({
+          ...enrollment,
+          status: 'cancelled',
+          notes: reason
+        });
+        loadRegistrations();
+      } else {
+        toast.error('操作失败');
+      }
+    } catch (error) {
+      console.error('拒绝报名失败:', error);
+      toast.error('操作失败');
+    }
+  };
+
+  // 发送报名通知
+  const handleSendNotification = async (enrollment: any) => {
+    try {
+      const result = await messageService.sendRegistrationNotification({
+        ...enrollment,
+        status: enrollment.status as 'pending' | 'confirmed' | 'cancelled'
+      });
+      if (result) {
+        toast.success('已发送报名通知');
+      } else {
+        toast.error('发送通知失败');
+      }
+    } catch (error) {
+      console.error('发送通知失败:', error);
+      toast.error('发送通知失败');
+    }
   };
 
   useEffect(() => {
@@ -214,7 +288,7 @@ export default function AdminRegistrations() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
-                placeholder="搜索学员姓名、手机号..."
+                placeholder="搜索姓名、手机号、身份证..."
                 className="input input-bordered input-sm w-full pl-9"
                 value={searchKeyword}
                 onChange={(e) => {
@@ -286,12 +360,14 @@ export default function AdminRegistrations() {
                 <thead>
                   <tr>
                     <th>学员信息</th>
+                    <th>身份证号</th>
                     <th>课程</th>
                     <th>来源</th>
                     <th>状态</th>
                     <th>支付状态</th>
                     <th>金额</th>
                     <th>报名时间</th>
+                    <th>操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -310,6 +386,16 @@ export default function AdminRegistrations() {
                             </div>
                           </div>
                         </div>
+                      </td>
+                      <td>
+                        {enrollment.idCard ? (
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Hash size={12} />
+                            <span className="font-mono">{enrollment.idCard}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">未填写</span>
+                        )}
                       </td>
                       <td>
                         <div className="font-medium text-sm">{enrollment.courseName || enrollment.courseId || '-'}</div>
@@ -333,6 +419,39 @@ export default function AdminRegistrations() {
                       <td>
                         <div className="text-sm text-gray-500">
                           {enrollment.enrollmentDate ? new Date(enrollment.enrollmentDate).toLocaleDateString('zh-CN') : '-'}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-1">
+                          {/* 待审核状态显示审核按钮 */}
+                          {enrollment.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => handleConfirm(enrollment)}
+                                className="p-1.5 hover:bg-green-100 rounded-lg transition-colors"
+                                title="确认报名"
+                              >
+                                <Check size={16} className="text-green-600" />
+                              </button>
+                              <button
+                                onClick={() => handleReject(enrollment)}
+                                className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
+                                title="拒绝报名"
+                              >
+                                <X size={16} className="text-red-600" />
+                              </button>
+                            </>
+                          )}
+                          {/* 已确认状态显示通知按钮 */}
+                          {(enrollment.status === 'confirmed' || enrollment.status === 'cancelled') && (
+                            <button
+                              onClick={() => handleSendNotification(enrollment)}
+                              className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
+                              title="发送通知"
+                            >
+                              <Bell size={16} className="text-blue-600" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

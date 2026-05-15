@@ -1,54 +1,118 @@
-<view class="page">
-  <!-- 日期选择 -->
-  <scroll-view class="date-bar" scroll-x>
-    <view 
-      class="date-item {{currentDate === item ? 'active' : ''}}"
-      wx:for="{{dates}}"
-      wx:key="*this"
-      bindtap="selectDate"
-      data-date="{{item}}"
-    >
-      <text class="date-day">{{item}}</text>
-      <text wx:if="{{item === dates[3]}}" class="date-tag">今天</text>
-    </view>
-  </scroll-view>
+<!--pages/my-schedule/my-schedule.wxml-->
 
-  <!-- 加载状态 -->
-  <view wx:if="{{loading}}" class="loading-container">
-    <text>加载中...</text>
+<view class="page">
+  <!-- 未登录状态 -->
+  <view wx:if="{{!isLoggedIn}}" class="login-prompt">
+    <view class="prompt-icon-wrap">
+      <text class="prompt-icon">📅</text>
+    </view>
+    <text class="prompt-title">登录后查看日程</text>
+    <text class="prompt-desc">合理安排学习时间，助您飞行梦想</text>
+    <view class="prompt-btn" bindtap="goToLogin">
+      <text>立即登录</text>
+    </view>
   </view>
 
-  <!-- 日程列表 -->
-  <view class="schedule-list" wx:if="{{!loading}}">
-    <block wx:for="{{daySchedules}}" wx:key="_id" wx:for-item="item">
-      <view class="schedule-item">
-        <view class="time-line">
-          <view class="time-dot"></view>
-          <view class="time-vertical"></view>
+  <block wx:else>
+    <!-- 头部信息 -->
+    <view class="header-card">
+      <view class="header-left">
+        <view class="header-icon-wrap">
+          <text class="header-icon">📅</text>
         </view>
-        <view class="schedule-card">
-          <view class="schedule-time">
-            <text>{{item.startTimeStr}} - {{item.endTimeStr}}</text>
-          </view>
-          <view class="schedule-content">
-            <text class="schedule-title">{{item.title}}</text>
-            <text class="schedule-teacher" wx:if="{{item.teacher}}">讲师: {{item.teacher}}</text>
-            <view class="schedule-location">
-              <text class="location-icon">📍</text>
-              <text>{{item.location}}</text>
-            </view>
-          </view>
-          <view class="schedule-status">
-            <text class="status-tag status-{{item.status}}">{{item.statusText}}</text>
-          </view>
+        <view class="header-info">
+          <text class="header-title">我的日程</text>
+          <text class="header-desc">{{currentDateStr}} {{weekdayStr}}</text>
         </view>
       </view>
-    </block>
-
-    <!-- 当日无日程 -->
-    <view wx:if="{{daySchedules.length === 0}}" class="empty-container">
-      <text class="empty-icon">📅</text>
-      <text>当天暂无安排</text>
+      <view class="header-count">
+        <text class="count-num">{{daySchedules.length}}</text>
+        <text class="count-label">今日日程</text>
+      </view>
     </view>
-  </view>
+
+    <!-- 日期选择 -->
+    <scroll-view class="date-bar" scroll-x>
+      <view class="date-scroll">
+        <view 
+          class="date-item {{currentDate === item.date ? 'active' : ''}}"
+          wx:for="{{dates}}"
+          wx:key="date"
+          bindtap="selectDate"
+          data-date="{{item.date}}"
+        >
+          <text class="date-week">{{item.weekday}}</text>
+          <text class="date-day">{{item.day}}</text>
+          <view class="date-today" wx:if="{{item.isToday}}">今天</view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 加载骨架屏 -->
+    <view wx:if="{{loading}}" class="skeleton-container">
+      <view class="skeleton-card" wx:for="{{3}}" wx:key="*this">
+        <view class="skeleton-header"></view>
+        <view class="skeleton-body"></view>
+      </view>
+    </view>
+
+    <!-- 日程列表 -->
+    <scroll-view wx:if="{{!loading}}" class="schedule-scroll" scroll-y enhanced refresher-enabled bindrefresherrefresh="onRefresh" refresher-triggered="{{refreshing}}">
+      <view class="schedule-list" wx:if="{{daySchedules.length > 0}}">
+        <block wx:for="{{daySchedules}}" wx:key="_id" wx:for-item="item">
+          <view class="schedule-item">
+            <view class="time-line">
+              <view class="time-dot dot-{{item.status}}"></view>
+              <view class="time-vertical"></view>
+            </view>
+            <view class="schedule-card">
+              <view class="card-header">
+                <view class="schedule-time">
+                  <text class="time-icon">⏰</text>
+                  <text>{{item.startTimeStr}} - {{item.endTimeStr}}</text>
+                </view>
+                <view class="status-tag status-{{item.status}}">
+                  <text>{{item.statusText}}</text>
+                </view>
+              </view>
+              
+              <text class="schedule-title">{{item.title}}</text>
+              
+              <view class="card-tags">
+                <view class="tag" wx:if="{{item.teacher}}">
+                  <text class="tag-icon">👨‍🏫</text>
+                  <text>{{item.teacher}}</text>
+                </view>
+                <view class="tag">
+                  <text class="tag-icon">📍</text>
+                  <text>{{item.location || '待定'}}</text>
+                </view>
+              </view>
+
+              <view class="card-footer">
+                <view class="btn-detail" bindtap="goToDetail" data-id="{{item._id}}">
+                  <text>查看详情</text>
+                </view>
+                <view class="btn-remind" wx:if="{{item.status === 'not_started'}}" bindtap="setRemind" data-id="{{item._id}}">
+                  <text>提醒我</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+      </view>
+
+      <!-- 当日无日程 -->
+      <view wx:if="{{daySchedules.length === 0}}" class="empty-container">
+        <view class="empty-icon-wrap">
+          <text class="empty-icon">🎉</text>
+        </view>
+        <text class="empty-title">当天暂无安排</text>
+        <text class="empty-desc">好好休息，或者去学习新课程吧</text>
+        <view class="empty-btn" bindtap="goToLearning">
+          <text>去学习</text>
+        </view>
+      </view>
+    </scroll-view>
+  </block>
 </view>

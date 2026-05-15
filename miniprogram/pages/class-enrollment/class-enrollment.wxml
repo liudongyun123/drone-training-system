@@ -29,9 +29,20 @@
         <text class="form-label required">姓名</text>
         <input 
           class="form-input" 
-          placeholder="请输入联系人姓名" 
+          placeholder="请输入真实姓名" 
           value="{{contactName}}"
           bindinput="onNameInput"
+        />
+      </view>
+      <view class="form-group">
+        <text class="form-label required">身份证号</text>
+        <input 
+          class="form-input" 
+          placeholder="请输入身份证号（用于证书申请）" 
+          type="idcard"
+          maxlength="18"
+          value="{{idCard}}"
+          bindinput="onIdCardInput"
         />
       </view>
       <view class="form-group">

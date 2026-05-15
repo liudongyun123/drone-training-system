@@ -12,7 +12,11 @@ import {
   Search,
   RefreshCw,
   AlertCircle,
-  Clock
+  Clock,
+  Zap,
+  FileText,
+  CreditCard,
+  Award
 } from 'lucide-react'
 import { Button, Loading, Modal, Input, Select } from '@/components'
 import { adminService } from '@/services/adminService'
@@ -357,6 +361,45 @@ export default function MessageManagement() {
             发送消息
           </Button>
         </div>
+      </div>
+
+      {/* 快捷通知入口 */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-6 border border-blue-100">
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="w-5 h-5 text-blue-600" />
+          <span className="font-medium text-gray-700">快捷通知</span>
+        </div>
+        <div className="grid grid-cols-4 gap-3">
+          <button
+            onClick={() => setShowSendModal(true)}
+            className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
+          >
+            <FileText className="w-6 h-6 text-purple-600" />
+            <span className="text-xs text-gray-600">发送公告</span>
+          </button>
+          <button
+            onClick={() => alert('请从调课审核页面发送审核结果通知')}
+            className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
+          >
+            <Zap className="w-6 h-6 text-indigo-600" />
+            <span className="text-xs text-gray-600">调课通知</span>
+          </button>
+          <button
+            onClick={() => alert('请从订单管理页面发送订单状态通知')}
+            className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
+          >
+            <CreditCard className="w-6 h-6 text-amber-600" />
+            <span className="text-xs text-gray-600">订单通知</span>
+          </button>
+          <button
+            onClick={() => alert('请从证书管理页面发送证书通知')}
+            className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
+          >
+            <Award className="w-6 h-6 text-rose-600" />
+            <span className="text-xs text-gray-600">证书通知</span>
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">提示：业务通知可从各业务模块直接发送，消息会自动推送给用户</p>
       </div>
 
       {/* 统计卡片 */}

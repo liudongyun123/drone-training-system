@@ -89,11 +89,14 @@ Page({
       const lessons = lessonsRes?.data || lessonsRes || []
       const lesson = lessons.find((l: Lesson) => l._id === lessonId) || lessons[0]
 
-      if (!lesson || !lesson.videoUrl) {
-        showToast('该课时暂无视频')
+      if (!lesson) {
+        showToast('课时不存在')
         this.setData({ loading: false })
         return
       }
+
+      // 如果视频URL为空，显示占位提示但不阻止页面加载
+      const hasVideo = !!(lesson.videoUrl && lesson.videoUrl.trim())
 
       // 计算进度百分比
       const watchedDuration = progressRes?.watchedDuration || 0
@@ -103,7 +106,8 @@ Page({
         course,
         lesson,
         lessons,
-        currentVideoUrl: lesson.videoUrl,
+        currentVideoUrl: lesson.videoUrl || '',
+        hasVideo,
         watchedDuration,
         progress,
         loading: false,

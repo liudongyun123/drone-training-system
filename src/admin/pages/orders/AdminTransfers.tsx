@@ -52,6 +52,7 @@ export default function AdminTransfers() {
   const [keyword, setKeyword] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [quickDateRange, setQuickDateRange] = useState<string>('')
 
   // 多选
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -150,7 +151,69 @@ export default function AdminTransfers() {
     setKeyword('')
     setStartDate('')
     setEndDate('')
+    setQuickDateRange('')
     setPage(1)
+  }
+
+  // 快捷日期筛选
+  const handleQuickDate = (range: string) => {
+    const today = new Date()
+    let start = ''
+    let end = ''
+
+    switch (range) {
+      case 'today':
+        start = today.toISOString().split('T')[0]
+        end = today.toISOString().split('T')[0]
+        break
+      case 'week':
+        const weekStart = new Date(today)
+        weekStart.setDate(today.getDate() - today.getDay())
+        start = weekStart.toISOString().split('T')[0]
+        end = today.toISOString().split('T')[0]
+        break
+      case 'month':
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+        start = monthStart.toISOString().split('T')[0]
+        end = today.toISOString().split('T')[0]
+        break
+    }
+
+    setStartDate(start)
+    setEndDate(end)
+    setQuickDateRange(range)
+    setPage(1)
+  }
+
+  // 导出数据
+  const handleExport = () => {
+    if (requests.length === 0) {
+      alert('没有数据可导出')
+      return
+    }
+
+    const headers = ['学员姓名', '联系电话', '调课类型', '原课程', '原日期', '原时间', '目标课程', '目标日期', '状态', '申请时间']
+    const rows = requests.map(r => [
+      r.studentName || '',
+      r.studentPhone || '',
+      TRANSFER_TYPES[r.transferType as keyof typeof TRANSFER_TYPES]?.label || '',
+      r.originalCourseName || '',
+      r.originalDate || '',
+      r.originalTime || '',
+      r.targetCourseName || '',
+      r.targetDate || '',
+      STATUS_CONFIG[r.status as keyof typeof STATUS_CONFIG]?.label || '',
+      formatDateStr(r.createdAt) || ''
+    ])
+
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `调课申请_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   // 全选/取消全选
@@ -224,6 +287,25 @@ export default function AdminTransfers() {
         })
       }
 
+      // 发送消息通知
+      if (result.code === 0) {
+        try {
+          const { adminService } = await import('@/services/adminService')
+          const status = auditModal.type === 'approve' ? 'approved' : 'rejected'
+          await adminService.callFunction('api-message', {
+            action: 'notifyTransferResult',
+            phone: auditModal.request.studentPhone,
+            studentName: auditModal.request.studentName,
+            status,
+            originalCourse: auditModal.request.originalCourseName,
+            reply: auditModal.reply
+          })
+          console.log('[调课审核] 消息通知已发送')
+        } catch (notifyErr) {
+          console.error('[调课审核] 发送消息通知失败:', notifyErr)
+        }
+      }
+
       if (result.code === 0) {
         await confirm({ title: '提示', message: auditModal.type === 'approve' ? '已通过申请' : '已拒绝申请', variant: 'info' })
         setAuditModal({ show: false, type: 'approve', request: null, reply: '', loading: false })
@@ -268,7 +350,31 @@ export default function AdminTransfers() {
 
       if (result.code === 0) {
         const batchResult = result.data as { successCount?: number; failCount?: number } | undefined;
-        await confirm({ title: '提示', message: `批量操作完成：成功 ${batchResult?.successCount || 0}，失败 ${batchResult?.failCount || 0}`, variant: 'info' })
+        
+        // 批量发送消息通知
+        try {
+          const { adminService: adminSvc } = await import('@/services/adminService')
+          const status = batchModal.type === 'approve' ? 'approved' : 'rejected'
+          
+          const selectedRequests = requests.filter(r => selectedIds.includes(r._id || r.id || ''))
+          for (const req of selectedRequests) {
+            if (req.studentPhone) {
+              await adminSvc.callFunction('api-message', {
+                action: 'notifyTransferResult',
+                phone: req.studentPhone,
+                studentName: req.studentName,
+                status,
+                originalCourse: req.originalCourseName,
+                reply: batchModal.reply
+              })
+            }
+          }
+          console.log(`[批量调课审核] 已发送 ${selectedRequests.length} 条消息通知`)
+        } catch (notifyErr) {
+          console.error('[批量调课审核] 发送消息通知失败:', notifyErr)
+        }
+        
+        await confirm({ title: '提示', message: `批量操作完成：成功 ${batchResult?.successCount || 0}，失败 ${batchResult?.failCount || 0}，已发送通知`, variant: 'info' })
         setBatchModal({ show: false, type: 'approve', reply: '', loading: false })
         setSelectedIds([])
         setSelectAll(false)
@@ -413,17 +519,38 @@ export default function AdminTransfers() {
           {/* 日期筛选 */}
           <div className="flex items-center gap-4 mt-4 pt-4 border-t">
             <span className="text-sm text-gray-500">日期：</span>
+            {/* 快捷筛选 */}
+            <div className="flex rounded-lg overflow-hidden border">
+              {[
+                { value: '', label: '全部' },
+                { value: 'today', label: '今日' },
+                { value: 'week', label: '本周' },
+                { value: 'month', label: '本月' }
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleQuickDate(opt.value)}
+                  className={`px-3 py-1.5 text-sm ${
+                    quickDateRange === opt.value
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => { setStartDate(e.target.value); setQuickDateRange('') }}
               className="px-3 py-1.5 border rounded-lg text-sm"
             />
             <span className="text-gray-400">至</span>
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => { setEndDate(e.target.value); setQuickDateRange('') }}
               className="px-3 py-1.5 border rounded-lg text-sm"
             />
             <button
@@ -431,6 +558,14 @@ export default function AdminTransfers() {
               className="px-4 py-1.5 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
             >
               搜索
+            </button>
+            {/* 导出按钮 */}
+            <button
+              onClick={handleExport}
+              className="px-4 py-1.5 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 flex items-center gap-1"
+            >
+              <FileText size={14} />
+              导出
             </button>
           </div>
         </div>

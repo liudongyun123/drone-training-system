@@ -21,149 +21,311 @@ Page({
     this.checkLoginStatus()
   },
 
+  onShow() {
+    // 每次显示页面时检查登录状态
+    this.checkLoginStatus()
+  },
+
   // 检查登录状态
   checkLoginStatus() {
     const loginInfo = wx.getStorageSync('loginInfo')
+    const userInfo = wx.getStorageSync('userInfo')
+    const phone = wx.getStorageSync('phone')
+    
     if (loginInfo && loginInfo.openid) {
       this.setData({
         isLoggedIn: true,
-        hasPhone: !!loginInfo.phone
+        userInfo: userInfo || loginInfo.userInfo || { nickName: '用户' },
+        hasPhone: !!phone
+      })
+    } else {
+      this.setData({
+        isLoggedIn: false,
+        userInfo: null,
+        hasPhone: false
       })
     }
   },
 
-  // 微信登录 - 获取用户信息 + 登录
-  handleWxLogin() {
+  // 微信一键登录 - 仅获取手机号
+  async handleWxLogin(e: any) {
+    // 检查是否获取到手机号
+    if (!e.detail.code) {
+      wx.showModal({
+        title: '提示',
+        content: '需要获取您的手机号才能完成登录，请允许授权',
+        showCancel: false,
+        confirmText: '知道了'
+      })
+      return
+    }
+
     this.setData({ loading: true })
 
-    // 必须先获取用户信息（必须在点击事件中直接调用）
-    wx.getUserProfile({
-      desc: '用于完善用户资料',
-      success: (userRes) => {
-        logger.debug('登录', '用户信息', userRes.userInfo)
-        const userInfo = userRes.userInfo
-
-        // 获取登录 code
-        wx.login({
-          success: (loginRes) => {
-            logger.debug('登录', 'login code', loginRes.code)
-
-            // 调用云函数登录（HTTP 调用方式）
-            wx.request({
-              url: `${API_BASE}/login`,
-              method: 'POST',
-              data: {
-                action: 'wxMiniappLogin',
-                code: loginRes.code,
-                userInfo: userInfo
-              },
-              success: (res) => {
-                logger.debug('登录', '云函数返回', res.data)
-
-                // 直接获取 data 字段（兼容两种格式）
-                const responseData = res.data?.data || res.data
-                if (res.statusCode === 200 && responseData) {
-                  const { openid, userId } = responseData
-                  logger.debug('登录', '解析到 openid', { openid, userId })
-
-                  // 保存登录信息到本地
-                  const loginInfo = {
-                    openid,
-                    userId,
-                    userInfo: userInfo,
-                    loginTime: Date.now()
-                  }
-
-                  logger.debug('登录', '保存 loginInfo', loginInfo)
-                  wx.setStorageSync('loginInfo', loginInfo)
-                  wx.setStorageSync('userInfo', userInfo)
-                  wx.setStorageSync('userId', userId)
-                  wx.setStorageSync('openid', openid)
-                  logger.debug('登录', 'Storage 保存完成', { userId: wx.getStorageSync('userId') })
-
-                  // 使用异步方法保存，确保完成后再跳转
-                  wx.setStorage({
-                    key: 'loginInfo',
-                    data: loginInfo,
-                    success: () => {
-                      logger.debug('登录', 'loginInfo 保存成功')
-                    }
-                  })
-                  wx.setStorage({
-                    key: 'userInfo',
-                    data: userInfo,
-                    success: () => {
-                      logger.debug('登录', 'userInfo 保存成功')
-                    }
-                  })
-                  wx.setStorage({
-                    key: 'userId',
-                    data: userId,
-                    success: () => {
-                      logger.debug('登录', 'userId 保存成功')
-                    }
-                  })
-                  wx.setStorage({
-                    key: 'openid',
-                    data: openid,
-                    success: () => {
-                      logger.debug('登录', 'openid 保存成功')
-                    }
-                  })
-
-                  // 更新全局数据
-                  const app = getApp()
-                  app.globalData.isLoggedIn = true
-                  app.globalData.userInfo = userInfo
-                  app.globalData.userId = userId
-                  app.globalData.openid = openid
-                  logger.debug('登录', '全局数据已更新', { userId: app.globalData.userId })
-
-                  this.setData({
-                    isLoggedIn: true,
-                    userInfo,
-                    loading: false
-                  })
-
-                  showToast('登录成功', 'success')
-
-                  // 延迟跳转，确保 Storage 写入完成
-                  setTimeout(() => {
-                    logger.debug('登录', '准备跳转', { userId: wx.getStorageSync('userId') })
-                    // 使用 reLaunch 完全重启页面上下文
-                    wx.reLaunch({ url: '/pages/index/index' })
-                  }, 500)
-
-                } else {
-                  const errorMsg = res.data?.error || '登录失败'
-                  showToast(errorMsg)
-                  this.setData({ loading: false })
-                }
-              },
-              fail: (err) => {
-                logger.error('登录', '请求失败', err)
-                showToast('网络请求失败')
-                this.setData({ loading: false })
-              }
-            })
+    // 获取登录 code
+    wx.login({
+      success: (loginRes) => {
+        // 调用云函数登录
+        wx.request({
+          url: `${API_BASE}/login`,
+          method: 'POST',
+          data: {
+            action: 'wxMiniappLogin',
+            code: loginRes.code,
+            userInfo: null
           },
-          fail: (err) => {
-            logger.error('登录', 'wx.login 失败', err)
-            showToast('微信登录失败')
+          success: (res) => {
+            const responseData = res.data?.data || res.data
+            if (res.statusCode === 200 && responseData) {
+              const { openid, userId } = responseData
+
+              // 保存登录信息
+              const loginInfoData = {
+                openid,
+                userId,
+                loginTime: Date.now()
+              }
+              wx.setStorageSync('loginInfo', loginInfoData)
+              wx.setStorageSync('userId', userId)
+              wx.setStorageSync('openid', openid)
+
+              // 更新全局数据
+              const app = getApp()
+              app.globalData.isLoggedIn = true
+              app.globalData.userId = userId
+              app.globalData.openid = openid
+
+              // 获取手机号
+              this.getPhoneNumber(e.detail.code, openid)
+            } else {
+              showToast('登录失败')
+              this.setData({ loading: false })
+            }
+          },
+          fail: () => {
+            showToast('网络请求失败')
             this.setData({ loading: false })
           }
         })
       },
-      fail: (err) => {
-        logger.error('登录', '获取用户信息失败', err)
-        showToast('获取用户信息失败')
+      fail: () => {
+        showToast('微信登录失败')
         this.setData({ loading: false })
       }
     })
   },
 
-  // 手机号登录
-  async handlePhoneLogin(e: any) {
+  // 获取用户信息（头像昵称）- 单独点击触发
+  handleGetUserInfo() {
+    wx.getUserProfile({
+      desc: '用于完善用户资料',
+      success: (userRes) => {
+        const userInfo = userRes.userInfo
+        
+        // 保存用户信息
+        wx.setStorageSync('userInfo', userInfo)
+        
+        // 更新 loginInfo
+        const loginInfo = wx.getStorageSync('loginInfo') || {}
+        loginInfo.userInfo = userInfo
+        wx.setStorageSync('loginInfo', loginInfo)
+        
+        // 更新全局数据
+        const app = getApp()
+        app.globalData.userInfo = userInfo
+        
+        showToast('头像昵称已更新', 'success')
+      },
+      fail: (err) => {
+        console.error('获取用户信息失败', err)
+        showToast('获取用户信息失败')
+      }
+    })
+  },
+
+  // 仅获取手机号（不获取用户信息）
+  async handlePhoneOnlyLogin(e: any) {
+    if (!e.detail.code) {
+      wx.showModal({
+        title: '提示',
+        content: '需要获取您的手机号才能完成登录，请允许授权',
+        showCancel: false,
+        confirmText: '知道了'
+      })
+      return
+    }
+
+    this.setData({ loading: true })
+
+    // 获取登录 code
+    wx.login({
+      success: (loginRes) => {
+        // 调用云函数登录
+        wx.request({
+          url: `${API_BASE}/login`,
+          method: 'POST',
+          data: {
+            action: 'wxMiniappLogin',
+            code: loginRes.code,
+            userInfo: null
+          },
+          success: (res) => {
+            const responseData = res.data?.data || res.data
+            if (res.statusCode === 200 && responseData) {
+              const { openid, userId } = responseData
+
+              // 保存登录信息
+              const loginInfoData = {
+                openid,
+                userId,
+                loginTime: Date.now()
+              }
+              wx.setStorageSync('loginInfo', loginInfoData)
+              wx.setStorageSync('userId', userId)
+              wx.setStorageSync('openid', openid)
+
+              // 更新全局数据
+              const app = getApp()
+              app.globalData.isLoggedIn = true
+              app.globalData.userId = userId
+              app.globalData.openid = openid
+
+              // 获取手机号
+              this.getPhoneNumber(e.detail.code, openid)
+            } else {
+              showToast('登录失败')
+              this.setData({ loading: false })
+            }
+          },
+          fail: () => {
+            showToast('网络请求失败')
+            this.setData({ loading: false })
+          }
+        })
+      },
+      fail: () => {
+        showToast('微信登录失败')
+        this.setData({ loading: false })
+      }
+    })
+  },
+
+  // 微信登录（只获取 openid，不获取手机号）
+  handleWxLoginOnly() {
+    this.setData({ loading: true })
+
+    wx.login({
+      success: (loginRes) => {
+        wx.request({
+          url: `${API_BASE}/login`,
+          method: 'POST',
+          data: {
+            action: 'wxMiniappLogin',
+            code: loginRes.code,
+            userInfo: null
+          },
+          success: (res) => {
+            const responseData = res.data?.data || res.data
+            if (res.statusCode === 200 && responseData) {
+              const { openid, userId } = responseData
+
+              // 保存登录信息
+              const loginInfoData = {
+                openid,
+                userId,
+                loginTime: Date.now()
+              }
+              wx.setStorageSync('loginInfo', loginInfoData)
+              wx.setStorageSync('userId', userId)
+              wx.setStorageSync('openid', openid)
+
+              // 更新全局数据
+              const app = getApp()
+              app.globalData.isLoggedIn = true
+              app.globalData.userId = userId
+              app.globalData.openid = openid
+
+              this.setData({
+                isLoggedIn: true,
+                loading: false
+              })
+
+              showToast('登录成功', 'success')
+              setTimeout(() => {
+                wx.reLaunch({ url: '/pages/index/index' })
+              }, 1000)
+            } else {
+              showToast('登录失败')
+              this.setData({ loading: false })
+            }
+          },
+          fail: () => {
+            showToast('网络请求失败')
+            this.setData({ loading: false })
+          }
+        })
+      },
+      fail: () => {
+        showToast('微信登录失败')
+        this.setData({ loading: false })
+      }
+    })
+  },
+
+  // 获取手机号并保存
+  getPhoneNumber(code: string, openid: string) {
+    wx.request({
+      url: `${API_BASE}/login`,
+      method: 'POST',
+      data: {
+        action: 'getPhoneNumber',
+        code: code,
+        openid: openid
+      },
+      success: (res: any) => {
+        console.log('[登录] getPhoneNumber 返回:', res.data)
+
+        if (res.statusCode === 200 && res.data && res.data.success && res.data.data && res.data.data.phone) {
+          const { phone } = res.data.data
+
+          // 保存手机号
+          const loginInfo = wx.getStorageSync('loginInfo') || {}
+          loginInfo.phone = phone
+          loginInfo.phoneBindTime = Date.now()
+          wx.setStorageSync('loginInfo', loginInfo)
+          wx.setStorageSync('phone', phone)
+
+          // 更新全局数据
+          const app = getApp()
+          app.globalData.phone = phone
+
+          console.log('[登录] 手机号保存成功:', phone)
+
+          this.setData({
+            loading: false,
+            hasPhone: true
+          })
+
+          showToast('登录并绑定成功', 'success')
+          setTimeout(() => {
+            wx.reLaunch({ url: '/pages/index/index' })
+          }, 1500)
+        } else {
+          console.error('[登录] 获取手机号失败:', res.data)
+          this.setData({ loading: false })
+          showToast('获取手机号失败')
+        }
+      },
+      fail: (err) => {
+        console.error('[登录] 获取手机号请求失败:', err)
+        this.setData({ loading: false })
+        showToast('网络请求失败')
+      }
+    })
+  },
+
+  // 手机号登录（独立使用）
+  handlePhoneLogin(e: any) {
     if (!e.detail.code) {
       showToast('获取手机号失败')
       return
@@ -171,58 +333,52 @@ Page({
 
     this.setData({ loading: true })
 
-    try {
-      // 获取 openid
-      const openid = wx.getStorageSync('openid')
+    const openid = wx.getStorageSync('openid')
 
-      // 调用云函数获取手机号（HTTP 调用方式）
-      const res = await wx.request({
-        url: `${API_BASE}/login`,
-        method: 'POST',
-        data: {
-          action: 'getPhoneNumber',
-          code: e.detail.code,
-          openid: openid
+    wx.request({
+      url: `${API_BASE}/login`,
+      method: 'POST',
+      data: {
+        action: 'getPhoneNumber',
+        code: e.detail.code,
+        openid: openid
+      },
+      success: (res: any) => {
+        console.log('[手机号登录] 返回:', res.data)
+
+        if (res.statusCode === 200 && res.data && res.data.success && res.data.data && res.data.data.phone) {
+          const { phone } = res.data.data
+
+          const loginInfo = wx.getStorageSync('loginInfo') || {}
+          loginInfo.phone = phone
+          loginInfo.phoneBindTime = Date.now()
+          wx.setStorageSync('loginInfo', loginInfo)
+          wx.setStorageSync('phone', phone)
+
+          const app = getApp()
+          app.globalData.phone = phone
+
+          this.setData({
+            loading: false,
+            hasPhone: true
+          })
+
+          showToast('手机号绑定成功', 'success')
+          setTimeout(() => {
+            wx.switchTab({ url: '/pages/index/index' })
+          }, 1500)
+        } else {
+          console.error('[手机号登录] 获取手机号失败:', res.data)
+          this.setData({ loading: false })
+          showToast(res.data?.error || '获取手机号失败')
         }
-      })
-
-      logger.debug('手机号登录', '云函数返回', res)
-
-      if (res.statusCode === 200 && res.data && res.data.success && res.data.data && res.data.data.phone) {
-        const { phone } = res.data.data
-
-        // 更新本地存储
-        const loginInfo = wx.getStorageSync('loginInfo') || {}
-        loginInfo.phone = phone
-        loginInfo.phoneBindTime = Date.now()
-        wx.setStorageSync('loginInfo', loginInfo)
-        wx.setStorageSync('phone', phone)
-
-        // 更新全局数据
-        const app = getApp()
-        app.globalData.phone = phone
-
-        this.setData({
-          loading: false,
-          hasPhone: true
-        })
-
-        showToast('手机号绑定成功', 'success')
-
-        // 绑定成功后跳转到首页
-        setTimeout(() => {
-          wx.switchTab({ url: '/pages/index/index' })
-        }, 1500)
-
-      } else {
-        throw new Error(res.errMsg || '获取手机号失败')
+      },
+      fail: (err) => {
+        console.error('[手机号登录] 请求失败:', err)
+        this.setData({ loading: false })
+        showToast('网络请求失败')
       }
-    } catch (err: any) {
-      logger.error('登录', '获取手机号失败', err)
-      this.setData({ loading: false })
-      const { message } = parseError(err)
-      showToast(message)
-    }
+    })
   },
 
   // 跳过手机号绑定
@@ -237,7 +393,6 @@ Page({
       content: '确定要退出登录吗？',
       success: (res) => {
         if (res.confirm) {
-          // 清除登录信息
           wx.removeStorageSync('userInfo')
           wx.removeStorageSync('userId')
           wx.removeStorageSync('phone')

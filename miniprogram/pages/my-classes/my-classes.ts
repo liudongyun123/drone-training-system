@@ -1,7 +1,7 @@
 // pages/my-classes/my-classes.ts
 // 我的培训班页
 
-import { getMyEnrollments } from '../../utils/http'
+import { getMyEnrollments, dbGetList } from '../../utils/http'
 import { checkLogin, getPhone } from '../../utils/util'
 import logger from '../../utils/logger'
 
@@ -77,19 +77,43 @@ Page({
       const result = await getMyEnrollments(phone)
       let classes = result.data || []
 
-      // 去重
+      // 去重（按 classId + source 去重）
       const seen = new Set()
       classes = classes.filter((c: any) => {
-        if (seen.has(c._id)) return false
-        seen.add(c._id)
+        const key = `${c._source || 'unknown'}-${c.classId || c._id}`
+        if (seen.has(key)) return false
+        seen.add(key)
         return true
       })
+
+      // 获取完整的培训班信息
+      const classIds = classes.map((c: any) => c.classId).filter(Boolean)
+      let classDetails: Record<string, any> = {}
+      
+      if (classIds.length > 0) {
+        try {
+          // 批量查询 classes 集合
+          const classesResult = await dbGetList('classes', {
+            where: { _id: { $in: classIds } },
+            limit: 100
+          })
+          
+          // 构建 id -> detail 映射
+          for (const cls of classesResult.data || []) {
+            classDetails[cls._id] = cls
+          }
+        } catch (e) {
+          console.error('[我的培训班] 获取班级详情失败:', e)
+        }
+      }
 
       // 处理状态显示
       const now = new Date()
       classes = classes.map((item: any) => {
-        const endDate = new Date(item.classInfo?.endDate || item.endDate)
-        const startDate = new Date(item.classInfo?.startDate || item.startDate)
+        const detail = classDetails[item.classId] || {}
+        
+        const endDate = new Date(detail.endDate || item.endDate || '2099-12-31')
+        const startDate = new Date(detail.startDate || item.startDate || item.enrollmentTime || item.createdAt)
         
         let status = 'upcoming'
         let statusText = '即将开始'
@@ -104,9 +128,19 @@ Page({
 
         return {
           ...item,
+          // 优先使用 classes 集合的详细信息
+          name: detail.name || detail.title || item.className || item.name || '未命名培训班',
+          coverImage: detail.coverImage || detail.cover || item.coverImage || '',
+          startDate: detail.startDate || item.startDate || item.enrollmentTime || '',
+          endDate: detail.endDate || item.endDate || '',
+          location: detail.location || item.location || '',
+          instructor: detail.instructor || detail.teacherName || item.instructor || item.teacherName || '',
+          description: detail.description || item.description || '',
+          // 标记是否有详情数据
+          hasDetail: !!detail._id,
           status,
           statusText,
-          enrollmentStatusText: enrollmentStatusTextMap[item.enrollmentStatus] || item.enrollmentStatus || '待确认'
+          enrollmentStatusText: enrollmentStatusTextMap[item.status] || enrollmentStatusTextMap[item.enrollmentStatus] || item.status || '待确认'
         }
       })
 
@@ -181,5 +215,21 @@ Page({
   // 去培训班列表
   goToClassList() {
     wx.switchTab({ url: '/pages/class-list/class-list' })
+  },
+
+  // 跳转调课申请
+  goToTransfer(e: any) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({ url: `/pages/transfer-request/transfer-request?classId=${id}` })
+  },
+
+  // 封面图片加载失败处理
+  onCoverError(e: any) {
+    const index = e.currentTarget.dataset.index
+    const classes = this.data.classes
+    if (classes[index]) {
+      classes[index].coverImage = '/assets/images/default-cover.png'
+      this.setData({ classes })
+    }
   }
 })

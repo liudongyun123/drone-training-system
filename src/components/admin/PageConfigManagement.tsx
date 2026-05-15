@@ -14,6 +14,7 @@ import {
 import { Button, Input, TextArea, Loading, Modal } from '@/components';
 import { adminService } from '@/services/adminService';
 import { CloudAdminService } from '@/services/CloudAdminService';
+import { configVersionService } from '@/services/messageService';
 import ImageUploader from './ImageUploader';
 
 // ==================== 类型定义 ====================
@@ -1282,8 +1283,22 @@ export default function PageConfigManagement() {
       } else {
         await adminService.add(collection, saveData);
       }
+      
+      // 保存成功后更新配置版本号，通知小程序刷新
+      const configKey = selectedSourceId ? `page_config_${selectedSourceId}` : 'page_config';
+      await configVersionService.updateVersion(configKey);
+      console.log('[PageConfig] 配置版本已更新');
+      
       setModalOpen(false);
       loadData();
+      
+      // 显示保存成功提示
+      const saveBtn = document.querySelector('.save-btn');
+      if (saveBtn) {
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = '已保存 ✓';
+        setTimeout(() => { if (saveBtn) saveBtn.textContent = originalText; }, 2000);
+      }
     } catch (error) {
       console.error('保存失败:', error);
       alert('保存失败: ' + (error as Error).message);

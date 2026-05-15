@@ -1,8 +1,8 @@
 // pages/index/index.ts
-// 小程序首页 - 生产级优化版
-// 特性：骨架屏、错误处理、空状态、请求优化
+// 小程序首页 - 生产级优化版 v2.0
+// 特性：骨架屏、错误处理、空状态、请求优化、配置版本检测
 
-import { productApi, bannerApi, loadLevels, getLevelName } from '../../utils/api'
+import { productApi, bannerApi, loadLevels, getLevelName, configVersionApi } from '../../utils/api'
 import { SourceService } from '../../utils/SourceService'
 import logger from '../../utils/logger'
 
@@ -121,6 +121,12 @@ Page<IndexData>({
           _id: defaultSource._id 
         })
         
+        // 检测配置版本是否有更新
+        const hasUpdate = await configVersionApi.checkForUpdate(defaultSource._id)
+        if (hasUpdate) {
+          logger.info('[首页] 检测到配置更新，自动刷新数据')
+        }
+        
         // 加载体系数据
         await this.loadData()
       } else {
@@ -228,6 +234,8 @@ Page<IndexData>({
     try {
       // 刷新体系数据
       await SourceService.refreshSourceData(this.data.currentSourceId)
+      // 同步配置版本（强制获取最新版本）
+      await configVersionApi.syncVersion(this.data.currentSourceId)
       // 重新加载数据
       await this.loadData()
     } catch (error) {

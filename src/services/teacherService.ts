@@ -1,85 +1,42 @@
 /**
- * 教师管理服务
- * 处理教师档案、排课、出勤统计等功能
- * 版本：v20260404-refactor
+ * 教师管理服务 v2.0
+ * 版本: v20260515-unified
+ * 
+ * 统一使用 CloudDBService (HTTP → db-init)
  */
 
-import app from '../config/tcb'
-import type { Teacher, Schedule, PaginationParams } from '../types/service'
+import { CloudDBService } from './CloudDBService'
+import type { Teacher, PaginationParams } from '../types/service'
 
-const CLOUD_FUNCTION_NAME = 'api-admin'
-
-// 错误日志开关（生产环境设为 false）
-const ENABLE_ERROR_LOG = false
-
-/**
- * 调用管理后台云函数
- */
-async function callAdminFunction(action: string, params: Record<string, unknown> = {}) {
-  try {
-    const result = await app.callFunction({
-      name: CLOUD_FUNCTION_NAME,
-      data: {
-        ...params,
-        action
-      }
-    })
-
-    const response = result.result as { code: number; message?: string; data?: unknown }
-
-    if (response.code !== 0) {
-      if (ENABLE_ERROR_LOG) {
-        console.error(`云函数调用失败:`, response)
-      }
-      throw new Error(response.message || '操作失败')
-    }
-
-    return response
-  } catch (error) {
-    if (ENABLE_ERROR_LOG) {
-      console.error('教师管理服务错误:', error)
-    }
-    throw error
-  }
-}
-
-/**
- * 教师管理服务
- */
 export const teacherService = {
   /**
    * 获取教师列表
    */
   async getList(query: Record<string, unknown> = {}, options: PaginationParams = {}) {
-    const result = await callAdminFunction('list', {
-      collection: 'teacher_profiles',
-      query,
-      options
-    }) as { code: number; data: unknown[] | { list: Teacher[]; total: number }; total?: number }
-
-    // 解析云函数返回的数据
-    // 云函数返回格式: { code: 0, data: [数组], total: 4 }
-    // 需要转换为: { code: 0, data: { list: [数组], total: 4 } }
-    let dataArray: Teacher[] = []
-    let total = 0
+    const { page = 1, pageSize = 20 } = options
     
-    // 情况1: data 是数组
-    if (Array.isArray(result.data)) {
-      dataArray = result.data as Teacher[]
-      total = (result as any).total || dataArray.length
-    } 
-    // 情况2: data 是对象
-    else if (result.data && typeof result.data === 'object') {
-      const dataObj = result.data as { list?: Teacher[]; total?: number }
-      dataArray = dataObj.list || []
-      total = dataObj.total || 0
-    }
+    try {
+      const result = await CloudDBService.query<Teacher>('teacher_profiles', {
+        where: query,
+        orderBy: 'createdAt',
+        order: 'desc',
+        skip: (page - 1) * pageSize,
+        limit: pageSize
+      })
 
-    return {
-      code: 0,
-      data: {
-        list: dataArray,
-        total: total
+      return {
+        code: 0,
+        data: {
+          list: result.data,
+          total: result.total
+        }
+      }
+    } catch (error: any) {
+      console.error('获取教师列表失败:', error)
+      return {
+        code: -1,
+        message: error.message || '获取教师列表失败',
+        data: { list: [], total: 0 }
       }
     }
   },
@@ -88,10 +45,12 @@ export const teacherService = {
    * 获取教师详情
    */
   async getDetail(teacherId: string) {
-    return await callAdminFunction('get', {
-      collection: 'teacher_profiles',
-      docId: teacherId
-    })
+    try {
+      const data = await CloudDBService.get<Teacher>('teacher_profiles', teacherId)
+      return { code: 0, data }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
@@ -107,70 +66,74 @@ export const teacherService = {
       updatedAt: new Date().toISOString()
     }
 
-    return await callAdminFunction('add', {
-      collection: 'teacher_profiles',
-      id: 'new', // 云函数 add 操作不使用 docId，这里传一个占位值
-      data: teacherData
-    })
+    try {
+      const result = await CloudDBService.add('teacher_profiles', teacherData)
+      return { code: 0, data: { _id: result?.id } }
+    } catch (error: any) {
+      console.error('创建教师失败:', error)
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
    * 更新教师档案
    */
   async update(teacherId: string, data: Partial<Teacher>) {
-    const updateData = {
-      ...data,
-      updatedAt: new Date().toISOString()
+    try {
+      await CloudDBService.update('teacher_profiles', teacherId, {
+        ...data,
+        updatedAt: new Date().toISOString()
+      })
+      return { code: 0 }
+    } catch (error: any) {
+      console.error('更新教师失败:', error)
+      return { code: -1, message: error.message }
     }
-
-    return await callAdminFunction('update', {
-      collection: 'teacher_profiles',
-      docId: teacherId,
-      data: updateData
-    })
   },
 
   /**
    * 删除教师档案
    */
   async delete(teacherId: string) {
-    return await callAdminFunction('delete', {
-      collection: 'teacher_profiles',
-      docId: teacherId
-    })
+    try {
+      await CloudDBService.delete('teacher_profiles', teacherId)
+      return { code: 0 }
+    } catch (error: any) {
+      console.error('删除教师失败:', error)
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
    * 获取教师统计数据
    */
   async getStatistics(teacherId: string, year: number, month: number) {
-    return await callAdminFunction('list', {
-      collection: 'statistics_teacher',
-      query: {
-        teacherId,
-        year,
-        month
-      },
-      options: {
+    try {
+      const result = await CloudDBService.query('statistics_teacher', {
+        where: { teacherId, year, month },
         limit: 1
-      }
-    })
+      })
+      return { code: 0, data: result.data?.[0] || null }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
    * 获取教师的所有课程
    */
   async getCourses(teacherId: string) {
-    return await callAdminFunction('list', {
-      collection: 'courses',
-      query: {
-        teacherId
-      },
-      options: {
-        orderBy: 'createTime',
-        order: 'desc'
-      }
-    })
+    try {
+      const result = await CloudDBService.query('courses', {
+        where: { teacherId },
+        orderBy: 'createdAt',
+        order: 'desc',
+        limit: 100
+      })
+      return { code: 0, data: result.data }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
+    }
   }
 }
 

@@ -6,26 +6,26 @@
       <image class="logo-img" src="/assets/icons/logo.png" mode="aspectFit" />
     </view>
     <text class="title">无人机培训</text>
-    <text class="desc">登录后可享受更多服务</text>
+    <text class="desc">登录后享受更多服务</text>
     
-    <!-- 微信登录按钮 -->
+    <!-- 手机号一键登录 -->
     <button 
-      class="btn-wx-login" 
-      bindtap="handleWxLogin"
+      class="btn-primary" 
+      open-type="getPhoneNumber"
+      bindgetphonenumber="handleWxLogin"
       loading="{{loading}}"
     >
-      <text class="btn-icon">👤</text>
-      <text>微信快捷登录</text>
+      <text class="btn-icon">📱</text>
+      <text>手机号一键登录</text>
     </button>
     
-    <!-- 手机号绑定按钮 -->
+    <!-- 微信登录（不获取手机号） -->
     <button 
-      class="btn-phone-login" 
-      open-type="getPhoneNumber"
-      bindgetphonenumber="handlePhoneLogin"
+      class="btn-secondary" 
+      bindtap="handleWxLoginOnly"
     >
-      <text class="btn-icon">📱</text>
-      <text>绑定手机号</text>
+      <text class="btn-icon">👤</text>
+      <text>微信登录</text>
     </button>
     
     <text class="tips">登录即表示同意《用户协议》和《隐私政策》</text>
@@ -33,8 +33,22 @@
   
   <!-- 已登录状态 -->
   <view wx:else class="logged-container">
-    <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
-    <text class="nickname">{{userInfo.nickName}}</text>
+    <image class="avatar" src="{{userInfo.avatarUrl || '/assets/icons/profile.png'}}" mode="aspectFill" />
+    <text class="nickname">{{userInfo.nickName || '用户'}}</text>
+    
+    <!-- 显示绑定状态 -->
+    <view class="bind-status" wx:if="{{hasPhone}}">
+      <text class="bind-text">已绑定手机号</text>
+    </view>
+    <view class="bind-status bind-pending" wx:else>
+      <button 
+        class="btn-bind-phone"
+        open-type="getPhoneNumber"
+        bindgetphonenumber="handlePhoneLogin"
+      >
+        绑定手机号
+      </button>
+    </view>
     
     <button class="btn-logout" bindtap="handleLogout">退出登录</button>
   </view>

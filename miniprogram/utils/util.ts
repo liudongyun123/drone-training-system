@@ -143,3 +143,48 @@ export function navigateBack(delta = 1) {
 export function switchTab(url: string) {
   wx.switchTab({ url })
 }
+
+/**
+ * 获取用户 OpenID
+ * 使用 HTTP API 调用云函数，与项目架构一致
+ */
+export async function getOpenId(): Promise<{ openid: string } | null> {
+  try {
+    // 优先从本地缓存获取
+    const cached = wx.getStorageSync('openid')
+    if (cached) {
+      return { openid: cached }
+    }
+    
+    // 调用 wx.login 获取 code
+    const loginResult = await new Promise<{ code?: string }>((resolve) => {
+      wx.login({
+        success: (res) => resolve(res),
+        fail: () => resolve({})
+      })
+    })
+    
+    if (!loginResult.code) {
+      console.warn('[util] wx.login 失败，无法获取 openid')
+      return null
+    }
+    
+    // 使用 HTTP API 调用 login-http 云函数获取 openid
+    const { callFunction } = require('./http')
+    const res = await callFunction('login-http', { 
+      action: 'wxMiniappLogin',
+      code: loginResult.code
+    })
+    
+    if (res && res.success && res.data && res.data.openid) {
+      wx.setStorageSync('openid', res.data.openid)
+      return { openid: res.data.openid }
+    }
+    
+    return null
+  } catch (err) {
+    console.error('[util] getOpenId failed:', err)
+    return null
+  }
+}
+

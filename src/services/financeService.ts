@@ -1,49 +1,12 @@
 /**
- * 财务统计服务
- * 处理订单管理、收入统计、业绩报表等功能
- * 版本：v20260404-refactor
+ * 财务统计服务 v2.0
+ * 版本: v20260515-unified
+ * 
+ * 统一使用 CloudDBService (HTTP → db-init)
  */
 
-import app from '../config/tcb'
-// @ts-ignore
+import { CloudDBService } from './CloudDBService'
 import type { Order, OrderItem, PaginationParams, RevenueStats, DailyStat } from '../types/service'
-import { parseCloudFunctionListResponse } from '@/utils/safeData'
-
-const CLOUD_FUNCTION_NAME = 'api-admin'
-
-// 错误日志开关（生产环境设为 false）
-const ENABLE_ERROR_LOG = false
-
-/**
- * 调用管理后台云函数
- */
-async function callAdminFunction(action: string, params: Record<string, unknown> = {}) {
-  try {
-    const result = await app.callFunction({
-      name: CLOUD_FUNCTION_NAME,
-      data: {
-        ...params,
-        action
-      }
-    })
-
-    const response = result.result as { code: number; message?: string; data?: unknown }
-
-    if (response.code !== 0) {
-      if (ENABLE_ERROR_LOG) {
-        console.error(`云函数调用失败:`, response)
-      }
-      throw new Error(response.message || '操作失败')
-    }
-
-    return response
-  } catch (error) {
-    if (ENABLE_ERROR_LOG) {
-      console.error('财务服务错误:', error)
-    }
-    throw error
-  }
-}
 
 // 订单项统计
 interface CourseSalesStat {
@@ -62,24 +25,18 @@ interface TeacherPerformanceStat {
   studentCount: number
 }
 
-/**
- * 财务统计服务
- */
 export const financeService = {
   /**
    * 获取订单列表
-   * @param query - 查询条件
-   * @param options - 分页和搜索选项
-   * @param options.keyword - 可选，搜索手机号/姓名/订单号
    */
   async getOrders(query: Record<string, unknown> = {}, options: PaginationParams & { keyword?: string } = {}) {
     const { page = 1, pageSize = 20, keyword } = options
     
     try {
-      // 如果有 keyword，添加到查询条件（支持手机号、姓名、订单号搜索）
-      const finalQuery = { ...query }
+      const finalQuery: Record<string, any> = { ...query }
+      
+      // 如果有 keyword，添加到查询条件
       if (keyword) {
-        // 云函数通过 $or 实现多字段搜索
         finalQuery.$or = [
           { phone: { $regex: keyword } },
           { buyerPhone: { $regex: keyword } },
@@ -89,18 +46,17 @@ export const financeService = {
         ]
       }
       
-      const result = await callAdminFunction('list', {
-        collection: 'orders',
-        query: finalQuery,
-        options: { page, limit: pageSize }
+      const result = await CloudDBService.query<Order>('orders', {
+        where: finalQuery,
+        orderBy: 'createdAt',
+        order: 'desc',
+        skip: (page - 1) * pageSize,
+        limit: pageSize
       })
-
-      // @ts-ignore
-      const { list, total } = parseCloudFunctionListResponse<Order>(result, page, pageSize)
 
       return {
         code: 0,
-        data: { list, total, page, pageSize }
+        data: { list: result.data, total: result.total, page, pageSize }
       }
     } catch (error: any) {
       console.error('获取订单列表失败:', error)
@@ -113,32 +69,28 @@ export const financeService = {
   },
 
   /**
-   * ★ 通过手机号获取用户的所有订单（线下班 + 线上课程）
+   * 通过手机号获取用户的所有订单
    */
   async getOrdersByPhone(phone: string): Promise<{
     code: number
     data: {
-      classOrders: Order[]   // 线下班订单
-      courseOrders: Order[]  // 线上课程订单
-      allOrders: Order[]     // 所有订单
+      classOrders: Order[]
+      courseOrders: Order[]
+      allOrders: Order[]
     }
   }> {
     try {
-      // 查询该手机号的所有订单
-      const result = await callAdminFunction('list', {
-        collection: 'orders',
-        query: {
+      const result = await CloudDBService.query<Order>('orders', {
+        where: {
           $or: [
             { phone: phone },
             { buyerPhone: phone }
           ]
         },
-        options: { limit: 100 }
-      }) as { data: Order[] }
+        limit: 100
+      })
 
       const allOrders = result.data || []
-      
-      // 分类
       const classOrders = allOrders.filter(o => o.type === 'class' || o.source === 'offline_enroll' || o.source === 'online_enroll')
       const courseOrders = allOrders.filter(o => o.type === 'course' || o.source === 'online_purchase')
 
@@ -159,10 +111,12 @@ export const financeService = {
    * 获取订单详情
    */
   async getOrderDetail(orderId: string) {
-    return await callAdminFunction('get', {
-      collection: 'orders',
-      docId: orderId
-    })
+    try {
+      const data = await CloudDBService.get<Order>('orders', orderId)
+      return { code: 0, data }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
@@ -180,34 +134,27 @@ export const financeService = {
       updateData.paidAt = new Date().toISOString()
     }
 
-    return await callAdminFunction('update', {
-      collection: 'orders',
-      docId: orderId,
-      data: updateData
-    })
+    try {
+      await CloudDBService.update('orders', orderId, updateData)
+      return { code: 0 }
+    } catch (error: any) {
+      return { code: -1, message: error.message }
+    }
   },
 
   /**
    * 获取收入统计
    */
   async getRevenueStats(startDate?: string, endDate?: string): Promise<{ code: number; data: RevenueStats }> {
-    const query: Record<string, unknown> = {
-      status: 'paid'
-    }
+    const query: Record<string, any> = { status: 'paid' }
     if (startDate && endDate) {
-      query.createdAt = {
-        $gte: startDate,
-        $lte: endDate
-      }
+      query.createdAt = { $gte: startDate, $lte: endDate }
     }
 
-    const result = await callAdminFunction('list', {
-      collection: 'orders',
-      query,
-      options: {
-        limit: 1000
-      }
-    }) as { data: Order[] }
+    const result = await CloudDBService.query<Order>('orders', {
+      where: query,
+      limit: 1000
+    })
 
     const orders = result.data || []
     const totalRevenue = orders.reduce((sum, o) => sum + (o.finalAmount || 0), 0)
@@ -242,11 +189,10 @@ export const financeService = {
    * 获取课程销售统计
    */
   async getCourseSalesStats(): Promise<{ code: number; data: CourseSalesStat[] }> {
-    const result = await callAdminFunction('list', {
-      collection: 'orders',
-      query: { status: 'paid' },
-      options: { limit: 1000 }
-    }) as { data: Order[] }
+    const result = await CloudDBService.query<Order>('orders', {
+      where: { status: 'paid' },
+      limit: 1000
+    })
 
     const orders = result.data || []
     const courseStats: Record<string, CourseSalesStat> = {}
@@ -277,11 +223,10 @@ export const financeService = {
    * 获取教师业绩统计
    */
   async getTeacherPerformanceStats(): Promise<{ code: number; data: TeacherPerformanceStat[] }> {
-    const result = await callAdminFunction('list', {
-      collection: 'orders',
-      query: { status: 'paid' },
-      options: { limit: 1000 }
-    }) as { data: Order[] }
+    const result = await CloudDBService.query<Order>('orders', {
+      where: { status: 'paid' },
+      limit: 1000
+    })
 
     const orders = result.data || []
     const teacherStats: Record<string, TeacherPerformanceStat> = {}
@@ -326,6 +271,180 @@ export const financeService = {
         courseSales: courseStats.data,
         teacherPerformance: teacherStats.data,
         exportTime: new Date().toISOString()
+      }
+    }
+  },
+
+  // ============== 支付管理相关 ==============
+
+  /**
+   * 获取支付配置
+   */
+  async getPaymentConfig() {
+    try {
+      return {
+        code: 0,
+        data: {
+          wechatPayEnabled: true,
+          alipayEnabled: false,
+          mchId: import.meta.env.VITE_WX_MCH_ID || '1726655499',
+          appId: import.meta.env.VITE_WX_APPID || 'wx25aaf895ab86181a',
+          notifyUrl: import.meta.env.VITE_WX_NOTIFY_URL || '',
+        }
+      }
+    } catch (error: any) {
+      return {
+        code: -1,
+        message: error.message || '获取支付配置失败'
+      }
+    }
+  },
+
+  /**
+   * 获取支付统计数据
+   */
+  async getPaymentStats() {
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    const weekStart = new Date(now.setDate(now.getDate() - now.getDay())).toISOString().split('T')[0]
+    const monthStart = now.toISOString().split('T')[0].slice(0, 7) + '-01'
+
+    try {
+      // 查询今日支付
+      const todayResult = await CloudDBService.query<Order>('orders', {
+        where: { status: 'paid', paidAt: { $gte: today } },
+        limit: 1000
+      })
+      const todayOrders = todayResult.data || []
+      const todayAmount = todayOrders.reduce((sum, o) => sum + (o.finalAmount || 0), 0)
+
+      // 查询本周支付
+      const weekResult = await CloudDBService.query<Order>('orders', {
+        where: { status: 'paid', paidAt: { $gte: weekStart } },
+        limit: 1000
+      })
+      const weekOrders = weekResult.data || []
+      const weekAmount = weekOrders.reduce((sum, o) => sum + (o.finalAmount || 0), 0)
+
+      // 查询本月支付
+      const monthResult = await CloudDBService.query<Order>('orders', {
+        where: { status: 'paid', paidAt: { $gte: monthStart } },
+        limit: 1000
+      })
+      const monthOrders = monthResult.data || []
+      const monthAmount = monthOrders.reduce((sum, o) => sum + (o.finalAmount || 0), 0)
+
+      // 查询待支付订单数
+      const pendingCount = await CloudDBService.count('orders', { status: 'pending' })
+
+      return {
+        code: 0,
+        data: {
+          todayAmount,
+          todayCount: todayOrders.length,
+          weekAmount,
+          weekCount: weekOrders.length,
+          monthAmount,
+          monthCount: monthOrders.length,
+          pendingPayments: pendingCount
+        }
+      }
+    } catch (error: any) {
+      console.error('获取支付统计失败:', error)
+      return {
+        code: -1,
+        message: error.message || '获取支付统计失败',
+        data: {
+          todayAmount: 0,
+          todayCount: 0,
+          weekAmount: 0,
+          weekCount: 0,
+          monthAmount: 0,
+          monthCount: 0,
+          pendingPayments: 0
+        }
+      }
+    }
+  },
+
+  /**
+   * 获取退款记录
+   */
+  async getRefundList(params: PaginationParams = {}) {
+    const { page = 1, pageSize = 10 } = params
+
+    try {
+      const result = await CloudDBService.query('refunds', {
+        orderBy: 'createdAt',
+        order: 'desc',
+        skip: (page - 1) * pageSize,
+        limit: pageSize
+      })
+
+      return {
+        code: 0,
+        data: { list: result.data || [], total: result.total || 0, page, pageSize }
+      }
+    } catch (error: any) {
+      console.error('获取退款记录失败:', error)
+      return {
+        code: -1,
+        message: error.message || '获取退款记录失败',
+        data: { list: [], total: 0, page, pageSize }
+      }
+    }
+  },
+
+  /**
+   * 处理退款
+   */
+  async refund(orderId: string, reason: string) {
+    try {
+      // 更新订单状态为已退款
+      await CloudDBService.update('orders', orderId, {
+        status: 'refunded',
+        refundReason: reason,
+        refundedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+      return { code: 0, message: '退款处理成功' }
+    } catch (error: any) {
+      console.error('退款失败:', error)
+      return { code: -1, message: error.message || '退款失败' }
+    }
+  },
+
+  /**
+   * 导出支付记录
+   */
+  async exportPaymentReport() {
+    try {
+      const result = await CloudDBService.query<Order>('orders', {
+        where: { status: 'paid' },
+        orderBy: 'paidAt',
+        order: 'desc',
+        limit: 1000
+      })
+
+      const orders = result.data || []
+      const paymentData = orders.map(o => ({
+        orderNo: o.orderNo,
+        title: o.items?.[0]?.title || '-',
+        amount: o.finalAmount || 0,
+        payMethod: o.paymentMethod || 'wechat',
+        status: o.status,
+        paidAt: o.paidAt || ''
+      }))
+
+      return {
+        code: 0,
+        data: paymentData
+      }
+    } catch (error: any) {
+      console.error('导出支付记录失败:', error)
+      return {
+        code: -1,
+        message: error.message || '导出失败'
       }
     }
   }

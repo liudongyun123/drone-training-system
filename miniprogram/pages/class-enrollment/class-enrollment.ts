@@ -2,8 +2,9 @@
 // 培训班报名页
 
 import { classApi } from '../../utils/api'
+import { dbAdd, dbGetList } from '../../utils/http'
 import { checkLogin, getUserId, getPhone, showToast } from '../../utils/util'
-import { validatePhone, validateName } from '../../utils/validation'
+import { validatePhone, validateName, validateIdCard } from '../../utils/validation'
 import { parseError } from '../../utils/error'
 import logger from '../../utils/logger'
 
@@ -13,6 +14,7 @@ Page({
     loading: true,
     payMethod: 'online' as 'online' | 'offline',
     contactName: '',
+    idCard: '',
     contactPhone: '',
     remark: '',
     submitting: false
@@ -48,6 +50,11 @@ Page({
     this.setData({ contactName: e.detail.value })
   },
 
+  // 输入身份证号
+  onIdCardInput(e: any) {
+    this.setData({ idCard: e.detail.value })
+  },
+
   // 输入联系电话
   onPhoneInput(e: any) {
     this.setData({ contactPhone: e.detail.value })
@@ -74,6 +81,13 @@ Page({
       return
     }
 
+    // 身份证号验证
+    const idCardResult = validateIdCard(this.data.idCard)
+    if (!idCardResult.valid) {
+      showToast(idCardResult.message!)
+      return
+    }
+
     const phoneResult = validatePhone(this.data.contactPhone)
     if (!phoneResult.valid) {
       showToast(phoneResult.message!)
@@ -85,34 +99,58 @@ Page({
     try {
       // ★ 统一使用 phone 作为用户标识
       const phone = getPhone() || ''
-      const openid = wx.getStorageSync('openid') || ''
 
-      // 调用云函数创建报名记录
-      const res = await wx.cloud.callFunction({
-        name: 'web-api',
-        data: {
-          action: 'enrollClass',
-          data: {
-            classId: this.classId,
-            phone: phone,  // ★ 统一使用 phone
-            userName: this.data.contactName,
-            phone: this.data.contactPhone,
-            notes: this.data.remark,
-            payMethod: this.data.payMethod
-          }
+      // 检查是否已报名
+      const existingResult = await dbGetList('class_members', {
+        where: {
+          classId: this.classId,
+          phone: phone
         }
       })
+      
+      if (existingResult.data && existingResult.data.length > 0) {
+        showToast('您已报名此培训班')
+        return
+      }
 
-      logger.debug('培训班', '云函数返回', res)
+      // 使用 db-init 直接创建报名记录
+      const now = new Date().toISOString()
+      console.log('[培训班报名] 开始创建报名记录', {
+        classId: this.classId,
+        phone: phone,
+        userName: this.data.contactName
+      })
+      
+      const res = await dbAdd('class_members', {
+        classId: this.classId,
+        className: this.data.classInfo?.name || '',
+        courseId: this.data.classInfo?.courseId || '',
+        phone: phone,
+        userName: this.data.contactName,
+        idCard: this.data.idCard,
+        emergencyContact: '',
+        emergencyPhone: this.data.contactPhone,
+        notes: this.data.remark,
+        status: 'pending',  // 待审核
+        source: this.data.payMethod === 'online' ? 'online_purchase' : 'offline_enroll',
+        enrollmentTime: now,
+        createdAt: now,
+        updatedAt: now
+      })
 
-      if (res.result && res.result.success) {
+      console.log('[培训班报名] 报名返回:', JSON.stringify(res))
+
+      // 检查返回结果 - db-init 返回格式: { code, data: { id }, message }
+      const recordId = res?.data?.id
+      if (recordId) {
         wx.showToast({ title: '报名成功', icon: 'success' })
 
         setTimeout(() => {
           wx.redirectTo({ url: '/pages/my-classes/my-classes' })
         }, 1500)
       } else {
-        throw new Error(res.result?.error || '报名失败')
+        console.error('[培训班报名] 报名失败，返回结果:', res)
+        throw new Error(res?.message || res?.error || '报名失败')
       }
 
     } catch (err: any) {

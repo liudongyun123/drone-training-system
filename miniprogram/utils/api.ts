@@ -109,26 +109,44 @@ function transformClass(classItem: any) {
 }
 
 /**
- * 轮播图 API
+ * 轮播图 API - 从 banners 集合读取（公共配置，无体系区分）
+ * 体系配置请使用 page_configs 集合（按 sourceId 区分）
  */
 export const bannerApi = {
   async getList(limit: number = 10) {
-    const result = await dbGetList('banners', {
-      where: { status: 'active' },
-      orderBy: 'order asc',
-      limit
-    })
+    const defaultBanner = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
     
-    // 确保图片字段有值，并处理 URL
-    const defaultBanner = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
-    const banners = (result.data || []).map((banner: any) => ({
-      ...banner,
-      coverImage: banner.image || banner.coverImage || banner.cover || defaultBanner,
-      cover: banner.image || banner.coverImage || banner.cover || defaultBanner,
-      image: banner.image || defaultBanner
-    }))
-    
-    return banners
+    try {
+      const result = await dbGetList('banners', {
+        where: { status: 'active' },
+        orderBy: 'order asc',
+        limit
+      })
+      
+      if (result.data && result.data.length > 0) {
+        const banners = result.data.map((banner: any) => ({
+          _id: banner._id,
+          title: banner.title || '',
+          subtitle: banner.subtitle || '',
+          image: banner.image || defaultBanner,
+          cover: banner.image || defaultBanner,
+          coverImage: banner.image || defaultBanner,
+          link: banner.link || '/courses',
+          courseId: banner.courseId || '',
+          order: banner.order || 0,
+          status: banner.status
+        }))
+        
+        console.log('[bannerApi] 从 banners 集合读取:', banners.length, '条')
+        return banners
+      }
+      
+      console.log('[bannerApi] banners 集合为空')
+      return []
+    } catch (error) {
+      console.error('[bannerApi] 查询失败:', error)
+      return []
+    }
   }
 }
 
@@ -321,7 +339,7 @@ export const courseApi = {
       let courses = (result.data || []).map(transformCourse)
       
       // 确保封面图片有值
-      const defaultCourseCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      const defaultCourseCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
       courses = courses.map(course => ({
         ...course,
         coverImage: course.coverImage || course.cover || defaultCourseCover,
@@ -492,7 +510,7 @@ export const classApi = {
     let classes = (result.data || []).map(transformClass)
     
     // 确保封面图片有值（数据库可能没有封面字段）
-    const defaultCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+    const defaultCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
     classes = classes.map(cls => ({
       ...cls,
       coverImage: cls.coverImage || cls.cover || defaultCover,
@@ -584,7 +602,7 @@ export const productApi = {
     })
 
     // 映射字段：数据库 title -> name, cover -> coverImage
-    const defaultProductCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+    const defaultProductCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
     const products = (result.data || []).map((p: any) => {
       // 优先使用 coverImage（新字段），其次 cover（旧字段）
       let cover = p.coverImage || p.cover
@@ -613,7 +631,7 @@ export const productApi = {
     if (result.data && result.data.length > 0) {
       const p = result.data[0]
       // 映射字段确保兼容性
-      const defaultProductCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      const defaultProductCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
       let cover = p.coverImage || p.cover
       if (!cover || cover.includes('unsplash.com') || cover.includes('via.placeholder.com')) {
         cover = defaultProductCover
@@ -670,15 +688,28 @@ export const orderApi = {
   },
 
   async create(orderData: any) {
-    // 确保传入 phone，使用 wx.cloud.callFunction 调用云函数
-    const phone = wx.getStorageSync('phone') || ''
-    return wx.cloud.callFunction({
-      name: 'api-order',
-      data: {
-        action: 'create',
-        data: { ...orderData, phone }
-      }
+    // 优先使用 orderData 中已有的 phone（来自表单输入），其次用 storage 中的
+    const phone = orderData.phone || wx.getStorageSync('phone') || ''
+    console.log('[orderApi.create] phone 来源:', { orderDataPhone: orderData.phone, storagePhone: wx.getStorageSync('phone'), finalPhone: phone })
+    const { callFunction } = require('./http')
+    return callFunction('api-order', {
+      action: 'create',
+      data: { ...orderData, phone }
     })
+  },
+
+  async updateStatus(orderId: string, status: string) {
+    try {
+      const { callFunction } = require('./http')
+      const res = await callFunction('api-order', {
+        action: 'updateStatus',
+        data: { orderId, status }
+      })
+      return res
+    } catch (err) {
+      console.error('[orderApi] updateStatus failed:', err)
+      throw err
+    }
   },
 
   async createShopOrder(params: {
@@ -1230,5 +1261,174 @@ export const newOrderApi = {
       data: { couponTemplateId }
     })
     return res
+  }
+}
+
+// ============== 配置版本号管理（小程序端感知配置变化）==============
+
+// 本地缓存的配置版本号
+let configVersionCache: number = 0
+const CONFIG_VERSION_KEY = 'cached_config_version'
+
+/**
+ * 配置版本号 API - 用于小程序端检测后台配置变化
+ */
+export const configVersionApi = {
+  /**
+   * 获取本地缓存的版本号
+   */
+  getCachedVersion(): number {
+    try {
+      const cached = wx.getStorageSync(CONFIG_VERSION_KEY)
+      return cached ? parseInt(cached) : 0
+    } catch {
+      return 0
+    }
+  },
+
+  /**
+   * 保存版本号到本地缓存
+   */
+  setCachedVersion(version: number) {
+    try {
+      wx.setStorageSync(CONFIG_VERSION_KEY, String(version))
+      configVersionCache = version
+    } catch (error) {
+      console.error('[配置版本] 保存失败', error)
+    }
+  },
+
+  /**
+   * 获取服务器配置版本号
+   */
+  async getServerVersion(sourceId?: string): Promise<number> {
+    try {
+      const key = sourceId ? `page_config_${sourceId}` : 'page_config'
+      const result = await dbGetList('system_config', {
+        where: { key }
+      })
+      if (result.data && result.data.length > 0) {
+        return result.data[0].version || 1
+      }
+      return 1
+    } catch (error) {
+      console.error('[配置版本] 获取服务器版本失败', error)
+      return 1
+    }
+  },
+
+  /**
+   * 检测配置是否有更新（如果更新返回 true 并更新本地缓存）
+   */
+  async checkForUpdate(sourceId?: string): Promise<boolean> {
+    try {
+      const serverVersion = await this.getServerVersion(sourceId)
+      const localVersion = this.getCachedVersion()
+      
+      console.log('[配置版本] 服务器版本:', serverVersion, '本地版本:', localVersion)
+      
+      if (serverVersion > localVersion) {
+        // 发现新版本，保存并返回 true
+        this.setCachedVersion(serverVersion)
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('[配置版本] 检测更新失败', error)
+      return false
+    }
+  },
+
+  /**
+   * 同步版本号（强制从服务器获取最新版本）
+   */
+  async syncVersion(sourceId?: string) {
+    const version = await this.getServerVersion(sourceId)
+    this.setCachedVersion(version)
+    return version
+  }
+}
+
+// ============== 消息通知 API（小程序端获取通知）==============
+
+/**
+ * 消息通知 API
+ */
+export const messageApi = {
+  /**
+   * 获取我的消息列表
+   */
+  async getMyMessages(params: { status?: string; page?: number; pageSize?: number } = {}) {
+    const phone = wx.getStorageSync('phone') || ''
+    if (!phone) {
+      console.warn('[消息] 未登录，无法获取消息')
+      return []
+    }
+    
+    try {
+      const result = await dbGetList('app_messages', {
+        where: { phone, ...(params.status ? { status: params.status } : {}) },
+        orderBy: 'createdAt desc',
+        limit: params.pageSize || 20
+      })
+      
+      return result.data || []
+    } catch (error) {
+      console.error('[消息] 获取消息列表失败', error)
+      return []
+    }
+  },
+
+  /**
+   * 获取未读消息数量
+   */
+  async getUnreadCount(): Promise<number> {
+    const phone = wx.getStorageSync('phone') || ''
+    if (!phone) return 0
+    
+    try {
+      const result = await dbGetList('app_messages', {
+        where: { phone, status: 'unread' }
+      })
+      return result.data?.length || 0
+    } catch (error) {
+      console.error('[消息] 获取未读数量失败', error)
+      return 0
+    }
+  },
+
+  /**
+   * 标记消息为已读
+   */
+  async markAsRead(messageId: string): Promise<boolean> {
+    try {
+      await callFunction('api-message', {
+        action: 'markAsRead',
+        data: { messageId }
+      })
+      return true
+    } catch (error) {
+      console.error('[消息] 标记已读失败', error)
+      return false
+    }
+  },
+
+  /**
+   * 标记所有消息为已读
+   */
+  async markAllAsRead(): Promise<boolean> {
+    const phone = wx.getStorageSync('phone') || ''
+    if (!phone) return false
+    
+    try {
+      const messages = await this.getMyMessages({ status: 'unread' })
+      for (const msg of messages) {
+        await this.markAsRead(msg._id)
+      }
+      return true
+    } catch (error) {
+      console.error('[消息] 标记全部已读失败', error)
+      return false
+    }
   }
 }

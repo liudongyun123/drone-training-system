@@ -387,7 +387,8 @@
 
 .btn-outline,
 .btn-primary,
-.btn-secondary {
+.btn-secondary,
+.btn-transfer {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -403,6 +404,12 @@
   border: 1rpx solid #e2e8f0;
 }
 
+.btn-outline.disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1rpx solid #e2e8f0;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: #fff;
@@ -412,6 +419,12 @@
 .btn-secondary {
   background: #f1f5f9;
   color: #64748b;
+}
+
+.btn-transfer {
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 4rpx 12rpx rgba(124, 58, 237, 0.3);
 }
 
 /* 底部提示 */

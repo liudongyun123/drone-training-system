@@ -1,8 +1,8 @@
 /**
- * 微信支付云函数 v1.0
- * 支持：Native Pay（PC扫码） + H5支付（手机浏览器）
+ * 微信支付云函数 v2.0
+ * 支持：Native Pay（PC扫码）+ H5支付（手机浏览器）+ JSAPI（小程序）
  * 
- * 版本: v20260429-initial
+ * 版本: v20260715-jsapi
  */
 
 const crypto = require('crypto')
@@ -12,7 +12,6 @@ const app = tcb.init()
 const db = app.database()
 
 // ========== 支付配置（★ 需要在云函数环境变量中配置） ==========
-// 腾讯云云函数 → 环境变量 中配置以下值
 const CONFIG = {
   // 小程序 AppID
   APPID: process.env.WX_APPID || 'wx25aaf895ab86181a',
@@ -94,6 +93,9 @@ exports.main = async (event, context) => {
     switch (action) {
       case 'createOrder':
         return await createPayOrder(event)
+      case 'createJsapiOrder':
+        // JSAPI 支付：先创建支付订单，再返回小程序调起支付所需的参数
+        return await createJsapiPayOrder(event)
       case 'queryOrder':
         return await queryPayOrder(event)
       case 'handleCallback':
@@ -229,6 +231,105 @@ async function createPayOrder(event) {
       }
     }
     
+    return { code: 500, message: '请求微信支付失败: ' + err.message }
+  }
+}
+
+// ========== 小程序 JSAPI 支付 ==========
+async function createJsapiPayOrder(event) {
+  const { orderId, openid } = event
+  
+  if (!CONFIG.MCH_ID || !CONFIG.API_KEY) {
+    console.error('[WechatPay] 商户号或密钥未配置')
+    return { code: 500, message: '微信支付未配置，请联系管理员' }
+  }
+  
+  if (!openid) {
+    return { code: 400, message: '缺少用户 openid' }
+  }
+  
+  // 1. 查询订单
+  const orderRes = await db.collection('orders').doc(orderId).get()
+  if (!orderRes.data) {
+    return { code: 404, message: '订单不存在' }
+  }
+  
+  const order = orderRes.data
+  
+  if (order.status === 'paid') {
+    return { code: 400, message: '订单已支付' }
+  }
+  
+  // 2. 生成微信支付订单号
+  const outTradeNo = order.orderNo || `ORD${Date.now()}`
+  
+  // 3. 构建 JSAPI 请求参数
+  const body = {
+    appid: CONFIG.APPID,
+    mchid: CONFIG.MCH_ID,
+    description: order.courseName || order.items?.[0]?.title || `订单-${outTradeNo.slice(-8)}`,
+    out_trade_no: outTradeNo,
+    notify_url: CONFIG.NOTIFY_URL,
+    amount: {
+      total: Math.round((order.finalAmount || order.amount || order.totalPrice || 0) * 100),
+      currency: 'CNY'
+    },
+    payer: {
+      openid: openid
+    }
+  }
+  
+  console.log('[WechatPay JSAPI] 创建订单参数:', JSON.stringify(body))
+  
+  // 4. 调用微信支付 API
+  try {
+    const result = await httpRequest(
+      `${WX_PAY_BASE}/v3/pay/transactions/jsapi`,
+      'POST',
+      body
+    )
+    
+    console.log('[WechatPay JSAPI] 微信返回:', JSON.stringify(result))
+    
+    if (result.prepay_id) {
+      // 5. 构建小程序调起支付的参数
+      const timeStamp = Math.floor(Date.now() / 1000).toString()
+      const nonceStr = generateNonceStr(32)
+      const packageStr = `prepay_id=${result.prepay_id}`
+      
+      // 6. 签名（使用 APIv3 密钥）
+      const signParams = [CONFIG.APPID, timeStamp, nonceStr, packageStr].join('\n')
+      const sign = crypto.createHmac('sha256', CONFIG.API_KEY).update(signParams).digest('hex').toUpperCase()
+      
+      console.log('[WechatPay JSAPI] 支付签名完成')
+      
+      // 更新订单的微信支付订单号
+      await db.collection('orders').doc(orderId).update({
+        wxPrepayId: result.prepay_id,
+        wxOutTradeNo: outTradeNo,
+        updatedAt: new Date().toISOString()
+      })
+      
+      return {
+        code: 0,
+        message: '支付参数获取成功',
+        data: {
+          orderId: order._id,
+          outTradeNo,
+          timeStamp,
+          nonceStr,
+          package: packageStr,
+          signType: 'RSA',
+          paySign: sign,
+          appId: CONFIG.APPID
+        }
+      }
+    } else {
+      console.error('[WechatPay JSAPI] 微信返回异常:', result)
+      return { code: 500, message: '创建支付订单失败: ' + JSON.stringify(result) }
+    }
+  } catch (err) {
+    console.error('[WechatPay JSAPI] 请求微信失败:', err.message)
     return { code: 500, message: '请求微信支付失败: ' + err.message }
   }
 }

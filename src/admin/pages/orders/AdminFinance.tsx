@@ -7,7 +7,8 @@ import { useConfirm } from '@/admin/hooks/useConfirm';
 import { 
   DollarSign, ShoppingCart, TrendingUp, Users, Download,
   Search, ChevronLeft, ChevronRight,
-  CreditCard, Package, Award, BarChart3, FileText
+  CreditCard, Package, Award, BarChart3, FileText,
+  Settings, AlertCircle, CheckCircle, XCircle, RefreshCw, ExternalLink
 } from 'lucide-react';
 import { financeService } from '@/services/financeService';
 import type { Order } from '@/types';
@@ -199,7 +200,40 @@ function OrderDetailModal({ order, isOpen, onClose, onStatusChange }: OrderDetai
 // 主组件
 export default function AdminFinance() {
   const { confirm, ConfirmDialog } = useConfirm();
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'courses' | 'teachers'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'courses' | 'teachers' | 'payments'>('overview');
+  
+  // 支付配置状态
+  const [paymentConfig, setPaymentConfig] = useState({
+    wechatPayEnabled: true,
+    alipayEnabled: false,
+    mchId: '',
+    appId: '',
+    notifyUrl: '',
+    apiKey: ''
+  });
+  
+  // 支付统计数据
+  const [paymentStats, setPaymentStats] = useState({
+    todayAmount: 0,
+    todayCount: 0,
+    weekAmount: 0,
+    weekCount: 0,
+    monthAmount: 0,
+    monthCount: 0,
+    pendingPayments: 0
+  });
+  
+  // 退款记录
+  const [refundList, setRefundList] = useState<any[]>([]);
+  const [refundPage, setRefundPage] = useState(1);
+  const [refundPageSize] = useState(10);
+  const [refundLoading, setRefundLoading] = useState(false);
+  
+  // 处理退款弹窗
+  const [refundModal, setRefundModal] = useState<{
+    isOpen: boolean;
+    order: Order | null;
+  }>({ isOpen: false, order: null });
   const [loading, setLoading] = useState(false);
   
   // 统计数据
@@ -352,6 +386,10 @@ export default function AdminFinance() {
       loadCourseSales();
     } else if (activeTab === 'teachers') {
       loadTeacherPerformance();
+    } else if (activeTab === 'payments') {
+      loadPaymentConfig();
+      loadPaymentStats();
+      loadRefundList();
     }
   }, [activeTab, orderPage, orderStatus]);
 
@@ -377,6 +415,97 @@ export default function AdminFinance() {
     } catch (error) {
       console.error('更新订单状态失败:', error);
       await confirm({ title: '提示', message: '更新失败，请重试', variant: 'info' });
+    }
+  };
+
+  // 加载支付配置
+  const loadPaymentConfig = async () => {
+    try {
+      // 从云函数获取支付配置
+      const result = await financeService.getPaymentConfig();
+      if (result.code === 0 && result.data) {
+        setPaymentConfig(result.data);
+      }
+    } catch (error) {
+      console.error('加载支付配置失败:', error);
+    }
+  };
+  
+  // 加载支付统计数据
+  const loadPaymentStats = async () => {
+    try {
+      const result = await financeService.getPaymentStats();
+      if (result.code === 0 && result.data) {
+        setPaymentStats(result.data);
+      }
+    } catch (error) {
+      console.error('加载支付统计失败:', error);
+    }
+  };
+  
+  // 加载退款记录
+  const loadRefundList = async () => {
+    setRefundLoading(true);
+    try {
+      const result = await financeService.getRefundList({
+        page: refundPage,
+        pageSize: refundPageSize
+      });
+      if (result.code === 0) {
+        setRefundList(result.data?.list || []);
+      }
+    } catch (error) {
+      console.error('加载退款记录失败:', error);
+    } finally {
+      setRefundLoading(false);
+    }
+  };
+  
+  // 处理退款
+  const handleRefund = async (orderId: string, reason: string) => {
+    try {
+      const result = await financeService.refund(orderId, reason);
+      if (result.code === 0) {
+        await confirm({ 
+          title: '退款成功', 
+          message: '退款申请已提交，款项将原路退回', 
+          variant: 'success' 
+        });
+        setRefundModal({ isOpen: false, order: null });
+        loadRefundList();
+        loadPaymentStats();
+      } else {
+        await confirm({ title: '退款失败', message: result.message || '退款失败，请重试', variant: 'error' });
+      }
+    } catch (error) {
+      console.error('退款失败:', error);
+      await confirm({ title: '退款失败', message: '退款失败，请重试', variant: 'error' });
+    }
+  };
+  
+  // 导出支付记录
+  const handleExportPayments = async () => {
+    try {
+      const result = await financeService.exportPaymentReport();
+      if (result.code === 0 && result.data) {
+        let csvContent = 'data:text/csv;charset=utf-8,\uFEFF';
+        csvContent += '支付记录导出\n';
+        csvContent += '订单号,商品,金额,支付方式,支付状态,支付时间\n';
+        result.data.forEach((item: any) => {
+          csvContent += `${item.orderNo},${item.title},${item.amount},${item.payMethod},${item.status},${item.paidAt}\n`;
+        });
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', `支付记录_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('导出失败:', error);
+      await confirm({ title: '提示', message: '导出失败，请重试', variant: 'info' });
     }
   };
 
@@ -519,6 +648,7 @@ export default function AdminFinance() {
                 { key: 'orders', label: '订单管理', icon: FileText },
                 { key: 'courses', label: '课程销售', icon: Package },
                 { key: 'teachers', label: '教师业绩', icon: Award },
+                { key: 'payments', label: '支付管理', icon: CreditCard },
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -964,6 +1094,242 @@ export default function AdminFinance() {
                 )}
               </div>
             )}
+
+            {activeTab === 'payments' && (
+              <div className="space-y-6">
+                {/* 支付统计卡片 */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border border-green-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="text-green-600" size={20} />
+                      </div>
+                      <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">今日</span>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-1">今日收款</p>
+                    <p className="text-2xl font-bold text-gray-800">{formatMoney(paymentStats.todayAmount)}</p>
+                    <p className="text-xs text-gray-400 mt-1">{paymentStats.todayCount} 笔</p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <BarChart3 className="text-blue-600" size={20} />
+                      </div>
+                      <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">本周</span>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-1">本周收款</p>
+                    <p className="text-2xl font-bold text-gray-800">{formatMoney(paymentStats.weekAmount)}</p>
+                    <p className="text-xs text-gray-400 mt-1">{paymentStats.weekCount} 笔</p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border border-purple-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <DollarSign className="text-purple-600" size={20} />
+                      </div>
+                      <span className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full">本月</span>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-1">本月收款</p>
+                    <p className="text-2xl font-bold text-gray-800">{formatMoney(paymentStats.monthAmount)}</p>
+                    <p className="text-xs text-gray-400 mt-1">{paymentStats.monthCount} 笔</p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-5 border border-orange-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <AlertCircle className="text-orange-600" size={20} />
+                      </div>
+                      <span className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">待处理</span>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-1">待支付订单</p>
+                    <p className="text-2xl font-bold text-gray-800">{paymentStats.pendingPayments}</p>
+                    <p className="text-xs text-gray-400 mt-1">笔</p>
+                  </div>
+                </div>
+
+                {/* 支付配置 */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Settings className="text-blue-600" size={20} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-800">支付配置</h3>
+                        <p className="text-xs text-gray-500">配置微信支付参数</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => window.open('https://pay.weixin.qq.com', '_blank')}
+                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    >
+                      前往微信支付商户平台
+                      <ExternalLink size={14} />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">小程序 AppID</label>
+                      <input
+                        type="text"
+                        value={paymentConfig.appId}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                        placeholder="wx25aaf895ab86181a"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">商户号</label>
+                      <input
+                        type="text"
+                        value={paymentConfig.mchId}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                        placeholder="未配置"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">支付回调地址</label>
+                      <input
+                        type="text"
+                        value={paymentConfig.notifyUrl}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                        placeholder="未配置"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="text-blue-500 mt-0.5" size={18} />
+                      <div className="text-sm">
+                        <p className="font-medium text-blue-800">微信支付已启用</p>
+                        <p className="text-blue-600 mt-1">用户可通过微信支付完成订单付款</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 退款管理 */}
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                        <RefreshCw className="text-red-600" size={20} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-800">退款管理</h3>
+                        <p className="text-xs text-gray-500">处理用户退款申请</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleExportPayments}
+                      className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                      <Download size={16} />
+                      导出记录
+                    </button>
+                  </div>
+                  
+                  {refundLoading ? (
+                    <div className="flex justify-center py-12">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+                    </div>
+                  ) : refundList.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <CheckCircle className="mx-auto mb-4 text-gray-300" size={64} />
+                      <p>暂无退款记录</p>
+                      <p className="text-sm text-gray-400 mt-1">所有订单均已完成支付</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 border-b">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">订单号</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">金额</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">退款原因</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">状态</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">申请时间</th>
+                            <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">操作</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {refundList.map((refund) => (
+                            <tr key={refund._id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm font-mono text-gray-600">{refund.orderNo}</td>
+                              <td className="px-4 py-3 text-sm font-medium text-red-600">¥{refund.amount}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{refund.reason || '-'}</td>
+                              <td className="px-4 py-3">
+                                {refund.status === 'pending' ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                                    <AlertCircle size={12} /> 待处理
+                                  </span>
+                                ) : refund.status === 'approved' ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                    <CheckCircle size={12} /> 已退款
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                    <XCircle size={12} /> 已拒绝
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-500">
+                                {formatDateStr(refund.createdAt)}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                {refund.status === 'pending' && (
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      onClick={() => handleRefund(refund.orderId, refund.reason)}
+                                      className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-medium transition-colors"
+                                    >
+                                      确认退款
+                                    </button>
+                                    <button
+                                      onClick={() => setRefundModal({ isOpen: true, order: refund })}
+                                      className="px-3 py-1 border border-gray-300 hover:bg-gray-50 rounded text-xs font-medium transition-colors"
+                                    >
+                                      拒绝
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  
+                  {/* 退款分页 */}
+                  {!refundLoading && refundList.length > 0 && (
+                    <div className="flex justify-between items-center px-6 py-4 border-t">
+                      <span className="text-sm text-gray-500">共 {refundList.length} 条记录</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setRefundPage(p => Math.max(1, p - 1))}
+                          disabled={refundPage === 1}
+                          className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <button
+                          onClick={() => setRefundPage(p => p + 1)}
+                          className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -977,6 +1343,49 @@ export default function AdminFinance() {
         onClose={() => { setIsOrderModalOpen(false); setSelectedOrder(null); }}
         onStatusChange={handleOrderStatusChange}
       />
+
+      {/* 拒绝退款弹窗 */}
+      {refundModal.isOpen && refundModal.order && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-xl font-bold text-gray-800">拒绝退款</h2>
+              <p className="text-sm text-gray-500 mt-1">订单号: {refundModal.order.orderNo}</p>
+            </div>
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">退款金额</p>
+                <p className="text-2xl font-bold text-red-600">¥{refundModal.order.finalAmount}</p>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">拒绝原因</label>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+                  rows={3}
+                  placeholder="请输入拒绝原因（将通知用户）"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex gap-3">
+              <button
+                onClick={() => setRefundModal({ isOpen: false, order: null })}
+                className="flex-1 py-2.5 border hover:bg-gray-50 rounded-lg font-medium transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  setRefundModal({ isOpen: false, order: null });
+                  // 实际拒绝逻辑
+                }}
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
+              >
+                确认拒绝
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

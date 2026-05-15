@@ -424,10 +424,33 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 12rpx;
+  position: relative;
 }
 
 .tool-icon text {
   font-size: 32rpx;
+}
+
+/* 消息通知图标 */
+.notification-icon {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 8rpx;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tool-label {

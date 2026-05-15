@@ -2,6 +2,7 @@
 // 我的订单页
 
 import { orderApi } from '../../utils/api'
+import { callFunction } from '../../utils/http'
 import { checkLogin } from '../../utils/util'
 import logger from '../../utils/logger'
 
@@ -56,10 +57,8 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const orderType = this.data.currentTab === 'all' ? undefined : this.data.currentTab
-      const status = this.data.currentTab === 'all' ? undefined : this.data.currentTab
-      
-      const orders = await orderApi.getByUserId('', orderType)
+      // 获取所有订单（不筛选 orderType）
+      const orders = await orderApi.getByUserId('')
       let processedOrders = orders || []
       
       // 处理订单数据
@@ -69,9 +68,22 @@ Page({
         createdAt: this.formatTime(order.createdAt)
       }))
 
-      // 根据状态筛选
-      if (status) {
-        processedOrders = processedOrders.filter((o: any) => o.status === status)
+      // 根据当前 Tab 筛选状态
+      const currentTab = this.data.currentTab
+      if (currentTab !== 'all') {
+        processedOrders = processedOrders.filter((o: any) => {
+          // 课程/培训班订单：paid 状态显示在"已完成"中
+          if ((o.orderType === 'course' || o.orderType === 'class') && o.status === 'paid') {
+            return currentTab === 'completed'
+          }
+          
+          // 待发货/待收货 Tab：只显示商品订单
+          if (currentTab === 'paid' || currentTab === 'shipped') {
+            return o.status === currentTab && o.orderType === 'shop'
+          }
+          
+          return o.status === currentTab
+        })
       }
 
       this.setData({ orders: processedOrders, loading: false })
@@ -100,9 +112,20 @@ Page({
     const counts: Record<string, number> = { all: allOrders.length }
     
     allOrders.forEach((order: any) => {
-      if (order.status) {
-        counts[order.status] = (counts[order.status] || 0) + 1
+      if (!order.status) return
+      
+      // 课程/培训班订单：paid 状态计入"已完成"
+      if ((order.orderType === 'course' || order.orderType === 'class') && order.status === 'paid') {
+        counts['completed'] = (counts['completed'] || 0) + 1
+        return
       }
+      
+      // 待发货/待收货 Tab：只统计商品订单
+      if ((order.status === 'paid' || order.status === 'shipped') && order.orderType !== 'shop') {
+        return
+      }
+      
+      counts[order.status] = (counts[order.status] || 0) + 1
     })
 
     const tabs = this.data.tabs.map(tab => ({
@@ -135,6 +158,20 @@ Page({
             // 模拟支付成功
             await new Promise(resolve => setTimeout(resolve, 1500))
             
+            // 课程/培训班订单：支付后直接完成（虚拟商品自动发货）
+            // 商品订单：支付后变为 paid 状态（等待发货）
+            const isVirtual = order.orderType === 'course' || order.orderType === 'class'
+            const newStatus = isVirtual ? 'completed' : 'paid'
+            
+            // 更新订单状态
+            await callFunction('api-order', {
+              action: 'updateStatus',
+              data: { 
+                orderId: order._id,
+                status: newStatus
+              }
+            })
+            
             wx.hideLoading()
             wx.showToast({ title: '支付成功', icon: 'success' })
             this.loadOrders()
@@ -158,21 +195,19 @@ Page({
           try {
             wx.showLoading({ title: '处理中...' })
             
-            const result = await wx.cloud.callFunction({
-              name: 'api-order',
-              data: {
-                action: 'cancel',
-                orderId
-              }
+            // 使用 HTTP API 调用云函数
+            const result = await callFunction('api-order', {
+              action: 'cancel',
+              data: { orderId }
             })
 
             wx.hideLoading()
             
-            if (result.result && (result.result as any).success) {
+            if (result && result.success) {
               wx.showToast({ title: '已取消', icon: 'success' })
               this.loadOrders()
             } else {
-              throw new Error((result.result as any)?.error || '取消失败')
+              throw new Error(result?.error || '取消失败')
             }
           } catch (err: any) {
             wx.hideLoading()
@@ -195,23 +230,21 @@ Page({
           try {
             wx.showLoading({ title: '删除中...' })
             
-            const result = await wx.cloud.callFunction({
-              name: 'api-order',
-              data: {
-                action: 'delete',
-                orderId
-              }
+            // 使用 HTTP API 调用云函数
+            const result = await callFunction('api-order', {
+              action: 'delete',
+              data: { orderId }
             })
 
             wx.hideLoading()
             
-            if (result.result && (result.result as any).success) {
+            if (result && result.success) {
               wx.showToast({ title: '已删除', icon: 'success' })
               // 从列表中移除
               const orders = this.data.orders.filter((o: any) => o._id !== orderId)
               this.setData({ orders })
             } else {
-              throw new Error((result.result as any)?.error || '删除失败')
+              throw new Error(result?.error || '删除失败')
             }
           } catch (err: any) {
             wx.hideLoading()
@@ -221,6 +254,18 @@ Page({
         }
       }
     })
+  },
+
+  // 去学习（课程/培训班订单）
+  goToLearn(e: any) {
+    const order = e.currentTarget.dataset.order
+    if (order.orderType === 'course' && order.courseId) {
+      wx.navigateTo({ url: `/pages/course-detail/course-detail?id=${order.courseId}` })
+    } else if (order.orderType === 'class' && order.classId) {
+      wx.navigateTo({ url: `/pages/class-detail/class-detail?id=${order.classId}` })
+    } else {
+      wx.showToast({ title: '课程信息不存在', icon: 'none' })
+    }
   },
 
   // 再来一单

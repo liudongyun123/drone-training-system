@@ -56,6 +56,8 @@ Page({
   },
 
   startLearning(e: any) {
+    console.log('[课程详情] startLearning 被调用', e.currentTarget.dataset)
+    
     const lessonId = e.currentTarget.dataset.id
     
     if (!this.data.hasPermission) {
@@ -65,6 +67,8 @@ Page({
     
     // 如果没有传入 lessonId，使用第一个课时
     const targetLessonId = lessonId || (this.data.lessons[0]?._id)
+    
+    console.log('[课程详情] targetLessonId:', targetLessonId, 'lessons:', this.data.lessons)
     
     if (!targetLessonId) {
       showToast('课时信息加载中，请重试')
