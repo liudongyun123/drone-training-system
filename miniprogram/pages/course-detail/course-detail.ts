@@ -138,6 +138,17 @@ Page({
       return
     }
     
+    // 检查是否已有该课程的学习权限
+    if (this.data.hasPermission) {
+      wx.showModal({
+        title: '已购买',
+        content: '您已购买过该课程，无需重复购买',
+        showCancel: false,
+        confirmText: '知道了'
+      })
+      return
+    }
+    
     wx.navigateTo({
       url: `/pages/checkout/checkout?type=course&id=${this.data.courseId}`
     })

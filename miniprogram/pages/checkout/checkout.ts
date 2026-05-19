@@ -3,7 +3,7 @@
 
 import { orderApi, courseApi, coursePermissionApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast, getOpenId, getPhone } from '../../utils/util'
-import { callFunction } from '../../utils/http'
+import { callFunction, dbGetList } from '../../utils/http'
 import { validatePhone, validateName, validateAddress } from '../../utils/validation'
 import { parseError } from '../../utils/error'
 import logger from '../../utils/logger'
@@ -41,13 +41,48 @@ Page({
 
     if (type === 'course') {
       this.courseId = options.id
-      this.loadCourse()
+      
+      // 课程订单：先检查是否已有权限
+      this.checkCoursePermission(options.id).then(hasPermission => {
+        if (hasPermission) {
+          wx.showModal({
+            title: '已购买',
+            content: '您已购买过该课程，无需重复购买',
+            showCancel: false,
+            confirmText: '去学习',
+            success: (res) => {
+              if (res.confirm) {
+                wx.redirectTo({ url: `/pages/learning/learning` })
+              }
+            }
+          })
+          return
+        }
+        // 没有权限，加载课程信息
+        this.loadCourse()
+      })
     } else {
       this.loadCartItems()
     }
 
     // 获取 openid
     this.getUserOpenId()
+  },
+  
+  // 检查用户是否已有课程权限
+  async checkCoursePermission(courseId: string): Promise<boolean> {
+    const phone = wx.getStorageSync('phone') || ''
+    if (!phone) return false
+    
+    try {
+      const result = await dbGetList('course_permissions', {
+        where: { phone, courseId }
+      })
+      return (result.data || []).length > 0
+    } catch (err) {
+      console.error('[Checkout] 检查课程权限失败:', err)
+      return false
+    }
   },
 
   async getUserOpenId() {
@@ -540,10 +575,48 @@ Page({
       // 更新订单状态为已支付
       await orderApi.updateStatus(orderId, 'paid')
       
+      // 如果是课程订单，创建学习权限
+      if (this.data.type === 'course' && this.courseId) {
+        const phone = this.checkPhoneBound() || ''
+        const openid = wx.getStorageSync('openid') || ''
+        
+        try {
+          // 调用云函数创建课程权限
+          const permResult = await callFunction('api-order', {
+            action: 'createCoursePermission',
+            data: {
+              courseId: this.courseId,
+              phone: phone,
+              openid: openid,
+              source: 'purchase'
+            }
+          })
+          
+          console.log('[Checkout] 创建课程权限结果:', permResult)
+          
+          if (permResult.code === 0) {
+            if (permResult.data?.alreadyExists) {
+              console.log('[Checkout] 用户已有该课程权限（可能之前购买或管理员授权）')
+            } else {
+              console.log('[Checkout] 课程权限创建成功，ID:', permResult.data?.permissionId)
+            }
+          } else {
+            console.error('[Checkout] 创建课程权限失败:', permResult.error)
+          }
+        } catch (permErr) {
+          console.error('[Checkout] 创建课程权限异常:', permErr)
+        }
+      }
+      
       wx.showToast({ title: '支付成功', icon: 'success' })
       
       setTimeout(() => {
-        wx.redirectTo({ url: '/pages/my-orders/my-orders' })
+        // 课程订单跳转到学习页面
+        if (this.data.type === 'course') {
+          wx.redirectTo({ url: '/pages/learning/learning' })
+        } else {
+          wx.redirectTo({ url: '/pages/my-orders/my-orders' })
+        }
       }, 1500)
     } catch (err) {
       console.error('[Checkout] 更新订单状态失败', err)
