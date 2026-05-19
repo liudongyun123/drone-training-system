@@ -153,7 +153,12 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 | 服务类型 | 地址/说明 |
 |---------|----------|
 | **前端访问** | https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/ |
-| **云函数** | admin-http (管理后台云函数) |
+| **云函数** | admin-http, login-http, api-order, api-course, api-upload |
+| **头像上传** | api-upload (支持压缩后 base64 上传到云存储) |
+
+### API 版本
+- **当前版本**: v20260519-2215-avatar-fix
+- **头像上传**: 支持图片压缩后上传，解决 413 Payload Too Large 问题
 
 ### 数据库集合
 | 集合名 | 说明 | 记录数 |

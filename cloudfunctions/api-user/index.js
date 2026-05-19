@@ -105,7 +105,19 @@ function hashPassword(password) {
 // ========== 主入口 ==========
 
 exports.main = async (event, context) => {
-  const { action, data = {}, openid } = event
+  // HTTP 触发器：解析 body
+  let action, data = {}, openid
+  if (event.body) {
+    const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body
+    action = body.action
+    data = body.data || body || {}
+    openid = body.openid || data.openid
+  } else {
+    action = event.action
+    data = event.data || {}
+    openid = event.openid
+  }
+
   const headers = event.headers || {}
   const origin = headers.origin || ''
 

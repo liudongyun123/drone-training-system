@@ -69,6 +69,6 @@
     },
     "name": "y"
   },
-  "functionRoot": "./functions",
+  "functionRoot": "./cloudfunctions",
   "functions": []
 }

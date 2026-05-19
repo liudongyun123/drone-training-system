@@ -169,18 +169,23 @@ Page({
       sourceType: ['album', 'camera'],
       success: async (res) => {
         const tempFilePath = res.tempFiles[0].tempFilePath
-        wx.showLoading({ title: '上传中...' })
+        wx.showLoading({ title: '处理中...' })
 
         try {
-          // 1. 读取图片文件为 base64
-          const fsManager = wx.getFileSystemManager()
-          const fileData = fsManager.readFileSync(tempFilePath, 'base64')
+          // 1. 先压缩图片（解决 413 Payload Too Large 问题）
+          const compressedPath = await this.compressImage(tempFilePath)
+          
+          wx.showLoading({ title: '上传中...' })
 
-          // 2. 生成云存储路径
+          // 2. 读取压缩后的图片为 base64
+          const fsManager = wx.getFileSystemManager()
+          const fileData = fsManager.readFileSync(compressedPath, 'base64')
+
+          // 3. 生成云存储路径
           const openid = wx.getStorageSync('openid') || 'user'
           const cloudPath = `avatars/${openid}_${Date.now()}.jpg`
 
-          // 3. 调用上传云函数（HTTP 方式）
+          // 4. 调用上传云函数（HTTP 方式）
           const { callFunction } = require('../../utils/http')
           const uploadResult = await callFunction('api-upload', {
             action: 'uploadAvatar',
@@ -194,18 +199,18 @@ Page({
           if (uploadResult.code === 0 && uploadResult.data?.fileUrl) {
             const avatarUrl = uploadResult.data.fileUrl
 
-            // 4. 更新本地显示
+            // 5. 更新本地显示
             const userInfo = { ...this.data.userInfo, avatarUrl: avatarUrl }
             this.setData({ userInfo })
 
-            // 5. 保存到本地存储
+            // 6. 保存到本地存储
             const loginInfo = wx.getStorageSync('loginInfo') || {}
             loginInfo.userInfo = loginInfo.userInfo || {}
             loginInfo.userInfo.avatarUrl = avatarUrl
             wx.setStorageSync('loginInfo', loginInfo)
             wx.setStorageSync('userInfo', loginInfo.userInfo)
 
-            // 6. 更新到服务器数据库
+            // 7. 更新到服务器数据库
             await this.updateUserAvatarToServer(avatarUrl)
 
             wx.hideLoading()
@@ -229,20 +234,41 @@ Page({
     })
   },
 
+  // 压缩图片（解决 base64 过大问题）
+  compressImage(tempFilePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      // 先尝试压缩到 200KB 以内
+      wx.compressImage({
+        src: tempFilePath,
+        quality: 50,  // 质量 0-100，50 约压缩到原来的 50%
+        compressedWidth: 500,  // 目标宽度
+        compressedHeight: 500,  // 目标高度
+        success: (res) => {
+          console.log('[头像] 压缩成功:', res.tempFilePath)
+          resolve(res.tempFilePath)
+        },
+        fail: (err) => {
+          console.error('[头像] 压缩失败，使用原图:', err)
+          // 压缩失败时使用原图
+          resolve(tempFilePath)
+        }
+      })
+    })
+  },
+
   // 更新头像到服务器
   async updateUserAvatarToServer(avatarUrl: string) {
     try {
       const openid = wx.getStorageSync('openid')
       if (!openid) return
 
-      // 使用 callFunction 调用 login-http 云函数
-      const { callFunction } = require('../../utils/http')
-      const res = await callFunction('login-http', {
-        action: 'updateUserInfo',
+      // 使用 api-user 云函数更新头像
+      const { callApiUser } = require('../../utils/http')
+      const res = await callApiUser('updateProfile', {
         openid: openid,
-        userInfo: { avatarUrl: avatarUrl }
+        avatar: avatarUrl
       })
-      
+
       console.log('[头像] 服务器更新结果:', res)
     } catch (err) {
       console.error('[头像] 更新服务器失败:', err)
