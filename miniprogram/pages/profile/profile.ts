@@ -172,58 +172,52 @@ Page({
         wx.showLoading({ title: '上传中...' })
 
         try {
-          // 上传到云存储
-          const cloudPath = `avatars/${wx.getStorageSync('openid') || 'user'}_${Date.now()}.jpg`
+          // 1. 读取图片文件为 base64
+          const fsManager = wx.getFileSystemManager()
+          const fileData = fsManager.readFileSync(tempFilePath, 'base64')
 
-          const uploadResult = await wx.cloud.uploadFile({
+          // 2. 生成云存储路径
+          const openid = wx.getStorageSync('openid') || 'user'
+          const cloudPath = `avatars/${openid}_${Date.now()}.jpg`
+
+          // 3. 调用上传云函数（HTTP 方式）
+          const { callFunction } = require('../../utils/http')
+          const uploadResult = await callFunction('api-upload', {
+            action: 'uploadAvatar',
             cloudPath: cloudPath,
-            filePath: tempFilePath
+            fileContent: fileData,
+            userId: openid
           })
 
-          const fileID = uploadResult.fileID
-          console.log('[头像] 上传成功:', fileID)
+          console.log('[头像] 上传结果:', uploadResult)
 
-          // 获取永久链接
-          const getUrlResult = await wx.cloud.getTempFileURL({
-            fileList: [fileID]
-          })
+          if (uploadResult.code === 0 && uploadResult.data?.fileUrl) {
+            const avatarUrl = uploadResult.data.fileUrl
 
-          const avatarUrl = getUrlResult.fileList[0]?.tempFileURL || fileID
+            // 4. 更新本地显示
+            const userInfo = { ...this.data.userInfo, avatarUrl: avatarUrl }
+            this.setData({ userInfo })
 
-          // 更新本地显示
-          const userInfo = { ...this.data.userInfo, avatarUrl: avatarUrl }
-          this.setData({ userInfo })
+            // 5. 保存到本地存储
+            const loginInfo = wx.getStorageSync('loginInfo') || {}
+            loginInfo.userInfo = loginInfo.userInfo || {}
+            loginInfo.userInfo.avatarUrl = avatarUrl
+            wx.setStorageSync('loginInfo', loginInfo)
+            wx.setStorageSync('userInfo', loginInfo.userInfo)
 
-          // 保存到本地存储
-          const loginInfo = wx.getStorageSync('loginInfo') || {}
-          loginInfo.userInfo = loginInfo.userInfo || {}
-          loginInfo.userInfo.avatarUrl = avatarUrl
-          wx.setStorageSync('loginInfo', loginInfo)
-          wx.setStorageSync('userInfo', loginInfo.userInfo)
-
-          // 更新到服务器
-          const openid = wx.getStorageSync('openid')
-          if (openid) {
+            // 6. 更新到服务器数据库
             await this.updateUserAvatarToServer(avatarUrl)
-          }
 
-          wx.hideLoading()
-          showToast('头像已更新', 'success')
+            wx.hideLoading()
+            showToast('头像已更新', 'success')
+          } else {
+            throw new Error(uploadResult.error || '上传失败')
+          }
 
         } catch (err) {
           console.error('[头像] 上传失败:', err)
           wx.hideLoading()
-          // 上传到云存储失败，仅保存本地临时路径
-          const userInfo = { ...this.data.userInfo, avatarUrl: tempFilePath }
-          this.setData({ userInfo })
-
-          const loginInfo = wx.getStorageSync('loginInfo') || {}
-          loginInfo.userInfo = loginInfo.userInfo || {}
-          loginInfo.userInfo.avatarUrl = tempFilePath
-          wx.setStorageSync('loginInfo', loginInfo)
-          wx.setStorageSync('userInfo', loginInfo.userInfo)
-
-          showToast('头像已保存（本地）', 'success')
+          showToast('头像上传失败，请重试')
         }
       },
       fail: (err) => {
