@@ -387,10 +387,75 @@ Page({
 
   // 请求微信支付
   async requestWechatPayment(orderId: string) {
-    // 目前使用模拟支付（微信支付需要配置商户号等）
-    console.log('[Checkout] 使用模拟支付')
-    await this.mockPaymentSuccess(orderId)
-    return
+    console.log('[Checkout] 开始微信支付流程, orderId:', orderId)
+    
+    // 获取用户 openid
+    const openid = wx.getStorageSync('openid')
+    if (!openid) {
+      console.error('[Checkout] 未获取到 openid')
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    
+    wx.showLoading({ title: '正在唤起支付...' })
+    
+    try {
+      // 调用 api-order 云函数获取支付参数
+      const result = await callFunction('api-order', {
+        action: 'createJsapiOrder',
+        orderId: orderId,
+        openid: openid
+      })
+      
+      console.log('[Checkout] wechat-pay 返回:', JSON.stringify(result))
+      wx.hideLoading()
+      
+      if (result.code === 0 && result.data) {
+        const payData = result.data
+        console.log('[Checkout] 支付参数:', payData)
+        
+        // 调用微信支付
+        await new Promise<void>((resolve, reject) => {
+          wx.requestPayment({
+            timeStamp: payData.timeStamp,
+            nonceStr: payData.nonceStr,
+            package: payData.package,
+            signType: payData.signType || 'RSA',
+            paySign: payData.paySign,
+            appId: payData.appId,
+            success: (res) => {
+              console.log('[Checkout] 微信支付成功:', res)
+              resolve()
+            },
+            fail: (err) => {
+              console.error('[Checkout] 微信支付失败/取消:', err)
+              // 用户取消或支付失败
+              if (err.errMsg === 'requestPayment:fail cancel') {
+                wx.showToast({ title: '支付已取消', icon: 'none' })
+              } else {
+                wx.showToast({ title: '支付失败', icon: 'none' })
+              }
+              reject(new Error(err.errMsg || '支付失败'))
+            }
+          })
+        })
+        
+        // 支付成功后处理
+        await this.handlePaymentSuccess(orderId)
+        
+      } else {
+        console.error('[Checkout] 获取支付参数失败:', result)
+        wx.showToast({ title: result.message || '发起支付失败', icon: 'none' })
+      }
+      
+    } catch (err: any) {
+      console.error('[Checkout] 支付流程异常:', err)
+      wx.hideLoading()
+      // 如果是用户取消，不显示错误
+      if (err.message !== 'requestPayment:fail cancel') {
+        wx.showToast({ title: err.message || '支付异常', icon: 'none' })
+      }
+    }
   },
 
   // 检查云开发环境是否就绪

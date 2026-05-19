@@ -1,7 +1,7 @@
 ---
 name: cloud-storage-web
 description: Complete guide for CloudBase cloud storage using Web SDK (@cloudbase/js-sdk) - upload, download, temporary URLs, file management, and best practices.
-version: 2.18.0
+version: 2.19.4
 alwaysApply: false
 ---
 
@@ -38,7 +38,7 @@ Keep local `references/...` paths for files that ship with the current skill dir
 
 - Mini Program file APIs.
 - Backend or agent-side direct storage management through MCP.
-- Static website hosting deployment via `uploadFiles`.
+- Static website hosting deployment via `manageHosting(action="upload")`.
 - Database operations.
 
 ### Common mistakes / gotchas
