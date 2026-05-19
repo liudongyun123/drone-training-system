@@ -141,51 +141,18 @@ Page({
         }
       }
 
-      // 获取已购课程 - 双重查询：course_permissions + orders
-      const purchasedCourseIds = new Set<string>()
-      
-      // 1. 从 course_permissions 表获取
+      // 获取已购课程
       const permResult = await dbGetList('course_permissions', {
         where: { phone },
         orderBy: 'createdAt desc'
       })
       const permData = permResult.data || []
+      const purchasedCourseIds = new Set<string>()
       for (const p of permData) {
         if (p.courseId) {
           purchasedCourseIds.add(p.courseId)
         }
       }
-      
-      // 2. 从 orders 表获取已支付的课程订单（兼容历史订单）
-      try {
-        const orderResult = await dbGetList('orders', {
-          where: {
-            phone,
-            orderType: 'course',
-            status: 'paid'
-          },
-          orderBy: 'createdAt desc',
-          limit: 100
-        })
-        const orderData = orderResult.data || []
-        for (const o of orderData) {
-          if (o.courseId) {
-            purchasedCourseIds.add(o.courseId)
-          }
-          // 兼容 items 中存储的课程ID
-          if (o.items && Array.isArray(o.items)) {
-            for (const item of o.items) {
-              if (item.courseId) purchasedCourseIds.add(item.courseId)
-              if (item.productId) purchasedCourseIds.add(item.productId)
-            }
-          }
-        }
-        console.log('[我的学习] 从订单表补充课程:', orderData.length, '个订单')
-      } catch (err) {
-        console.error('[我的学习] 查询订单失败:', err)
-      }
-      
-      console.log('[我的学习] 已购课程总数:', purchasedCourseIds.size)
 
       // 获取课程列表
       const allCourses = await courseApi.getList({ pageSize: 100 })
