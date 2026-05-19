@@ -55,15 +55,37 @@ Page({
         }
       }
       
-      // 检查是否已购买 - 使用 phone 查询（购买时用手机号绑定）
+      // 检查是否已购买 - 双重检查：course_permissions + orders
       let hasPermission = false
       const phone = wx.getStorageSync('phone') || ''
       
       if (phone) {
+        // 1. 检查 course_permissions 表
         const permResult = await dbGetList('course_permissions', {
           where: { phone, courseId }
         })
         hasPermission = (permResult.data || []).length > 0
+        
+        // 2. 如果没有权限，再检查 orders 表中是否有已支付的课程订单
+        if (!hasPermission) {
+          try {
+            const orderResult = await dbGetList('orders', {
+              where: {
+                phone,
+                courseId,
+                status: 'paid',
+                orderType: 'course'
+              },
+              limit: 1
+            })
+            if ((orderResult.data || []).length > 0) {
+              hasPermission = true
+              console.log('[课程详情] 通过订单记录确认已购买')
+            }
+          } catch (err) {
+            console.error('[课程详情] 检查订单失败:', err)
+          }
+        }
       }
       
       this.setData({ course, lessons, hasPermission, loading: false })

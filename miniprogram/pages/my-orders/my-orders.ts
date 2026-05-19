@@ -260,6 +260,7 @@ Page({
   goToLearn(e: any) {
     const order = e.currentTarget.dataset.order
     if (order.orderType === 'course' && order.courseId) {
+      // 已购买的课程，跳转到课程详情页（会显示"开始学习"按钮）
       wx.navigateTo({ url: `/pages/course-detail/course-detail?id=${order.courseId}` })
     } else if (order.orderType === 'class' && order.classId) {
       wx.navigateTo({ url: `/pages/class-detail/class-detail?id=${order.classId}` })

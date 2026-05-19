@@ -611,9 +611,9 @@ Page({
       wx.showToast({ title: '支付成功', icon: 'success' })
       
       setTimeout(() => {
-        // 课程订单跳转到学习页面
-        if (this.data.type === 'course') {
-          wx.redirectTo({ url: '/pages/learning/learning' })
+        // 课程订单跳转到课程详情页（已购买状态）
+        if (this.data.type === 'course' && this.courseId) {
+          wx.redirectTo({ url: `/pages/course-detail/course-detail?id=${this.courseId}` })
         } else {
           wx.redirectTo({ url: '/pages/my-orders/my-orders' })
         }
