@@ -577,35 +577,7 @@ Page({
       
       // 如果是课程订单，创建学习权限
       if (this.data.type === 'course' && this.courseId) {
-        const phone = this.checkPhoneBound() || ''
-        const openid = wx.getStorageSync('openid') || ''
-        
-        try {
-          // 调用云函数创建课程权限
-          const permResult = await callFunction('api-order', {
-            action: 'createCoursePermission',
-            data: {
-              courseId: this.courseId,
-              phone: phone,
-              openid: openid,
-              source: 'purchase'
-            }
-          })
-          
-          console.log('[Checkout] 创建课程权限结果:', permResult)
-          
-          if (permResult.code === 0) {
-            if (permResult.data?.alreadyExists) {
-              console.log('[Checkout] 用户已有该课程权限（可能之前购买或管理员授权）')
-            } else {
-              console.log('[Checkout] 课程权限创建成功，ID:', permResult.data?.permissionId)
-            }
-          } else {
-            console.error('[Checkout] 创建课程权限失败:', permResult.error)
-          }
-        } catch (permErr) {
-          console.error('[Checkout] 创建课程权限异常:', permErr)
-        }
+        await this.createCoursePermissionSafely(orderId)
       }
       
       wx.showToast({ title: '支付成功', icon: 'success' })
@@ -623,6 +595,63 @@ Page({
       // 支付已成功，订单状态让回调处理
       wx.redirectTo({ url: '/pages/my-orders/my-orders' })
     }
+  },
+
+  // 安全地创建课程权限（带重试和降级处理）
+  async createCoursePermissionSafely(orderId: string) {
+    let phone = this.checkPhoneBound() || ''
+    const openid = wx.getStorageSync('openid') || ''
+    
+    // 如果本地没有 phone，尝试从服务器获取
+    if (!phone) {
+      console.log('[Checkout] 本地无 phone，尝试从服务器获取')
+      phone = await this.checkAndGetPhone() || ''
+    }
+    
+    // 如果仍然没有 phone，跳过权限创建（让后端回调处理）
+    if (!phone && !openid) {
+      console.error('[Checkout] 无法获取用户标识，跳过前端权限创建')
+      console.log('[Checkout] 提示：后端支付回调将负责创建权限')
+      return
+    }
+    
+    // 创建权限（最多重试2次）
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const permResult = await callFunction('api-order', {
+          action: 'createCoursePermission',
+          data: {
+            courseId: this.courseId,
+            phone: phone || '',
+            openid: openid || '',
+            source: 'purchase',
+            orderId: orderId
+          }
+        })
+        
+        console.log(`[Checkout] 创建课程权限 (尝试 ${attempt}):`, permResult)
+        
+        if (permResult.code === 0) {
+          if (permResult.data?.alreadyExists) {
+            console.log('[Checkout] 用户已有该课程权限')
+          } else {
+            console.log('[Checkout] 课程权限创建成功，ID:', permResult.data?.permissionId)
+          }
+          return // 成功，直接返回
+        } else {
+          console.error(`[Checkout] 创建权限失败 (尝试 ${attempt}):`, permResult.error)
+        }
+      } catch (permErr) {
+        console.error(`[Checkout] 创建权限异常 (尝试 ${attempt}):`, permErr)
+      }
+      
+      // 失败后短暂等待再重试
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+    }
+    
+    console.warn('[Checkout] 前端权限创建失败，将依赖后端支付回调')
   },
 
   // 保留原来的 submitOrder 方法以兼容

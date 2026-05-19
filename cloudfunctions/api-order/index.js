@@ -396,9 +396,9 @@ async function getOrderDetail(data) {
 
 // 创建课程学习权限
 async function createCoursePermission(data) {
-  const { courseId, phone, openid, source = 'purchase', expiresAt = null } = data
+  const { courseId, phone, openid, source = 'purchase', expiresAt = null, orderId = null } = data
 
-  console.log('[api-order] createCoursePermission 请求:', { courseId, phone, openid, source })
+  console.log('[api-order] createCoursePermission 请求:', { courseId, phone, openid, source, orderId })
 
   if (!courseId) {
     return createResponse({
@@ -407,7 +407,22 @@ async function createCoursePermission(data) {
       error: '缺少课程ID'
     })
   }
-  if (!phone && !openid) {
+
+  // 如果没有用户标识但有 orderId，尝试从订单获取
+  if (!phone && !openid && orderId) {
+    try {
+      const orderRes = await db.collection('orders').doc(orderId).get()
+      if (orderRes.data) {
+        data.phone = orderRes.data.phone
+        data.openid = orderRes.data.userId
+        console.log('[api-order] 从订单获取用户标识:', { phone: data.phone, openid: data.openid })
+      }
+    } catch (err) {
+      console.error('[api-order] 从订单获取用户标识失败:', err)
+    }
+  }
+
+  if (!data.phone && !data.openid) {
     return createResponse({
       code: 400,
       success: false,
@@ -416,15 +431,17 @@ async function createCoursePermission(data) {
   }
 
   try {
-    // 检查课程是否存在
-    const courseRes = await db.collection('courses').doc(courseId).get()
-    if (!courseRes.data) {
-      console.error('[api-order] 课程不存在:', courseId)
-      return createResponse({
-        code: 404,
-        success: false,
-        error: '课程不存在'
-      })
+    // 检查课程是否存在（如果 courseId 是 _id 格式）
+    let courseName = ''
+    try {
+      const courseRes = await db.collection('courses').doc(courseId).get()
+      if (courseRes.data) {
+        courseName = courseRes.data.title || ''
+      }
+    } catch (e) {
+      // 课程可能不存在，但仍然创建权限（兼容外部课程ID）
+      console.log('[api-order] 课程查询失败（可能使用外部ID）:', courseId)
+      courseName = data.courseName || courseId
     }
 
     // 检查是否已有权限
@@ -457,9 +474,9 @@ async function createCoursePermission(data) {
     const now = new Date().toISOString()
     const permissionData = {
       courseId,
-      courseName: courseRes.data.title || '',
-      phone: phone || '',
-      openid: openid || '',
+      courseName: courseName || '',
+      phone: data.phone || '',
+      openid: data.openid || '',
       source,
       status: 'active',
       expiresAt: expiresAt,
@@ -469,8 +486,8 @@ async function createCoursePermission(data) {
     }
 
     // 如果有 openid，添加 _openid 字段（CloudBase 安全规则需要）
-    if (openid) {
-      permissionData._openid = openid
+    if (data.openid) {
+      permissionData._openid = data.openid
     }
 
     const result = await db.collection('course_permissions').add({
@@ -485,8 +502,8 @@ async function createCoursePermission(data) {
       data: {
         permissionId: result.id,
         courseId,
-        courseName: courseRes.data.title,
-        phone: phone,
+        courseName: courseName,
+        phone: data.phone,
         alreadyExists: false
       },
       message: '权限创建成功'

@@ -259,13 +259,25 @@ Page({
   // 去学习（课程/培训班订单）
   goToLearn(e: any) {
     const order = e.currentTarget.dataset.order
-    if (order.orderType === 'course' && order.courseId) {
-      // 已购买的课程，跳转到课程详情页（会显示"开始学习"按钮）
-      wx.navigateTo({ url: `/pages/course-detail/course-detail?id=${order.courseId}` })
-    } else if (order.orderType === 'class' && order.classId) {
-      wx.navigateTo({ url: `/pages/class-detail/class-detail?id=${order.classId}` })
+    
+    if (order.orderType === 'course') {
+      // 课程订单：跳转到课程详情
+      const courseId = order.courseId || order.items?.[0]?.productId || order.items?.[0]?.courseId
+      if (courseId) {
+        wx.navigateTo({ url: `/pages/course-detail/course-detail?id=${courseId}` })
+      } else {
+        wx.showToast({ title: '课程信息不存在', icon: 'none' })
+      }
+    } else if (order.orderType === 'class') {
+      // 培训班订单：跳转到培训班详情
+      const classId = order.classId || order.items?.[0]?.classId
+      if (classId) {
+        wx.navigateTo({ url: `/pages/class-detail/class-detail?id=${classId}` })
+      } else {
+        wx.showToast({ title: '培训班信息不存在', icon: 'none' })
+      }
     } else {
-      wx.showToast({ title: '课程信息不存在', icon: 'none' })
+      wx.showToast({ title: '订单类型错误', icon: 'none' })
     }
   },
 

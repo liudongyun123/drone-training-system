@@ -107,13 +107,17 @@
               <view class="btn-outline {{!item.hasDetail ? 'disabled' : ''}}" bindtap="{{item.hasDetail ? 'goToDetail' : ''}}" data-id="{{item.classId}}">
                 <text>{{item.hasDetail ? '查看详情' : '暂无详情'}}</text>
               </view>
-              <view class="btn-primary" wx:if="{{item.status === 'ongoing'}}" bindtap="goToSchedule" data-id="{{item.classId}}">
-                <text>我的日程</text>
-              </view>
-              <view class="btn-transfer" wx:if="{{item.status === 'ongoing'}}" bindtap="goToTransfer" data-id="{{item.classId}}">
-                <text>调整日程</text>
-              </view>
-              <view class="btn-secondary" wx:elif="{{item.status === 'ended'}}" bindtap="reEnroll" data-id="{{item.classId}}">
+              <!-- 已报名且未结束的培训班都显示日程功能 -->
+              <block wx:if="{{item.status !== 'ended'}}">
+                <view class="btn-primary" bindtap="goToSchedule" data-id="{{item.classId}}">
+                  <text>我的日程</text>
+                </view>
+                <view class="btn-transfer" bindtap="goToTransfer" data-id="{{item.classId}}">
+                  <text>调整日程</text>
+                </view>
+              </block>
+              <!-- 已结束的培训班显示再次报名 -->
+              <view class="btn-secondary" wx:if="{{item.status === 'ended'}}" bindtap="reEnroll" data-id="{{item.classId}}">
                 <text>再次报名</text>
               </view>
             </view>

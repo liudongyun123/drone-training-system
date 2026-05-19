@@ -98,13 +98,22 @@
               <text>立即支付</text>
             </view>
           </block>
-          <!-- 课程/培训班已支付/已完成：显示"去学习" -->
-          <block wx:elif="{{(item.orderType === 'course' || item.orderType === 'class') && (item.status === 'paid' || item.status === 'completed')}}">
+          <!-- 课程已支付/已完成：显示"课程详情" -->
+          <block wx:elif="{{item.orderType === 'course' && (item.status === 'paid' || item.status === 'completed')}}">
             <view class="action-btn btn-text" bindtap="deleteOrder" data-id="{{item._id}}">
               <text>删除订单</text>
             </view>
             <view class="action-btn btn-primary" bindtap="goToLearn" data-order="{{item}}">
-              <text>去学习</text>
+              <text>课程详情</text>
+            </view>
+          </block>
+          <!-- 培训班已支付/已完成：显示"培训班详情" -->
+          <block wx:elif="{{item.orderType === 'class' && (item.status === 'paid' || item.status === 'completed')}}">
+            <view class="action-btn btn-text" bindtap="deleteOrder" data-id="{{item._id}}">
+              <text>删除订单</text>
+            </view>
+            <view class="action-btn btn-primary" bindtap="goToLearn" data-order="{{item}}">
+              <text>培训班详情</text>
             </view>
           </block>
           <!-- 商品订单：待发货 -->

@@ -71,17 +71,31 @@ Page({
     }
     
     try {
-      // 检查 class_members 表
+      // 检查 class_members 表（包含更多状态）
       const membersResult = await dbGetList('class_members', {
         where: {
           classId,
           phone,
-          status: { $in: ['enrolled', 'learning', 'pending', 'confirmed'] }
+          status: { $in: ['enrolled', 'learning', 'pending', 'confirmed', 'active', 'completed'] }
         }
       })
       
       if (membersResult.data && membersResult.data.length > 0) {
         console.log('[培训班详情] 已在 class_members 中找到报名记录')
+        return true
+      }
+      
+      // 检查 enrollments 表（新格式）
+      const enrollmentsResult = await dbGetList('enrollments', {
+        where: {
+          classId,
+          phone,
+          status: { $in: ['enrolled', 'learning', 'pending', 'confirmed', 'active', 'completed'] }
+        }
+      })
+      
+      if (enrollmentsResult.data && enrollmentsResult.data.length > 0) {
+        console.log('[培训班详情] 已在 enrollments 中找到报名记录')
         return true
       }
       

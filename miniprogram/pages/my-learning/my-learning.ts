@@ -141,7 +141,7 @@ Page({
         }
       }
 
-      // 获取已购课程
+      // 获取已购课程（兼容新旧两种数据格式）
       const permResult = await dbGetList('course_permissions', {
         where: { phone },
         orderBy: 'createdAt desc'
@@ -149,8 +149,10 @@ Page({
       const permData = permResult.data || []
       const purchasedCourseIds = new Set<string>()
       for (const p of permData) {
-        if (p.courseId) {
-          purchasedCourseIds.add(p.courseId)
+        // 兼容两种格式：扁平结构 和 嵌套结构 { data: {...} }
+        const courseId = p.courseId || p.data?.courseId || p.targetId || p.data?.targetId
+        if (courseId) {
+          purchasedCourseIds.add(courseId)
         }
       }
 
