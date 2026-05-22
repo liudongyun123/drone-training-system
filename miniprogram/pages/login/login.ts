@@ -13,7 +13,8 @@ Page({
     isLoggedIn: false,
     userInfo: null,
     loading: false,
-    hasPhone: false
+    hasPhone: false,
+    hasAgreed: false
   },
 
   onLoad() {
@@ -47,8 +48,45 @@ Page({
     }
   },
 
+  // 切换协议同意状态
+  toggleAgreement() {
+    this.setData({ hasAgreed: !this.data.hasAgreed })
+  },
+
+  // 显示用户协议
+  showUserAgreement() {
+    wx.showModal({
+      title: '用户协议',
+      content: '欢迎使用无人机培训系统！\n\n1. 本小程序为用户提供无人机培训课程报名、在线学习、模拟考试等服务。\n2. 用户在使用本服务时需遵守相关法律法规，不得利用本服务从事违法活动。\n3. 用户提供的个人信息（手机号、收货地址等）仅用于课程服务、订单处理及证书申请。\n4. 课程内容版权归本平台所有，未经授权不得转载或商用。\n5. 如因不可抗力导致服务中断，本平台不承担责任。\n\n如有疑问请联系客服。',
+      showCancel: false,
+      confirmText: '我知道了'
+    })
+  },
+
+  // 显示隐私政策
+  showPrivacyPolicy() {
+    wx.showModal({
+      title: '隐私政策',
+      content: '我们重视您的隐私保护。\n\n1. 信息收集：我们仅收集为您提供服务所必需的信息，包括手机号（用于登录和课程报名）、收货地址（用于商品配送）、微信头像昵称（用于展示用户资料）。\n2. 信息使用：您的信息仅用于课程服务、订单处理、证书申请及客服沟通。\n3. 信息保护：我们采取合理措施保护您的信息安全，不会向第三方出售或非法共享您的个人信息。\n4. 信息存储：您的信息存储于腾讯云服务器，我们会按照法律规定保存必要时间。\n5. 您的权利：您有权访问、更正或删除您的个人信息。\n\n如有疑问请联系客服。',
+      showCancel: false,
+      confirmText: '我知道了'
+    })
+  },
+
+  // 检查是否同意协议
+  checkAgreement(): boolean {
+    if (!this.data.hasAgreed) {
+      wx.showToast({ title: '请先同意用户协议和隐私政策', icon: 'none' })
+      return false
+    }
+    return true
+  },
+
   // 微信一键登录 - 仅获取手机号
   async handleWxLogin(e: any) {
+    // 检查是否同意协议
+    if (!this.checkAgreement()) return
+
     // 检查是否获取到手机号
     if (!e.detail.code) {
       wx.showModal({
@@ -137,7 +175,7 @@ Page({
         showToast('头像昵称已更新', 'success')
       },
       fail: (err) => {
-        console.error('获取用户信息失败', err)
+        logger.error('错误', '获取用户信息失败', err)
         showToast('获取用户信息失败')
       }
     })
@@ -212,6 +250,9 @@ Page({
 
   // 微信登录（只获取 openid，不获取手机号）
   handleWxLoginOnly() {
+    // 检查是否同意协议
+    if (!this.checkAgreement()) return
+
     this.setData({ loading: true })
 
     wx.login({
@@ -283,7 +324,7 @@ Page({
         openid: openid
       },
       success: (res: any) => {
-        console.log('[登录] getPhoneNumber 返回:', res.data)
+        logger.debug('登录', 'getPhoneNumber 返回:', res.data)
 
         if (res.statusCode === 200 && res.data && res.data.success && res.data.data && res.data.data.phone) {
           const { phone } = res.data.data
@@ -299,7 +340,7 @@ Page({
           const app = getApp()
           app.globalData.phone = phone
 
-          console.log('[登录] 手机号保存成功:', phone)
+          logger.debug('登录', '手机号保存成功:', phone)
 
           this.setData({
             loading: false,
@@ -311,13 +352,13 @@ Page({
             wx.reLaunch({ url: '/pages/index/index' })
           }, 1500)
         } else {
-          console.error('[登录] 获取手机号失败:', res.data)
+          logger.error('登录', '获取手机号失败:', res.data)
           this.setData({ loading: false })
           showToast('获取手机号失败')
         }
       },
       fail: (err) => {
-        console.error('[登录] 获取手机号请求失败:', err)
+        logger.error('登录', '获取手机号请求失败:', err)
         this.setData({ loading: false })
         showToast('网络请求失败')
       }
@@ -344,7 +385,7 @@ Page({
         openid: openid
       },
       success: (res: any) => {
-        console.log('[手机号登录] 返回:', res.data)
+        logger.debug('手机号登录', '返回:', res.data)
 
         if (res.statusCode === 200 && res.data && res.data.success && res.data.data && res.data.data.phone) {
           const { phone } = res.data.data
@@ -368,13 +409,13 @@ Page({
             wx.switchTab({ url: '/pages/index/index' })
           }, 1500)
         } else {
-          console.error('[手机号登录] 获取手机号失败:', res.data)
+          logger.error('手机号登录', '获取手机号失败:', res.data)
           this.setData({ loading: false })
           showToast(res.data?.error || '获取手机号失败')
         }
       },
       fail: (err) => {
-        console.error('[手机号登录] 请求失败:', err)
+        logger.error('手机号登录', '请求失败:', err)
         this.setData({ loading: false })
         showToast('网络请求失败')
       }

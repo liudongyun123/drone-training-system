@@ -37,10 +37,10 @@
         <!-- 报名人数 -->
         <view class="enroll-row">
           <text class="enroll-count">{{classInfo.enrolledStudents || 0}}/{{classInfo.maxStudents}}人已报名</text>
-          <view class="share-btn" bindtap="shareClass">
+          <button class="share-btn" open-type="share">
             <text class="share-icon">↗️</text>
             <text class="share-text">分享</text>
-          </view>
+          </button>
         </view>
 
         <!-- 状态标签 -->

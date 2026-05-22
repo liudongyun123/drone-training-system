@@ -80,7 +80,7 @@ Page({
       })
       return (result.data || []).length > 0
     } catch (err) {
-      console.error('[Checkout] 检查课程权限失败:', err)
+      logger.error('Checkout', '检查课程权限失败:', err)
       return false
     }
   },
@@ -185,7 +185,7 @@ Page({
     const loginInfo = wx.getStorageSync('loginInfo')
     const userId = wx.getStorageSync('userId')
     
-    console.log('[Checkout.checkPhoneBound] 检查绑定状态:', {
+    logger.debug('Checkout.checkPhoneBound', '检查绑定状态:', {
       storagePhone,
       storagePhoneType: typeof storagePhone,
       loginInfo: loginInfo ? 'exists' : 'null',
@@ -195,23 +195,23 @@ Page({
     
     // 优先使用 storage 中的 phone
     if (typeof storagePhone === 'string' && storagePhone.length > 0) {
-      console.log('[Checkout.checkPhoneBound] 使用 storagePhone:', storagePhone)
+      logger.debug('Checkout.checkPhoneBound', '使用 storagePhone:', storagePhone)
       return storagePhone
     }
     
     // 其次检查 loginInfo 中的 phone
     if (loginInfo && typeof loginInfo.phone === 'string' && loginInfo.phone.length > 0) {
-      console.log('[Checkout.checkPhoneBound] 使用 loginInfo.phone:', loginInfo.phone)
+      logger.debug('Checkout.checkPhoneBound', '使用 loginInfo.phone:', loginInfo.phone)
       return loginInfo.phone
     }
     
     // 兼容旧数据：userId 可能实际存的是 phone
     if (typeof userId === 'string' && userId.length > 0 && /^1[3-9]\d{9}$/.test(userId)) {
-      console.log('[Checkout.checkPhoneBound] 使用 userId 作为 phone:', userId)
+      logger.debug('Checkout.checkPhoneBound', '使用 userId 作为 phone:', userId)
       return userId
     }
     
-    console.log('[Checkout.checkPhoneBound] 本地未找到绑定手机号，尝试从服务器获取')
+    logger.debug('Checkout.checkPhoneBound', '本地未找到绑定手机号，尝试从服务器获取')
     return null
   },
 
@@ -227,11 +227,11 @@ Page({
     try {
       const { newUserApi } = require('../../utils/api')
       const result = await newUserApi.getProfile()
-      console.log('[Checkout.checkAndGetPhone] 服务器返回:', result)
+      logger.debug('Checkout.checkAndGetPhone', '服务器返回:', result)
       
       if (result.success && result.data?.user?.phone) {
         const serverPhone = result.data.user.phone
-        console.log('[Checkout.checkAndGetPhone] 从服务器获取到 phone:', serverPhone)
+        logger.debug('Checkout.checkAndGetPhone', '从服务器获取到 phone:', serverPhone)
         // 保存到本地
         wx.setStorageSync('phone', serverPhone)
         // 同时更新 loginInfo
@@ -241,7 +241,7 @@ Page({
         return serverPhone
       }
     } catch (err) {
-      console.error('[Checkout.checkAndGetPhone] 从服务器获取手机号失败:', err)
+      logger.error('Checkout.checkAndGetPhone', '从服务器获取手机号失败:', err)
     }
     
     return null
@@ -318,10 +318,10 @@ Page({
     try {
       // 1. 先创建订单
       const orderData = await this.buildOrderData()
-      console.log('[Checkout] 创建订单数据:', orderData)
+      logger.debug('Checkout', '创建订单数据:', orderData)
       
       const orderRes = await orderApi.create(orderData)
-      console.log('[Checkout] 订单创建响应:', JSON.stringify(orderRes))
+      logger.debug('Checkout', '订单创建响应:', JSON.stringify(orderRes))
       
       // 获取创建的订单ID - 兼容多种返回格式
       let orderId = ''
@@ -337,14 +337,14 @@ Page({
         orderId = orderRes
       }
       
-      console.log('[Checkout] 解析到的订单ID:', orderId)
+      logger.debug('Checkout', '解析到的订单ID:', orderId)
       
       if (!orderId) {
-        console.error('[Checkout] 无法从响应中获取订单ID:', orderRes)
+        logger.error('Checkout', '无法从响应中获取订单ID:', orderRes)
         throw new Error('订单创建失败')
       }
 
-      console.log('[Checkout] 订单创建成功:', orderId)
+      logger.debug('Checkout', '订单创建成功:', orderId)
       
       // 清空购物车
       if (this.data.type === 'shop') {
@@ -376,7 +376,7 @@ Page({
     const userId = getUserId() || ''
     // 使用已绑定的手机号
     const phone = this.checkPhoneBound() || this.data.address.phone || ''
-    console.log('[Checkout.buildOrderData] phone:', phone, 'type:', this.data.type)
+    logger.debug('Checkout.buildOrderData', 'phone:', phone, 'type:', this.data.type)
     const orderNo = `ORD${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`
     
     const orderData: any = {
@@ -422,12 +422,12 @@ Page({
 
   // 请求微信支付
   async requestWechatPayment(orderId: string) {
-    console.log('[Checkout] 开始微信支付流程, orderId:', orderId)
+    logger.debug('Checkout', '开始微信支付流程, orderId:', orderId)
     
     // 获取用户 openid
     const openid = wx.getStorageSync('openid')
     if (!openid) {
-      console.error('[Checkout] 未获取到 openid')
+      logger.error('Checkout', '未获取到 openid')
       wx.showToast({ title: '请先登录', icon: 'none' })
       return
     }
@@ -442,12 +442,12 @@ Page({
         openid: openid
       })
       
-      console.log('[Checkout] wechat-pay 返回:', JSON.stringify(result))
+      logger.debug('Checkout', 'wechat-pay 返回:', JSON.stringify(result))
       wx.hideLoading()
       
       if (result.code === 0 && result.data) {
         const payData = result.data
-        console.log('[Checkout] 支付参数:', payData)
+        logger.debug('Checkout', '支付参数:', payData)
         
         // 调用微信支付
         await new Promise<void>((resolve, reject) => {
@@ -459,11 +459,11 @@ Page({
             paySign: payData.paySign,
             appId: payData.appId,
             success: (res) => {
-              console.log('[Checkout] 微信支付成功:', res)
+              logger.debug('Checkout', '微信支付成功:', res)
               resolve()
             },
             fail: (err) => {
-              console.error('[Checkout] 微信支付失败/取消:', err)
+              logger.error('Checkout', '微信支付失败/取消:', err)
               // 用户取消或支付失败
               if (err.errMsg === 'requestPayment:fail cancel') {
                 wx.showToast({ title: '支付已取消', icon: 'none' })
@@ -479,12 +479,12 @@ Page({
         await this.handlePaymentSuccess(orderId)
         
       } else {
-        console.error('[Checkout] 获取支付参数失败:', result)
+        logger.error('Checkout', '获取支付参数失败:', result)
         wx.showToast({ title: result.message || '发起支付失败', icon: 'none' })
       }
       
     } catch (err: any) {
-      console.error('[Checkout] 支付流程异常:', err)
+      logger.error('Checkout', '支付流程异常:', err)
       wx.hideLoading()
       // 如果是用户取消，不显示错误
       if (err.message !== 'requestPayment:fail cancel') {
@@ -516,9 +516,9 @@ Page({
       if (this.data.type === 'course' && this.data.courseInfo) {
         const result = await coursePermissionApi.create(this.data.courseInfo._id, 'purchase')
         if (result.success) {
-          console.log('[Checkout] 课程权限创建成功')
+          logger.debug('Checkout', '课程权限创建成功')
         } else {
-          console.error('[Checkout] 课程权限创建失败:', result.error)
+          logger.error('Checkout', '课程权限创建失败:', result.error)
         }
       }
 
@@ -535,7 +535,7 @@ Page({
       }, 1500)
     } catch (err) {
       wx.hideLoading()
-      console.error('[Checkout] 模拟支付更新失败', err)
+      logger.error('Checkout', '模拟支付更新失败', err)
       // 即使更新失败，也跳转到订单列表
       wx.redirectTo({ url: '/pages/my-orders/my-orders' })
     }
@@ -548,7 +548,7 @@ Page({
       const openid = wx.getStorageSync('openid') || ''
       
       if (!phone && !openid) {
-        console.warn('[Checkout] 创建报名失败：缺少用户标识')
+        logger.warn('Checkout', '创建报名失败：缺少用户标识')
         return
       }
       
@@ -563,9 +563,9 @@ Page({
           source: 'online_purchase'
         }
       })
-      console.log('[Checkout] 培训班报名创建成功')
+      logger.debug('Checkout', '培训班报名创建成功')
     } catch (err) {
-      console.error('[Checkout] 创建培训班报名失败', err)
+      logger.error('Checkout', '创建培训班报名失败', err)
     }
   },
 
@@ -591,7 +591,7 @@ Page({
         }
       }, 1500)
     } catch (err) {
-      console.error('[Checkout] 更新订单状态失败', err)
+      logger.error('Checkout', '更新订单状态失败', err)
       // 支付已成功，订单状态让回调处理
       wx.redirectTo({ url: '/pages/my-orders/my-orders' })
     }
@@ -604,14 +604,14 @@ Page({
     
     // 如果本地没有 phone，尝试从服务器获取
     if (!phone) {
-      console.log('[Checkout] 本地无 phone，尝试从服务器获取')
+      logger.debug('Checkout', '本地无 phone，尝试从服务器获取')
       phone = await this.checkAndGetPhone() || ''
     }
     
     // 如果仍然没有 phone，跳过权限创建（让后端回调处理）
     if (!phone && !openid) {
-      console.error('[Checkout] 无法获取用户标识，跳过前端权限创建')
-      console.log('[Checkout] 提示：后端支付回调将负责创建权限')
+      logger.error('Checkout', '无法获取用户标识，跳过前端权限创建')
+      logger.debug('Checkout', '提示：后端支付回调将负责创建权限')
       return
     }
     
@@ -629,20 +629,20 @@ Page({
           }
         })
         
-        console.log(`[Checkout] 创建课程权限 (尝试 ${attempt}):`, permResult)
+        logger.debug('Checkout', '创建课程权限 (尝试 ${attempt}):', permResult)
         
         if (permResult.code === 0) {
           if (permResult.data?.alreadyExists) {
-            console.log('[Checkout] 用户已有该课程权限')
+            logger.debug('Checkout', '用户已有该课程权限')
           } else {
-            console.log('[Checkout] 课程权限创建成功，ID:', permResult.data?.permissionId)
+            logger.debug('Checkout', '课程权限创建成功，ID:', permResult.data?.permissionId)
           }
           return // 成功，直接返回
         } else {
-          console.error(`[Checkout] 创建权限失败 (尝试 ${attempt}):`, permResult.error)
+          logger.error('Checkout', '创建权限失败 (尝试 ${attempt}):', permResult.error)
         }
       } catch (permErr) {
-        console.error(`[Checkout] 创建权限异常 (尝试 ${attempt}):`, permErr)
+        logger.error('Checkout', '创建权限异常 (尝试 ${attempt}):', permErr)
       }
       
       // 失败后短暂等待再重试
@@ -651,7 +651,7 @@ Page({
       }
     }
     
-    console.warn('[Checkout] 前端权限创建失败，将依赖后端支付回调')
+    logger.warn('Checkout', '前端权限创建失败，将依赖后端支付回调')
   },
 
   // 保留原来的 submitOrder 方法以兼容

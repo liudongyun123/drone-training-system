@@ -152,6 +152,13 @@
   background: rgba(255, 255, 255, 0.9);
   border-radius: 12rpx;
   padding: 12rpx 16rpx;
+  margin: 0;
+  border: none;
+  line-height: 1;
+}
+
+.share-btn::after {
+  border: none;
 }
 
 .share-icon {

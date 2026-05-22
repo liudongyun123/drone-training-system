@@ -802,7 +802,7 @@ export const questionBankService = {
    */
   async getQuestions(bankId: string): Promise<BankQuestion[]> {
     const db = app.database();
-    const { data } = await db.collection('bankQuestions').where({ bankId }).orderBy('createdAt', 'asc').get();
+    const { data } = await db.collection('questions').where({ bankId }).orderBy('createdAt', 'asc').get();
     return data as BankQuestion[];
   },
 
@@ -810,14 +810,14 @@ export const questionBankService = {
    * 获取题目详情
    */
   async getQuestionById(questionId: string): Promise<BankQuestion | null> {
-    return findById<BankQuestion>('bankQuestions', questionId);
+    return findById<BankQuestion>('questions', questionId);
   },
 
   /**
    * 创建题目
    */
   async createQuestion(data: Partial<BankQuestion>): Promise<BankQuestion> {
-    const question = await create<BankQuestion>('bankQuestions', {
+    const question = await create<BankQuestion>('questions', {
       ...data,
       usageCount: 0,
       correctRate: 0,
@@ -840,14 +840,14 @@ export const questionBankService = {
    * 更新题目
    */
   async updateQuestion(questionId: string, data: Partial<BankQuestion>): Promise<boolean> {
-    return update<BankQuestion>('bankQuestions', questionId, data);
+    return update<BankQuestion>('questions', questionId, data);
   },
 
   /**
    * 删除题目
    */
   async deleteQuestion(questionId: string, bankId: string): Promise<boolean> {
-    await remove('bankQuestions', questionId);
+    await remove('questions', questionId);
     
     // 更新题库题目数量
     const db = app.database();
@@ -867,7 +867,7 @@ export const questionBankService = {
    */
   async getRandomQuestions(bankId: string, count: number): Promise<BankQuestion[]> {
     const db = app.database();
-    const { data } = await db.collection('bankQuestions').where({ bankId }).get();
+    const { data } = await db.collection('questions').where({ bankId }).get();
     
     // 随机打乱并取前count个
     const shuffled = [...data].sort(() => 0.5 - Math.random());

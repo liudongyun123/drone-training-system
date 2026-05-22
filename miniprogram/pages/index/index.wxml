@@ -9,7 +9,7 @@
       <view class="hero-left">
         <!-- Logo -->
         <view class="hero-logo">
-          <image class="logo-img" src="../../assets/icons/logo.png" mode="aspectFit"/>
+          <image class="logo-img" src="../../assets/icons/logo.png" mode="aspectFit" lazy-load />
         </view>
         
         <!-- 标题 -->
@@ -252,33 +252,21 @@
       </scroll-view>
     </view>
 
-    <!-- ==================== 统计数据 ==================== -->
-    <view class="section">
+    <!-- ==================== 统计数据（动态） ==================== -->
+    <view class="section" wx:if="{{statsData.length > 0}}">
       <view class="stats-bar">
-        <view class="stat-item">
-          <text class="stat-number">500+</text>
-          <text class="stat-label">培训学员</text>
-        </view>
-        <view class="stat-divider"></view>
-        <view class="stat-item">
-          <text class="stat-number">98%</text>
-          <text class="stat-label">通过率</text>
-        </view>
-        <view class="stat-divider"></view>
-        <view class="stat-item">
-          <text class="stat-number">50+</text>
-          <text class="stat-label">合作企业</text>
-        </view>
-        <view class="stat-divider"></view>
-        <view class="stat-item">
-          <text class="stat-number">10年</text>
-          <text class="stat-label">培训经验</text>
-        </view>
+        <block wx:for="{{statsData}}" wx:key="label">
+          <view wx:if="{{index > 0}}" class="stat-divider"></view>
+          <view class="stat-item">
+            <text class="stat-number">{{item.value}}</text>
+            <text class="stat-label">{{item.label}}</text>
+          </view>
+        </block>
       </view>
     </view>
 
-    <!-- ==================== 特色功能（横向滑动） ==================== -->
-    <view class="section">
+    <!-- ==================== 特色功能（动态） ==================== -->
+    <view class="section" wx:if="{{featuresData.length > 0}}">
       <view class="section-header">
         <view class="section-icon-box blue">
           <text class="section-icon">⭐</text>
@@ -288,40 +276,12 @@
       
       <scroll-view class="scroll-x" scroll-x enhanced show-scrollbar="{{false}}">
         <view class="features-scroll">
-          <view class="feature-card">
-            <view class="feature-icon-box blue">
-              <text class="feature-icon">🏆</text>
+          <view class="feature-card" wx:for="{{featuresData}}" wx:key="title">
+            <view class="feature-icon-box {{index === 0 ? 'blue' : index === 1 ? 'green' : index === 2 ? 'amber' : index === 3 ? 'purple' : 'red'}}">
+              <text class="feature-icon">{{item.emoji || '⭐'}}</text>
             </view>
-            <text class="feature-title">官方认证</text>
-            <text class="feature-desc">航空协会认证培训机构</text>
-          </view>
-          <view class="feature-card">
-            <view class="feature-icon-box green">
-              <text class="feature-icon">👨‍🏫</text>
-            </view>
-            <text class="feature-title">资深教官</text>
-            <text class="feature-desc">AOPA认证，10年经验</text>
-          </view>
-          <view class="feature-card">
-            <view class="feature-icon-box amber">
-              <text class="feature-icon">✈️</text>
-            </view>
-            <text class="feature-title">实操为主</text>
-            <text class="feature-desc">70%实操训练</text>
-          </view>
-          <view class="feature-card">
-            <view class="feature-icon-box purple">
-              <text class="feature-icon">💼</text>
-            </view>
-            <text class="feature-title">推荐就业</text>
-            <text class="feature-desc">合作企业优先录用</text>
-          </view>
-          <view class="feature-card">
-            <view class="feature-icon-box red">
-              <text class="feature-icon">📱</text>
-            </view>
-            <text class="feature-title">线上学习</text>
-            <text class="feature-desc">随时随地学理论</text>
+            <text class="feature-title">{{item.title}}</text>
+            <text class="feature-desc">{{item.description}}</text>
           </view>
         </view>
       </scroll-view>

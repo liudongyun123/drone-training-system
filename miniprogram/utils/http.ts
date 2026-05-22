@@ -223,11 +223,11 @@ export async function getQuestionBank(bankId: string) {
 /**
  * 获取模拟考试列表
  */
-export async function getMockExams() {
+export async function getMockExams(limit: number = 100) {
   return dbGetList('exams', {
     where: { status: 'published' },
     orderBy: 'createdAt desc',
-    limit: 5
+    limit
   })
 }
 
@@ -300,13 +300,14 @@ export async function savePracticeRecord(data: {
 /**
  * 获取练习记录列表
  */
-export async function getPracticeRecords(userId?: string, limit: number = 10) {
+export async function getPracticeRecords(userId?: string, limit: number = 10, skip: number = 0) {
   const where: any = {}
   if (userId) where.userId = userId
   return dbGetList('practiceRecords', {
     where,
     orderBy: 'createdAt desc',
-    limit
+    limit,
+    skip
   })
 }
 

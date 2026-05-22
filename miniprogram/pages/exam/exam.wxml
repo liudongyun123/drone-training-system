@@ -32,7 +32,7 @@
       <view 
         class="option-item {{userAnswers[currentQuestion._id] && userAnswers[currentQuestion._id].includes(item) ? 'selected' : ''}}"
         wx:for="{{currentQuestion.options}}"
-        wx:key="index"
+        wx:key="*this"
         bindtap="selectAnswer"
         data-question-id="{{currentQuestion._id}}"
         data-option-index="{{index}}"

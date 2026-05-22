@@ -71,7 +71,7 @@
         <view 
           class="tag-item" 
           wx:for="{{history}}" 
-          wx:key="index"
+          wx:key="*this"
           bindtap="searchFromHistory"
           data-keyword="{{item}}"
         >
@@ -89,7 +89,7 @@
         <view 
           class="tag-item hot" 
           wx:for="{{hotKeywords}}" 
-          wx:key="index"
+          wx:key="*this"
           bindtap="searchFromHistory"
           data-keyword="{{item}}"
         >

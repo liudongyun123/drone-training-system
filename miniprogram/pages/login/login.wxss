@@ -96,6 +96,47 @@
   text-align: center;
 }
 
+/* 协议勾选 */
+.agreement-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 40rpx;
+  padding: 0 20rpx;
+}
+
+.checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 6rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: #fff;
+}
+
+.checkbox.checked {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.agreement-text {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.agreement-link {
+  font-size: 24rpx;
+  color: #fff;
+  text-decoration: underline;
+  margin: 0 4rpx;
+}
+
 /* 已登录状态 */
 .logged-container {
   display: flex;

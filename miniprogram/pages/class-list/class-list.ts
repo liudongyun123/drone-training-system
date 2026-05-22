@@ -30,6 +30,28 @@ Page({
     this.loadSources()
   },
 
+  onShow() {
+    // 同步全局体系状态（跨页面切换后保持一致）
+    const globalSourceId = SourceService.getCurrentSourceId()
+    const globalSource = SourceService.getCurrentSource()
+    if (globalSourceId && (globalSourceId !== this.data.currentSourceId || globalSource !== this.data.currentSource)) {
+      logger.info('[培训班列表] onShow 同步体系状态', { globalSourceId, globalSource, current: this.data.currentSourceId })
+      this.setData({
+        currentSourceId: globalSourceId,
+        currentSource: globalSource,
+        currentCategoryId: '',
+        currentCategoryName: '',
+        currentStatus: '',
+        currentSort: 'newest',
+        page: 1,
+        hasMore: true,
+        classList: []
+      }, () => {
+        this.loadCategories()
+      })
+    }
+  },
+
   onPullDownRefresh() {
     this.setData({ page: 1, hasMore: true, classList: [] })
     this.loadClassList().then(() => wx.stopPullDownRefresh())
@@ -46,12 +68,17 @@ Page({
           icon: s.icon || '📚',
           id: s._id || ''
         }))
-        const defaultSource = sources[0]
+        
+        // 使用全局体系状态：优先恢复用户上次选择的体系
+        const resolved = await SourceService.resolveCurrentSourceId(sources)
+        
         this.setData({
           sourceList,
-          currentSource: defaultSource.code || 'RENSHE',
-          currentSourceId: defaultSource._id || ''
+          currentSource: resolved.code || 'RENSHE',
+          currentSourceId: resolved.id || ''
         })
+        
+        logger.info('[培训班列表] 当前体系', { code: resolved.code, id: resolved.id })
       }
     } catch (err) {
       logger.error('[培训班列表] 加载体系配置失败', err)
@@ -126,11 +153,11 @@ Page({
           break
       }
       
-      console.log('[培训班列表] 加载培训班, filters:', filters)
+      logger.debug('培训班列表', '加载培训班, filters:', filters)
       const classList = await classApi.getList(filters)
-      console.log('[培训班列表] 获取到 classList, 长度:', classList.length)
+      logger.debug('培训班列表', '获取到 classList, 长度:', classList.length)
       if (classList.length > 0) {
-        console.log('[培训班列表] 第一个培训班的封面:', classList[0].coverImage || classList[0].cover)
+        logger.debug('培训班列表', '第一个培训班的封面:', classList[0].coverImage || classList[0].cover)
       }
       this.setData({
         classList,
@@ -220,16 +247,19 @@ Page({
   // 切换排序
   switchSort(e: any) {
     const sort = e.currentTarget.dataset.sort
-    console.log('[培训班列表] 切换排序:', sort)
+    logger.debug('培训班列表', '切换排序:', sort)
     this.setData({ currentSort: sort })
     this.loadClassList()
   },
 
-  // 切换体系
+  // 切换体系（全局统一）
   switchSource(e: any) {
     const sourceKey = e.currentTarget.dataset.source
     const sourceInfo = this.data.sourceList.find((s: any) => s.key === sourceKey)
     if (sourceKey !== this.data.currentSource && sourceInfo) {
+      // 全局持久化体系状态
+      SourceService.setCurrentSource(sourceInfo.id || '', sourceKey)
+      
       this.setData({ 
         currentSource: sourceKey,
         currentSourceId: sourceInfo.id || '',
@@ -260,13 +290,13 @@ Page({
   // 图片加载失败处理
   onImageError(e: any) {
     const index = e.currentTarget.dataset.index
-    console.log('[培训班列表] 图片加载失败, index:', index)
+    logger.debug('培训班列表', '图片加载失败, index:', index)
     const classList = this.data.classList
     if (classList[index]) {
       const defaultCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
       classList[index].coverImage = defaultCover
       classList[index].cover = defaultCover
-      console.log('[培训班列表] 已设置默认封面')
+      logger.debug('培训班列表', '已设置默认封面')
       this.setData({ classList })
     }
   }

@@ -89,7 +89,7 @@ Page({
         action: 'getTempFileURL',
         fileList: [fileId]
       }).then((res: any) => {
-        console.log('[lesson-player] 获取视频URL结果:', res)
+        logger.debug('lesson-player', '获取视频URL结果:', res)
         if (res.fileList && res.fileList[0]) {
           const file = res.fileList[0]
           if (file.code === 'SUCCESS') {
@@ -103,7 +103,7 @@ Page({
           resolve(fileId)
         }
       }).catch((err: any) => {
-        console.error('[lesson-player] 获取视频URL失败:', err)
+        logger.error('lesson-player', '获取视频URL失败:', err)
         resolve(fileId)
       })
     })

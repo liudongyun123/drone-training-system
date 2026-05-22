@@ -1,9 +1,18 @@
 // ============================================================================
 // SourceService - 体系数据统一服务 (生产级优化版)
-// 特性：缓存策略、错误处理、请求去重、类型安全
+// 特性：缓存策略、错误处理、请求去重、类型安全、跨页面体系状态共享
 // ============================================================================
 import { dbGetList, dbQuery, dbAdd, dbUpdate } from './http'
 import logger from './logger'
+
+// 全局 App 类型（避免循环依赖）
+interface IApp {
+  globalData: {
+    currentSourceId: string
+    currentSource: string
+    [key: string]: any
+  }
+}
 
 // ============================================================================
 // 类型定义
@@ -227,6 +236,77 @@ const ErrorCodes = {
 // ============================================================================
 
 export const SourceService = {
+  // ============================================================================
+  // 全局体系状态管理（跨页面共享）
+  // ============================================================================
+
+  /**
+   * 获取当前选中的体系 ID（跨页面统一）
+   * 优先级：app.globalData > Storage > 空字符串
+   */
+  getCurrentSourceId(): string {
+    const app = getApp<IApp>()
+    if (app?.globalData?.currentSourceId) {
+      return app.globalData.currentSourceId
+    }
+    return wx.getStorageSync('currentSourceId') || ''
+  },
+
+  /**
+   * 获取当前选中的体系 code（如 RENSHE/CAAC）
+   */
+  getCurrentSource(): string {
+    const app = getApp<IApp>()
+    if (app?.globalData?.currentSource) {
+      return app.globalData.currentSource
+    }
+    return wx.getStorageSync('currentSource') || 'RENSHE'
+  },
+
+  /**
+   * 切换体系（全局统一入口）
+   * @param sourceId - 体系 _id
+   * @param source - 体系 code
+   */
+  setCurrentSource(sourceId: string, source: string): void {
+    wx.setStorageSync('currentSourceId', sourceId)
+    wx.setStorageSync('currentSource', source)
+    const app = getApp<IApp>()
+    if (app) {
+      app.globalData.currentSourceId = sourceId
+      app.globalData.currentSource = source
+    }
+  },
+
+  /**
+   * 获取默认体系 ID（有 Storage 记录就用记录，没有就用 sources 集合的第一个）
+   * 新增体系时自动兼容：只要 sources 集合中有，就会出现在列表中
+   */
+  async resolveCurrentSourceId(availableSources: Array<{_id: string; code: string}>): Promise<{id: string; code: string}> {
+    const savedId = this.getCurrentSourceId()
+    const savedSource = this.getCurrentSource()
+    
+    // 如果 Storage 中有记录，并且该体系仍然存在，继续使用
+    if (savedId && savedSource) {
+      const exists = availableSources.find(s => s._id === savedId || s.code === savedSource)
+      if (exists) {
+        return { id: exists._id || savedId, code: exists.code || savedSource }
+      }
+    }
+    
+    // 否则使用第一个可用体系（确保新增体系后自动成为兜底）
+    if (availableSources.length > 0) {
+      const first = availableSources[0]
+      return { id: first._id || '', code: first.code || 'RENSHE' }
+    }
+    
+    return { id: savedId || '', code: 'RENSHE' }
+  },
+
+  // ============================================================================
+  // 体系服务
+  // ============================================================================
+
   /**
    * 获取所有启用的体系列表（带缓存）
    */
@@ -734,6 +814,70 @@ export const SourceService = {
       return classes
     } catch (error) {
       logger.error('[SourceService] getClassesConfig failed', error)
+      return []
+    }
+  },
+
+  /**
+   * 获取统计概览配置（体系相关）
+   * @param sourceId - 体系ID
+   */
+  async getStatsConfig(sourceId: string): Promise<Array<{label: string; value: string; icon: string; color: string}>> {
+    if (!sourceId) {
+      throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
+    }
+
+    try {
+      const pageConfig = await this.getPageConfig(sourceId, 'stats')
+      
+      if (pageConfig && pageConfig.data?.stats && Array.isArray(pageConfig.data.stats)) {
+        logger.info('[SourceService] getStatsConfig from page_config', { sourceId, count: pageConfig.data.stats.length })
+        return pageConfig.data.stats
+      }
+      
+      // 无配置时返回默认统计（不同体系用同一套默认值）
+      const defaultStats = [
+        { label: '累计学员', value: '5,000+', icon: 'Users', color: 'blue' },
+        { label: '持证飞行员', value: '2,800+', icon: 'Award', color: 'amber' },
+        { label: '合作机构', value: '120+', icon: 'Globe', color: 'emerald' },
+        { label: '课程时长', value: '800+', icon: 'Clock', color: 'purple' },
+      ]
+      logger.info('[SourceService] getStatsConfig 返回默认值', { sourceId })
+      return defaultStats
+    } catch (error) {
+      logger.error('[SourceService] getStatsConfig failed', error)
+      return []
+    }
+  },
+
+  /**
+   * 获取特色优势配置（体系相关）
+   * @param sourceId - 体系ID
+   */
+  async getFeaturesConfig(sourceId: string): Promise<Array<{icon: string; title: string; description: string}>> {
+    if (!sourceId) {
+      throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
+    }
+
+    try {
+      const pageConfig = await this.getPageConfig(sourceId, 'features')
+      
+      if (pageConfig && pageConfig.data?.features && Array.isArray(pageConfig.data.features)) {
+        logger.info('[SourceService] getFeaturesConfig from page_config', { sourceId, count: pageConfig.data.features.length })
+        return pageConfig.data.features
+      }
+      
+      // 无配置时返回默认特色
+      const defaultFeatures = [
+        { icon: 'Shield', title: '官方认证资质', description: '中国航空运输协会认证培训机构' },
+        { icon: 'GraduationCap', title: '专业教学团队', description: '资深教官+理论专家双师授课' },
+        { icon: 'BarChart3', title: '高通过率', description: '理论考试通过率98%+' },
+        { icon: 'Target', title: '灵活排课', description: '随到随学，支持周末班/脱产班' },
+      ]
+      logger.info('[SourceService] getFeaturesConfig 返回默认值', { sourceId })
+      return defaultFeatures
+    } catch (error) {
+      logger.error('[SourceService] getFeaturesConfig failed', error)
       return []
     }
   },

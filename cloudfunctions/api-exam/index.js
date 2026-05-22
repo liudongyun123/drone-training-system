@@ -49,6 +49,107 @@ function getCorsHeaders(origin = '') {
 }
 
 /**
+ * 题目归一化 — 兼容两套数据源
+ * 
+ * System A (CloudPracticeService): questions 集合
+ *   { question, type, correctAnswer, explanation, options: [{text, isCorrect}], bankId }
+ * 
+ * System B (database.ts / examService.ts): 也使用 questions 集合（已统一）
+ *   { question/content, type, answer, explanation/analysis, options: [{key, content, isCorrect}], bankId }
+ * 
+ * 输出统一格式（小程序期望）:
+ *   { _id, type, title, options: string[], answer, analysis }
+ */
+function normalizeQuestion(q) {
+  if (!q) return null
+
+  // 题目文本: question | content | title
+  const title = q.title || q.question || q.content || ''
+
+  // 题型统一: judgment → judge
+  let type = (q.type || 'single').toLowerCase()
+  if (type === 'judgment') type = 'judge'
+
+  // 答案: answer | correctAnswer
+  const answer = q.answer || q.correctAnswer || ''
+
+  // 解析: analysis | explanation
+  const analysis = q.analysis || q.explanation || ''
+
+  // 选项归一化为 string[]
+  let options = []
+  if (Array.isArray(q.options)) {
+    options = q.options.map((opt, idx) => {
+      // 纯字符串
+      if (typeof opt === 'string') return opt
+      // { content: "xxx" }
+      if (opt.content) return opt.content
+      // { text: "xxx" }
+      if (opt.text) return opt.text
+      // { key: "A", content: "xxx" }
+      if (opt.key && opt.content) return `${opt.key}. ${opt.content}`
+      // { key: "A", text: "xxx" }
+      if (opt.key && opt.text) return `${opt.key}. ${opt.text}`
+      return `选项${String.fromCharCode(65 + idx)}`
+    })
+  }
+
+  return {
+    _id: q._id,
+    type,
+    title,
+    options,
+    answer,
+    analysis,
+    difficulty: q.difficulty || '',
+    score: q.score || 1,
+    bankId: q.bankId || ''
+  }
+}
+
+/**
+ * 题目加载 — 从 questions 集合读取并归一化
+ */
+async function loadQuestionsFromBanks(bankIds, limit = 0) {
+  let allQuestions = []
+
+  const qResult = await db.collection('questions')
+    .where({ bankId: _.in(bankIds) })
+    .get()
+  allQuestions = allQuestions.concat(qResult.data)
+
+  // 归一化
+  let normalized = allQuestions.map(normalizeQuestion).filter(Boolean)
+
+  // 限制数量
+  if (limit > 0 && normalized.length > limit) {
+    normalized = normalized.slice(0, limit)
+  }
+
+  return normalized
+}
+
+/**
+ * 题库归一化 — 兼容 name/title 字段
+ */
+function normalizeBank(b) {
+  return {
+    _id: b._id,
+    title: b.name || b.title || '未命名题库',
+    name: b.name || b.title || '未命名题库',
+    description: b.description || '',
+    category: b.category || '综合',
+    level: b.level || '初级',
+    questionCount: b.questionCount || 0,
+    courseId: b.courseId || '',
+    duration: b.duration || b.timeLimit || 60,
+    passScore: b.passScore || b.passingScore || 60,
+    totalScore: b.totalScore || 100,
+    createdAt: b.createdAt || ''
+  }
+}
+
+/**
  * 获取 openid
  */
 function getOpenId(event) {
@@ -61,12 +162,15 @@ function getOpenId(event) {
 // ========== 题库相关 ==========
 
 /**
- * 获取题库列表
+ * 获取题库列表（小程序用 — 不强制 status 过滤）
  */
 async function getBanks(params = {}) {
-  const { page = 1, pageSize = 20, courseId = '' } = params
+  const { page = 1, pageSize = 100, courseId = '', status = '' } = params
 
-  let where = { status: 'active' }
+  let where = {}
+  if (status) {
+    where.status = status
+  }
   if (courseId) {
     where.courseId = courseId
   }
@@ -83,16 +187,7 @@ async function getBanks(params = {}) {
   return {
     success: true,
     data: {
-      list: banks.data.map(b => ({
-        _id: b._id,
-        name: b.name,
-        description: b.description,
-        courseId: b.courseId,
-        questionCount: b.questionCount || 0,
-        duration: b.duration || 60,
-        passScore: b.passScore || 60,
-        totalScore: b.totalScore || 100
-      })),
+      list: banks.data.map(normalizeBank),
       total: countResult.total,
       page,
       pageSize
@@ -101,7 +196,7 @@ async function getBanks(params = {}) {
 }
 
 /**
- * 获取题库详情（含题目）
+ * 获取题库详情（含题目 — 双集合合并）
  */
 async function getBankDetail(bankId, params = {}) {
   const { shuffle = true, limit = 0 } = params
@@ -112,42 +207,31 @@ async function getBankDetail(bankId, params = {}) {
     return { success: false, error: '题库不存在' }
   }
 
-  // 获取题目
-  let questions = await db.collection('bankQuestions')
-    .where({ bankId, status: 'active' })
-    .get()
-
-  let questionList = questions.data.map(q => ({
-    _id: q._id,
-    type: q.type || 'single',
-    title: q.title,
-    options: q.options || [],
-    score: q.score || 1,
-    // 不返回答案
-    // answer: q.answer
-  }))
+  // 从双集合加载题目
+  let questionList = await loadQuestionsFromBanks([bankId], limit)
 
   // 随机排序
   if (shuffle) {
     questionList = questionList.sort(() => Math.random() - 0.5)
   }
 
-  // 限制数量
-  if (limit > 0 && questionList.length > limit) {
-    questionList = questionList.slice(0, limit)
-  }
+  // 移除答案（练习时不返回）
+  const questionsForPractice = questionList.map(q => ({
+    _id: q._id,
+    type: q.type,
+    title: q.title,
+    options: q.options,
+    score: q.score
+  }))
+
+  const bankData = normalizeBank(bank.data)
 
   return {
     success: true,
     data: {
-      _id: bank.data._id,
-      name: bank.data.name,
-      description: bank.data.description,
-      duration: bank.data.duration || 60,
-      passScore: bank.data.passScore || 60,
-      totalScore: bank.data.totalScore || 100,
+      ...bankData,
       questionCount: questionList.length,
-      questions: questionList
+      questions: questionsForPractice
     }
   }
 }
@@ -158,14 +242,14 @@ async function getBankDetail(bankId, params = {}) {
  * 获取考试列表
  */
 async function getExams(params = {}) {
-  const { page = 1, pageSize = 20, courseId = '', status = '' } = params
+  const { page = 1, pageSize = 100, courseId = '', status = '' } = params
 
-  let where = { status: 'published' }
-  if (courseId) {
-    where.courseId = courseId
-  }
+  let where = {}
   if (status) {
     where.status = status
+  }
+  if (courseId) {
+    where.courseId = courseId
   }
 
   const countResult = await db.collection('exams').where(where).count()
@@ -182,12 +266,13 @@ async function getExams(params = {}) {
     data: {
       list: exams.data.map(e => ({
         _id: e._id,
-        title: e.title,
-        description: e.description,
-        courseId: e.courseId,
-        duration: e.duration || 60,
+        title: e.title || e.name || '未命名考试',
+        description: e.description || '',
+        courseId: e.courseId || '',
+        duration: e.duration || e.timeLimit || 60,
+        questionCount: e.questionCount || 0,
         totalScore: e.totalScore || 100,
-        passScore: e.passScore || 60,
+        passScore: e.passScore || e.passingScore || 60,
         startTime: e.startTime,
         endTime: e.endTime,
         attemptLimit: e.attemptLimit || 1
@@ -211,37 +296,36 @@ async function getExamDetail(examId) {
 
   const e = exam.data
 
-  // 获取关联的题库题目
+  // 从双集合加载关联题目的题目
   let questions = []
   if (e.bankIds && e.bankIds.length > 0) {
-    const qResult = await db.collection('bankQuestions')
-      .where({ bankId: _.in(e.bankIds), status: 'active' })
-      .get()
-    
-    questions = qResult.data.map(q => ({
-      _id: q._id,
-      type: q.type || 'single',
-      title: q.title,
-      options: q.options || [],
-      score: q.score || 1
-    }))
+    questions = await loadQuestionsFromBanks(e.bankIds)
   }
+
+  // 移除答案（考试时不返回）
+  const questionsForExam = questions.map(q => ({
+    _id: q._id,
+    type: q.type,
+    title: q.title,
+    options: q.options,
+    score: q.score
+  }))
 
   return {
     success: true,
     data: {
       _id: e._id,
-      title: e.title,
-      description: e.description,
-      courseId: e.courseId,
-      duration: e.duration || 60,
+      title: e.title || e.name || '未命名考试',
+      description: e.description || '',
+      courseId: e.courseId || '',
+      duration: e.duration || e.timeLimit || 60,
       totalScore: e.totalScore || 100,
-      passScore: e.passScore || 60,
+      passScore: e.passScore || e.passingScore || 60,
       startTime: e.startTime,
       endTime: e.endTime,
       attemptLimit: e.attemptLimit || 1,
       questionCount: questions.length,
-      questions
+      questions: questionsForExam
     }
   }
 }
@@ -344,7 +428,7 @@ async function submitExam(data, userId) {
 
   // 获取题目和答案
   const questionIds = answers.map(a => a.questionId)
-  const questions = await db.collection('bankQuestions')
+  const questions = await db.collection('questions')
     .where({ _id: _.in(questionIds) })
     .get()
 

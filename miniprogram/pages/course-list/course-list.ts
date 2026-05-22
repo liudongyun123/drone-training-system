@@ -35,6 +35,25 @@ Page({
   },
 
   onShow() {
+    // 同步全局体系状态（跨页面切换后保持一致）
+    const globalSourceId = SourceService.getCurrentSourceId()
+    const globalSource = SourceService.getCurrentSource()
+    if (globalSourceId && (globalSourceId !== this.data.currentSourceId || globalSource !== this.data.currentSource)) {
+      logger.info('[课程列表] onShow 同步体系状态', { globalSourceId, globalSource, current: this.data.currentSourceId })
+      this.setData({
+        currentSourceId: globalSourceId,
+        currentSource: globalSource,
+        currentCategoryId: '',
+        currentCategoryName: '',
+        page: 1,
+        hasMore: true,
+        courses: []
+      }, () => {
+        this.loadCategories()
+      })
+      return
+    }
+    
     const targetCategoryId = wx.getStorageSync('targetCategoryId')
     if (targetCategoryId && this.data.currentCategoryId !== targetCategoryId) {
       this.setData({ currentCategoryId: targetCategoryId })
@@ -59,12 +78,17 @@ Page({
           icon: s.icon || '📚',
           id: s._id || ''
         }))
-        const defaultSource = sources[0]
+        
+        // 使用全局体系状态：优先恢复用户上次选择的体系
+        const resolved = await SourceService.resolveCurrentSourceId(sources)
+        
         this.setData({
           sourceList,
-          currentSource: defaultSource.code || 'RENSHE',
-          currentSourceId: defaultSource._id || ''
+          currentSource: resolved.code || 'RENSHE',
+          currentSourceId: resolved.id || ''
         })
+        
+        logger.info('[课程列表] 当前体系', { code: resolved.code, id: resolved.id })
       }
     } catch (err) {
       logger.error('[课程列表] 加载体系配置失败', err)
@@ -134,7 +158,7 @@ Page({
           break
       }
       
-      console.log('[课程列表] 加载课程, filters:', filters)
+      logger.debug('课程列表', '加载课程, filters:', filters)
       const courses = await courseApi.getList(filters)
       this.setData({
         courses,
@@ -213,16 +237,19 @@ Page({
   // 切换排序
   switchSort(e: any) {
     const sort = e.currentTarget.dataset.sort
-    console.log('[课程列表] 切换排序:', sort)
+    logger.debug('课程列表', '切换排序:', sort)
     this.setData({ currentSort: sort })
     this.loadCourses()
   },
 
-  // 切换体系
+  // 切换体系（全局统一）
   switchSource(e: any) {
     const sourceKey = e.currentTarget.dataset.source
     const sourceInfo = this.data.sourceList.find((s: any) => s.key === sourceKey)
     if (sourceKey !== this.data.currentSource && sourceInfo) {
+      // 全局持久化体系状态
+      SourceService.setCurrentSource(sourceInfo.id || '', sourceKey)
+      
       this.setData({ 
         currentSource: sourceKey,
         currentSourceId: sourceInfo.id || '',

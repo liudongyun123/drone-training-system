@@ -103,7 +103,7 @@ Page({
             classDetails[cls._id] = cls
           }
         } catch (e) {
-          console.error('[我的培训班] 获取班级详情失败:', e)
+          logger.error('我的培训班', '获取班级详情失败:', e)
         }
       }
 

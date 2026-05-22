@@ -29,15 +29,15 @@ Page({
   async loadCourse(courseId: string) {
     this.setData({ loading: true })
     try {
-      console.log('[课程详情] 加载课程, courseId:', courseId)
+      logger.debug('课程详情', '加载课程, courseId:', courseId)
       
       const [course, lessons] = await Promise.all([
         courseApi.getDetail(courseId),
         courseApi.getLessons(courseId)
       ])
       
-      console.log('[课程详情] 课程数据:', course)
-      console.log('[课程详情] 课时数据:', lessons)
+      logger.debug('课程详情', '课程数据:', course)
+      logger.debug('课程详情', '课时数据:', lessons)
       
       // 处理课程预览视频URL（cloud://格式需要转换为临时链接）
       if (course && course.videoUrl) {
@@ -87,7 +87,7 @@ Page({
         action: 'getTempFileURL',
         fileList: [fileId]
       }).then((res: any) => {
-        console.log('[课程详情] 获取视频URL结果:', res)
+        logger.debug('课程详情', '获取视频URL结果:', res)
         if (res.fileList && res.fileList[0]) {
           const file = res.fileList[0]
           if (file.code === 'SUCCESS') {
@@ -101,14 +101,14 @@ Page({
           resolve(fileId)
         }
       }).catch((err: any) => {
-        console.error('[课程详情] 获取视频URL失败:', err)
+        logger.error('课程详情', '获取视频URL失败:', err)
         resolve(fileId)
       })
     })
   },
 
   startLearning(e: any) {
-    console.log('[课程详情] startLearning 被调用', e.currentTarget.dataset)
+    logger.debug('课程详情', 'startLearning 被调用', e.currentTarget.dataset)
     
     const lessonId = e.currentTarget.dataset.id
     
@@ -120,7 +120,7 @@ Page({
     // 如果没有传入 lessonId，使用第一个课时
     const targetLessonId = lessonId || (this.data.lessons[0]?._id)
     
-    console.log('[课程详情] targetLessonId:', targetLessonId, 'lessons:', this.data.lessons)
+    logger.debug('课程详情', 'targetLessonId:', targetLessonId, 'lessons:', this.data.lessons)
     
     if (!targetLessonId) {
       showToast('课时信息加载中，请重试')
@@ -164,12 +164,12 @@ Page({
   contactService() {
     wx.showModal({
       title: '联系客服',
-      content: '如有疑问，请拨打客服电话：400-888-8888',
+      content: '如有疑问，请拨打客服电话：17628157097',
       confirmText: '拨打',
       success: (res) => {
         if (res.confirm) {
           wx.makePhoneCall({
-            phoneNumber: '4008888888'
+            phoneNumber: '17628157097'
           })
         }
       }
@@ -179,7 +179,8 @@ Page({
   onShareAppMessage() {
     return {
       title: this.data.course?.title || '无人机培训课程',
-      path: `/pages/course-detail/course-detail?id=${this.data.courseId}`
+      path: `/pages/course-detail/course-detail?id=${this.data.courseId}`,
+      imageUrl: this.data.course?.coverImage || this.data.course?.cover || ''
     }
   },
 
@@ -195,7 +196,7 @@ Page({
 
   // 视频加载失败处理
   onVideoError(e: any) {
-    console.error('[课程详情] 视频加载失败:', e.detail)
+    logger.error('课程详情', '视频加载失败:', e.detail)
     showToast('视频加载失败，请稍后重试')
   }
 })

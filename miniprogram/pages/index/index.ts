@@ -31,6 +31,10 @@ interface IndexData {
   currentSourceId: string
   sourceList: Array<{ key: string; name: string; icon: string; id: string }>
   
+  // 统计概览 & 特色优势（体系相关）
+  statsData: Array<{label: string; value: string; icon: string; color: string}>
+  featuresData: Array<{icon: string; title: string; description: string}>
+  
   // 骨架屏
   skeletonVisible: boolean
   
@@ -58,6 +62,10 @@ Page<IndexData>({
       { key: 'RENSHE', name: '人社培训', icon: '🏛️', id: '' },
       { key: 'CAAC', name: 'CAAC培训', icon: '✈️', id: '' }
     ],
+    
+    // 统计概览 & 特色优势
+    statsData: [],
+    featuresData: [],
     
     // 骨架屏
     skeletonVisible: true,
@@ -109,21 +117,22 @@ Page<IndexData>({
           id: s._id || ''
         }))
         
-        const defaultSource = sources[0]
+        // 使用全局体系状态：优先恢复用户上次选择的体系，不存在则用第一个
+        const resolved = await SourceService.resolveCurrentSourceId(sources)
         
         this.setData({
           sourceList,
-          currentSource: defaultSource.code || 'RENSHE',
-          currentSourceId: defaultSource._id || ''
+          currentSource: resolved.code || 'RENSHE',
+          currentSourceId: resolved.id || ''
         })
         
-        logger.info('[首页] 默认体系', { 
-          code: defaultSource.code, 
-          _id: defaultSource._id 
+        logger.info('[首页] 当前体系', { 
+          code: resolved.code, 
+          _id: resolved.id 
         })
         
         // 检测配置版本是否有更新
-        const hasUpdate = await configVersionApi.checkForUpdate(defaultSource._id)
+        const hasUpdate = await configVersionApi.checkForUpdate(resolved.id)
         if (hasUpdate) {
           logger.info('[首页] 检测到配置更新，自动刷新数据')
         }
@@ -166,13 +175,17 @@ Page<IndexData>({
         classesResult,
         productsResult,
         bannersResult,
-        pathsResult
+        pathsResult,
+        statsResult,
+        featuresResult
       ] = await Promise.allSettled([
         SourceService.getHotCoursesConfig(currentSourceId, 6),
         SourceService.getClassesConfig(currentSourceId, 6),
         productApi.getList({ pageSize: 6 }),
         bannerApi.getList(10),
-        SourceService.getLearningPathConfig(currentSourceId)
+        SourceService.getLearningPathConfig(currentSourceId),
+        SourceService.getStatsConfig(currentSourceId),
+        SourceService.getFeaturesConfig(currentSourceId)
       ])
 
       // 处理各模块结果
@@ -181,6 +194,19 @@ Page<IndexData>({
       const products = this.extractResult(productsResult, '商品')
       const banners = this.extractResult(bannersResult, '轮播图')
       const paths = this.extractResult(pathsResult, '学习路径')
+      const stats = this.extractResult(statsResult, '统计概览')
+      const features = this.extractResult(featuresResult, '特色优势')
+      
+      // 将 Lucide 图标名映射为 emoji
+      const ICON_TO_EMOJI: Record<string, string> = {
+        'Shield': '🏆', 'GraduationCap': '👨‍🏫', 'BarChart3': '✈️',
+        'Target': '💼', 'Star': '📱', 'Users': '👥', 'Award': '🎖️',
+        'Globe': '🌍', 'Clock': '⏰', 'BookOpen': '📚', 'Plane': '🛩️'
+      }
+      const processedFeatures = (features || []).map((f: any) => ({
+        ...f,
+        emoji: ICON_TO_EMOJI[f.icon] || '⭐'
+      }))
 
       // 加载等级数据并处理等级显示
       await loadLevels()
@@ -214,6 +240,8 @@ Page<IndexData>({
         heroBanners: banners || [],
         learningPaths: paths || [],
         learningPathLevelCount: levelCount,
+        statsData: stats || [],
+        featuresData: processedFeatures || [],
         isCoursesEmpty,
         isClassesEmpty,
         isPathsEmpty
@@ -222,7 +250,9 @@ Page<IndexData>({
       logger.info('[首页] 数据加载完成', {
         courses: courses?.length || 0,
         classes: classes?.length || 0,
-        paths: paths?.length || 0
+        paths: paths?.length || 0,
+        stats: stats?.length || 0,
+        features: features?.length || 0
       })
     } catch (error) {
       logger.error('[首页] 加载数据失败', error)
@@ -316,13 +346,13 @@ Page<IndexData>({
     const categoryName = path.name || ''
     const source = this.data.currentSource
     
-    console.log('[首页] goToPath', { categoryId, categoryName, source })
+    logger.debug('首页', 'goToPath', { categoryId, categoryName, source })
     
     const url = `/pages/learning-path/learning-path?id=${categoryId}&name=${encodeURIComponent(categoryName)}&source=${source}`
     wx.navigateTo({ url })
   },
 
-  // 切换体系
+  // 切换体系（全局统一）
   switchSource(e: any) {
     const sourceKey = e.currentTarget.dataset.source
     const sourceInfo = this.data.sourceList.find((s: any) => s.key === sourceKey)
@@ -334,18 +364,21 @@ Page<IndexData>({
     })
     
     if (sourceKey !== this.data.currentSource && sourceInfo) {
-      // 切换体系时清除缓存并显示骨架屏
+      // 清除旧体系缓存
       SourceService.clearCache(this.data.currentSourceId)
+      
+      // 全局持久化体系状态（Storage + globalData）
+      SourceService.setCurrentSource(sourceInfo.id || '', sourceKey)
+      
+      // 更新本页状态并重新加载
       this.setData({ 
         skeletonVisible: true,
         currentSource: sourceKey,
         currentSourceId: sourceInfo.id || ''
       }, () => {
-        // 强制刷新数据
         this.loadData()
       })
       
-      // 提示用户
       wx.showToast({
         title: `已切换至${sourceInfo.name}`,
         icon: 'none',

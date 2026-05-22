@@ -28,7 +28,7 @@
         data-id="{{item._id}}"
         data-type="external"
       >
-        <image class="cert-icon" src="/assets/icons/cert.png" mode="aspectFit" />
+        <image class="cert-icon" src="/assets/icons/cert.png" mode="aspectFit" lazy-load />
         <view class="cert-info">
           <text class="cert-title">{{item.name}}</text>
           <text class="cert-meta">颁发机构: {{item.issuer}}</text>
@@ -64,7 +64,7 @@
         data-id="{{item._id}}"
         data-type="training"
       >
-        <image class="cert-icon" src="/assets/icons/diploma.png" mode="aspectFit" />
+        <image class="cert-icon" src="/assets/icons/diploma.png" mode="aspectFit" lazy-load />
         <view class="cert-info">
           <text class="cert-title">{{item.className}}</text>
           <text class="cert-meta">成绩: {{item.score}}分</text>

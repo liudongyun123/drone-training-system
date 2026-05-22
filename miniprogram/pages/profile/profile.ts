@@ -194,7 +194,7 @@ Page({
             userId: openid
           })
 
-          console.log('[头像] 上传结果:', uploadResult)
+          logger.debug('头像', '上传结果:', uploadResult)
 
           if (uploadResult.code === 0 && uploadResult.data?.fileUrl) {
             const avatarUrl = uploadResult.data.fileUrl
@@ -220,13 +220,13 @@ Page({
           }
 
         } catch (err) {
-          console.error('[头像] 上传失败:', err)
+          logger.error('头像', '上传失败:', err)
           wx.hideLoading()
           showToast('头像上传失败，请重试')
         }
       },
       fail: (err) => {
-        console.error('[头像] 选择失败:', err)
+        logger.error('头像', '选择失败:', err)
         if (err.errMsg !== 'chooseMedia:fail cancel') {
           showToast('选择图片失败')
         }
@@ -244,11 +244,11 @@ Page({
         compressedWidth: 500,  // 目标宽度
         compressedHeight: 500,  // 目标高度
         success: (res) => {
-          console.log('[头像] 压缩成功:', res.tempFilePath)
+          logger.debug('头像', '压缩成功:', res.tempFilePath)
           resolve(res.tempFilePath)
         },
         fail: (err) => {
-          console.error('[头像] 压缩失败，使用原图:', err)
+          logger.error('头像', '压缩失败，使用原图:', err)
           // 压缩失败时使用原图
           resolve(tempFilePath)
         }
@@ -269,9 +269,9 @@ Page({
         avatar: avatarUrl
       })
 
-      console.log('[头像] 服务器更新结果:', res)
+      logger.debug('头像', '服务器更新结果:', res)
     } catch (err) {
-      console.error('[头像] 更新服务器失败:', err)
+      logger.error('头像', '更新服务器失败:', err)
     }
   },
 
@@ -299,7 +299,7 @@ Page({
       })
       
       wx.hideLoading()
-      console.log('[绑定手机号] 返回:', res)
+      logger.debug('绑定手机号', '返回:', res)
 
       if (res && res.success && res.data && res.data.phone) {
         const { phone } = res.data
@@ -321,12 +321,12 @@ Page({
 
         wx.showToast({ title: '手机号绑定成功', icon: 'success' })
       } else {
-        console.error('[绑定手机号] 失败:', res)
+        logger.error('绑定手机号', '失败:', res)
         wx.showToast({ title: res?.error || '绑定失败，请重试', icon: 'none' })
       }
     } catch (err) {
       wx.hideLoading()
-      console.error('[绑定手机号] 请求失败:', err)
+      logger.error('绑定手机号', '请求失败:', err)
       wx.showToast({ title: '网络请求失败', icon: 'none' })
     }
   },
@@ -391,7 +391,7 @@ Page({
   contactService() {
     wx.showModal({
       title: '联系客服',
-      content: '客服电话：400-888-8888\n工作时间：周一至周五 9:00-18:00',
+      content: '客服电话：17628157097\n工作时间：周一至周五 9:00-18:00',
       showCancel: true,
       cancelText: '复制电话',
       confirmText: '拨打热线',
@@ -399,7 +399,7 @@ Page({
         if (res.confirm) {
           wx.makePhoneCall({ phoneNumber: '4008888888' })
         } else if (res.cancel) {
-          wx.setClipboardData({ data: '400-888-8888' })
+          wx.setClipboardData({ data: '17628157097' })
           wx.showToast({ title: '已复制', icon: 'success' })
         }
       }

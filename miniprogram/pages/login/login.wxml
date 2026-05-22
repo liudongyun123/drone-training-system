@@ -3,7 +3,7 @@
   <!-- 未登录状态 -->
   <view wx:if="{{!isLoggedIn}}" class="login-container">
     <view class="logo">
-      <image class="logo-img" src="/assets/icons/logo.png" mode="aspectFit" />
+      <image class="logo-img" src="/assets/icons/logo.png" mode="aspectFit" lazy-load />
     </view>
     <text class="title">无人机培训</text>
     <text class="desc">登录后享受更多服务</text>
@@ -28,7 +28,16 @@
       <text>微信登录</text>
     </button>
     
-    <text class="tips">登录即表示同意《用户协议》和《隐私政策》</text>
+    <!-- 协议勾选 -->
+    <view class="agreement-row" bindtap="toggleAgreement">
+      <view class="checkbox {{hasAgreed ? 'checked' : ''}}">
+        <text wx:if="{{hasAgreed}}">✓</text>
+      </view>
+      <text class="agreement-text">我已阅读并同意</text>
+      <text class="agreement-link" catchtap="showUserAgreement">《用户协议》</text>
+      <text class="agreement-text">和</text>
+      <text class="agreement-link" catchtap="showPrivacyPolicy">《隐私政策》</text>
+    </view>
   </view>
   
   <!-- 已登录状态 -->

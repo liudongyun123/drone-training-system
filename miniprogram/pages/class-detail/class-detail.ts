@@ -27,11 +27,11 @@ Page({
   async loadClass(classId: string) {
     this.setData({ loading: true })
     try {
-      console.log('[培训班详情] 加载培训班, classId:', classId)
+      logger.debug('培训班详情', '加载培训班, classId:', classId)
       
       const classInfo = await classApi.getDetail(classId)
       
-      console.log('[培训班详情] 培训班数据:', classInfo)
+      logger.debug('培训班详情', '培训班数据:', classInfo)
       
       // 获取排课
       const schedulesResult = await dbGetList('class_schedules', {
@@ -39,7 +39,7 @@ Page({
         orderBy: 'date asc'
       })
       
-      console.log('[培训班详情] 日程数据:', schedulesResult.data)
+      logger.debug('培训班详情', '日程数据:', schedulesResult.data)
       
       // 确保封面图片有值（数据库可能没有封面字段）
       if (classInfo && !classInfo.coverImage && !classInfo.cover) {
@@ -81,7 +81,7 @@ Page({
       })
       
       if (membersResult.data && membersResult.data.length > 0) {
-        console.log('[培训班详情] 已在 class_members 中找到报名记录')
+        logger.debug('培训班详情', '已在 class_members 中找到报名记录')
         return true
       }
       
@@ -95,7 +95,7 @@ Page({
       })
       
       if (enrollmentsResult.data && enrollmentsResult.data.length > 0) {
-        console.log('[培训班详情] 已在 enrollments 中找到报名记录')
+        logger.debug('培训班详情', '已在 enrollments 中找到报名记录')
         return true
       }
       
@@ -105,10 +105,10 @@ Page({
         o.classId === classId && ['pending', 'paid', 'completed'].includes(o.status)
       )
       
-      console.log('[培训班详情] 订单检查结果:', hasOrder)
+      logger.debug('培训班详情', '订单检查结果:', hasOrder)
       return hasOrder
     } catch (err) {
-      console.error('[培训班详情] 检查报名状态失败:', err)
+      logger.error('培训班详情', '检查报名状态失败:', err)
       return false
     }
   },
@@ -149,12 +149,12 @@ Page({
   contactService() {
     wx.showModal({
       title: '联系客服',
-      content: '如有疑问，请拨打客服电话：400-888-8888',
+      content: '如有疑问，请拨打客服电话：17628157097',
       confirmText: '拨打',
       success: (res) => {
         if (res.confirm) {
           wx.makePhoneCall({
-            phoneNumber: '4008888888'
+            phoneNumber: '17628157097'
           })
         }
       }
@@ -164,7 +164,8 @@ Page({
   onShareAppMessage() {
     return {
       title: this.data.classInfo?.name || '培训班报名',
-      path: `/pages/class-detail/class-detail?id=${this.data.classId}`
+      path: `/pages/class-detail/class-detail?id=${this.data.classId}`,
+      imageUrl: this.data.classInfo?.coverImage || this.data.classInfo?.cover || ''
     }
   },
 

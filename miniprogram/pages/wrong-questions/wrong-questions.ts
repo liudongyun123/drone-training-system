@@ -89,10 +89,20 @@ Page({
   // 重新练习
   retryQuestion(e: any) {
     const q = e.currentTarget.dataset.question
-    wx.showToast({
-      title: '功能开发中',
-      icon: 'none'
+    if (!q) return
+
+    // 将错题数据存入 storage，exam 页面会读取并展示单题练习
+    wx.setStorageSync('retryQuestion', {
+      questionId: q.questionId,
+      title: q.question,
+      type: q.type || 'single',
+      options: q.options || [],
+      answer: q.correctAnswer,
+      analysis: q.explanation || ''
     })
-    // TODO: 跳转到单题练习页面
+
+    wx.navigateTo({
+      url: `/pages/exam/exam?type=practice&bankId=retry&singleMode=true`
+    })
   }
 })

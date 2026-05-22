@@ -190,7 +190,7 @@ export default function PageConfigManagement() {
 
   // 加载数据 - 只在体系相关 Tab 和有 sourceId 时加载
   useEffect(() => {
-    const isSourceTab = ['courses', 'classes', 'learningPaths'].includes(activeTab);
+    const isSourceTab = ['stats', 'features', 'courses', 'classes', 'learningPaths'].includes(activeTab);
     if (activeTab && isSourceTab && selectedSourceId) {
       console.log('[PageConfig] useEffect 触发 loadData, activeTab:', activeTab, 'selectedSourceId:', selectedSourceId);
       loadData();
@@ -295,6 +295,12 @@ export default function PageConfigManagement() {
     setLoading(true);
     try {
       switch (activeTab) {
+        case 'stats':
+          await loadStats();
+          break;
+        case 'features':
+          await loadFeatures();
+          break;
         case 'courses':
           console.log('[PageConfig] 执行 loadCoursesWithSourceId');
           await loadCoursesWithSourceId(sourceIdToUse);
@@ -534,7 +540,8 @@ export default function PageConfigManagement() {
 
   const loadStats = async () => {
     try {
-      const result = await adminService.list('page_configs', { section: 'stats' }, { limit: 1 });
+      const sourceId = currentSourceIdRef.current || selectedSourceId;
+      const result = await adminService.list('page_configs', { section: 'stats', 'data.sourceId': sourceId }, { limit: 1 });
       if (result.data?.list && result.data.list.length > 0) {
         const config = result.data.list[0];
         if (config.data?.stats && Array.isArray(config.data.stats)) {
@@ -554,13 +561,14 @@ export default function PageConfigManagement() {
   const saveStats = async () => {
     if (!stats.length) return;
     try {
-      const result = await adminService.list('page_configs', { section: 'stats' }, { limit: 1 });
+      const sourceId = currentSourceIdRef.current || selectedSourceId;
+      const result = await adminService.list('page_configs', { section: 'stats', 'data.sourceId': sourceId }, { limit: 1 });
       const saveData = {
         section: 'stats',
-        title: '统计概览',
+        title: `统计概览 - ${selectedSource}`,
         enabled: true,
         order: 2,
-        data: { stats },
+        data: { sourceId, stats },
       };
       if (result.data?.list && result.data.list.length > 0) {
         await adminService.update('page_configs', result.data.list[0]._id, saveData);
@@ -598,7 +606,8 @@ export default function PageConfigManagement() {
 
   const loadFeatures = async () => {
     try {
-      const result = await adminService.list('page_configs', { section: 'features' }, { limit: 1 });
+      const sourceId = currentSourceIdRef.current || selectedSourceId;
+      const result = await adminService.list('page_configs', { section: 'features', 'data.sourceId': sourceId }, { limit: 1 });
       if (result.data?.list && result.data.list.length > 0) {
         const config = result.data.list[0];
         if (config.data?.features && Array.isArray(config.data.features)) {
@@ -618,13 +627,14 @@ export default function PageConfigManagement() {
   const saveFeatures = async () => {
     if (!features.length) return;
     try {
-      const result = await adminService.list('page_configs', { section: 'features' }, { limit: 1 });
+      const sourceId = currentSourceIdRef.current || selectedSourceId;
+      const result = await adminService.list('page_configs', { section: 'features', 'data.sourceId': sourceId }, { limit: 1 });
       const saveData = {
         section: 'features',
-        title: '特色优势',
+        title: `特色优势 - ${selectedSource}`,
         enabled: true,
         order: 4,
-        data: { features },
+        data: { sourceId, features },
       };
       if (result.data?.list && result.data.list.length > 0) {
         await adminService.update('page_configs', result.data.list[0]._id, saveData);
@@ -1395,14 +1405,14 @@ export default function PageConfigManagement() {
     { key: 'hero', label: 'Hero区域', icon: Layout },
     { key: 'banners', label: '轮播图', icon: Image },
     { key: 'notices', label: '公告', icon: Bell },
-    { key: 'stats', label: '统计概览', icon: BarChart3 },
-    { key: 'features', label: '特色优势', icon: Sparkles },
     { key: 'contact', label: '联系我们', icon: Phone },
     { key: 'footer', label: '页脚信息', icon: Footprints },
   ];
 
   // 体系配置 Tab
   const sourceTabs = [
+    { key: 'stats', label: '统计概览', icon: BarChart3 },
+    { key: 'features', label: '特色优势', icon: Sparkles },
     { key: 'learningPaths', label: '学习路径', icon: Route },
     { key: 'courses', label: '热门课程', icon: Star },
     { key: 'classes', label: '最新开班', icon: Calendar },

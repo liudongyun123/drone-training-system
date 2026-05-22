@@ -120,7 +120,7 @@ Page({
       const classInfo = this.data.classInfo
       
       // 1. 创建培训班订单
-      console.log('[培训班报名] 创建订单', {
+      logger.debug('培训班报名', '创建订单', {
         classId: this.classId,
         className: classInfo?.name,
         phone: phone
@@ -145,7 +145,7 @@ Page({
         }
       })
 
-      console.log('[培训班报名] 订单创建结果:', orderRes)
+      logger.debug('培训班报名', '订单创建结果:', orderRes)
 
       if (!orderRes || !orderRes.success) {
         throw new Error(orderRes?.error || '创建订单失败')
@@ -154,14 +154,14 @@ Page({
       const orderId = orderRes.data?.orderId || orderRes.data?._id
 
       // 2. 模拟支付成功（虚拟商品自动完成）
-      console.log('[培训班报名] 更新订单状态为已完成')
+      logger.debug('培训班报名', '更新订单状态为已完成')
       await callFunction('api-order', {
         action: 'updateStatus',
         data: { orderId, status: 'completed' }
       })
 
       // 3. 完成培训班报名
-      console.log('[培训班报名] 创建报名记录')
+      logger.debug('培训班报名', '创建报名记录')
       await callFunction('api-order', {
         action: 'enrollClass',
         data: {

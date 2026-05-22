@@ -1,0 +1,69 @@
+<!--pages/question-banks/question-banks.wxml-->
+<view class="page">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <text class="search-icon">🔍</text>
+      <input 
+        class="search-input" 
+        placeholder="搜索题库名称或描述"
+        value="{{searchValue}}"
+        bindinput="onSearchInput"
+        confirm-type="search"
+      />
+      <text class="search-clear" wx:if="{{searchValue}}" bindtap="onSearchInput" data-value="">✕</text>
+    </view>
+  </view>
+
+  <!-- 分类筛选 -->
+  <scroll-view class="category-bar" scroll-x enable-flex>
+    <view 
+      class="category-item {{activeCategory === item ? 'active' : ''}}"
+      wx:for="{{categories}}"
+      wx:key="*this"
+      bindtap="filterByCategory"
+      data-category="{{item}}"
+    >
+      {{item}}
+    </view>
+  </scroll-view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading && !refreshing}}" class="loading-container">
+    <view class="skeleton-grid">
+      <view class="skeleton-card" wx:for="{{8}}" wx:key="*this"></view>
+    </view>
+  </view>
+
+  <!-- 题库网格 -->
+  <view class="bank-grid" wx:if="{{displayBanks.length > 0}}">
+    <view 
+      class="bank-card"
+      wx:for="{{displayBanks}}"
+      wx:key="_id"
+      bindtap="startPractice"
+      data-id="{{item._id}}"
+      data-title="{{item.title}}"
+      data-count="{{item.questionCount}}"
+    >
+      <view class="bank-icon-wrap">
+        <text class="bank-icon">{{item.icon}}</text>
+      </view>
+      <view class="bank-info">
+        <text class="bank-title">{{item.title}}</text>
+        <text class="bank-desc">{{item.description || '暂无描述'}}</text>
+      </view>
+      <view class="bank-meta">
+        <text class="bank-level">{{item.level}}</text>
+        <text class="bank-count">{{item.questionCount || 0}}题</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{!loading && displayBanks.length === 0}}" class="empty-container">
+    <text class="empty-icon">{{searchValue ? '🔍' : '📚'}}</text>
+    <text class="empty-title">{{searchValue ? '未找到匹配的题库' : '暂无题库'}}</text>
+    <text class="empty-desc">{{searchValue ? '试试其他关键词吧' : '题库正在准备中，敬请期待'}}</text>
+  </view>
+</view>

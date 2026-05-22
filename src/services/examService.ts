@@ -145,7 +145,7 @@ export const examService = {
     }
   },
 
-  // 获取考试题目（★ 云函数优先，从 bankQuestions 获取）
+  // 获取考试题目（★ 云函数优先，从 questions 获取）
   async getQuestions(examId: string): Promise<ApiResponse<Question[]>> {
     try {
       // 方式1：通过云函数查询题目
@@ -161,7 +161,7 @@ export const examService = {
       
       console.log('[examService] getQuestions examData:', examData);
       
-      // 从 bankQuestions 获取所有题目
+      // 从 questions 获取所有题目
       let questionsResult: any;
       let questionsData: any[] = [];
       
@@ -170,7 +170,7 @@ export const examService = {
         const bankIds = examData.bankConfigs.map((b: any) => b.bankId).filter(Boolean);
         if (bankIds.length > 0) {
           try {
-            questionsResult = await adminService.list('bankQuestions',
+            questionsResult = await adminService.list('questions',
               // @ts-ignore
               { bankId: adminService.command?.in ? undefined : undefined },
               { limit: 500 });
@@ -187,7 +187,7 @@ export const examService = {
       
       // 如果没拿到数据，获取全部题目
       if (questionsData.length === 0) {
-        questionsResult = await adminService.list('bankQuestions', {}, { limit: 1000 });
+        questionsResult = await adminService.list('questions', {}, { limit: 1000 });
         questionsData = Array.isArray(questionsResult.data) ? questionsResult.data : (questionsResult.data?.list || []);
       }
       
@@ -220,7 +220,7 @@ export const examService = {
       
       // 回退到直接数据库查询
       try {
-        const { data } = await getDb().collection('bankQuestions').get();
+        const { data } = await getDb().collection('questions').get();
         // @ts-ignore
         const questions: QuestionType[] = (data as RawQuestion[]).map((q, index) => ({
           _id: q._id,
@@ -271,7 +271,7 @@ export const examService = {
         const bankIds = examData.bankConfigs.map((b: any) => b.bankId).filter(Boolean);
         if (bankIds.length > 0) {
           try {
-            const qr = await adminService.list('bankQuestions', {}, { limit: 1000 });
+            const qr = await adminService.list('questions', {}, { limit: 1000 });
             questionsData = Array.isArray(qr.data) ? qr.data : (qr.data?.list || []);
             questionsData = questionsData.filter((q: any) => !q.bankId || bankIds.includes(q.bankId));
           } catch (e) { console.warn('[examService] 按题库筛选失败'); }
@@ -279,7 +279,7 @@ export const examService = {
       }
       
       if (questionsData.length === 0) {
-        const qr = await adminService.list('bankQuestions', {}, { limit: 1000 });
+        const qr = await adminService.list('questions', {}, { limit: 1000 });
         questionsData = Array.isArray(qr.data) ? qr.data : (qr.data?.list || []);
       }
       
@@ -323,7 +323,7 @@ export const examService = {
         return { success: false, message: '考试不存在' };
       }
       
-      const { data: questionsData } = await getDb().collection('bankQuestions').get();
+      const { data: questionsData } = await getDb().collection('questions').get();
       
       // @ts-ignore
       const questions: QuestionType[] = (questionsData as RawQuestion[]).map((q, index) => ({
@@ -365,8 +365,8 @@ export const examService = {
 
       const questionIds = answers.map(a => a.questionId);
       
-      // 从 bankQuestions 获取题目
-      const { data: questionsData } = await getDb().collection('bankQuestions').get();
+      // 从 questions 获取题目
+      const { data: questionsData } = await getDb().collection('questions').get();
       const questionsMap = new Map((questionsData as RawQuestion[]).map((q) => [q._id, q]));
 
       let totalScore = 0;
@@ -811,7 +811,7 @@ export const questionBankService = {
   // 获取题库题目
   async getQuestions(bankId: string, params?: { difficulty?: string; type?: string; limit?: number }): Promise<ApiResponse<BankQuestion[]>> {
     try {
-      let query = getDb().collection('bankQuestions');
+      let query = getDb().collection('questions');
       
       if (bankId && bankId !== 'all') {
         query = query.where({ bankId });
@@ -908,9 +908,9 @@ export const questionBankService = {
   async delete(bankId: string): Promise<ApiResponse<void>> {
     try {
       // 删除题库下的所有题目
-      const { data: questions } = await getDb().collection('bankQuestions').where({ bankId }).get();
+      const { data: questions } = await getDb().collection('questions').where({ bankId }).get();
       for (const q of questions) {
-        await getDb().collection('bankQuestions').doc(q._id).remove();
+        await getDb().collection('questions').doc(q._id).remove();
       }
       // 删除题库
       await getDb().collection('questionBanks').doc(bankId).remove();
@@ -929,7 +929,7 @@ export const questionBankService = {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      const result = await getDb().collection('bankQuestions').add(newQuestion);
+      const result = await getDb().collection('questions').add(newQuestion);
       
       // 更新题库的题目数量
       if (questionData.bankId) {
@@ -960,7 +960,7 @@ export const questionBankService = {
   // 更新题目
   async updateQuestion(questionId: string, questionData: Partial<BankQuestion>): Promise<ApiResponse<BankQuestion>> {
     try {
-      await getDb().collection('bankQuestions').doc(questionId).update({
+      await getDb().collection('questions').doc(questionId).update({
         ...questionData,
         updatedAt: new Date().toISOString()
       });
@@ -978,7 +978,7 @@ export const questionBankService = {
   // 删除题目
   async deleteQuestion(questionId: string, bankId: string): Promise<ApiResponse<void>> {
     try {
-      await getDb().collection('bankQuestions').doc(questionId).remove();
+      await getDb().collection('questions').doc(questionId).remove();
       
       // 更新题库题目数量
       try {
@@ -1003,7 +1003,7 @@ export const questionBankService = {
   // 开始练习
   async startPractice(bankId: string, mode: 'sequential' | 'random' | 'wrong' | 'favorites', questionCount: number): Promise<ApiResponse<{ practiceId: string; questions: BankQuestion[] }>> {
     try {
-      const query = getDb().collection('bankQuestions').where({ bankId });
+      const query = getDb().collection('questions').where({ bankId });
       
       const { data } = await query.get();
       let questions = data as BankQuestion[];
@@ -1041,7 +1041,7 @@ export const questionBankService = {
       const finalUserId = userId || currentUser?.uid || currentUser?._openid || 'anonymous';
       
       const questionIds = answers.map(a => a.questionId);
-      const { data: questionsData } = await getDb().collection('bankQuestions').where({
+      const { data: questionsData } = await getDb().collection('questions').where({
         _id: getDb().command.in(questionIds)
       }).get();
       

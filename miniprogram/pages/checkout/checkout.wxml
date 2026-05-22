@@ -107,7 +107,7 @@
       bindtap="onWechatPay"
       disabled="{{submitting}}"
     >
-      {{submitting ? '提交中...' : '微信支付'}}
+      {{submitting ? '支付中...' : '微信支付'}}
     </button>
   </view>
 </view>

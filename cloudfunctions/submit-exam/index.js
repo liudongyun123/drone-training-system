@@ -57,8 +57,8 @@ exports.main = async (event, context) => {
         
         console.log('[submitExam] 提交考试, userId:', userId);
 
-        // 从 bankQuestions 获取所有题目
-        const questionsResult = await db.collection('bankQuestions').get();
+        // 从 questions 获取所有题目
+        const questionsResult = await db.collection('questions').get();
         const allQuestions = questionsResult.data || [];
         
         const questionsMap = new Map(allQuestions.map(q => [q._id, q]));

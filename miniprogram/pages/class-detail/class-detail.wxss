@@ -125,6 +125,13 @@
   padding: 8rpx 16rpx;
   background: #f1f5f9;
   border-radius: 16rpx;
+  margin: 0;
+  border: none;
+  line-height: 1;
+}
+
+.share-btn::after {
+  border: none;
 }
 
 .share-icon {

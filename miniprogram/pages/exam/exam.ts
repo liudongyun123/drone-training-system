@@ -31,10 +31,47 @@ Page({
   timer: null as any,
 
   onLoad(options: any) {
-    const { type, bankId, examId } = options
+    const { type, bankId, examId, singleMode } = options
     wx.setNavigationBarTitle({ title: type === 'exam' ? '模拟考试' : '答题练习' })
     this.setData({ type, bankId: bankId || '', examId: examId || '' })
-    this.loadQuestions()
+
+    if (singleMode === 'true') {
+      this.loadSingleQuestion()
+    } else {
+      this.loadQuestions()
+    }
+  },
+
+  // 加载单题模式（错题重练）
+  loadSingleQuestion() {
+    try {
+      const retryData = wx.getStorageSync('retryQuestion')
+      if (!retryData) {
+        wx.showToast({ title: '题目数据丢失', icon: 'none' })
+        wx.navigateBack()
+        return
+      }
+
+      const question = {
+        _id: retryData.questionId || `retry_${Date.now()}`,
+        type: retryData.type || 'single',
+        title: retryData.title || '',
+        options: retryData.options || [],
+        answer: retryData.answer || '',
+        analysis: retryData.analysis || ''
+      }
+
+      this.setData({
+        questions: [question],
+        currentQuestion: question
+      })
+
+      // 清除 storage 中的临时数据
+      wx.removeStorageSync('retryQuestion')
+    } catch (err) {
+      logger.error('考试', '加载单题失败', err)
+      wx.showToast({ title: '加载失败', icon: 'none' })
+    }
   },
 
   onUnload() {

@@ -33,38 +33,39 @@ Page({
     }
   },
 
+  // 格式化单条记录
+  formatRecord(record: any) {
+    const duration = record.duration || 0
+    return {
+      _id: record._id,
+      type: record.type,
+      typeText: record.type === 'bank' ? '题库练习' : '模拟考试',
+      typeIcon: record.type === 'bank' ? '📚' : '📋',
+      targetId: record.targetId || record.bankId || record.examId || '',
+      targetName: record.targetName || record.bankName || record.examName || '练习',
+      score: record.score || 0,
+      correctCount: record.correctCount || 0,
+      totalCount: record.totalCount || 0,
+      duration: duration,
+      durationText: duration > 60 ? Math.round(duration / 60) + '分钟' : duration + '秒',
+      accuracy: record.totalCount > 0 ? Math.round((record.correctCount / record.totalCount) * 100) : 0,
+      createdAt: this.formatDate(record.createdAt),
+      timeText: this.formatTime(record.createdAt)
+    }
+  },
+
   async loadRecords() {
     this.setData({ loading: true })
     try {
       const userId = wx.getStorageSync('userId') || ''
-      const result = await getPracticeRecords(userId, this.data.pageSize)
-      
-      const records = (result.data || []).map((record: any) => {
-        const duration = record.duration || 0
-        const durationText = duration > 60 
-          ? Math.round(duration / 60) + '分钟' 
-          : duration + '秒'
-        
-        return {
-          _id: record._id,
-          type: record.type,
-          typeText: record.type === 'bank' ? '题库练习' : '模拟考试',
-          typeIcon: record.type === 'bank' ? '📚' : '📋',
-          targetName: record.targetName || record.bankName || record.examName || '练习',
-          score: record.score || 0,
-          correctCount: record.correctCount || 0,
-          totalCount: record.totalCount || 0,
-          duration: duration,
-          durationText: durationText,
-          accuracy: record.totalCount > 0 ? Math.round((record.correctCount / record.totalCount) * 100) : 0,
-          createdAt: this.formatDate(record.createdAt),
-          timeText: this.formatTime(record.createdAt)
-        }
-      })
-      
+      const result = await getPracticeRecords(userId, this.data.pageSize, 0)
+
+      const records = (result.data || []).map((r: any) => this.formatRecord(r))
+
       this.setData({
-        records: records,
+        records,
         loading: false,
+        page: 1,
         hasMore: records.length >= this.data.pageSize
       })
     } catch (err) {
@@ -75,42 +76,21 @@ Page({
 
   async loadMore() {
     const nextPage = this.data.page + 1
-    this.setData({ page: nextPage })
-    
+    const skip = this.data.records.length
+
     try {
       const userId = wx.getStorageSync('userId') || ''
-      const result = await getPracticeRecords(userId, this.data.pageSize)
-      
-      const newRecords = (result.data || []).map((record: any) => {
-        const duration = record.duration || 0
-        const durationText = duration > 60 
-          ? Math.round(duration / 60) + '分钟' 
-          : duration + '秒'
-        
-        return {
-          _id: record._id,
-          type: record.type,
-          typeText: record.type === 'bank' ? '题库练习' : '模拟考试',
-          typeIcon: record.type === 'bank' ? '📚' : '📋',
-          targetName: record.targetName || record.bankName || record.examName || '练习',
-          score: record.score || 0,
-          correctCount: record.correctCount || 0,
-          totalCount: record.totalCount || 0,
-          duration: duration,
-          durationText: durationText,
-          accuracy: record.totalCount > 0 ? Math.round((record.correctCount / record.totalCount) * 100) : 0,
-          createdAt: this.formatDate(record.createdAt),
-          timeText: this.formatTime(record.createdAt)
-        }
-      })
-      
+      const result = await getPracticeRecords(userId, this.data.pageSize, skip)
+
+      const newRecords = (result.data || []).map((r: any) => this.formatRecord(r))
+
       this.setData({
+        page: nextPage,
         records: [...this.data.records, ...newRecords],
         hasMore: newRecords.length >= this.data.pageSize
       })
     } catch (err) {
       logger.error('练习', '加载更多失败', err)
-      this.setData({ page: this.data.page - 1 })
     }
   },
 

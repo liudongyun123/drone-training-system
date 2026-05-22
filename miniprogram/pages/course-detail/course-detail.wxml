@@ -58,10 +58,10 @@
         </view>
 
         <!-- 分享按钮 -->
-        <view class="share-btn" bindtap="shareCourse">
+        <button class="share-btn" open-type="share">
           <text class="share-icon">↗️</text>
           <text class="share-text">分享</text>
-        </view>
+        </button>
       </view>
 
       <!-- 课程亮点 -->
@@ -138,9 +138,9 @@
         <view wx:if="{{hasPermission}}" class="btn-start" bindtap="startLearning" data-id="{{lessons[0]._id}}">
           <text>开始学习</text>
         </view>
-        <view wx:else class="btn-buy" bindtap="buyCourse">
-          <text>立即购买 ¥{{course.price}}</text>
-        </view>
+    <view wx:else class="btn-buy" bindtap="buyCourse">
+      <text>立即购买 ¥{{course.price}}</text>
+    </view>
       </view>
     </view>
   </block>

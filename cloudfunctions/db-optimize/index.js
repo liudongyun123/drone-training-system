@@ -54,7 +54,7 @@ const CORE_COLLECTIONS = [
   'students',          // 学生 (5)
   'sms_codes',         // 短信验证码 (5)
   'class_schedules',   // 班级排课 (5)
-  'bankQuestions',     // 银行问题 (5)
+  'questions',     // 银行问题 (5)
   'teacher_profiles',  // 教师档案 (4)
   'subscriptions',     // 订阅 (4)
   'product_categories', // 商品分类 (4)
