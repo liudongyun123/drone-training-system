@@ -1073,21 +1073,25 @@ export default function PageConfigManagement() {
     }
   };
 
-  // 保存热门课程配置（使用 upsert 保证并发安全）
+  // 保存热门课程配置
   const saveCourseConfigs = async () => {
+    if (!courseConfigs.length) return;
     try {
-      const configId = `courses_${selectedSourceId}`; // 稳定的配置ID
+      const sourceId = currentSourceIdRef.current || selectedSourceId;
       const saveData = {
-        _id: configId,
         section: 'courses',
         title: `热门课程配置 - ${selectedSource}`,
         enabled: true,
         order: 3,
-        data: { sourceId: selectedSourceId, items: courseConfigs }
+        data: { sourceId, items: courseConfigs }
       };
-      
-      // 使用 upsert 原子操作，避免并发覆盖
-      await CloudAdminService.upsert('page_configs', configId, saveData);
+
+      const result = await adminService.list('page_configs', { section: 'courses', 'data.sourceId': sourceId }, { limit: 1 });
+      if (result.data?.list && result.data.list.length > 0) {
+        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+      } else {
+        await adminService.add('page_configs', saveData);
+      }
       alert('保存成功');
     } catch (error) {
       console.error('保存课程配置失败:', error);
@@ -1168,21 +1172,25 @@ export default function PageConfigManagement() {
     }
   };
 
-  // 保存培训班配置（使用 upsert 保证并发安全）
+  // 保存培训班配置
   const saveClassConfigs = async () => {
+    if (!classConfigs.length) return;
     try {
-      const configId = `classes_${selectedSourceId}`;
+      const sourceId = currentSourceIdRef.current || selectedSourceId;
       const saveData = {
-        _id: configId,
         section: 'classes',
         title: `培训班配置 - ${selectedSource}`,
         enabled: true,
         order: 4,
-        data: { sourceId: selectedSourceId, items: classConfigs }
+        data: { sourceId, items: classConfigs }
       };
-      
-      // 使用 upsert 原子操作，避免并发覆盖
-      await CloudAdminService.upsert('page_configs', configId, saveData);
+
+      const result = await adminService.list('page_configs', { section: 'classes', 'data.sourceId': sourceId }, { limit: 1 });
+      if (result.data?.list && result.data.list.length > 0) {
+        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+      } else {
+        await adminService.add('page_configs', saveData);
+      }
       alert('保存成功');
     } catch (error) {
       console.error('保存培训班配置失败:', error);
@@ -1259,18 +1267,23 @@ export default function PageConfigManagement() {
 
   // 保存学习路径配置
   const saveLearningPathConfigs = async () => {
+    if (!learningPathConfigs.length) return;
     try {
+      const sourceId = currentSourceIdRef.current || selectedSourceId;
       const saveData = {
         section: 'learningPaths',
         title: `学习路径配置 - ${selectedSource}`,
         enabled: true,
         order: 2,
-        data: { sourceId: selectedSourceId, items: learningPathConfigs }
+        data: { sourceId, items: learningPathConfigs }
       };
-      
-      // 使用 upsert 原子操作，避免并发覆盖
-      const configId = `learningPaths_${selectedSourceId}`;
-      await CloudAdminService.upsert('page_configs', configId, saveData);
+
+      const result = await adminService.list('page_configs', { section: 'learningPaths', 'data.sourceId': sourceId }, { limit: 1 });
+      if (result.data?.list && result.data.list.length > 0) {
+        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+      } else {
+        await adminService.add('page_configs', saveData);
+      }
       alert('保存成功');
     } catch (error) {
       console.error('保存学习路径配置失败:', error);
