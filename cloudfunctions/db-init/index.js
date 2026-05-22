@@ -14,6 +14,44 @@ const app = tcb.init({
 const db = app.database();
 const _ = db.command;
 
+/**
+ * 将点号表示法转换为嵌套对象
+ * 例如: { 'data.sourceId': 'xxx' } => { data: { sourceId: 'xxx' } }
+ * CloudBase where 不支持点号路径，需要手动转换
+ */
+function convertDotNotation(obj) {
+  if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
+    return obj;
+  }
+  const result = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      if (key.includes('.') && typeof obj[key] !== 'object') {
+        // 简单值，需要转换点号路径
+        const parts = key.split('.');
+        let current = result;
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (!current[parts[i]]) current[parts[i]] = {};
+          current = current[parts[i]];
+        }
+        current[parts[parts.length - 1]] = obj[key];
+      } else if (key.includes('.') && typeof obj[key] === 'object' && obj[key] !== null) {
+        // 值是对象（如 db.command 条件），需要特殊处理
+        const parts = key.split('.');
+        let current = result;
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (!current[parts[i]]) current[parts[i]] = {};
+          current = current[parts[i]];
+        }
+        current[parts[parts.length - 1]] = obj[key];
+      } else {
+        result[key] = obj[key];
+      }
+    }
+  }
+  return result;
+}
+
 // 主入口
 exports.main = async (event, context) => {
   console.log('[db-init] 收到请求:', JSON.stringify(event));
@@ -46,10 +84,13 @@ exports.main = async (event, context) => {
         
       case 'query':
       case 'getList': {
-        const whereConditions = query || where || {};
+        const rawConditions = query || where || {};
+        // 转换点号路径为嵌套对象（CloudBase where 不支持 data.sourceId 这种写法）
+        const whereConditions = convertDotNotation(rawConditions);
         let coll = db.collection(collection);
         
         if (Object.keys(whereConditions).length > 0) {
+          console.log('[db-init] where 条件:', JSON.stringify(whereConditions));
           coll = coll.where(whereConditions);
         }
         

@@ -188,18 +188,26 @@ export default function PageConfigManagement() {
     loadSources();
   }, []);
 
-  // 加载数据 - 只在体系相关 Tab 和有 sourceId 时加载
+  // 加载数据 - 所有 Tab 变化时都加载
+  // 公共配置（hero/banners/notices/contact/footer）：不依赖 sourceId，直接加载
+  // 体系配置（stats/features/courses/classes/learningPaths）：需要 sourceId 后才加载
   useEffect(() => {
+    if (!activeTab) return;
     const isSourceTab = ['stats', 'features', 'courses', 'classes', 'learningPaths'].includes(activeTab);
-    if (activeTab && isSourceTab && selectedSourceId) {
-      console.log('[PageConfig] useEffect 触发 loadData, activeTab:', activeTab, 'selectedSourceId:', selectedSourceId);
+    if (!isSourceTab) {
+      // 公共配置：不需要 sourceId，直接加载
+      console.log('[PageConfig] useEffect 触发 loadData (公共配置), activeTab:', activeTab);
+      loadData();
+    } else if (selectedSourceId) {
+      // 体系配置：需要 sourceId，体系加载完成后才触发
+      console.log('[PageConfig] useEffect 触发 loadData (体系配置), activeTab:', activeTab, 'selectedSourceId:', selectedSourceId);
       loadData();
     }
   }, [activeTab, selectedSourceId]);
 
   const loadSources = async () => {
     try {
-      const result = await adminService.listSources({ limit: 100 });
+      const result = await adminService.listSources({}, { limit: 100 });
       console.log('[PageConfig] loadSources result:', result);
       if (result.data?.list && result.data.list.length > 0) {
         // 按 code 排序，确保顺序一致（CAAC 优先）
@@ -239,7 +247,7 @@ export default function PageConfigManagement() {
       // 使用 ref 中的 sourceId（避免 React 状态更新异步问题）
       const sourceId = currentSourceIdRef.current || selectedSourceId;
       console.log('[PageConfig] loadData 使用 sourceId:', sourceId);
-      
+
       switch (activeTab) {
         case 'hero':
           await loadHeroConfig();
@@ -262,18 +270,21 @@ export default function PageConfigManagement() {
         case 'footer':
           await loadFooter();
           break;
-        case 'courses':
-          await loadCourses();
-          await loadCourseConfigs();
+        case 'courses': {
+          const coursesArr = await loadCoursesWithSourceId(sourceId);
+          await loadCourseConfigsWithSourceId(sourceId, coursesArr);
           break;
-        case 'classes':
-          await loadClasses();
-          await loadClassConfigs();
+        }
+        case 'classes': {
+          const classesArr = await loadClassesWithSourceId(sourceId);
+          await loadClassConfigsWithSourceId(sourceId, classesArr);
           break;
-        case 'learningPaths':
-          await loadLearningPaths();
-          await loadLearningPathConfigs();
+        }
+        case 'learningPaths': {
+          const pathGroups = await loadLearningPathsWithSourceId(sourceId);
+          await loadLearningPathConfigsWithSourceId(sourceId, pathGroups);
           break;
+        }
       }
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -303,18 +314,24 @@ export default function PageConfigManagement() {
           break;
         case 'courses':
           console.log('[PageConfig] 执行 loadCoursesWithSourceId');
-          await loadCoursesWithSourceId(sourceIdToUse);
-          await loadCourseConfigsWithSourceId(sourceIdToUse);
+          {
+            const coursesArr = await loadCoursesWithSourceId(sourceIdToUse);
+            await loadCourseConfigsWithSourceId(sourceIdToUse, coursesArr);
+          }
           break;
         case 'classes':
           console.log('[PageConfig] 执行 loadClassesWithSourceId');
-          await loadClassesWithSourceId(sourceIdToUse);
-          await loadClassConfigsWithSourceId(sourceIdToUse);
+          {
+            const classesArr = await loadClassesWithSourceId(sourceIdToUse);
+            await loadClassConfigsWithSourceId(sourceIdToUse, classesArr);
+          }
           break;
         case 'learningPaths':
           console.log('[PageConfig] 执行 loadLearningPathsWithSourceId');
-          await loadLearningPathsWithSourceId(sourceIdToUse);
-          await loadLearningPathConfigsWithSourceId(sourceIdToUse);
+          {
+            const pathGroups = await loadLearningPathsWithSourceId(sourceIdToUse);
+            await loadLearningPathConfigsWithSourceId(sourceIdToUse, pathGroups);
+          }
           break;
         default:
           console.log('[PageConfig] 当前 Tab 不需要加载数据:', activeTab);
@@ -328,28 +345,42 @@ export default function PageConfigManagement() {
     }
   };
 
-  // 使用指定 sourceId 加载课程
-  const loadCoursesWithSourceId = async (sourceId: string) => {
+  // 使用指定 sourceId 加载课程（返回课程数组，避免 state 异步问题）
+  const loadCoursesWithSourceId = async (sourceId: string): Promise<any[]> => {
     console.log('[PageConfig] loadCoursesWithSourceId, sourceId:', sourceId);
     try {
       const result = await adminService.list('courses', { sourceId }, { limit: 1000 });
-      console.log('[PageConfig] 课程查询结果:', { sourceId, total: result.data?.total });
-      setCourses((result.data?.list || []).map((c: any) => ({ ...c, id: c._id })));
+      const coursesArr = (result.data?.list || []).map((c: any) => ({ ...c, id: c._id }));
+      setCourses(coursesArr);
+      return coursesArr;
     } catch (error) {
       console.error('[PageConfig] loadCoursesWithSourceId error:', error);
       setCourses([]);
+      return [];
     }
   };
 
-  // 使用指定 sourceId 加载课程配置
-  const loadCourseConfigsWithSourceId = async (sourceId: string) => {
+  // 使用指定 sourceId 加载课程配置（接收课程数组参数，避免依赖异步 state）
+  const loadCourseConfigsWithSourceId = async (sourceId: string, coursesArr: any[]) => {
     try {
       const result = await adminService.list('page_configs', { section: 'courses', 'data.sourceId': sourceId }, { limit: 1 });
-      if (result.data?.list && result.data.list.length > 0) {
-        const config = result.data.list[0];
-        setCourseConfigs(config.data?.items || []);
-      } else {
-        setCourseConfigs([]);
+      const matchedConfig = result.data?.list?.[0];
+      if (matchedConfig && matchedConfig.data?.items && Array.isArray(matchedConfig.data.items)) {
+        setCourseConfigs(matchedConfig.data.items);
+        return;
+      }
+      // 无配置时自动从传入的 coursesArr 生成默认配置
+      const defaultItems = coursesArr.map((c: any, index: number) => ({
+        _id: c._id,
+        title: c.title,
+        categoryId: c.categoryId,
+        status: c.status,
+        order: index + 1,
+        visible: true
+      }));
+      setCourseConfigs(defaultItems);
+      if (defaultItems.length > 0) {
+        await saveCourseConfigsDirect(defaultItems);
       }
     } catch (error) {
       console.error('[PageConfig] loadCourseConfigsWithSourceId error:', error);
@@ -357,28 +388,42 @@ export default function PageConfigManagement() {
     }
   };
 
-  // 使用指定 sourceId 加载培训班
-  const loadClassesWithSourceId = async (sourceId: string) => {
+  // 使用指定 sourceId 加载培训班（返回培训班数组，避免 state 异步问题）
+  const loadClassesWithSourceId = async (sourceId: string): Promise<any[]> => {
     console.log('[PageConfig] loadClassesWithSourceId, sourceId:', sourceId);
     try {
       const result = await adminService.list('classes', { sourceId }, { limit: 1000 });
-      console.log('[PageConfig] 培训班查询结果:', { sourceId, total: result.data?.total });
-      setClasses((result.data?.list || []).map((c: any) => ({ ...c, id: c._id })));
+      const classesArr = (result.data?.list || []).map((c: any) => ({ ...c, id: c._id }));
+      setClasses(classesArr);
+      return classesArr;
     } catch (error) {
       console.error('[PageConfig] loadClassesWithSourceId error:', error);
       setClasses([]);
+      return [];
     }
   };
 
-  // 使用指定 sourceId 加载培训班配置
-  const loadClassConfigsWithSourceId = async (sourceId: string) => {
+  // 使用指定 sourceId 加载培训班配置（接收培训班数组参数，避免依赖异步 state）
+  const loadClassConfigsWithSourceId = async (sourceId: string, classesArr: any[]) => {
     try {
       const result = await adminService.list('page_configs', { section: 'classes', 'data.sourceId': sourceId }, { limit: 1 });
-      if (result.data?.list && result.data.list.length > 0) {
-        const config = result.data.list[0];
-        setClassConfigs(config.data?.items || []);
-      } else {
-        setClassConfigs([]);
+      const matchedConfig = result.data?.list?.[0];
+      if (matchedConfig && matchedConfig.data?.items && Array.isArray(matchedConfig.data.items)) {
+        setClassConfigs(matchedConfig.data.items);
+        return;
+      }
+      // 无配置时自动从传入的 classesArr 生成默认配置
+      const defaultItems = classesArr.map((c: any, index: number) => ({
+        _id: c._id,
+        name: c.name,
+        categoryId: c.categoryId,
+        status: c.status,
+        order: index + 1,
+        visible: true
+      }));
+      setClassConfigs(defaultItems);
+      if (defaultItems.length > 0) {
+        await saveClassConfigsDirect(defaultItems);
       }
     } catch (error) {
       console.error('[PageConfig] loadClassConfigsWithSourceId error:', error);
@@ -386,8 +431,8 @@ export default function PageConfigManagement() {
     }
   };
 
-  // 使用指定 sourceId 加载学习路径
-  const loadLearningPathsWithSourceId = async (sourceId: string) => {
+  // 使用指定 sourceId 加载学习路径（返回 pathGroups 数组，避免 state 异步问题）
+  const loadLearningPathsWithSourceId = async (sourceId: string): Promise<LearningPathGroup[]> => {
     console.log('[PageConfig] ═══════════════════════════════════');
     console.log('[PageConfig] loadLearningPathsWithSourceId 被调用');
     console.log('[PageConfig] 传入的 sourceId:', sourceId);
@@ -442,7 +487,9 @@ export default function PageConfigManagement() {
         return {
           _id: cat._id,
           name: cat.name,
+          icon: cat.icon || '',
           order: cat.sortOrder || 0,
+          sourceId: sourceId,
           courses: matchedCourses.map((c: any) => ({ ...c, id: c._id })),
           classes: matchedClasses.map((c: any) => ({ ...c, id: c._id })),
           visible: true,
@@ -451,25 +498,44 @@ export default function PageConfigManagement() {
       
       console.log('[PageConfig] 最终学习路径分组:', pathGroups.map(g => `${g.name}(${g.courses.length}课程,${g.classes.length}班级)`).join(' | '));
       setLearningPaths(pathGroups);
+      return pathGroups;
     } catch (error) {
       console.error('[PageConfig] loadLearningPathsWithSourceId error:', error);
       setLearningPaths([]);
+      return [];
     }
   };
 
-  // 使用指定 sourceId 加载学习路径配置
-  const loadLearningPathConfigsWithSourceId = async (sourceId: string) => {
+  // 使用指定 sourceId 加载学习路径配置（接收 pathGroups 参数，避免依赖异步 state）
+  const loadLearningPathConfigsWithSourceId = async (sourceId: string, pathGroups: LearningPathGroup[]) => {
     try {
       const result = await adminService.list('page_configs', { section: 'learningPaths', 'data.sourceId': sourceId }, { limit: 1 });
-      if (result.data?.list && result.data.list.length > 0) {
-        const config = result.data.list[0];
-        setLearningPathConfigs(config.data?.items || []);
-      } else {
-        setLearningPathConfigs([]);
+      const matchedConfig = result.data?.list?.[0];
+
+      if (matchedConfig && matchedConfig.data?.items) {
+        setLearningPathConfigs(matchedConfig.data.items);
+        return;
+      }
+
+      // 无配置时自动从传入的 pathGroups 生成默认配置
+      const defaultItems = pathGroups.map((g, index) => ({
+        ...g,
+        order: index + 1,
+        visible: true
+      }));
+      setLearningPathConfigs(defaultItems);
+      // 自动保存默认配置
+      if (defaultItems.length > 0) {
+        await saveLearningPathConfigsDirect(defaultItems);
       }
     } catch (error) {
       console.error('[PageConfig] loadLearningPathConfigsWithSourceId error:', error);
-      setLearningPathConfigs([]);
+      const defaultItems = pathGroups.map((g, index) => ({
+        ...g,
+        order: index + 1,
+        visible: true
+      }));
+      setLearningPathConfigs(defaultItems);
     }
   };
 
@@ -1473,20 +1539,17 @@ export default function PageConfigManagement() {
                         console.log('[PageConfig] 用户点击切换体系');
                         console.log('[PageConfig] 点击的体系:', newSourceCode, source.name, 'ID:', newSourceId);
                         console.log('[PageConfig] 切换前的 selectedSourceId:', selectedSourceId);
-                        
-                        // 更新 state
-                        setSelectedSource(newSourceCode);
-                        setSelectedSourceId(newSourceId);
-                        
-                        // 更新 ref
+
+                        // 更新 ref（同步，确保 useEffect 加载时读取正确）
                         currentSourceIdRef.current = newSourceId;
                         currentSourceCodeRef.current = newSourceCode;
-                        
+
+                        // 更新 state（触发 useEffect 自动加载当前 activeTab 的数据）
+                        setSelectedSource(newSourceCode);
+                        setSelectedSourceId(newSourceId);
+
                         console.log('[PageConfig] 设置后的 selectedSourceId:', newSourceId);
-                        console.log('[PageConfig] 即将调用 loadDataWithSourceId');
-                        
-                        // 立即使用 ref 中的值重新加载数据
-                        loadDataWithSourceId(newSourceId);
+                        console.log('[PageConfig] useEffect 将自动根据 activeTab 加载数据');
                       }}
                       className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                         isSelected
