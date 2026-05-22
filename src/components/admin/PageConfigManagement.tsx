@@ -1504,21 +1504,6 @@ export default function PageConfigManagement() {
           <p className="text-gray-500 mt-1">管理首页展示内容</p>
         </div>
 
-        {/* 调试面板 - 始终显示 */}
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-xs font-mono">
-          <div className="font-bold text-yellow-700 mb-1">🔧 调试信息</div>
-          <div>selectedSourceId: <span className="text-blue-600">{selectedSourceId || '无'}</span></div>
-          <div>selectedSource: <span className="text-blue-600">{selectedSource || '无'}</span></div>
-          <div>activeTab: <span className="text-blue-600">{activeTab}</span></div>
-          <div>sources 数量: <span className="text-blue-600">{sources.length}</span></div>
-          <div>learningPaths 数量: <span className="text-blue-600">{learningPaths.length}</span></div>
-          {learningPaths.length > 0 && (
-            <div className="mt-1">
-              分类列表: <span className="text-green-600">{learningPaths.map(g => g.name).join(', ')}</span>
-            </div>
-          )}
-        </div>
-
         {/* 体系选择器 - 体系配置区域显示 */}
         {sourceTabs.find(t => t.key === activeTab) && (
           <div className="mb-4 flex items-center gap-4">
