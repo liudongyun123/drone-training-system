@@ -84,9 +84,11 @@ exports.main = async (event, context) => {
         
       case 'query':
       case 'getList': {
-        const rawConditions = query || where || {};
-        // 转换点号路径为嵌套对象（CloudBase where 不支持 data.sourceId 这种写法）
-        const whereConditions = convertDotNotation(rawConditions);
+        const whereConditions = query || where || {};
+        // CloudBase/MongoDB where 原生支持点号路径（如 'data.sourceId'），
+        // 直接传递即可，不需要 convertDotNotation。之前的转换会导致
+        // 嵌套对象精确匹配失败（如 { data: { sourceId } } 匹配不到
+        // 实际含有 data: { sourceId, items } 的文档）。
         let coll = db.collection(collection);
         
         if (Object.keys(whereConditions).length > 0) {

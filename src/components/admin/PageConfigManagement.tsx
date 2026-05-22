@@ -363,8 +363,8 @@ export default function PageConfigManagement() {
   // 使用指定 sourceId 加载课程配置（接收课程数组参数，避免依赖异步 state）
   const loadCourseConfigsWithSourceId = async (sourceId: string, coursesArr: any[]) => {
     try {
-      const result = await adminService.list('page_configs', { section: 'courses', 'data.sourceId': sourceId }, { limit: 1 });
-      const matchedConfig = result.data?.list?.[0];
+      const result = await adminService.list('page_configs', { section: 'courses' }, { limit: 50 });
+      const matchedConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
       if (matchedConfig && matchedConfig.data?.items && Array.isArray(matchedConfig.data.items)) {
         setCourseConfigs(matchedConfig.data.items);
         return;
@@ -406,8 +406,8 @@ export default function PageConfigManagement() {
   // 使用指定 sourceId 加载培训班配置（接收培训班数组参数，避免依赖异步 state）
   const loadClassConfigsWithSourceId = async (sourceId: string, classesArr: any[]) => {
     try {
-      const result = await adminService.list('page_configs', { section: 'classes', 'data.sourceId': sourceId }, { limit: 1 });
-      const matchedConfig = result.data?.list?.[0];
+      const result = await adminService.list('page_configs', { section: 'classes' }, { limit: 50 });
+      const matchedConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
       if (matchedConfig && matchedConfig.data?.items && Array.isArray(matchedConfig.data.items)) {
         setClassConfigs(matchedConfig.data.items);
         return;
@@ -509,8 +509,8 @@ export default function PageConfigManagement() {
   // 使用指定 sourceId 加载学习路径配置（接收 pathGroups 参数，避免依赖异步 state）
   const loadLearningPathConfigsWithSourceId = async (sourceId: string, pathGroups: LearningPathGroup[]) => {
     try {
-      const result = await adminService.list('page_configs', { section: 'learningPaths', 'data.sourceId': sourceId }, { limit: 1 });
-      const matchedConfig = result.data?.list?.[0];
+      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 50 });
+      const matchedConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
 
       if (matchedConfig && matchedConfig.data?.items) {
         setLearningPathConfigs(matchedConfig.data.items);
@@ -607,14 +607,10 @@ export default function PageConfigManagement() {
   const loadStats = async () => {
     try {
       const sourceId = currentSourceIdRef.current || selectedSourceId;
-      const result = await adminService.list('page_configs', { section: 'stats', 'data.sourceId': sourceId }, { limit: 1 });
-      if (result.data?.list && result.data.list.length > 0) {
-        const config = result.data.list[0];
-        if (config.data?.stats && Array.isArray(config.data.stats)) {
-          setStats(config.data.stats as StatItem[]);
-        } else {
-          setStats(getDefaultStats());
-        }
+      const result = await adminService.list('page_configs', { section: 'stats' }, { limit: 50 });
+      const config = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
+      if (config && config.data?.stats && Array.isArray(config.data.stats)) {
+        setStats(config.data.stats as StatItem[]);
       } else {
         setStats(getDefaultStats());
       }
@@ -628,7 +624,8 @@ export default function PageConfigManagement() {
     if (!stats.length) return;
     try {
       const sourceId = currentSourceIdRef.current || selectedSourceId;
-      const result = await adminService.list('page_configs', { section: 'stats', 'data.sourceId': sourceId }, { limit: 1 });
+      const result = await adminService.list('page_configs', { section: 'stats' }, { limit: 50 });
+      const existingConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
       const saveData = {
         section: 'stats',
         title: `统计概览 - ${selectedSource}`,
@@ -636,8 +633,8 @@ export default function PageConfigManagement() {
         order: 2,
         data: { sourceId, stats },
       };
-      if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+      if (existingConfig) {
+        await adminService.update('page_configs', existingConfig._id, saveData);
       } else {
         await adminService.add('page_configs', saveData);
       }
@@ -673,9 +670,9 @@ export default function PageConfigManagement() {
   const loadFeatures = async () => {
     try {
       const sourceId = currentSourceIdRef.current || selectedSourceId;
-      const result = await adminService.list('page_configs', { section: 'features', 'data.sourceId': sourceId }, { limit: 1 });
-      if (result.data?.list && result.data.list.length > 0) {
-        const config = result.data.list[0];
+      const result = await adminService.list('page_configs', { section: 'features' }, { limit: 50 });
+      const config = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
+      if (config) {
         if (config.data?.features && Array.isArray(config.data.features)) {
           setFeatures(config.data.features as FeatureItem[]);
         } else {
@@ -694,7 +691,8 @@ export default function PageConfigManagement() {
     if (!features.length) return;
     try {
       const sourceId = currentSourceIdRef.current || selectedSourceId;
-      const result = await adminService.list('page_configs', { section: 'features', 'data.sourceId': sourceId }, { limit: 1 });
+      const result = await adminService.list('page_configs', { section: 'features' }, { limit: 50 });
+      const existingConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
       const saveData = {
         section: 'features',
         title: `特色优势 - ${selectedSource}`,
@@ -702,8 +700,8 @@ export default function PageConfigManagement() {
         order: 4,
         data: { sourceId, features },
       };
-      if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+      if (existingConfig) {
+        await adminService.update('page_configs', existingConfig._id, saveData);
       } else {
         await adminService.add('page_configs', saveData);
       }
@@ -1003,13 +1001,10 @@ export default function PageConfigManagement() {
   // 加载热门课程配置（使用精确查询）
   const loadCourseConfigs = async () => {
     try {
-      // 精确查询：按 section 和 sourceId 查询
-      const result = await adminService.list('page_configs', { 
-        section: 'courses',
-        'data.sourceId': selectedSourceId
-      }, { limit: 1 });
+      // 查询所有 courses 配置，客户端按 sourceId 过滤（避免点号路径查询兼容性问题）
+      const result = await adminService.list('page_configs', { section: 'courses' }, { limit: 50 });
       
-      const matchedConfig = result.data?.list?.[0];
+      const matchedConfig = result.data?.list?.find((item: any) => item.data?.sourceId === selectedSourceId);
       
       if (matchedConfig && matchedConfig.data?.items && Array.isArray(matchedConfig.data.items)) {
         setCourseConfigs(matchedConfig.data.items);
@@ -1086,9 +1081,11 @@ export default function PageConfigManagement() {
         data: { sourceId, items: courseConfigs }
       };
 
-      const result = await adminService.list('page_configs', { section: 'courses', 'data.sourceId': sourceId }, { limit: 1 });
-      if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+      // 查询所有 courses 配置，客户端按 sourceId 过滤
+      const result = await adminService.list('page_configs', { section: 'courses' }, { limit: 50 });
+      const existingConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
+      if (existingConfig) {
+        await adminService.update('page_configs', existingConfig._id, saveData);
       } else {
         await adminService.add('page_configs', saveData);
       }
@@ -1102,13 +1099,10 @@ export default function PageConfigManagement() {
   // 加载培训班配置
   const loadClassConfigs = async () => {
     try {
-      // 精确查询：按 section 和 sourceId 查询
-      const result = await adminService.list('page_configs', {
-        section: 'classes',
-        'data.sourceId': selectedSourceId
-      }, { limit: 1 });
+      // 查询所有 classes 配置，客户端按 sourceId 过滤（避免点号路径查询兼容性问题）
+      const result = await adminService.list('page_configs', { section: 'classes' }, { limit: 50 });
       
-      const matchedConfig = result.data?.list?.[0];
+      const matchedConfig = result.data?.list?.find((item: any) => item.data?.sourceId === selectedSourceId);
       
       if (matchedConfig && matchedConfig.data?.items && Array.isArray(matchedConfig.data.items)) {
         setClassConfigs(matchedConfig.data.items);
@@ -1185,9 +1179,11 @@ export default function PageConfigManagement() {
         data: { sourceId, items: classConfigs }
       };
 
-      const result = await adminService.list('page_configs', { section: 'classes', 'data.sourceId': sourceId }, { limit: 1 });
-      if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+      // 查询所有 classes 配置，客户端按 sourceId 过滤
+      const result = await adminService.list('page_configs', { section: 'classes' }, { limit: 50 });
+      const existingConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
+      if (existingConfig) {
+        await adminService.update('page_configs', existingConfig._id, saveData);
       } else {
         await adminService.add('page_configs', saveData);
       }
@@ -1201,13 +1197,10 @@ export default function PageConfigManagement() {
   // 加载学习路径配置（使用精确查询）
   const loadLearningPathConfigs = async () => {
     try {
-      // 精确查询：按 section 和 sourceId 查询
-      const result = await adminService.list('page_configs', {
-        section: 'learningPaths',
-        'data.sourceId': selectedSourceId
-      }, { limit: 1 });
+      // 查询所有 learningPaths 配置，客户端按 sourceId 过滤（避免点号路径查询兼容性问题）
+      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 50 });
       
-      const matchedConfig = result.data?.list?.[0];
+      const matchedConfig = result.data?.list?.find((item: any) => item.data?.sourceId === selectedSourceId);
       
       if (matchedConfig && matchedConfig.data?.items) {
         setLearningPathConfigs(matchedConfig.data.items);
@@ -1278,9 +1271,11 @@ export default function PageConfigManagement() {
         data: { sourceId, items: learningPathConfigs }
       };
 
-      const result = await adminService.list('page_configs', { section: 'learningPaths', 'data.sourceId': sourceId }, { limit: 1 });
-      if (result.data?.list && result.data.list.length > 0) {
-        await adminService.update('page_configs', result.data.list[0]._id, saveData);
+      // 查询所有 learningPaths 配置，客户端按 sourceId 过滤
+      const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 50 });
+      const existingConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
+      if (existingConfig) {
+        await adminService.update('page_configs', existingConfig._id, saveData);
       } else {
         await adminService.add('page_configs', saveData);
       }
