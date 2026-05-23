@@ -101,12 +101,13 @@ Page({
   async loadCategories() {
     try {
       const sourceId = this.data.currentSourceId
-      if (!sourceId) {
+      const sourceCode = this.data.currentSource
+      if (!sourceId && !sourceCode) {
         this.setData({ categories: [] })
         return
       }
       
-      const categories = await SourceService.getCategories(sourceId)
+      const categories = await SourceService.getCategories(sourceId, { sourceCode })
       // 保存 name 和 id 用于显示和过滤
       const categoryList = categories.map((c) => ({ name: c.name, id: c._id || '' }))
       this.setData({ categories: categoryList })
@@ -122,14 +123,15 @@ Page({
     
     try {
       const sourceId = this.data.currentSourceId
+      const sourceCode = this.data.currentSource  // 体系的 code，与数据库中 sourceId 字段一致
       
-      if (!sourceId) {
-        logger.warn('[课程列表] sourceId 为空')
+      if (!sourceId && !sourceCode) {
+        logger.warn('[课程列表] sourceId 和 sourceCode 均为空')
         this.setData({ courses: [], loading: false })
         return
       }
       
-      const filters: any = { page: 1, pageSize: 10, sourceId }
+      const filters: any = { page: 1, pageSize: 10, sourceCode, sourceId }
       
       // 使用 categoryId 过滤
       if (this.data.currentCategoryId) {
@@ -180,9 +182,10 @@ Page({
     
     try {
       const sourceId = this.data.currentSourceId
-      if (!sourceId) return
+      const sourceCode = this.data.currentSource
+      if (!sourceId && !sourceCode) return
       
-      const filters: any = { page: nextPage, pageSize: 10, sourceId }
+      const filters: any = { page: nextPage, pageSize: 10, sourceCode, sourceId }
       
       // 使用 categoryId 过滤
       if (this.data.currentCategoryId) {

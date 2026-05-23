@@ -187,7 +187,7 @@ export default function FinanceManagement() {
     // 基于真实订单数据聚合收入趋势
     for (let i = 0; i < days; i++) {
       // 根据时间范围计算日期区间
-      let startDate = new Date()
+      const startDate = new Date()
       let endDate = new Date()
       if (filter === 'today') {
         startDate.setHours(i, 0, 0, 0)

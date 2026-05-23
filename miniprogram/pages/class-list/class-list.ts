@@ -91,12 +91,13 @@ Page({
   async loadCategories() {
     try {
       const sourceId = this.data.currentSourceId
-      if (!sourceId) {
+      const sourceCode = this.data.currentSource
+      if (!sourceId && !sourceCode) {
         this.setData({ categories: [] })
         return
       }
       
-      const categories = await SourceService.getCategories(sourceId)
+      const categories = await SourceService.getCategories(sourceId, { sourceCode })
       // 保存 name 和 id 用于显示和过滤
       const categoryList = categories.map((c) => ({ name: c.name, id: c._id || '' }))
       this.setData({ categories: categoryList })
@@ -112,14 +113,15 @@ Page({
 
     try {
       const sourceId = this.data.currentSourceId
+      const sourceCode = this.data.currentSource
       
-      if (!sourceId) {
-        logger.warn('[培训班列表] sourceId 为空')
+      if (!sourceId && !sourceCode) {
+        logger.warn('[培训班列表] sourceId 和 sourceCode 均为空')
         this.setData({ classList: [], loading: false })
         return
       }
       
-      const filters: any = { page: 1, pageSize: 10, sourceId }
+      const filters: any = { page: 1, pageSize: 10, sourceCode, sourceId }
       
       if (this.data.currentStatus) {
         filters.status = this.data.currentStatus

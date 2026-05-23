@@ -164,8 +164,8 @@ Page<IndexData>({
     const { currentSourceId, currentSource } = this.data
     
     // 验证 sourceId
-    if (!currentSourceId) {
-      logger.error('[首页] sourceId 为空')
+    if (!currentSourceId && !currentSource) {
+      logger.error('[首页] sourceId 和 sourceCode 均为空')
       this.handleEmpty('请先选择培训体系')
       return
     }
@@ -179,7 +179,7 @@ Page<IndexData>({
     try {
       logger.info('[首页] loadData', { currentSourceId, currentSource })
       
-      // 并行加载所有数据
+      // 并行加载所有数据（传 sourceCode 用于数据库查询，数据库中 sourceId 字段存的是 code）
       const [
         coursesResult,
         classesResult,
@@ -189,13 +189,13 @@ Page<IndexData>({
         statsResult,
         featuresResult
       ] = await Promise.allSettled([
-        SourceService.getHotCoursesConfig(currentSourceId, 6),
-        SourceService.getClassesConfig(currentSourceId, 6),
+        SourceService.getHotCoursesConfig(currentSourceId, 6, currentSource),
+        SourceService.getClassesConfig(currentSourceId, 6, currentSource),
         productApi.getList({ pageSize: 6 }),
         bannerApi.getList(10),
-        SourceService.getLearningPathConfig(currentSourceId),
-        SourceService.getStatsConfig(currentSourceId),
-        SourceService.getFeaturesConfig(currentSourceId)
+        SourceService.getLearningPathConfig(currentSourceId, currentSource),
+        SourceService.getStatsConfig(currentSourceId, currentSource),
+        SourceService.getFeaturesConfig(currentSourceId, currentSource)
       ])
 
       // 处理各模块结果

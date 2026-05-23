@@ -315,14 +315,20 @@ export const systemConfigApi = {
  */
 export const courseApi = {
   async getList(filters: any = {}) {
-    const { status = 'published', category, categoryId, sourceId, page = 1, pageSize = 10, sortBy, sortOrder, keyword } = filters
+    const { status = 'published', category, categoryId, sourceId, sourceCode, page = 1, pageSize = 10, sortBy, sortOrder, keyword } = filters
     const skip = (page - 1) * pageSize
 
     const where: any = {}
     if (status) where.status = status
     if (category) where.category = category  // 按名称过滤
     if (categoryId) where.categoryId = categoryId  // 按ID过滤
-    if (sourceId) where.sourceId = sourceId  // 按体系过滤
+    // 按体系过滤：同时兼容 sourceId(_id) 和 sourceCode(code)
+    // 数据库中 sourceId 字段统一存储体系的 code（如 "CAAC"/"RENSHE"/"GUOFANG"）
+    if (sourceCode) {
+      where.sourceId = sourceCode
+    } else if (sourceId) {
+      where.sourceId = sourceId  // 兼容旧调用方式（CAAC/RENSHE 的 _id === code）
+    }
 
     // 构建排序参数（db-init 云函数期望 orderBy 和 order 分开）
     const orderBy = sortBy || 'createdAt'
@@ -361,8 +367,8 @@ export const courseApi = {
         })
       }
       
-      // 如果没有数据且有筛选条件，尝试无筛选查询
-      if (courses.length === 0 && Object.keys(where).length > 1) {
+      // 如果没有数据，仅在不指定 sourceId 时才回退查询全部（避免显示其他体系的课程）
+      if (courses.length === 0 && !sourceId && Object.keys(where).length > 1) {
         const fallbackResult = await dbGetList('courses', {
           orderBy,
           order,
@@ -487,12 +493,17 @@ export const courseApi = {
  */
 export const classApi = {
   async getList(filters: any = {}) {
-    const { status, sourceId, page = 1, pageSize = 10, category, categoryId, sortBy, sortOrder, keyword } = filters
+    const { status, sourceId, sourceCode, page = 1, pageSize = 10, category, categoryId, sortBy, sortOrder, keyword } = filters
     const skip = (page - 1) * pageSize
 
     const where: any = {}
     if (status) where.status = status
-    if (sourceId) where.sourceId = sourceId  // 按体系过滤
+    // 按体系过滤：同时兼容 sourceId(_id) 和 sourceCode(code)
+    if (sourceCode) {
+      where.sourceId = sourceCode
+    } else if (sourceId) {
+      where.sourceId = sourceId
+    }
     if (category) where.category = category  // 按分类名称过滤
     if (categoryId) where.categoryId = categoryId  // 按分类ID过滤
 
@@ -536,8 +547,8 @@ export const classApi = {
       })
     }
     
-    // 如果没有数据且有筛选条件，尝试无筛选查询
-    if (classes.length === 0 && Object.keys(where).length > 1) {
+    // 如果没有数据，仅在不指定 sourceId 时才回退查询全部（避免显示其他体系的培训班）
+    if (classes.length === 0 && !sourceId && Object.keys(where).length > 1) {
       const fallbackResult = await dbGetList('classes', {
         orderBy,
         order,

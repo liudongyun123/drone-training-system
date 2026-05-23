@@ -383,12 +383,16 @@ export const SourceService = {
   async getCategories(sourceId: string, options?: {
     forceRefresh?: boolean
     includeDisabled?: boolean
+    sourceCode?: string
   }): Promise<Category[]> {
-    if (!sourceId) {
-      throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
+    if (!sourceId && !options?.sourceCode) {
+      throw new SourceServiceError('sourceId 或 sourceCode 不能为空', ErrorCodes.INVALID_PARAMS)
     }
 
-    const cacheKey = cacheKeys.categories(sourceId)
+    // 数据库中 sourceId 字段统一存储体系的 code（如 "CAAC"/"GUOFANG"）
+    // 优先使用 sourceCode 查询，兼容 _id === code 的旧体系
+    const querySourceId = options?.sourceCode || sourceId
+    const cacheKey = cacheKeys.categories(querySourceId)
     
     if (!options?.forceRefresh) {
       const cached = sourceCache.get<Category[]>(cacheKey)
@@ -402,7 +406,7 @@ export const SourceService = {
       }
       
       const result = await dbGetList('categories', {
-        where: { ...where, sourceId },
+        where: { ...where, sourceId: querySourceId },
         orderBy: 'sortOrder asc'
       })
       
@@ -410,7 +414,7 @@ export const SourceService = {
       sourceCache.set(cacheKey, categories)
       
       logger.info('[SourceService] getCategories', { 
-        sourceId, 
+        sourceId: querySourceId, 
         count: categories.length 
       })
       
@@ -433,9 +437,12 @@ export const SourceService = {
     status?: string
     limit?: number
     forceRefresh?: boolean
+    sourceCode?: string
   }): Promise<Course[]> {
+    // 数据库中 sourceId 字段统一存储体系的 code
+    const querySourceId = options?.sourceCode || sourceId
     // 优先使用 categoryId 作为缓存 key
-    const cacheKey = cacheKeys.courses(sourceId || 'auto', options?.categoryId)
+    const cacheKey = cacheKeys.courses(querySourceId || 'auto', options?.categoryId)
     
     if (!options?.forceRefresh) {
       const cached = sourceCache.get<Course[]>(cacheKey)
@@ -447,7 +454,7 @@ export const SourceService = {
       
       // 构建查询条件 - 优先使用 categoryId
       const where: any = {}
-      if (sourceId) where.sourceId = sourceId
+      if (querySourceId) where.sourceId = querySourceId
       if (options?.categoryId) {
         where.categoryId = options.categoryId  // 直接使用 categoryId 过滤
       } else if (options?.category) {
@@ -465,7 +472,7 @@ export const SourceService = {
       sourceCache.set(cacheKey, courses)
       
       logger.info('[SourceService] getCourses', { 
-        sourceId, 
+        sourceId: querySourceId, 
         categoryId: options?.categoryId,
         count: courses.length 
       })
@@ -490,9 +497,12 @@ export const SourceService = {
     status?: string
     limit?: number
     forceRefresh?: boolean
+    sourceCode?: string
   }): Promise<ClassItem[]> {
+    // 数据库中 sourceId 字段统一存储体系的 code
+    const querySourceId = options?.sourceCode || sourceId
     // 优先使用 categoryId 作为缓存 key
-    const cacheKey = cacheKeys.classes(sourceId || 'auto', options?.categoryId)
+    const cacheKey = cacheKeys.classes(querySourceId || 'auto', options?.categoryId)
     
     if (!options?.forceRefresh) {
       const cached = sourceCache.get<ClassItem[]>(cacheKey)
@@ -504,7 +514,7 @@ export const SourceService = {
       
       // 构建查询条件 - 优先使用 categoryId
       const where: any = {}
-      if (sourceId) where.sourceId = sourceId
+      if (querySourceId) where.sourceId = querySourceId
       if (options?.categoryId) {
         where.categoryId = options.categoryId  // 直接使用 categoryId 过滤
       } else if (options?.category) {
@@ -522,7 +532,7 @@ export const SourceService = {
       sourceCache.set(cacheKey, classes)
       
       logger.info('[SourceService] getClasses', { 
-        sourceId, 
+        sourceId: querySourceId, 
         categoryId: options?.categoryId,
         count: classes.length 
       })
@@ -537,8 +547,10 @@ export const SourceService = {
   /**
    * 获取热门课程（按销量排序）
    */
-  async getHotCourses(sourceId: string, limit: number = 6): Promise<Course[]> {
-    if (!sourceId) {
+  async getHotCourses(sourceId: string, limit: number = 6, sourceCode?: string): Promise<Course[]> {
+    // 数据库中 sourceId 字段统一存储体系的 code
+    const querySourceId = sourceCode || sourceId
+    if (!querySourceId) {
       throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
     }
 
@@ -547,7 +559,7 @@ export const SourceService = {
       const statusOptions = ['published', 'active', '']
       
       for (const status of statusOptions) {
-        const where: any = { sourceId }
+        const where: any = { sourceId: querySourceId }
         if (status) where.status = status
         
         const result = await dbGetList('courses', {
@@ -558,7 +570,7 @@ export const SourceService = {
         
         if (result.data && result.data.length > 0) {
           logger.info('[SourceService] getHotCourses', { 
-            sourceId, 
+            sourceId: querySourceId, 
             status,
             count: result.data.length 
           })
@@ -568,7 +580,7 @@ export const SourceService = {
       
       // 完全回退：查询所有
       const fallbackResult = await dbGetList('courses', {
-        where: { sourceId },
+        where: { sourceId: querySourceId },
         orderBy: 'createdAt desc',
         limit
       })
@@ -583,8 +595,10 @@ export const SourceService = {
   /**
    * 获取正在招生的培训班
    */
-  async getEnrollingClasses(sourceId: string, limit: number = 6): Promise<ClassItem[]> {
-    if (!sourceId) {
+  async getEnrollingClasses(sourceId: string, limit: number = 6, sourceCode?: string): Promise<ClassItem[]> {
+    // 数据库中 sourceId 字段统一存储体系的 code
+    const querySourceId = sourceCode || sourceId
+    if (!querySourceId) {
       throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
     }
 
@@ -592,7 +606,7 @@ export const SourceService = {
       const statusOptions = ['enrolling', 'published', 'active', '']
       
       for (const status of statusOptions) {
-        const where: any = { sourceId }
+        const where: any = { sourceId: querySourceId }
         if (status) where.status = status
         
         const result = await dbGetList('classes', {
@@ -680,8 +694,8 @@ export const SourceService = {
    * 1. 有 page_config 配置时：按 sourceId 过滤，按 order 排序，过滤 visible: false
    * 2. 无配置时：直接查询 categories 表，按 sortOrder 排序
    */
-  async getLearningPathConfig(sourceId: string): Promise<Category[]> {
-    if (!sourceId) {
+  async getLearningPathConfig(sourceId: string, sourceCode?: string): Promise<Category[]> {
+    if (!sourceId && !sourceCode) {
       throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
     }
 
@@ -697,7 +711,7 @@ export const SourceService = {
         
         if (filteredItems.length === 0) {
           logger.warn('[SourceService] page_config 中无当前体系数据，回退到 categories', { sourceId })
-          const categories = await this.getCategories(sourceId, { includeDisabled: false })
+          const categories = await this.getCategories(sourceId, { includeDisabled: false, sourceCode })
           return categories
         }
         
@@ -707,7 +721,7 @@ export const SourceService = {
           .sort((a: ConfigItem, b: ConfigItem) => (a.order || 0) - (b.order || 0))
         
         // 获取 categories 表数据，用于匹配正确的 categoryId
-        const categories = await this.getCategories(sourceId, { includeDisabled: false })
+        const categories = await this.getCategories(sourceId, { includeDisabled: false, sourceCode })
         const categoryMap = new Map(categories.map(c => [c.name, c]))
         
         // 为每个 item 补充正确的 _id
@@ -732,7 +746,7 @@ export const SourceService = {
       }
       
       // 2. 配置不存在，回退到直接查询 categories 集合（按 sortOrder 排序）
-      const categories = await this.getCategories(sourceId, { includeDisabled: false })
+      const categories = await this.getCategories(sourceId, { includeDisabled: false, sourceCode })
       
       logger.info('[SourceService] getLearningPathConfig fallback to categories', { 
         sourceId, 
@@ -749,8 +763,8 @@ export const SourceService = {
   /**
    * 获取热门课程配置
    */
-  async getHotCoursesConfig(sourceId: string, limit: number = 6): Promise<Course[]> {
-    if (!sourceId) {
+  async getHotCoursesConfig(sourceId: string, limit: number = 6, sourceCode?: string): Promise<Course[]> {
+    if (!sourceId && !sourceCode) {
       throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
     }
 
@@ -771,7 +785,7 @@ export const SourceService = {
       }
       
       // 2. 配置不存在，回退到直接查询 courses 集合
-      const courses = await this.getHotCourses(sourceId, limit)
+      const courses = await this.getHotCourses(sourceId, limit, sourceCode)
       logger.info('[SourceService] getHotCoursesConfig fallback to getHotCourses', { 
         sourceId, 
         count: courses.length 
@@ -786,8 +800,8 @@ export const SourceService = {
   /**
    * 获取培训班配置
    */
-  async getClassesConfig(sourceId: string, limit: number = 6): Promise<ClassItem[]> {
-    if (!sourceId) {
+  async getClassesConfig(sourceId: string, limit: number = 6, sourceCode?: string): Promise<ClassItem[]> {
+    if (!sourceId && !sourceCode) {
       throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
     }
 
@@ -808,7 +822,7 @@ export const SourceService = {
       }
       
       // 2. 配置不存在，回退到直接查询 classes 集合
-      const classes = await this.getEnrollingClasses(sourceId, limit)
+      const classes = await this.getEnrollingClasses(sourceId, limit, sourceCode)
       logger.info('[SourceService] getClassesConfig fallback to getEnrollingClasses', { 
         sourceId, 
         count: classes.length 
@@ -823,9 +837,10 @@ export const SourceService = {
   /**
    * 获取统计概览配置（体系相关）
    * @param sourceId - 体系ID
+   * @param sourceCode - 体系 code（可选）
    */
-  async getStatsConfig(sourceId: string): Promise<Array<{label: string; value: string; icon: string; color: string}>> {
-    if (!sourceId) {
+  async getStatsConfig(sourceId: string, sourceCode?: string): Promise<Array<{label: string; value: string; icon: string; color: string}>> {
+    if (!sourceId && !sourceCode) {
       throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
     }
 
@@ -855,9 +870,10 @@ export const SourceService = {
   /**
    * 获取特色优势配置（体系相关）
    * @param sourceId - 体系ID
+   * @param sourceCode - 体系 code（可选）
    */
-  async getFeaturesConfig(sourceId: string): Promise<Array<{icon: string; title: string; description: string}>> {
-    if (!sourceId) {
+  async getFeaturesConfig(sourceId: string, sourceCode?: string): Promise<Array<{icon: string; title: string; description: string}>> {
+    if (!sourceId && !sourceCode) {
       throw new SourceServiceError('sourceId 不能为空', ErrorCodes.INVALID_PARAMS)
     }
 
