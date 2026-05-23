@@ -8,9 +8,14 @@
 // 数据来源: site_config 集合
 // ============================================================================
 
-import { app } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 
 const CONFIG_COLLECTION = 'site_config';
+
+/** 辅助：将 adminService.list 的结果转为数组 */
+function extractList(result: any): any[] {
+  return result?.data?.list || result?.data || [];
+}
 
 // ============================================================================
 // 类型定义
@@ -169,8 +174,8 @@ export async function getAllConfigs(): Promise<Map<string, any>> {
   }
 
   try {
-    const db = app.database();
-    const { data } = await db.collection(CONFIG_COLLECTION).get();
+    const result = await adminService.list(CONFIG_COLLECTION, {}, { limit: 999 });
+    const data = extractList(result);
 
     if (data && data.length > 0) {
       const configMap = new Map<string, any>();
@@ -246,8 +251,8 @@ export function clearSiteConfigCache(): void {
  */
 export async function initSiteConfig(): Promise<void> {
   try {
-    const db = app.database();
-    const { data } = await db.collection(CONFIG_COLLECTION).limit(1).get();
+    const result = await adminService.list(CONFIG_COLLECTION, {}, { limit: 1 });
+    const data = extractList(result);
 
     if (!data || data.length === 0) {
       console.log('[SiteConfigService] 初始化站点配置...');
@@ -257,9 +262,9 @@ export async function initSiteConfig(): Promise<void> {
         updatedAt: now,
       }));
 
-      // CloudBase 批量添加
+      // 通过 adminService 批量添加
       for (const item of batch) {
-        await db.collection(CONFIG_COLLECTION).add(item);
+        await adminService.add(CONFIG_COLLECTION, item);
       }
       console.log('[SiteConfigService] 站点配置初始化完成');
     }
@@ -273,20 +278,18 @@ export async function initSiteConfig(): Promise<void> {
  */
 export async function updateConfig(key: string, value: any): Promise<boolean> {
   try {
-    const db = app.database();
-    const { data } = await db.collection(CONFIG_COLLECTION)
-      .where({ key })
-      .get();
+    const result = await adminService.list(CONFIG_COLLECTION, { key }, { limit: 1 });
+    const data = extractList(result);
 
     if (data && data.length > 0) {
-      await db.collection(CONFIG_COLLECTION).doc(data[0]._id).update({
+      await adminService.update(CONFIG_COLLECTION, data[0]._id, {
         value,
         updatedAt: new Date().toISOString(),
       });
     } else {
       // 不存在则创建
       const defaultItem = DEFAULT_SITE_CONFIG.find(item => item.key === key);
-      await db.collection(CONFIG_COLLECTION).add({
+      await adminService.add(CONFIG_COLLECTION, {
         category: defaultItem?.category || 'default',
         key,
         value,

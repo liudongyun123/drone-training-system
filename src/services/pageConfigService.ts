@@ -1,10 +1,15 @@
 // ============================================================================
 // 页面配置服务 - 首页内容管理
 // ============================================================================
-import { app } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 
 // 配置集合名称
 const COLLECTION_NAME = 'page_configs';
+
+/** 辅助：将 adminService.list 的结果转为数组 */
+function extractList(result: any): any[] {
+  return result?.data?.list || result?.data || [];
+}
 
 // 配置类型定义
 export interface HeroConfig {
@@ -145,22 +150,16 @@ export const pageConfigService = {
    * 获取所有页面配置
    */
   async getAll(): Promise<PageConfig[]> {
-    const db = app.database();
-    const { data } = await db.collection(COLLECTION_NAME)
-      .orderBy('order', 'asc')
-      .get();
-    return data as PageConfig[];
+    const result = await adminService.list(COLLECTION_NAME, {}, { orderBy: 'order', order: 'asc', limit: 999 });
+    return extractList(result) as PageConfig[];
   },
 
   /**
    * 按模块获取配置
    */
   async getBySection(section: PageConfig['section']): Promise<PageConfig | null> {
-    const db = app.database();
-    const { data } = await db.collection(COLLECTION_NAME)
-      .where({ section, enabled: true })
-      .limit(1)
-      .get();
+    const result = await adminService.list(COLLECTION_NAME, { section, enabled: true }, { limit: 1 });
+    const data = extractList(result);
     return data.length > 0 ? data[0] as PageConfig : null;
   },
 
@@ -168,49 +167,42 @@ export const pageConfigService = {
    * 获取启用的配置
    */
   async getEnabled(): Promise<PageConfig[]> {
-    const db = app.database();
-    const { data } = await db.collection(COLLECTION_NAME)
-      .where({ enabled: true })
-      .orderBy('order', 'asc')
-      .get();
-    return data as PageConfig[];
+    const result = await adminService.list(COLLECTION_NAME, { enabled: true }, { orderBy: 'order', order: 'asc', limit: 999 });
+    return extractList(result) as PageConfig[];
   },
 
   /**
    * 获取单个配置
    */
   async getById(id: string): Promise<PageConfig | null> {
-    const db = app.database();
-    const { data } = await db.collection(COLLECTION_NAME).doc(id).get();
-    return data.length > 0 ? data[0] as PageConfig : null;
+    const result = await adminService.get(COLLECTION_NAME, id);
+    return result.code === 0 ? result.data as PageConfig : null;
   },
 
   /**
    * 创建配置
    */
   async create(config: Omit<PageConfig, '_id' | 'createdAt' | 'updatedAt'>): Promise<PageConfig> {
-    const db = app.database();
     const doc = {
       ...config,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    const result = await db.collection(COLLECTION_NAME).add(doc);
-    return { _id: result.id, ...doc };
+    const result = await adminService.add(COLLECTION_NAME, doc);
+    return { _id: result.data?.id || '', ...doc };
   },
 
   /**
    * 更新配置
    */
   async update(id: string, data: Partial<PageConfig>): Promise<boolean> {
-    const db = app.database();
     const doc = {
       ...data,
       updatedAt: new Date().toISOString(),
     };
     try {
-      const result = await db.collection(COLLECTION_NAME).doc(id).update(doc);
-      return result.updated > 0 || result.data?.updated > 0;
+      await adminService.update(COLLECTION_NAME, id, doc);
+      return true;
     } catch {
       return true; // 兼容处理
     }
@@ -220,8 +212,7 @@ export const pageConfigService = {
    * 删除配置
    */
   async delete(id: string): Promise<boolean> {
-    const db = app.database();
-    await db.collection(COLLECTION_NAME).doc(id).remove();
+    await adminService.delete(COLLECTION_NAME, id);
     return true;
   },
 

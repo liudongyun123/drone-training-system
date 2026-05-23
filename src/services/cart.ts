@@ -1,32 +1,31 @@
 // ============================================================================
 // 购物车服务
 // ============================================================================
-import { app } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 import type { CartItem } from '@/types';
 
 const CART_COLLECTION = 'cart';
+
+/** 辅助：将 adminService.list 的结果转为数组 */
+function extractList(result: any): any[] {
+  return result?.data?.list || result?.data || [];
+}
 
 export const cartService = {
   /**
    * 获取购物车
    */
   async getCart(userId: string): Promise<CartItem[]> {
-    const db = app.database();
-    const { data } = await db.collection(CART_COLLECTION).where({ userId }).get();
-    return data as CartItem[];
+    const result = await adminService.list(CART_COLLECTION, { userId });
+    return extractList(result) as CartItem[];
   },
 
   /**
    * 添加到购物车
    */
   async addToCart(userId: string, item: Omit<CartItem, '_id' | 'userId'>): Promise<CartItem> {
-    const db = app.database();
-
     // 检查是否已存在
-    const { data: existing } = await db
-      .collection(CART_COLLECTION)
-      .where({ userId, courseId: item.courseId })
-      .get();
+    const existing = extractList(await adminService.list(CART_COLLECTION, { userId, courseId: item.courseId }));
 
     if (existing.length > 0) {
       return existing[0] as CartItem;
@@ -39,23 +38,18 @@ export const cartService = {
       createdAt: new Date().toISOString(),
     };
 
-    const { data: result } = await db.collection(CART_COLLECTION).add(doc);
-    return { _id: result.id, ...doc } as CartItem;
+    const addResult = await adminService.add(CART_COLLECTION, doc);
+    return { _id: addResult.data?.id || '', ...doc } as CartItem;
   },
 
   /**
    * 从购物车删除
    */
   async removeFromCart(userId: string, courseId: string): Promise<boolean> {
-    const db = app.database();
-
-    const { data } = await db
-      .collection(CART_COLLECTION)
-      .where({ userId, courseId })
-      .get();
+    const data = extractList(await adminService.list(CART_COLLECTION, { userId, courseId }));
 
     if (data.length > 0) {
-      await db.collection(CART_COLLECTION).doc(data[0]._id).remove();
+      await adminService.delete(CART_COLLECTION, data[0]._id);
       return true;
     }
 
@@ -66,12 +60,10 @@ export const cartService = {
    * 清空购物车
    */
   async clearCart(userId: string): Promise<boolean> {
-    const db = app.database();
-
-    const { data } = await db.collection(CART_COLLECTION).where({ userId }).get();
+    const data = extractList(await adminService.list(CART_COLLECTION, { userId }));
 
     for (const item of data) {
-      await db.collection(CART_COLLECTION).doc(item._id).remove();
+      await adminService.delete(CART_COLLECTION, item._id);
     }
 
     return true;
@@ -81,18 +73,10 @@ export const cartService = {
    * 更新购物车数量
    */
   async updateQuantity(userId: string, courseId: string, quantity: number): Promise<boolean> {
-    const db = app.database();
-
-    const { data } = await db
-      .collection(CART_COLLECTION)
-      .where({ userId, courseId })
-      .get();
+    const data = extractList(await adminService.list(CART_COLLECTION, { userId, courseId }));
 
     if (data.length > 0) {
-      await db
-        .collection(CART_COLLECTION)
-        .doc(data[0]._id)
-        .update({ quantity, updatedAt: new Date().toISOString() });
+      await adminService.update(CART_COLLECTION, data[0]._id, { quantity, updatedAt: new Date().toISOString() });
       return true;
     }
 

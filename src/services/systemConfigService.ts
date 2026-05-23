@@ -3,11 +3,15 @@
  * 管理登录方式、角色权限等系统级配置
  */
 
-import { app } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 import { DEFAULT_DICTIONARIES } from './dictionaryService';
 
-const db = app.database();
 const CONFIG_COLLECTION = 'systemConfig';
+
+/** 辅助：将 adminService.list 的结果转为数组 */
+function extractList(result: any): any[] {
+  return result?.data?.list || result?.data || [];
+}
 
 export interface LoginProviderConfig {
   id: string;
@@ -114,9 +118,10 @@ export const ALL_PERMISSIONS = [
  */
 export async function getSystemConfig(): Promise<SystemConfig> {
   try {
-    const result = await db.collection(CONFIG_COLLECTION).limit(1).get();
-    if (result.data && result.data.length > 0) {
-      return result.data[0] as SystemConfig;
+    const result = await adminService.list(CONFIG_COLLECTION, {}, { limit: 1 });
+    const data = extractList(result);
+    if (data && data.length > 0) {
+      return data[0] as SystemConfig;
     }
     // 没有配置则创建默认配置
     return await initSystemConfig();
@@ -131,11 +136,11 @@ export async function getSystemConfig(): Promise<SystemConfig> {
  */
 export async function initSystemConfig(): Promise<SystemConfig> {
   try {
-    const result = await db.collection(CONFIG_COLLECTION).add({
+    const result = await adminService.add(CONFIG_COLLECTION, {
       ...defaultConfig,
       updatedAt: new Date(),
     });
-    return { ...defaultConfig, _id: result.id };
+    return { ...defaultConfig, _id: result.data?.id || '' };
   } catch (error) {
     console.error('初始化系统配置失败:', error);
     return defaultConfig;
@@ -156,7 +161,7 @@ export async function updateLoginProvider(
     );
     
     if (config._id) {
-      await db.collection(CONFIG_COLLECTION).doc(config._id).update({
+      await adminService.update(CONFIG_COLLECTION, config._id, {
         loginProviders: updatedProviders,
         updatedAt: new Date(),
       });
@@ -185,13 +190,13 @@ export async function updateWechatConfig(config: {
     );
     
     if (systemConfig._id) {
-      await db.collection(CONFIG_COLLECTION).doc(systemConfig._id).update({
+      await adminService.update(CONFIG_COLLECTION, systemConfig._id, {
         wechatConfig: config,
         loginProviders: updatedProviders,
         updatedAt: new Date(),
       });
     } else {
-      await db.collection(CONFIG_COLLECTION).add({
+      await adminService.add(CONFIG_COLLECTION, {
         ...defaultConfig,
         wechatConfig: config,
         loginProviders: updatedProviders,
@@ -219,7 +224,7 @@ export async function updateRolePermissions(
     );
     
     if (config._id) {
-      await db.collection(CONFIG_COLLECTION).doc(config._id).update({
+      await adminService.update(CONFIG_COLLECTION, config._id, {
         roles: updatedRoles,
         updatedAt: new Date(),
       });
@@ -247,7 +252,7 @@ export async function createCustomRole(roleData: Omit<RolePermission, 'isSystem'
     const updatedRoles = [...config.roles, newRole];
     
     if (config._id) {
-      await db.collection(CONFIG_COLLECTION).doc(config._id).update({
+      await adminService.update(CONFIG_COLLECTION, config._id, {
         roles: updatedRoles,
         updatedAt: new Date(),
       });
@@ -277,7 +282,7 @@ export async function deleteCustomRole(role: string): Promise<boolean> {
     const updatedRoles = config.roles.filter(r => r.role !== role);
     
     if (config._id) {
-      await db.collection(CONFIG_COLLECTION).doc(config._id).update({
+      await adminService.update(CONFIG_COLLECTION, config._id, {
         roles: updatedRoles,
         updatedAt: new Date(),
       });
