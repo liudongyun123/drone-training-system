@@ -503,15 +503,26 @@ export default function PageConfigManagement() {
   // 使用指定 sourceId 加载学习路径配置（接收 pathGroups 参数，避免依赖异步 state）
   const loadLearningPathConfigsWithSourceId = async (sourceId: string, pathGroups: LearningPathGroup[]) => {
     try {
+      console.log('[Load] 学习路径加载开始, sourceId:', sourceId, 'pathGroups数量:', pathGroups.length);
       const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 50 });
+      console.log('[Load] list结果:', JSON.stringify({ code: result.code, dataListLen: result.data?.list?.length, total: result.data?.total }));
+      
+      // 打印每条配置的 sourceId 用于对比
+      result.data?.list?.forEach((item: any, i: number) => {
+        console.log(`[Load] 配置[${i}]: _id=${item._id}, data.sourceId=${item.data?.sourceId}, 比对sourceId=${sourceId}, 匹配=${item.data?.sourceId === sourceId}`);
+      });
+      
       const matchedConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
+      console.log('[Load] 匹配结果:', matchedConfig ? `找到! _id=${matchedConfig._id}, items数量=${matchedConfig.data?.items?.length}` : '未找到匹配的sourceId');
 
       if (matchedConfig && matchedConfig.data?.items) {
+        console.log('[Load] 加载已有配置, items:', JSON.stringify(matchedConfig.data.items.map((i: any) => ({ id: i._id, visible: i.visible, order: i.order }))));
         setLearningPathConfigs(matchedConfig.data.items);
         return;
       }
 
       // 无配置时自动从传入的 pathGroups 生成默认配置
+      console.log('[Load] 无已有配置，生成默认配置(visible=true, order=index+1)');
       const defaultItems = pathGroups.map((g, index) => ({
         ...g,
         order: index + 1,
@@ -1286,9 +1297,17 @@ export default function PageConfigManagement() {
         const updateResult = await adminService.update('page_configs', existingConfig._id, saveData);
         console.log('[Save] update结果:', JSON.stringify(updateResult));
       } else {
-        console.log('[Save] 未找到已有配置, 执行add');
+        console.log('[Save] 未找到已有配置, 执行add, sourceId用于保存:', sourceId);
         const addResult = await adminService.add('page_configs', saveData);
-        console.log('[Save] add结果:', JSON.stringify(addResult));
+        console.log('[Save] add结果:', JSON.stringify(addResult), '新记录ID:', addResult.data?.id);
+        
+        // 立即验证：重新查询确认数据是否已写入
+        setTimeout(async () => {
+          const verifyResult = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 50 });
+          console.log('[Save验证] 保存后重新查询, list数量:', verifyResult.data?.list?.length, 'total:', verifyResult.data?.total);
+          const verifyConfig = verifyResult.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
+          console.log('[Save验证] 查找sourceId:', sourceId, ', 结果:', verifyConfig ? `找到! _id=${verifyConfig._id}, items=${verifyConfig.data?.items?.length}个` : '未找到！数据可能未成功写入');
+        }, 1000);
       }
       alert('保存成功');
     } catch (error) {

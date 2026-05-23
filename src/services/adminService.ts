@@ -125,8 +125,14 @@ export const adminService = {
    * 添加记录
    */
   async add(collection: string, data: Record<string, any>): Promise<{ code: number; data: { id: string } }> {
-    const result = await httpRequest<{ code: number; id: string }>('add', { collection, data })
-    return { code: 0, data: { id: result.id } }
+    const result = await httpRequest<any>('add', { collection, data })
+    // 云函数返回 { code: 0, data: { id: '...' } }
+    // httpRequest 返回 response.data，即云函数的完整响应对象
+    const id = result?.data?.id || result?.id || ''
+    if (!id) {
+      console.warn('[adminService] add 返回的 id 为空, result:', JSON.stringify(result))
+    }
+    return { code: 0, data: { id } }
   },
 
   /**
