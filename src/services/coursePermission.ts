@@ -2,9 +2,11 @@
 // 课程权限服务 - 统一处理课程访问权限
 // 业务逻辑：用户注册 -> 购买课程 -> 订单支付 -> 获得课程权限
 // ★ phone 为主键（最稳定），userId/openid 为补充
+// ★ Stage 3 迁移：数据库操作统一走 HTTP → adminService → db-init 云函数
+// ★ Auth 操作保留 CloudBase SDK
 // ============================================================================
 import { app } from '@/utils/cloudbase';
-import { authService } from './cloudBaseService';
+import { adminService } from './adminService';
 import { useAuthStore } from '@/store/authStore';
 
 export interface CoursePermission {
@@ -15,14 +17,22 @@ export interface CoursePermission {
   purchaseTime?: string;
 }
 
-// 获取数据库实例
-const getAuthDb = () => {
-  const db = app.database();
-  if (!db) {
-    throw new Error('数据库未初始化');
-  }
-  return db;
-};
+const extractList = <T>(result: any): T[] => result?.data?.list || result?.data || [];
+
+/**
+ * 获取当前用户的认证信息
+ */
+async function getAuthInfo() {
+  const user = await app.auth().getCurrentUser();
+  if (!user) return null;
+
+  const authStoreUser = useAuthStore.getState()?.user;
+  const phone = authStoreUser?.phone || localStorage.getItem('user_phone') || (user as any)?.phone;
+  const userId = user.uid;
+  const openid = (user as any)._openid || user.uid;
+
+  return { phone, userId, openid, user };
+}
 
 // ============================================================================
 // 核心权限检查
@@ -30,37 +40,28 @@ const getAuthDb = () => {
 
 /**
  * 检查用户是否有权访问指定课程
- * @param courseId 课程ID
- * @returns 权限信息
  */
 export async function checkCoursePermission(courseId: string): Promise<CoursePermission> {
   try {
-    const user = await authService.getCurrentUser();
-    if (!user) {
+    const auth = await getAuthInfo();
+    if (!auth) {
       return { courseId, hasPermission: false };
     }
 
-    // ★ phone 优先（从 authStore 或 localStorage 获取）
-    const authStoreUser = useAuthStore.getState()?.user;
-    const phone = authStoreUser?.phone || localStorage.getItem('user_phone') || user?.phone;
-    const userId = user.uid;
-    const openid = (user as any)._openid || user.uid;
-
+    const { phone, userId, openid } = auth;
     console.log('[CoursePermission] 检查课程权限, courseId:', courseId, 'phone:', phone, 'userId:', userId);
-
-    const db = getAuthDb();
-    const _ = db.command;
 
     // ★ 三路查询：phone → userId → openid
     // 1. 先查 course_permissions（新数据用 phone）
     if (phone) {
-      const permByPhone = await db.collection('course_permissions').where({
-        phone: phone,
-        courseId: courseId,
-        status: _.in(['active'])
-      }).get();
-      if (permByPhone.data && permByPhone.data.length > 0) {
-        const perm = permByPhone.data[0];
+      const result = await adminService.listWithOps('course_permissions', {
+        phone,
+        courseId,
+        status: { '$in': ['active'] }
+      }, { limit: 1 });
+      const perms = extractList(result);
+      if (perms.length > 0) {
+        const perm = perms[0];
         console.log('[CoursePermission] 通过 phone 找到权限记录:', perm._id);
         return {
           courseId,
@@ -73,16 +74,16 @@ export async function checkCoursePermission(courseId: string): Promise<CoursePer
     }
 
     // 2. 查 userId（旧数据）
-    const userIds = [userId, openid, authStoreUser?.id];
+    const userIds = [userId, openid, useAuthStore.getState()?.user?.id].filter(Boolean);
     for (const uid of userIds) {
-      if (!uid) continue;
-      const permByUid = await db.collection('course_permissions').where({
+      const result = await adminService.listWithOps('course_permissions', {
         userId: uid,
-        courseId: courseId,
-        status: _.in(['active'])
-      }).get();
-      if (permByUid.data && permByUid.data.length > 0) {
-        const perm = permByUid.data[0];
+        courseId,
+        status: { '$in': ['active'] }
+      }, { limit: 1 });
+      const perms = extractList(result);
+      if (perms.length > 0) {
+        const perm = perms[0];
         console.log('[CoursePermission] 通过 userId 找到权限记录:', perm._id);
         return {
           courseId,
@@ -105,13 +106,15 @@ export async function checkCoursePermission(courseId: string): Promise<CoursePer
       return { courseId, hasPermission: false };
     }
 
-    const paidOrders = await db.collection('orders').where(
-      _.or(orderConditions)
-    ).and({
-      status: _.in(['paid', 'completed', 'paid_offline'])
-    }).get();
+    const paidOrdersResult = await adminService.listWithOps('orders', {
+      '$and': [
+        { '$or': orderConditions },
+        { status: { '$in': ['paid', 'completed', 'paid_offline'] } }
+      ]
+    }, { limit: 50 });
+    const paidOrders = extractList(paidOrdersResult);
 
-    const matchedOrder = paidOrders.data?.find((order: any) => {
+    const matchedOrder = paidOrders.find((order: any) => {
       if (order.items && Array.isArray(order.items)) {
         return order.items.some((item: any) => item.courseId === courseId);
       }
@@ -139,24 +142,13 @@ export async function checkCoursePermission(courseId: string): Promise<CoursePer
 
 /**
  * 获取用户的所有已购课程ID列表
- * @returns 课程ID数组
  */
 export async function getPurchasedCourseIds(): Promise<string[]> {
   try {
-    const user = await authService.getCurrentUser();
-    if (!user) {
-      return [];
-    }
+    const auth = await getAuthInfo();
+    if (!auth) return [];
 
-    // ★ phone 优先
-    const authStoreUser = useAuthStore.getState()?.user;
-    const phone = authStoreUser?.phone || localStorage.getItem('user_phone') || user?.phone;
-    const userId = user.uid;
-    const openid = (user as any)._openid || user.uid;
-
-    const db = getAuthDb();
-    const _ = db.command;
-
+    const { phone, userId, openid } = auth;
     const courseIds: string[] = [];
 
     // 1. 从 course_permissions 查询
@@ -166,13 +158,15 @@ export async function getPurchasedCourseIds(): Promise<string[]> {
     if (openid) permConditions.push({ _openid: openid });
 
     if (permConditions.length > 0) {
-      const perms = await db.collection('course_permissions').where(
-        _.or(permConditions)
-      ).and({
-        status: _.in(['active'])
-      }).get();
+      const result = await adminService.listWithOps('course_permissions', {
+        '$and': [
+          { '$or': permConditions },
+          { status: { '$in': ['active'] } }
+        ]
+      }, { limit: 200 });
+      const perms = extractList(result);
 
-      perms.data?.forEach((perm: any) => {
+      perms.forEach((perm: any) => {
         const cid = perm.courseId || perm.targetId;
         if (cid && !courseIds.includes(cid)) {
           courseIds.push(cid);
@@ -188,14 +182,15 @@ export async function getPurchasedCourseIds(): Promise<string[]> {
       if (openid) orderConditions.push({ _openid: openid });
 
       if (orderConditions.length > 0) {
-        const orders = await db.collection('orders').where(
-          _.or(orderConditions)
-        ).and({
-          status: _.in(['paid', 'completed', 'paid_offline'])
-        }).get();
+        const result = await adminService.listWithOps('orders', {
+          '$and': [
+            { '$or': orderConditions },
+            { status: { '$in': ['paid', 'completed', 'paid_offline'] } }
+          ]
+        }, { limit: 200 });
+        const orders = extractList(result);
 
-        orders.data?.forEach((order: any) => {
-          // 新格式
+        orders.forEach((order: any) => {
           if (order.items && Array.isArray(order.items)) {
             order.items.forEach((item: any) => {
               if (item.courseId && !courseIds.includes(item.courseId)) {
@@ -203,7 +198,6 @@ export async function getPurchasedCourseIds(): Promise<string[]> {
               }
             });
           }
-          // 旧格式
           if (order.courseId && !courseIds.includes(order.courseId)) {
             courseIds.push(order.courseId);
           }
@@ -221,8 +215,6 @@ export async function getPurchasedCourseIds(): Promise<string[]> {
 
 /**
  * 获取用户的已购课程详情（包含课程信息和订单信息）
- * 支持根据 courseId 或课程名称进行匹配
- * @returns 包含课程和订单信息的列表
  */
 export async function getPurchasedCourses(): Promise<Array<{
   course: any;
@@ -230,23 +222,14 @@ export async function getPurchasedCourses(): Promise<Array<{
   permission: CoursePermission;
 }>> {
   try {
-    const user = await authService.getCurrentUser();
-    if (!user) {
-      return [];
-    }
+    const auth = await getAuthInfo();
+    if (!auth) return [];
 
-    // ★ phone 优先
-    const authStoreUser = useAuthStore.getState()?.user;
-    const phone = authStoreUser?.phone || localStorage.getItem('user_phone') || user?.phone;
-    const userId = user.uid;
-    const openid = (user as any)._openid || user.uid;
-
-    const db = getAuthDb();
-
+    const { phone, userId, openid } = auth;
     console.log('[CoursePermission] 查询已购课程, userId:', userId, ', openid:', openid, ', phone:', phone);
 
-    // 获取所有已支付订单（尝试多种查询方式）
-    let orders: any = { data: [] };
+    // 获取所有已支付订单
+    let orders: any[] = [];
 
     const orderConditions: any[] = [];
     if (phone) orderConditions.push({ phone }, { buyerPhone: phone });
@@ -254,77 +237,65 @@ export async function getPurchasedCourses(): Promise<Array<{
 
     if (orderConditions.length > 0) {
       try {
-        orders = await db.collection('orders').where(
-          db.command.or(orderConditions)
-        ).and({
-          status: db.command.in(['paid', 'completed', 'paid_offline'])
-        }).get();
-
-        console.log('[CoursePermission] OR查询找到订单:', orders.data?.length || 0);
+        const ordersResult = await adminService.listWithOps('orders', {
+          '$and': [
+            { '$or': orderConditions },
+            { status: { '$in': ['paid', 'completed', 'paid_offline'] } }
+          ]
+        }, { limit: 200 });
+        orders = extractList(ordersResult);
+        console.log('[CoursePermission] OR查询找到订单:', orders.length);
       } catch (e) {
         console.log('[CoursePermission] OR查询失败:', e);
       }
     }
 
     // 如果OR查询没找到，尝试分别查询
-    if (!orders.data || orders.data.length === 0) {
-      // 方式2: 仅按 phone 查询
+    if (orders.length === 0) {
+      // 按 phone 查询
       if (phone) {
         try {
-          const ordersByPhone = await db.collection('orders').where({
-            phone: phone,
-            status: db.command.in(['paid', 'completed', 'paid_offline'])
-          }).get();
-
-          if (ordersByPhone.data && ordersByPhone.data.length > 0) {
-            orders.data = ordersByPhone.data;
-            console.log('[CoursePermission] phone查询找到订单:', orders.data.length);
-          }
+          const result = await adminService.listWithOps('orders', {
+            phone,
+            status: { '$in': ['paid', 'completed', 'paid_offline'] }
+          }, { limit: 200 });
+          orders = extractList(result);
+          if (orders.length > 0) console.log('[CoursePermission] phone查询找到订单:', orders.length);
         } catch (e) {
           console.log('[CoursePermission] phone查询失败');
         }
       }
 
-      // 方式3: 仅按 userId 查询
-      if (!orders.data || orders.data.length === 0) {
-        if (userId) {
-          try {
-            const ordersByUserId = await db.collection('orders').where({
-              userId: userId,
-              status: db.command.in(['paid', 'completed', 'paid_offline'])
-            }).get();
-
-            if (ordersByUserId.data && ordersByUserId.data.length > 0) {
-              orders.data = ordersByUserId.data;
-              console.log('[CoursePermission] userId查询找到订单:', orders.data.length);
-            }
-          } catch (e) {
-            console.log('[CoursePermission] userId查询失败');
-          }
+      // 按 userId 查询
+      if (orders.length === 0 && userId) {
+        try {
+          const result = await adminService.listWithOps('orders', {
+            userId,
+            status: { '$in': ['paid', 'completed', 'paid_offline'] }
+          }, { limit: 200 });
+          orders = extractList(result);
+          if (orders.length > 0) console.log('[CoursePermission] userId查询找到订单:', orders.length);
+        } catch (e) {
+          console.log('[CoursePermission] userId查询失败');
         }
       }
 
-      // 方式4: 仅按 _openid 查询
-      if (!orders.data || orders.data.length === 0) {
-        if (openid) {
-          try {
-            const ordersByOpenid = await db.collection('orders').where({
-              _openid: openid,
-              status: db.command.in(['paid', 'completed', 'paid_offline'])
-            }).get();
-
-            if (ordersByOpenid.data && ordersByOpenid.data.length > 0) {
-              orders.data = ordersByOpenid.data;
-              console.log('[CoursePermission] openid查询找到订单:', orders.data.length);
-            }
-          } catch (e) {
-            console.log('[CoursePermission] openid查询也失败');
-          }
+      // 按 _openid 查询
+      if (orders.length === 0 && openid) {
+        try {
+          const result = await adminService.listWithOps('orders', {
+            _openid: openid,
+            status: { '$in': ['paid', 'completed', 'paid_offline'] }
+          }, { limit: 200 });
+          orders = extractList(result);
+          if (orders.length > 0) console.log('[CoursePermission] openid查询找到订单:', orders.length);
+        } catch (e) {
+          console.log('[CoursePermission] openid查询也失败');
         }
       }
     }
 
-    if (!orders.data || orders.data.length === 0) {
+    if (orders.length === 0) {
       console.log('[CoursePermission] 无已支付订单');
       return [];
     }
@@ -332,11 +303,10 @@ export async function getPurchasedCourses(): Promise<Array<{
     // 收集所有课程ID和名称
     const courseIds: string[] = [];
     const courseNames: string[] = [];
-    const orderMap = new Map<string, any>(); // courseId -> order
-    const nameOrderMap = new Map<string, any>(); // courseName -> order
+    const orderMap = new Map<string, any>();
+    const nameOrderMap = new Map<string, any>();
 
-    orders.data.forEach((order: any) => {
-      // 新格式：items 数组
+    orders.forEach((order: any) => {
       if (order.items && Array.isArray(order.items)) {
         order.items.forEach((item: any) => {
           if (item.courseId && !courseIds.includes(item.courseId)) {
@@ -349,7 +319,6 @@ export async function getPurchasedCourses(): Promise<Array<{
           }
         });
       }
-      // 旧格式：直接 courseId/courseName 字段
       if (order.courseId && !courseIds.includes(order.courseId)) {
         courseIds.push(order.courseId);
         orderMap.set(order.courseId, order);
@@ -360,36 +329,25 @@ export async function getPurchasedCourses(): Promise<Array<{
       }
     });
 
-    if (courseIds.length === 0 && courseNames.length === 0) {
-      return [];
-    }
+    if (courseIds.length === 0 && courseNames.length === 0) return [];
 
     // 获取所有课程
-    const { data: allCourses } = await db.collection('courses').get();
+    const coursesResult = await adminService.list('courses', {}, { limit: 500 });
+    const allCourses = extractList(coursesResult);
 
-    // 工具函数：标准化名称用于比较
     const normalizeName = (name: string) => name.replace(/[\s\-_]/g, '').toLowerCase();
 
     // 匹配课程
     const matchedCourses = allCourses.filter((course: any) => {
-      // 方式1: ID 精确匹配
-      if (courseIds.includes(course._id)) {
-        return true;
-      }
-      // 方式2: ID 部分匹配 (course_1 -> course_001)
+      if (courseIds.includes(course._id)) return true;
       for (const orderCourseId of courseIds) {
-        if (course._id.includes(orderCourseId) || orderCourseId.includes(course._id)) {
-          return true;
-        }
+        if (course._id.includes(orderCourseId) || orderCourseId.includes(course._id)) return true;
       }
-      // 方式3: 名称模糊匹配
       if (courseNames.length > 0) {
         const courseTitleNorm = normalizeName(course.title || '');
         for (const name of courseNames) {
           const nameNorm = normalizeName(name);
-          if (courseTitleNorm.includes(nameNorm) || nameNorm.includes(courseTitleNorm)) {
-            return true;
-          }
+          if (courseTitleNorm.includes(nameNorm) || nameNorm.includes(courseTitleNorm)) return true;
         }
       }
       return false;
@@ -397,10 +355,8 @@ export async function getPurchasedCourses(): Promise<Array<{
 
     // 合并结果
     const result = matchedCourses.map((course: any) => {
-      // 找到对应的订单
       let matchedOrder: any = null;
 
-      // 先按ID找
       for (const [orderCourseId, order] of orderMap.entries()) {
         if (course._id.includes(orderCourseId) || orderCourseId.includes(course._id)) {
           matchedOrder = order;
@@ -408,7 +364,6 @@ export async function getPurchasedCourses(): Promise<Array<{
         }
       }
 
-      // 如果没找到，按名称找
       if (!matchedOrder && courseNames.length > 0) {
         const courseTitleNorm = normalizeName(course.title || '');
         for (const [name, order] of nameOrderMap.entries()) {
@@ -452,21 +407,15 @@ export async function canLearnCourse(courseId: string): Promise<{
     const permission = await checkCoursePermission(courseId);
 
     if (!permission.hasPermission) {
-      return {
-        allowed: false,
-        reason: '您尚未购买此课程，请先购买后再学习'
-      };
+      return { allowed: false, reason: '您尚未购买此课程，请先购买后再学习' };
     }
 
     // 检查课程是否上架
-    const db = getAuthDb();
-    const course = await db.collection('courses').doc(courseId).get();
+    const res = await adminService.get('courses', courseId);
+    const course = res?.data;
 
-    if (!course.data) {
-      return { allowed: false, reason: '课程不存在' };
-    }
-
-    if (course.data.status === 'draft' || course.data.status === 'offline') {
+    if (!course) return { allowed: false, reason: '课程不存在' };
+    if (course.status === 'draft' || course.status === 'offline') {
       return { allowed: false, reason: '课程已下架' };
     }
 

@@ -1,9 +1,13 @@
 /**
  * 学员/成员服务
  * 统一管理用户、学员、毕业学员的数据
+ * 
+ * ★ Stage 3 迁移：数据库操作统一走 HTTP → adminService → db-init 云函数
+ * ★ Auth 操作（verifyOtp/callFunction）保留 CloudBase SDK
  */
 
-import { app, ensureAuthenticated } from '@/utils/cloudbase'
+import { app } from '@/utils/cloudbase'
+import { adminService } from './adminService'
 import type { 
   Member, 
   MemberType, 
@@ -15,8 +19,6 @@ import type {
   MemberQuery
 } from '@/types/member'
 
-const db = app.database()
-
 // API 响应格式
 interface ApiResponse<T> {
   success: boolean
@@ -24,18 +26,19 @@ interface ApiResponse<T> {
   message?: string
 }
 
-// 获取集合引用
-const getCollection = (): any => db.collection('members') as any
+// ==================== 辅助函数 ====================
 
-// 确保已认证的辅助函数 - 每次都真正等待认证完成
-const ensureAuth = async () => {
-  try {
-    await ensureAuthenticated()
-    console.log('[membersService] 认证检查完成')
-  } catch (error) {
-    console.error('[membersService] 认证失败:', error)
-    throw new Error('认证失败，无法访问数据库')
-  }
+const extractList = <T>(result: any): T[] => {
+  return result?.data?.list || result?.data || []
+}
+
+const extractTotal = (result: any): number => {
+  return result?.data?.total || result?.data?.length || 0
+}
+
+const extractSingle = <T>(result: any): T | null => {
+  if (result?.code === 404) return null
+  return result?.data || null
 }
 
 /**
@@ -50,104 +53,42 @@ export const membersService = {
    */
   async getAll(query: MemberQuery = {}, page = 1, pageSize = 20): Promise<ApiResponse<{ list: Member[]; total: number }>> {
     try {
-      // 确保已认证
-      await ensureAuth()
+      console.log('[membersService.getAll] 查询, query:', query, 'page:', page, 'pageSize:', pageSize)
       
-      console.log('[membersService.getAll] 开始查询, query:', query, 'page:', page, 'pageSize:', pageSize)
+      const result = await adminService.list('members', query, { page, pageSize })
+      const dataList = extractList(result) as Member[]
+      const totalCount = extractTotal(result)
       
-      // 简化：直接用空条件查询，不做任何过滤
-      console.log('[membersService.getAll] 执行无条件查询...')
+      console.log('[membersService.getAll] 数据条数:', dataList.length, '总数:', totalCount)
       
-      // 获取集合
-      const collection = getCollection()
-      console.log('[membersService.getAll] collection 对象:', collection)
-      
-      // 执行无条件查询
-      const res = await collection
-        .where({})
-        .limit(pageSize)
-        .get()
-      
-      console.log('[membersService.getAll] 查询成功, res:', res)
-      console.log('[membersService.getAll] res 类型:', typeof res)
-      console.log('[membersService.getAll] res.keys:', Object.keys(res || {}))
-      console.log('[membersService.getAll] res.data:', res?.data)
-      console.log('[membersService.getAll] res.requestId:', res?.requestId)
-      console.log('[membersService.getAll] res.code:', res?.code)
-      
-      // CloudBase SDK 返回的数据可能在 res.data 或 res 本身
-      // SDK 返回格式可能是 { data: [...] } 或 { data: { data: [...] } }
-      let dataList: any[] = []
-      if (Array.isArray(res?.data)) {
-        dataList = res.data
-      } else if (Array.isArray(res)) {
-        dataList = res
-      } else if (res?.data?.data && Array.isArray(res.data.data)) {
-        dataList = res.data.data
-      }
-      console.log('[membersService.getAll] 数据条数:', dataList?.length || 0)
-      console.log('[membersService.getAll] 实际数据:', JSON.stringify(dataList.slice(0, 2)))
-      
-      // 获取总数
-      let totalCount = 0
-      try {
-        const countRes = await getCollection().where({}).count()
-        console.log('[membersService.getAll] countRes:', countRes)
-        // countRes 格式可能是 { total: 4 } 或直接是 4
-        totalCount = countRes?.total || countRes?.data?.total || countRes || dataList.length
-      } catch (countErr) {
-        console.log('[membersService.getAll] count 查询失败:', countErr)
-        totalCount = dataList.length
-      }
-      console.log('[membersService.getAll] 总数:', totalCount)
-      
-      return {
-        success: true,
-        data: {
-          list: dataList as Member[],
-          total: totalCount
-        }
-      }
+      return { success: true, data: { list: dataList, total: totalCount } }
     } catch (error: any) {
       console.error('[membersService.getAll] 查询失败:', error)
-      console.error('[membersService.getAll] 错误详情:', error?.message, error?.code)
-      return {
-        success: false,
-        message: error?.message || '获取学员列表失败',
-        data: { list: [], total: 0 }
-      }
+      return { success: false, message: error?.message || '获取学员列表失败', data: { list: [], total: 0 } }
     }
   },
 
   /**
    * 获取所有学员（无分页限制，用于关联查询缓存）
-   * 适用于需要将所有学员数据加载到前端进行本地关联的场景
    */
   async getAllForCache(): Promise<ApiResponse<{ list: Member[]; total: number }>> {
     try {
-      await ensureAuth()
-      
       console.log('[membersService.getAllForCache] 开始查询所有学员...')
       
-      // 分批获取所有数据
       const batchSize = 500
       let allData: any[] = []
       let hasMore = true
-      let lastId = ''
+      let page = 1
       
       while (hasMore) {
-        const query = lastId 
-          ? getCollection().where({ _id: db.command.gt(lastId as any) }).orderBy('_id', 'asc').limit(batchSize)
-          : getCollection().where({}).orderBy('_id', 'asc').limit(batchSize)
-        
-        const res = await query.get()
-        const batch = Array.isArray(res?.data) ? res.data : (res?.data?.data || [])
+        const result = await adminService.list('members', {}, { page, pageSize: batchSize, orderBy: '_id', order: 'asc' })
+        const batch = result?.data?.list || []
         
         if (batch.length === 0) {
           hasMore = false
         } else {
           allData = [...allData, ...batch]
-          lastId = batch[batch.length - 1]._id
+          page++
           hasMore = batch.length === batchSize
           console.log(`[membersService.getAllForCache] 已获取 ${allData.length} 条`)
         }
@@ -155,20 +96,10 @@ export const membersService = {
       
       console.log('[membersService.getAllForCache] 查询完成，总计:', allData.length, '条')
       
-      return {
-        success: true,
-        data: {
-          list: allData as Member[],
-          total: allData.length
-        }
-      }
+      return { success: true, data: { list: allData as Member[], total: allData.length } }
     } catch (error: any) {
       console.error('[membersService.getAllForCache] 查询失败:', error)
-      return {
-        success: false,
-        message: error?.message || '获取学员列表失败',
-        data: { list: [], total: 0 }
-      }
+      return { success: false, message: error?.message || '获取学员列表失败', data: { list: [], total: 0 } }
     }
   },
   
@@ -178,19 +109,11 @@ export const membersService = {
   async testQuery(): Promise<ApiResponse<any>> {
     try {
       console.log('[membersService.testQuery] 开始测试查询...')
-      const res = await getCollection().where({}).limit(100).get()
-      console.log('[membersService.testQuery] 结果:', res)
-      return {
-        success: true,
-        data: res.data
-      }
+      const result = await adminService.list('members', {}, { limit: 100 })
+      return { success: true, data: extractList(result) }
     } catch (error: any) {
       console.error('[membersService.testQuery] 失败:', error)
-      return {
-        success: false,
-        message: error?.message,
-        data: []
-      }
+      return { success: false, message: error?.message, data: [] }
     }
   },
   
@@ -199,11 +122,12 @@ export const membersService = {
    */
   async getById(id: string): Promise<ApiResponse<Member>> {
     try {
-      const res = await getCollection().doc(id).get()
-      if (!res.data) {
+      const res = await adminService.get('members', id)
+      const member = extractSingle(res)
+      if (!member) {
         return { success: false, message: '学员不存在' }
       }
-      return { success: true, data: res.data as Member }
+      return { success: true, data: member as Member }
     } catch (error) {
       console.error('获取学员详情失败:', error)
       return { success: false, message: '获取学员详情失败' }
@@ -215,14 +139,13 @@ export const membersService = {
    */
   async getByPhone(phone: string): Promise<ApiResponse<Member>> {
     try {
-      const res = await getCollection()
-        .where({ phone: db.command.eq(phone) })
-        .get()
+      const res = await adminService.list('members', { phone }, { limit: 1 })
+      const list = extractList(res)
       
-      if (res.data.length === 0) {
+      if (list.length === 0) {
         return { success: false, message: '学员不存在' }
       }
-      return { success: true, data: res.data[0] as Member }
+      return { success: true, data: list[0] as Member }
     } catch (error) {
       console.error('通过手机号查询失败:', error)
       return { success: false, message: '查询失败' }
@@ -240,7 +163,7 @@ export const membersService = {
         name: data.name,
         phone: data.phone,
         email: data.email,
-        type: data.type || 'user',  // 默认普通用户，未购买课程
+        type: data.type || 'user',
         role: data.role || 'student',
         profile: data.profile || {},
         stats: {
@@ -257,12 +180,9 @@ export const membersService = {
         updatedAt: now
       }
       
-      const res = await getCollection().add(member)
+      const res = await adminService.add('members', member)
       
-      return {
-        success: true,
-        data: { ...member, _id: res.id } as Member
-      }
+      return { success: true, data: { ...member, _id: res.data.id } as Member }
     } catch (error) {
       console.error('创建学员失败:', error)
       return { success: false, message: '创建学员失败' }
@@ -274,16 +194,11 @@ export const membersService = {
    */
   async update(id: string, data: UpdateMemberRequest): Promise<ApiResponse<Member>> {
     try {
-      const updateData = {
-        ...data,
-        updatedAt: new Date().toISOString()
-      }
-      
-      await getCollection().doc(id).update(updateData)
+      await adminService.update('members', id, { ...data, updatedAt: new Date().toISOString() })
       
       // 返回更新后的数据
-      const res = await getCollection().doc(id).get()
-      return { success: true, data: res.data as Member }
+      const res = await adminService.get('members', id)
+      return { success: true, data: extractSingle(res) as Member }
     } catch (error) {
       console.error('更新学员失败:', error)
       return { success: false, message: '更新学员失败' }
@@ -295,7 +210,7 @@ export const membersService = {
    */
   async delete(id: string): Promise<ApiResponse<boolean>> {
     try {
-      await getCollection().doc(id).remove()
+      await adminService.delete('members', id)
       return { success: true, data: true }
     } catch (error) {
       console.error('删除学员失败:', error)
@@ -307,7 +222,6 @@ export const membersService = {
   
   /**
    * 注册新用户（自动创建 members 记录）
-   * 由 authService 在登录成功后调用
    */
   async registerIfNotExists(uid: string, data: {
     name?: string
@@ -316,10 +230,11 @@ export const membersService = {
   }): Promise<ApiResponse<Member>> {
     try {
       // 检查是否已存在
-      const existing = await getCollection().doc(uid).get()
+      const existing = await adminService.get('members', uid)
+      const existingMember = extractSingle(existing)
       
-      if (existing.data) {
-        return { success: true, data: existing.data as Member }
+      if (existingMember) {
+        return { success: true, data: existingMember as Member }
       }
       
       // 不存在则创建
@@ -327,7 +242,7 @@ export const membersService = {
         name: data.name || '新用户',
         phone: data.phone,
         email: data.email,
-        type: 'user',  // 默认 user，等待购买课程后升级
+        type: 'user',
         role: 'student'
       })
     } catch (error) {
@@ -338,7 +253,6 @@ export const membersService = {
 
   /**
    * 授予课程权限（新）- 通过手机号
-   * 支付成功或报名成功后调用
    */
   async grantCoursePermission(
     phone: string,
@@ -354,14 +268,15 @@ export const membersService = {
       console.log('[membersService] 授予课程权限:', { phone, courseId, source: options.source })
 
       // 1. 查找用户
-      const memberRes = await getCollection().where({ phone }).get()
-      if (!memberRes.data || memberRes.data.length === 0) {
+      const memberRes = await adminService.list('members', { phone }, { limit: 1 })
+      const memberList = extractList(memberRes) as Member[]
+      if (memberList.length === 0) {
         console.error('[membersService] 未找到用户:', phone)
         return { success: false, message: '未找到用户' }
       }
 
-      const member = memberRes.data[0] as Member
-      const memberId = (member as any)._id || member._id
+      const member = memberList[0]
+      const memberId = (member as any)._id
 
       // 2. 构建新课程项
       const newCourseItem = {
@@ -378,10 +293,7 @@ export const membersService = {
 
       // 4. 检查是否已存在（避免重复）
       const isAlreadyEnrolled = existingCourses.some((item: any) => {
-        // 支持新旧两种格式
-        if (typeof item === 'string') {
-          return item === courseId
-        }
+        if (typeof item === 'string') return item === courseId
         return item.courseId === courseId
       })
 
@@ -390,22 +302,19 @@ export const membersService = {
         return { success: true, data: true }
       }
 
-      // 5. 更新 enrolledCourses
+      // 5. 构建更新数据
       const updatedCourses = [...existingCourses, newCourseItem]
-
-      // 6. 构建更新数据
       const updates: any = {
         enrolledCourses: updatedCourses,
-        type: 'student',  // 升级为学员
+        type: 'student',
         updatedAt: new Date().toISOString()
       }
 
-      // 如果是首次购买/报名，设置 firstPurchaseAt
       if (!member.firstPurchaseAt) {
         updates.firstPurchaseAt = new Date().toISOString()
       }
 
-      await getCollection().doc(memberId).update(updates)
+      await adminService.update('members', memberId, updates)
 
       console.log('[membersService] 课程权限授予成功:', { phone, courseId })
       return { success: true, data: true }
@@ -424,21 +333,19 @@ export const membersService = {
     grantedAt: string
   }>>> {
     try {
-      const memberRes = await getCollection().where({ phone }).get()
-      if (!memberRes.data || memberRes.data.length === 0) {
+      const memberRes = await adminService.list('members', { phone }, { limit: 1 })
+      const memberList = extractList(memberRes) as Member[]
+      if (memberList.length === 0) {
         return { success: true, data: [] }
       }
 
-      const member = memberRes.data[0] as Member
+      const member = memberList[0]
       const enrolledCourses = member.enrolledCourses || []
 
-      // 统一转换为标准格式
       const permissions = enrolledCourses.map((item: any) => {
         if (typeof item === 'string') {
-          // 旧格式：只存 courseId
           return { courseId: item, source: 'unknown', grantedAt: '' }
         }
-        // 新格式
         return {
           courseId: item.courseId,
           source: item.source,
@@ -460,26 +367,36 @@ export const membersService = {
     try {
       const now = new Date().toISOString()
       
+      // 获取当前数据
+      const existing = await adminService.get('members', uid)
+      const existingMember = extractSingle(existing)
+      if (!existingMember) {
+        return { success: false, message: '学员不存在' }
+      }
+      
+      // 构建更新数据
       const updates: any = {
         type: 'student',
         updatedAt: now
       }
       
       // 如果之前没有首次购买时间，设置它
-      const existing = await getCollection().doc(uid).get()
-      if (existing.data && !existing.data.firstPurchaseAt) {
+      if (!(existingMember as any).firstPurchaseAt) {
         updates.firstPurchaseAt = now
       }
       
-      // 添加课程到已购列表
+      // 添加课程到已购列表（使用 $addToSet 操作符）
       if (courseId) {
-        updates.enrolledCourses = db.command.addToSet(courseId)
+        await adminService.updateWithOps('members', uid, {
+          ...updates,
+          '$addToSet': { enrolledCourses: courseId }
+        })
+      } else {
+        await adminService.update('members', uid, updates)
       }
       
-      await getCollection().doc(uid).update(updates)
-      
-      const res = await getCollection().doc(uid).get()
-      return { success: true, data: res.data as Member }
+      const res = await adminService.get('members', uid)
+      return { success: true, data: extractSingle(res) as Member }
     } catch (error) {
       console.error('升级为学员失败:', error)
       return { success: false, message: '升级失败' }
@@ -491,15 +408,25 @@ export const membersService = {
    */
   async addEnrolledCourse(uid: string, courseId: string): Promise<ApiResponse<boolean>> {
     try {
-      await getCollection().doc(uid).update({
-        enrolledCourses: db.command.addToSet(courseId),
-        // 如果是 user 类型，升级为 student
+      // 先获取当前数据
+      const current = await adminService.get('members', uid)
+      const member = extractSingle(current) as any
+      
+      const updates: any = {
         type: 'student',
-        firstPurchaseAt: (db.command as any).missing()._op === 'missing' 
-          ? new Date().toISOString() 
-          : undefined,
         updatedAt: new Date().toISOString()
+      }
+      
+      if (!member?.firstPurchaseAt) {
+        updates.firstPurchaseAt = new Date().toISOString()
+      }
+      
+      // 使用 $addToSet 添加课程
+      await adminService.updateWithOps('members', uid, {
+        ...updates,
+        '$addToSet': { enrolledCourses: courseId }
       })
+      
       return { success: true, data: true }
     } catch (error) {
       console.error('添加已购课程失败:', error)
@@ -512,20 +439,22 @@ export const membersService = {
    */
   async completeCourse(uid: string, courseId: string, score?: number): Promise<ApiResponse<boolean>> {
     try {
-      const member = await getCollection().doc(uid).get()
-      if (!member.data) {
+      const memberRes = await adminService.get('members', uid)
+      const member = extractSingle(memberRes) as any
+      if (!member) {
         return { success: false, message: '学员不存在' }
       }
       
+      // 使用更新操作符
       const updates: any = {
-        'stats.completedCourses': db.command.inc(1),
-        completedCourses: db.command.addToSet(courseId),
+        '$inc': { 'stats.completedCourses': 1 },
+        '$addToSet': { completedCourses: courseId },
         updatedAt: new Date().toISOString()
       }
       
       // 更新平均分
       if (score !== undefined) {
-        const current = member.data.stats || {}
+        const current = member.stats || {}
         const total = current.totalOrders || 0
         const currentAvg = current.avgScore || 0
         const newAvg = total === 0 ? score : (currentAvg * total + score) / (total + 1)
@@ -533,13 +462,12 @@ export const membersService = {
       }
       
       // 如果完成全部课程，升级为 graduate
-      const data = member.data as Member
-      if (data.completedCourses.length + 1 >= data.enrolledCourses.length) {
+      if ((member.completedCourses?.length || 0) + 1 >= (member.enrolledCourses?.length || 0)) {
         updates.type = 'graduate'
         updates.graduatedAt = new Date().toISOString()
       }
       
-      await getCollection().doc(uid).update(updates)
+      await adminService.updateWithOps('members', uid, updates)
       return { success: true, data: true }
     } catch (error) {
       console.error('完成课程更新失败:', error)
@@ -558,19 +486,19 @@ export const membersService = {
   }>> {
     try {
       const [usersRes, studentsRes, graduatesRes, activeRes] = await Promise.all([
-        getCollection().where({ type: 'user' }).count(),
-        getCollection().where({ type: 'student' }).count(),
-        getCollection().where({ type: 'graduate' }).count(),
-        getCollection().where({ type: 'student', status: 'active' }).count()
+        adminService.count('members', { type: 'user' }),
+        adminService.count('members', { type: 'student' }),
+        adminService.count('members', { type: 'graduate' }),
+        adminService.count('members', { type: 'student', status: 'active' })
       ])
       
       return {
         success: true,
         data: {
-          totalUsers: usersRes.total,
-          totalStudents: studentsRes.total,
-          totalGraduates: graduatesRes.total,
-          activeStudents: activeRes.total
+          totalUsers: usersRes.data,
+          totalStudents: studentsRes.data,
+          totalGraduates: graduatesRes.data,
+          activeStudents: activeRes.data
         }
       }
     } catch (error) {
@@ -590,23 +518,24 @@ export const membersService = {
   }>> {
     try {
       const [memberRes, enrollmentsRes, ordersRes, examsRes] = await Promise.all([
-        getCollection().doc(uid).get(),
-        db.collection('enrollments').where({ userId: uid }).get(),
-        db.collection('orders').where({ userId: uid }).get(),
-        db.collection('examAttempts').where({ userId: uid }).get()
+        adminService.get('members', uid),
+        adminService.list('enrollments', { userId: uid }, { limit: 100 }),
+        adminService.list('orders', { userId: uid }, { limit: 100 }),
+        adminService.list('examAttempts', { userId: uid }, { limit: 100 })
       ])
       
-      if (!memberRes.data) {
+      const member = extractSingle(memberRes)
+      if (!member) {
         return { success: false, message: '学员不存在' }
       }
       
       return {
         success: true,
         data: {
-          member: memberRes.data as Member,
-          enrollments: enrollmentsRes.data,
-          orders: ordersRes.data,
-          examAttempts: examsRes.data
+          member: member as Member,
+          enrollments: extractList(enrollmentsRes),
+          orders: extractList(ordersRes),
+          examAttempts: extractList(examsRes)
         }
       }
     } catch (error) {
@@ -619,6 +548,7 @@ export const membersService = {
 
   /**
    * 获取学员列表（兼容旧版 studentService API）
+   * 支持关键词搜索（name/phone/email）
    */
   async getStudentList(query: {
     keyword?: string
@@ -631,40 +561,25 @@ export const membersService = {
   }> {
     try {
       const { page = 1, pageSize = 10, keyword } = query
-      const offset = (page - 1) * pageSize
 
-      // 强制筛选 type=student
-      const conditions: any[] = [{ type: 'student' }]
+      // 构建搜索条件（使用 MongoDB 风格操作符）
+      const conditions: any = { type: 'student' }
 
-      // 关键词搜索
       if (keyword) {
-        conditions.push(
-          (db.command as any).or(
-            (db.command as any).regexp({ regexp: keyword, options: 'i' })._path('name'),
-            (db.command as any).regexp({ regexp: keyword, options: 'i' })._path('phone'),
-            (db.command as any).regexp({ regexp: keyword, options: 'i' })._path('email')
-          )
-        )
+        conditions['$or'] = [
+          { name: { '$regex': keyword } },
+          { phone: { '$regex': keyword } },
+          { email: { '$regex': keyword } }
+        ]
       }
 
-      const where = db.command.and(...conditions)
-
-      // 获取总数
-      const countRes = await getCollection().where(where).count()
-
-      // 获取数据
-      const res = await getCollection()
-        .where(where)
-        .orderBy('createdAt', 'desc')
-        .skip(offset)
-        .limit(pageSize)
-        .get()
+      const result = await adminService.listWithOps('members', conditions, { page, pageSize })
 
       return {
         code: 0,
         data: {
-          list: res.data as Member[],
-          total: countRes.total
+          list: extractList(result) as Member[],
+          total: extractTotal(result)
         }
       }
     } catch (error) {
@@ -682,15 +597,15 @@ export const membersService = {
     message?: string
   }> {
     try {
-      const res = await getCollection().doc(id).get()
-      if (!res.data) {
+      const res = await adminService.get('members', id)
+      const member = extractSingle(res)
+      if (!member) {
         return { code: -1, data: null, message: '学员不存在' }
       }
-      // 确保是学员类型
-      if ((res.data as Member).type !== 'student') {
+      if ((member as Member).type !== 'student') {
         return { code: -1, data: null, message: '该成员不是学员' }
       }
-      return { code: 0, data: res.data as Member }
+      return { code: 0, data: member as Member }
     } catch (error) {
       console.error('获取学员详情失败:', error)
       return { code: -1, data: null, message: '获取学员详情失败' }
@@ -718,11 +633,9 @@ export const membersService = {
   }> {
     try {
       const now = new Date().toISOString()
-      
-      // 生成学员ID
       const studentId = `student_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
 
-      const member: Partial<Member> = {
+      const member: any = {
         _id: studentId,
         name: data.name,
         phone: data.phone,
@@ -751,11 +664,8 @@ export const membersService = {
         updatedAt: now
       }
 
-      const res = await getCollection().add(member)
-      return {
-        code: 0,
-        data: { ...member, _id: res.id } as Member
-      }
+      const res = await adminService.add('members', member)
+      return { code: 0, data: { ...member, _id: res.data.id } as Member }
     } catch (error) {
       console.error('创建学员失败:', error)
       return { code: -1, data: null, message: '创建学员失败' }
@@ -784,9 +694,9 @@ export const membersService = {
     message: string
   }> {
     try {
-      // 获取当前学员
-      const current = await getCollection().doc(id).get()
-      if (!current.data) {
+      const currentRes = await adminService.get('members', id)
+      const current = extractSingle(currentRes) as any
+      if (!current) {
         return { code: -1, message: '学员不存在' }
       }
 
@@ -797,29 +707,17 @@ export const membersService = {
         updatedAt: new Date().toISOString()
       }
 
-      // 更新档案信息
-      if (current.data.profile) {
-        updateData.profile = {
-          ...current.data.profile,
-          idCard: data.idCard,
-          gender: data.gender,
-          address: data.address,
-          education: data.education,
-          emergencyContact: data.emergencyContact,
-          emergencyPhone: data.emergencyPhone
-        }
-      } else {
-        updateData.profile = {
-          idCard: data.idCard,
-          gender: data.gender,
-          address: data.address,
-          education: data.education,
-          emergencyContact: data.emergencyContact,
-          emergencyPhone: data.emergencyPhone
-        }
+      updateData.profile = {
+        ...(current.profile || {}),
+        idCard: data.idCard,
+        gender: data.gender,
+        address: data.address,
+        education: data.education,
+        emergencyContact: data.emergencyContact,
+        emergencyPhone: data.emergencyPhone
       }
 
-      await getCollection().doc(id).update(updateData)
+      await adminService.update('members', id, updateData)
       return { code: 0, message: '更新成功' }
     } catch (error) {
       console.error('更新学员失败:', error)
@@ -835,7 +733,7 @@ export const membersService = {
     message: string
   }> {
     try {
-      await getCollection().doc(id).remove()
+      await adminService.delete('members', id)
       return { code: 0, message: '删除成功' }
     } catch (error) {
       console.error('删除学员失败:', error)
@@ -852,11 +750,8 @@ export const membersService = {
     message?: string
   }> {
     try {
-      const res = await db.collection('enrollments')
-        .where({ userId })
-        .orderBy('createdAt', 'desc')
-        .get()
-      return { code: 0, data: res.data || [] }
+      const res = await adminService.list('enrollments', { userId }, { limit: 100, orderBy: 'createdAt', order: 'desc' })
+      return { code: 0, data: extractList(res) }
     } catch (error) {
       console.error('获取报名记录失败:', error)
       return { code: -1, data: [], message: '获取报名记录失败' }
@@ -872,11 +767,8 @@ export const membersService = {
     message?: string
   }> {
     try {
-      const res = await db.collection('attendance_records')
-        .where({ userId })
-        .orderBy('createdAt', 'desc')
-        .get()
-      return { code: 0, data: res.data || [] }
+      const res = await adminService.list('attendance_records', { userId }, { limit: 100, orderBy: 'createdAt', order: 'desc' })
+      return { code: 0, data: extractList(res) }
     } catch (error) {
       console.error('获取出勤记录失败:', error)
       return { code: -1, data: [], message: '获取出勤记录失败' }
@@ -887,13 +779,10 @@ export const membersService = {
 
   /**
    * ★ 通过微信 code 获取手机号
-   * 微信登录后，调用此方法获取绑定手机号
-   * @param wechatCode 微信授权码（前端通过 wx.login 获取）
-   * @returns 手机号或 null
+   * 保留 CloudBase SDK - 调用云函数
    */
   async getPhoneByWechatCode(wechatCode: string): Promise<{ success: boolean; phone?: string; error?: string }> {
     try {
-      // 调用云函数获取手机号（需要在云函数中实现）
       const result = await app.callFunction({
         name: 'mobile-auth',
         data: {
@@ -914,12 +803,7 @@ export const membersService = {
 
   /**
    * ★ 微信登录后绑定手机号（合并会员）
-   * 流程：微信登录 -> 获取手机号 -> 查找/创建会员 -> 关联 openid
-   * 
-   * @param openid 微信 openid
-   * @param phone 要绑定的手机号
-   * @param code 短信验证码
-   * @param userName 用户姓名（可选）
+   * auth 操作保留 CloudBase SDK，数据库走 HTTP
    */
   async bindPhoneForWechat(
     openid: string,
@@ -930,49 +814,44 @@ export const membersService = {
     try {
       console.log('[membersService] 绑定手机号:', { openid, phone })
       
-      // 1. 验证短信验证码
+      // 1. 验证短信验证码（保留 CloudBase SDK）
       const verifyResult = await app.auth().verifyOtp({ phone, token: code } as any)
-      if (verifyResult.error) {
+      if ((verifyResult as any).error) {
         return { success: false, error: '验证码错误或已过期' }
       }
 
       // 2. 查询手机号是否已有会员记录
-      const existingByPhone = await getCollection().where({ phone }).get()
+      const existingByPhone = await adminService.list('members', { phone }, { limit: 1 })
+      const memberList = extractList(existingByPhone) as Member[]
       
-      if (existingByPhone.data && existingByPhone.data.length > 0) {
-        // 手机号已存在，需要合并
-        const existingMember = existingByPhone.data[0] as Member
+      if (memberList.length > 0) {
+        const existingMember = memberList[0]
+        const memberId = (existingMember as any)._id
         
-        // 检查是否已有 openid
         if (existingMember.openid && existingMember.openid !== openid) {
-          // 已有其他 openid，记录关联
-          await getCollection().doc(existingMember._id).update({
-            relatedOpenids: db.command.addToSet(openid),
-            lastLoginAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+          // 已有其他 openid，使用 $addToSet 操作符
+          await adminService.updateWithOps('members', memberId, {
+            '$addToSet': { relatedOpenids: openid },
+            lastLoginAt: new Date().toISOString()
           })
         } else {
-          // 更新 openid 关联
-          await getCollection().doc(existingMember._id).update({
-            openid: openid,
-            lastLoginAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+          await adminService.update('members', memberId, {
+            openid,
+            lastLoginAt: new Date().toISOString()
           })
         }
         
-        // 保存手机号到 localStorage
         localStorage.setItem('user_phone', phone)
-        
-        console.log('[membersService] 合并会员成功:', existingMember._id)
+        console.log('[membersService] 合并会员成功:', memberId)
         return { success: true, member: existingMember }
       }
       
       // 3. 手机号不存在，创建新会员
       const now = new Date().toISOString()
-      const newMember: Partial<Member> = {
+      const newMember: any = {
         name: userName || '微信用户',
-        phone: phone,
-        openid: openid,
+        phone,
+        openid,
         type: 'user',
         role: 'student',
         profile: {},
@@ -991,13 +870,11 @@ export const membersService = {
         lastLoginAt: now
       }
       
-      const res = await getCollection().add(newMember)
-      
-      // 保存手机号到 localStorage
+      const res = await adminService.add('members', newMember)
       localStorage.setItem('user_phone', phone)
       
-      const createdMember = { ...newMember, _id: res.id } as Member
-      console.log('[membersService] 创建新会员成功:', res.id)
+      const createdMember = { ...newMember, _id: res.data.id } as Member
+      console.log('[membersService] 创建新会员成功:', res.data.id)
       return { success: true, member: createdMember, needCreate: true }
     } catch (error: any) {
       console.error('[membersService] 绑定手机号失败:', error)
@@ -1007,27 +884,23 @@ export const membersService = {
 
   /**
    * ★ 微信登录自动关联会员（静默合并）
-   * 如果用户之前通过手机号注册过，现在用微信登录，自动关联
-   * 
-   * @param openid 微信 openid
-   * @returns 会员信息或 null
    */
   async autoLinkWechatMember(openid: string): Promise<Member | null> {
     try {
       // 1. 先通过 openid 查询
-      const byOpenid = await getCollection().where({ openid }).get()
-      if (byOpenid.data && byOpenid.data.length > 0) {
-        console.log('[membersService] 找到 openid 对应会员:', byOpenid.data[0]._id)
-        return byOpenid.data[0] as Member
+      const byOpenid = await adminService.list('members', { openid }, { limit: 1 })
+      const byOpenidList = extractList(byOpenid) as Member[]
+      if (byOpenidList.length > 0) {
+        console.log('[membersService] 找到 openid 对应会员:', (byOpenidList[0] as any)._id)
+        return byOpenidList[0]
       }
       
       // 2. 查询 relatedOpenids 中是否包含此 openid
-      const byRelated = await getCollection().where({
-        relatedOpenids: db.command.eq(openid)
-      }).get()
-      if (byRelated.data && byRelated.data.length > 0) {
-        console.log('[membersService] 找到 relatedOpenids 对应会员:', byRelated.data[0]._id)
-        return byRelated.data[0] as Member
+      const byRelated = await adminService.list('members', { relatedOpenids: { '$eq': openid } }, { limit: 1 })
+      const byRelatedList = extractList(byRelated) as Member[]
+      if (byRelatedList.length > 0) {
+        console.log('[membersService] 找到 relatedOpenids 对应会员:', (byRelatedList[0] as any)._id)
+        return byRelatedList[0]
       }
       
       return null
@@ -1039,37 +912,37 @@ export const membersService = {
 
   /**
    * ★ 获取用户完整数据（我的学习 + 我的培训）
-   * 统一查询用户的所有数据
    */
   async getMyData(phone: string): Promise<{
     success: boolean
     data?: {
       member: Member
-      courses: any[]       // 已购课程（视频）
-      enrollments: any[]   // 报名记录（培训）
-      orders: any[]       // 订单
-      permissions: any[]  // 权限
+      courses: any[]
+      enrollments: any[]
+      orders: any[]
+      permissions: any[]
     }
     error?: string
   }> {
     try {
       // 1. 获取会员信息
-      const memberRes = await getCollection().where({ phone }).get()
-      if (!memberRes.data || memberRes.data.length === 0) {
+      const memberRes = await adminService.list('members', { phone }, { limit: 1 })
+      const memberList = extractList(memberRes) as Member[]
+      if (memberList.length === 0) {
         return { success: false, error: '未找到用户' }
       }
-      const member = memberRes.data[0] as Member
+      const member = memberList[0]
+      const memberId = (member as any)._id
 
-      // 2. 获取已购课程（通过订单）
-      const ordersRes = await db.collection('orders')
-        .where({
-          phone: db.command.eq(phone),
-          status: db.command.in(['paid', 'completed', 'paid_offline'])
-        })
-        .get()
+      // 2. 获取已支付订单（使用操作符查询）
+      const ordersRes = await adminService.listWithOps('orders', {
+        phone: { '$eq': phone },
+        status: { '$in': ['paid', 'completed', 'paid_offline'] }
+      }, { limit: 200 })
       
+      const orders = extractList(ordersRes)
       const courseIds: string[] = []
-      ordersRes.data.forEach((order: any) => {
+      orders.forEach((order: any) => {
         if (order.items && Array.isArray(order.items)) {
           order.items.forEach((item: any) => {
             if (item.courseId && !courseIds.includes(item.courseId)) {
@@ -1085,35 +958,33 @@ export const membersService = {
       // 获取课程详情
       let courses: any[] = []
       if (courseIds.length > 0) {
-        const coursesRes = await db.collection('courses')
-          .where(db.command.or(courseIds.map(id => ({ _id: id }))))
-          .get()
-        courses = coursesRes.data || []
+        // 用 $in 批量查询课程
+        const coursesRes = await adminService.list('courses', {
+          _id: { '$in': courseIds }
+        }, { limit: 200 })
+        courses = extractList(coursesRes)
       }
 
       // 3. 获取报名记录
-      const enrollmentsRes = await db.collection('enrollments')
-        .where({ phone })
-        .get()
+      const enrollmentsRes = await adminService.list('enrollments', { phone }, { limit: 100 })
+      const enrollments = extractList(enrollmentsRes)
 
       // 4. 获取所有订单
-      const allOrdersRes = await db.collection('orders')
-        .where({ phone })
-        .get()
+      const allOrdersRes = await adminService.list('orders', { phone }, { limit: 200 })
+      const allOrders = extractList(allOrdersRes)
 
       // 5. 获取课程权限
-      const permsRes = await db.collection('course_permissions')
-        .where({ userId: member._id })
-        .get()
+      const permsRes = await adminService.list('course_permissions', { userId: memberId }, { limit: 100 })
+      const permissions = extractList(permsRes)
 
       return {
         success: true,
         data: {
           member,
           courses,
-          enrollments: enrollmentsRes.data || [],
-          orders: allOrdersRes.data || [],
-          permissions: permsRes.data || []
+          enrollments,
+          orders: allOrders,
+          permissions
         }
       }
     } catch (error: any) {
@@ -1124,7 +995,6 @@ export const membersService = {
 
   /**
    * ★ 换手机号时保留旧号记录
-   * 用户更换手机号时，保留旧号关联
    */
   async changePhone(
     userId: string,
@@ -1133,23 +1003,22 @@ export const membersService = {
     code: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // 1. 验证新手机号验证码
+      // 1. 验证新手机号验证码（保留 CloudBase SDK）
       const verifyResult = await app.auth().verifyOtp({ phone: newPhone, token: code } as any)
-      if (verifyResult.error) {
+      if ((verifyResult as any).error) {
         return { success: false, error: '验证码错误或已过期' }
       }
 
       // 2. 检查新手机号是否已被使用
-      const existingNew = await getCollection().where({ phone: newPhone }).get()
-      if (existingNew.data && existingNew.data.length > 0) {
+      const existingNew = await adminService.list('members', { phone: newPhone }, { limit: 1 })
+      if (extractList(existingNew).length > 0) {
         return { success: false, error: '此手机号已被其他账号使用' }
       }
 
-      // 3. 更新会员记录，保留旧手机号
-      await getCollection().doc(userId).update({
-        relatedPhones: db.command.addToSet(oldPhone),
-        phone: newPhone,
-        updatedAt: new Date().toISOString()
+      // 3. 更新会员记录，保留旧手机号（使用 $addToSet 操作符）
+      await adminService.updateWithOps('members', userId, {
+        '$addToSet': { relatedPhones: oldPhone },
+        phone: newPhone
       })
 
       // 4. 更新 localStorage

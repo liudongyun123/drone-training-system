@@ -8,46 +8,53 @@
  * - getRecommendedCourses(category): 推荐课程
  * - getCategories(): 分类列表
  * 
+ * ★ Stage 3 迁移：数据库操作统一走 HTTP → adminService → db-init 云函数
  * 此服务保留用于向后兼容，将在后续版本中删除
  */
 
-import { ensureInit } from '@/utils/cloudbase'
+import { adminService } from './adminService'
 import type { Course } from '../types'
+
+const extractList = <T>(result: any): T[] => result?.data?.list || result?.data || []
+
+// 课程数据映射函数
+const mapCourse = (c: any): Course => ({
+  _id: c._id,
+  id: c._id,
+  title: c.title || '未命名课程',
+  description: c.description || '',
+  thumbnail: c.thumbnail || '',
+  coverImage: c.coverImage,
+  level: c.level || 'beginner',
+  duration: c.duration || 0,
+  lessons: c.lessons || 0,
+  instructor: c.instructor || '未知讲师',
+  teacherName: c.teacherName,
+  category: c.category,
+  categoryId: c.categoryId,
+  rating: c.rating || 0,
+  students: c.students || 0,
+  studentsCount: c.studentsCount || c.enrolledCount || 0,
+  tags: c.tags || [],
+  price: c.price || 0,
+  originalPrice: c.originalPrice || 0,
+  isPurchased: false,
+})
 
 // 课程数据服务（云开发版本）
 export const CloudCourseService = {
   // 获取所有课程
   async getAll(): Promise<Course[]> {
     try {
-      await ensureInit()
-      const { getCloudBaseApp } = await import('@/utils/cloudbase')
-      const app = getCloudBaseApp()
-      const data = await app.database().collection('courses').get()
-      return data.data.map((c: any) => ({
-        _id: c._id,
-        id: c._id,
-        title: c.title,
-        description: c.description,
-        thumbnail: c.thumbnail,
-        coverImage: c.coverImage,
-        level: c.level,
-        duration: c.duration,
-        lessons: c.lessons,
-        instructor: c.instructor,
-        rating: c.rating,
-        students: c.students,
-        tags: c.tags || [],
-        price: c.price,
-        originalPrice: c.originalPrice,
-        isPurchased: false,
-      }))
+      const result = await adminService.list('courses', {}, { limit: 200 })
+      return extractList(result).map(mapCourse)
     } catch (error) {
       console.error('获取课程列表失败:', error)
       return []
     }
   },
 
-  // 根据ID获取课程 - 修复：直接查询指定ID，不获取全量数据
+  // 根据ID获取课程
   async getById(id: string): Promise<Course | null> {
     try {
       if (!id) {
@@ -56,45 +63,22 @@ export const CloudCourseService = {
       }
 
       console.log('CloudCourseService.getById 查询ID:', id)
-      await ensureInit()
-      const { getCloudBaseApp } = await import('@/utils/cloudbase')
-      const app = getCloudBaseApp()
-      const result = await app.database().collection('courses').doc(id).get()
-      console.log('查询结果:', result)
-
-      if (!result.data || result.data.length === 0) {
+      const res = await adminService.get('courses', id)
+      const c = res?.data
+      if (!c || Object.keys(c).length === 0) {
         console.warn('未找到课程:', id)
         return null
       }
 
-      const c = result.data[0]
       console.log('找到的课程:', c)
-
-      return {
-        _id: c._id,
-        id: c._id,
-        title: c.title || '未命名课程',
-        description: c.description || '',
-        thumbnail: c.thumbnail || '',
-        coverImage: c.coverImage,
-        level: c.level || 'beginner',
-        duration: c.duration || 0,
-        lessons: c.lessons || 0,
-        instructor: c.instructor || '未知讲师',
-        rating: c.rating || 0,
-        students: c.students || 0,
-        tags: c.tags || [],
-        price: c.price || 0,
-        originalPrice: c.originalPrice || 0,
-        isPurchased: false,
-      }
+      return mapCourse(c)
     } catch (error) {
       console.error('获取课程详情失败:', error)
       return null
     }
   },
 
-  // 根据分类ID获取课程列表（推荐方式：一次查询，更快）
+  // 根据分类ID获取课程列表
   async getByCategory(categoryId: string): Promise<Course[]> {
     try {
       if (!categoryId) {
@@ -103,114 +87,40 @@ export const CloudCourseService = {
       }
 
       console.log('[CloudCourseService.getByCategory] 查询分类ID:', categoryId)
-      await ensureInit()
-      const { getCloudBaseApp } = await import('@/utils/cloudbase')
-      const app = getCloudBaseApp()
-      const db = app.database()
+      const result = await adminService.list('courses', {
+        status: 'published',
+        categoryId,
+      }, { limit: 100 })
       
-      // 直接用 categoryId 查询（课程表现在会同时存储 categoryId）
-      const result = await db.collection('courses')
-        .where({ 
-          status: 'published', 
-          categoryId: categoryId 
-        })
-        .limit(100)
-        .get()
-      
-      console.log('[CloudCourseService.getByCategory] 查询结果数量:', result.data.length)
-      
-      return result.data.map((c: any) => ({
-        _id: c._id,
-        id: c._id,
-        title: c.title,
-        description: c.description,
-        thumbnail: c.thumbnail,
-        coverImage: c.coverImage,
-        level: c.level,
-        duration: c.duration,
-        lessons: c.lessons,
-        instructor: c.instructor,
-        teacherName: c.teacherName,
-        category: c.category,
-        categoryId: c.categoryId,
-        rating: c.rating || 0,
-        students: c.students || 0,
-        studentsCount: c.studentsCount || c.enrolledCount || 0,
-        tags: c.tags || [],
-        price: c.price,
-        originalPrice: c.originalPrice,
-        isPurchased: false,
-      }))
+      console.log('[CloudCourseService.getByCategory] 查询结果数量:', result?.data?.list?.length)
+      return extractList(result).map(mapCourse)
     } catch (error) {
       console.error('获取分类课程失败:', error)
       return []
     }
   },
 
-  // 搜索课程 - 优化：服务端筛选
+  // 搜索课程 - 使用 MongoDB 风格 $regex 操作符
   async search(keyword: string): Promise<Course[]> {
     try {
-      await ensureInit()
-      const { getCloudBaseApp } = await import('@/utils/cloudbase')
-      const app = getCloudBaseApp()
-      const db = app.database()
-      const { data } = await db.collection('courses')
-        .where({
-          title: db.RegExp({
-            regexp: keyword,
-            options: 'i',
-          }),
-        })
-        .get()
-      return data.map((c: any) => ({
-        _id: c._id,
-        id: c._id,
-        title: c.title,
-        description: c.description,
-        thumbnail: c.thumbnail,
-        coverImage: c.coverImage,
-        level: c.level,
-        price: c.price,
-        rating: c.rating,
-        students: c.students,
-        tags: c.tags || [],
-        originalPrice: c.originalPrice,
-        isPurchased: false,
-      }))
+      const result = await adminService.listWithOps('courses', {
+        title: { '$regex': keyword },
+      }, { limit: 50 })
+      return extractList(result).map(mapCourse)
     } catch (error) {
       console.error('搜索课程失败:', error)
       return []
     }
   },
 
-  // 按级别筛选 - 优化：服务端筛选
+  // 按级别筛选
   async filterByLevel(level: string): Promise<Course[]> {
     try {
       if (level === 'all') {
         return this.getAll()
       }
-      await ensureInit()
-      const { getCloudBaseApp } = await import('@/utils/cloudbase')
-      const app = getCloudBaseApp()
-      const db = app.database()
-      const { data } = await db.collection('courses')
-        .where({ level })
-        .get()
-      return data.map((c: any) => ({
-        _id: c._id,
-        id: c._id,
-        title: c.title,
-        description: c.description,
-        thumbnail: c.thumbnail,
-        coverImage: c.coverImage,
-        level: c.level,
-        price: c.price,
-        rating: c.rating,
-        students: c.students,
-        tags: c.tags || [],
-        originalPrice: c.originalPrice,
-        isPurchased: false,
-      }))
+      const result = await adminService.list('courses', { level }, { limit: 100 })
+      return extractList(result).map(mapCourse)
     } catch (error) {
       console.error('筛选课程失败:', error)
       return []

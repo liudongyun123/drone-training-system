@@ -1,38 +1,39 @@
 // ============================================================================
 // 拼团服务
+// ★ Stage 3 迁移：数据库操作统一走 HTTP → adminService → db-init 云函数
 // ============================================================================
-import { app } from '@/utils/cloudbase';
+import { adminService } from './adminService';
 
 export interface GroupBuyActivity {
   _id: string;
-  courseId: string; // 关联课程ID
-  courseTitle: string; // 课程标题
-  originalPrice: number; // 原价
-  groupPrice: number; // 拼团价
-  minPeople: number; // 最少拼团人数
-  maxPeople: number; // 最多拼团人数
-  maxGroups?: number; // 最大拼团数量（可选）
-  activeGroups: number; // 当前活跃拼团数
-  duration: number; // 拼团时长（小时）
-  startDate: string; // 开始时间
-  endDate: string; // 结束时间
-  status: 'active' | 'paused' | 'ended'; // 活动状态
-  description?: string; // 活动描述
+  courseId: string;
+  courseTitle: string;
+  originalPrice: number;
+  groupPrice: number;
+  minPeople: number;
+  maxPeople: number;
+  maxGroups?: number;
+  activeGroups: number;
+  duration: number;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'paused' | 'ended';
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface GroupBuyTeam {
   _id: string;
-  activityId: string; // 活动ID
-  activity: GroupBuyActivity; // 活动详情
-  leaderId: string; // 团长用户ID
-  courseId: string; // 课程ID
-  currentPeople: number; // 当前人数
-  requiredPeople: number; // 需要人数
-  status: 'pending' | 'success' | 'failed' | 'cancelled'; // 拼团状态
-  expiresAt: string; // 过期时间
-  members: GroupBuyMember[]; // 成员列表
+  activityId: string;
+  activity: GroupBuyActivity;
+  leaderId: string;
+  courseId: string;
+  currentPeople: number;
+  requiredPeople: number;
+  status: 'pending' | 'success' | 'failed' | 'cancelled';
+  expiresAt: string;
+  members: GroupBuyMember[];
   createdAt: string;
   updatedAt: string;
 }
@@ -40,14 +41,16 @@ export interface GroupBuyTeam {
 export interface GroupBuyMember {
   userId: string;
   userName?: string;
-  orderId: string; // 订单ID
+  orderId: string;
   joinedAt: string;
-  isLeader: boolean; // 是否是团长
-  price: number; // 支付价格
+  isLeader: boolean;
+  price: number;
 }
 
-const GROUP_BUY_ACTIVITY_COLLECTION = 'groupBuyActivities';
-const GROUP_BUY_TEAM_COLLECTION = 'groupBuyTeams';
+const ACTIVITY_COLLECTION = 'groupBuyActivities';
+const TEAM_COLLECTION = 'groupBuyTeams';
+
+const extractList = <T>(result: any): T[] => result?.data?.list || result?.data || [];
 
 export const groupBuyService = {
   /**
@@ -55,16 +58,11 @@ export const groupBuyService = {
    */
   async getAllActivities(): Promise<GroupBuyActivity[]> {
     try {
-      console.log('[GroupBuyDB] 开始查询集合:', GROUP_BUY_ACTIVITY_COLLECTION);
-      const db = app.database();
-      const result = await db.collection(GROUP_BUY_ACTIVITY_COLLECTION).get();
-      console.log('[GroupBuyDB] 查询原始结果:', result);
-      
-      // 兼容处理不同的返回格式
-      const data = (result as any)?.data || result || [];
-      console.log('[GroupBuyDB] 处理后数据:', data);
-      
-      return Array.isArray(data) ? data as GroupBuyActivity[] : [];
+      console.log('[GroupBuyDB] 开始查询集合:', ACTIVITY_COLLECTION);
+      const result = await adminService.list(ACTIVITY_COLLECTION, {}, { limit: 200 });
+      const data = extractList<GroupBuyActivity>(result);
+      console.log('[GroupBuyDB] 处理后数据:', data.length);
+      return data;
     } catch (error) {
       console.error('[GroupBuyDB] getAllActivities 失败:', error);
       return [];
@@ -76,20 +74,13 @@ export const groupBuyService = {
    */
   async getActiveActivities(): Promise<GroupBuyActivity[]> {
     try {
-      const db = app.database();
       const now = new Date().toISOString();
-      const result = await db
-        .collection(GROUP_BUY_ACTIVITY_COLLECTION)
-        .where({
-          status: 'active',
-          startDate: db.command.lte(now),
-          endDate: db.command.gte(now),
-        })
-        .get();
-      
-      // 兼容处理不同的返回格式
-      const data = (result as any)?.data || result || [];
-      return Array.isArray(data) ? data as GroupBuyActivity[] : [];
+      const result = await adminService.listWithOps(ACTIVITY_COLLECTION, {
+        status: 'active',
+        startDate: { '$lte': now },
+        endDate: { '$gte': now },
+      }, { limit: 100 });
+      return extractList<GroupBuyActivity>(result);
     } catch (error) {
       console.error('[GroupBuyDB] getActiveActivities 失败:', error);
       return [];
@@ -101,21 +92,15 @@ export const groupBuyService = {
    */
   async getActivityByCourseId(courseId: string): Promise<GroupBuyActivity | null> {
     try {
-      const db = app.database();
       const now = new Date().toISOString();
-      const result = await db
-        .collection(GROUP_BUY_ACTIVITY_COLLECTION)
-        .where({
-          courseId,
-          status: 'active',
-          startDate: db.command.lte(now),
-          endDate: db.command.gte(now),
-        })
-        .get();
-      
-      // 兼容处理不同的返回格式
-      const data = (result as any)?.data || result || [];
-      return data?.length > 0 ? (data[0] as GroupBuyActivity) : null;
+      const result = await adminService.listWithOps(ACTIVITY_COLLECTION, {
+        courseId,
+        status: 'active',
+        startDate: { '$lte': now },
+        endDate: { '$gte': now },
+      }, { limit: 1 });
+      const list = extractList<GroupBuyActivity>(result);
+      return list.length > 0 ? list[0] : null;
     } catch (error) {
       console.error('[GroupBuyDB] getActivityByCourseId 失败:', error);
       return null;
@@ -129,20 +114,10 @@ export const groupBuyService = {
     activity: Omit<GroupBuyActivity, '_id' | 'activeGroups' | 'createdAt' | 'updatedAt'>
   ): Promise<GroupBuyActivity> {
     try {
-      const db = app.database();
       const now = new Date().toISOString();
-      
-      const doc = {
-        ...activity,
-        activeGroups: 0,
-        createdAt: now,
-        updatedAt: now,
-      };
-      
-      const result = await db.collection(GROUP_BUY_ACTIVITY_COLLECTION).add(doc);
-      // 兼容处理不同的返回格式
-      const resultData = (result as any)?.data || result || {};
-      return { _id: resultData.id || resultData._id, ...doc } as GroupBuyActivity;
+      const doc = { ...activity, activeGroups: 0, createdAt: now, updatedAt: now };
+      const { data: result } = await adminService.add(ACTIVITY_COLLECTION, doc);
+      return { _id: result.id, ...doc } as GroupBuyActivity;
     } catch (error) {
       console.error('[GroupBuyDB] createActivity 失败:', error);
       throw error;
@@ -152,22 +127,9 @@ export const groupBuyService = {
   /**
    * 更新拼团活动（管理员）
    */
-  async updateActivity(
-    activityId: string,
-    updates: Partial<GroupBuyActivity>
-  ): Promise<boolean> {
+  async updateActivity(activityId: string, updates: Partial<GroupBuyActivity>): Promise<boolean> {
     try {
-      const db = app.database();
-      const now = new Date().toISOString();
-      
-      await db
-        .collection(GROUP_BUY_ACTIVITY_COLLECTION)
-        .doc(activityId)
-        .update({
-          ...updates,
-          updatedAt: now,
-        });
-      
+      await adminService.update(ACTIVITY_COLLECTION, activityId, { ...updates, updatedAt: new Date().toISOString() });
       return true;
     } catch (error) {
       console.error('[GroupBuyDB] updateActivity 失败:', error);
@@ -179,8 +141,7 @@ export const groupBuyService = {
    * 删除拼团活动（管理员）
    */
   async deleteActivity(activityId: string): Promise<boolean> {
-    const db = app.database();
-    await db.collection(GROUP_BUY_ACTIVITY_COLLECTION).doc(activityId).remove();
+    await adminService.delete(ACTIVITY_COLLECTION, activityId);
     return true;
   },
 
@@ -193,46 +154,27 @@ export const groupBuyService = {
     activityId: string,
     userName?: string
   ): Promise<GroupBuyTeam> {
-    const db = app.database();
     const now = new Date().toISOString();
     
     // 获取活动信息
     const activity = await this.getActivityById(activityId);
-    if (!activity) {
-      throw new Error('拼团活动不存在');
-    }
+    if (!activity) throw new Error('拼团活动不存在');
+    if (activity.status !== 'active') throw new Error('拼团活动已结束或暂停');
     
-    // 检查活动状态
-    if (activity.status !== 'active') {
-      throw new Error('拼团活动已结束或暂停');
-    }
-    
-    // 检查活动有效期
     const current = new Date();
     const start = new Date(activity.startDate);
     const end = new Date(activity.endDate);
-    if (current < start || current > end) {
-      throw new Error('拼团活动不在有效期内');
-    }
-    
-    // 检查是否已达最大拼团数量
-    if (activity.maxGroups && activity.activeGroups >= activity.maxGroups) {
-      throw new Error('该活动拼团数量已达上限');
-    }
+    if (current < start || current > end) throw new Error('拼团活动不在有效期内');
+    if (activity.maxGroups && activity.activeGroups >= activity.maxGroups) throw new Error('该活动拼团数量已达上限');
     
     // 检查用户是否已有进行中的拼团
-    const { data: existingTeam } = await db
-      .collection(GROUP_BUY_TEAM_COLLECTION)
-      .where({
-        activityId,
-        'members.userId': userId,
-        status: 'pending',
-      })
-      .get();
-    
-    if (existingTeam.length > 0) {
-      throw new Error('您已有进行中的拼团，请等待拼团完成');
-    }
+    const existingResult = await adminService.list(TEAM_COLLECTION, {
+      activityId,
+      'members.userId': userId,
+      status: 'pending',
+    }, { limit: 1 });
+    const existingTeam = extractList(existingResult);
+    if (existingTeam.length > 0) throw new Error('您已有进行中的拼团，请等待拼团完成');
     
     // 计算过期时间
     const expiresAt = new Date(current.getTime() + activity.duration * 60 * 60 * 1000).toISOString();
@@ -247,24 +189,17 @@ export const groupBuyService = {
       requiredPeople: activity.minPeople,
       status: 'pending' as const,
       expiresAt,
-      members: [
-        {
-          userId,
-          userName,
-          orderId,
-          joinedAt: now,
-          isLeader: true,
-          price: activity.groupPrice,
-        },
-      ],
+      members: [{
+        userId, userName, orderId, joinedAt: now, isLeader: true, price: activity.groupPrice,
+      }],
       createdAt: now,
       updatedAt: now,
     };
     
-    const { data: result } = await db.collection(GROUP_BUY_TEAM_COLLECTION).add(team);
+    const { data: result } = await adminService.add(TEAM_COLLECTION, team);
     
     // 更新活动活跃拼团数
-    await db.collection(GROUP_BUY_ACTIVITY_COLLECTION).doc(activityId).update({
+    await adminService.update(ACTIVITY_COLLECTION, activityId, {
       activeGroups: activity.activeGroups + 1,
       updatedAt: now,
     });
@@ -281,72 +216,45 @@ export const groupBuyService = {
     teamId: string,
     userName?: string
   ): Promise<GroupBuyTeam> {
-    const db = app.database();
     const now = new Date().toISOString();
     
     // 获取拼团团队
-    const { data: teamData } = await db
-      .collection(GROUP_BUY_TEAM_COLLECTION)
-      .doc(teamId)
-      .get();
+    const teamRes = await adminService.get(TEAM_COLLECTION, teamId);
+    const team = teamRes?.data as GroupBuyTeam;
+    if (!team) throw new Error('拼团不存在');
+    if (team.status !== 'pending') throw new Error('拼团已结束，无法加入');
+    if (team.expiresAt < now) throw new Error('拼团已过期');
     
-    if (!teamData) {
-      throw new Error('拼团不存在');
-    }
-    
-    const team = teamData as GroupBuyTeam;
-    
-    // 检查拼团状态
-    if (team.status !== 'pending') {
-      throw new Error('拼团已结束，无法加入');
-    }
-    
-    // 检查是否已过期
-    if (team.expiresAt < now) {
-      throw new Error('拼团已过期');
-    }
-    
-    // 检查是否已满员
     const activity = team.activity;
-    if (team.currentPeople >= activity.maxPeople) {
-      throw new Error('拼团已满员');
-    }
+    if (team.currentPeople >= activity.maxPeople) throw new Error('拼团已满员');
     
-    // 检查用户是否已在团中
     const existingMember = team.members.find(m => m.userId === userId);
-    if (existingMember) {
-      throw new Error('您已在该拼团中');
-    }
+    if (existingMember) throw new Error('您已在该拼团中');
     
     // 添加成员
     const newMember = {
-      userId,
-      userName,
-      orderId,
-      joinedAt: now,
-      isLeader: false,
-      price: activity.groupPrice,
+      userId, userName, orderId, joinedAt: now, isLeader: false, price: activity.groupPrice,
     };
     
     const updatedMembers = [...team.members, newMember];
     const updatedTeam = {
-      ...team,
-      currentPeople: team.currentPeople + 1,
       members: updatedMembers,
+      currentPeople: team.currentPeople + 1,
       updatedAt: now,
     };
     
-    await db.collection(GROUP_BUY_TEAM_COLLECTION).doc(teamId).update(updatedTeam);
+    await adminService.update(TEAM_COLLECTION, teamId, updatedTeam);
     
     // 检查是否拼团成功
-    if (updatedTeam.currentPeople >= updatedTeam.requiredPeople) {
-      await db.collection(GROUP_BUY_TEAM_COLLECTION).doc(teamId).update({
-        status: 'success',
-        updatedAt: now,
-      });
+    if (updatedTeam.currentPeople >= updatedTeam.currentPeople) {
+      // 使用 requiredPeople 重新计算
+      const newPeople = team.currentPeople + 1;
+      if (newPeople >= team.requiredPeople) {
+        await adminService.update(TEAM_COLLECTION, teamId, { status: 'success', updatedAt: now });
+      }
     }
     
-    return { ...updatedTeam, _id: team._id };
+    return { ...team, _id: team._id, ...updatedTeam };
   },
 
   /**
@@ -354,11 +262,8 @@ export const groupBuyService = {
    */
   async getTeamById(teamId: string): Promise<GroupBuyTeam | null> {
     try {
-      const db = app.database();
-      const result = await db.collection(GROUP_BUY_TEAM_COLLECTION).doc(teamId).get();
-      // 兼容处理不同的返回格式
-      const data = (result as any)?.data || result;
-      return data ? (data as GroupBuyTeam) : null;
+      const res = await adminService.get(TEAM_COLLECTION, teamId);
+      return res?.data as GroupBuyTeam || null;
     } catch (error) {
       console.error('[GroupBuyDB] getTeamById 失败:', error);
       return null;
@@ -370,17 +275,10 @@ export const groupBuyService = {
    */
   async getUserTeams(userId: string): Promise<GroupBuyTeam[]> {
     try {
-      const db = app.database();
-      const result = await db
-        .collection(GROUP_BUY_TEAM_COLLECTION)
-        .where({
-          'members.userId': userId,
-        })
-        .get();
-      
-      // 兼容处理不同的返回格式
-      const data = (result as any)?.data || result || [];
-      return Array.isArray(data) ? data as GroupBuyTeam[] : [];
+      const result = await adminService.list(TEAM_COLLECTION, {
+        'members.userId': userId,
+      }, { limit: 100 });
+      return extractList<GroupBuyTeam>(result);
     } catch (error) {
       console.error('[GroupBuyDB] getUserTeams 失败:', error);
       return [];
@@ -392,20 +290,13 @@ export const groupBuyService = {
    */
   async getActivityTeams(activityId: string): Promise<GroupBuyTeam[]> {
     try {
-      const db = app.database();
       const now = new Date().toISOString();
-      const result = await db
-        .collection(GROUP_BUY_TEAM_COLLECTION)
-        .where({
-          activityId,
-          status: 'pending',
-          expiresAt: db.command.gte(now),
-        })
-        .get();
-      
-      // 兼容处理不同的返回格式
-      const data = (result as any)?.data || result || [];
-      return Array.isArray(data) ? data as GroupBuyTeam[] : [];
+      const result = await adminService.listWithOps(TEAM_COLLECTION, {
+        activityId,
+        status: 'pending',
+        expiresAt: { '$gte': now },
+      }, { limit: 100 });
+      return extractList<GroupBuyTeam>(result);
     } catch (error) {
       console.error('[GroupBuyDB] getActivityTeams 失败:', error);
       return [];
@@ -417,26 +308,16 @@ export const groupBuyService = {
    */
   async getAvailableTeams(activityId: string): Promise<GroupBuyTeam[]> {
     try {
-      const db = app.database();
       const now = new Date().toISOString();
-      const result = await db
-        .collection(GROUP_BUY_TEAM_COLLECTION)
-        .where({
-          activityId,
-          status: 'pending',
-          expiresAt: db.command.gte(now),
-        })
-        .get();
-      
-      // 兼容处理不同的返回格式
-      const data = (result as any)?.data || result || [];
-      const teams = Array.isArray(data) ? data as GroupBuyTeam[] : [];
+      const result = await adminService.listWithOps(TEAM_COLLECTION, {
+        activityId,
+        status: 'pending',
+        expiresAt: { '$gte': now },
+      }, { limit: 100 });
+      const teams = extractList<GroupBuyTeam>(result);
       const activity = await this.getActivityById(activityId);
       
-      // 过滤出未满员的团队
-      return teams.filter(
-        team => team.currentPeople < (activity?.maxPeople || team.requiredPeople)
-      );
+      return teams.filter(team => team.currentPeople < (activity?.maxPeople || team.requiredPeople));
     } catch (error) {
       console.error('[GroupBuyDB] getAvailableTeams 失败:', error);
       return [];
@@ -447,32 +328,18 @@ export const groupBuyService = {
    * 取消拼团（仅团长且未开始拼团时）
    */
   async cancelTeam(teamId: string, userId: string): Promise<boolean> {
-    const db = app.database();
     const now = new Date().toISOString();
     
     const team = await this.getTeamById(teamId);
-    if (!team) {
-      throw new Error('拼团不存在');
-    }
+    if (!team) throw new Error('拼团不存在');
+    if (team.leaderId !== userId) throw new Error('只有团长可以取消拼团');
+    if (team.status !== 'pending' || team.currentPeople > 1) throw new Error('拼团已开始，无法取消');
     
-    // 只有团长可以取消
-    if (team.leaderId !== userId) {
-      throw new Error('只有团长可以取消拼团');
-    }
-    
-    // 只有待处理状态且只有团长一人时可以取消
-    if (team.status !== 'pending' || team.currentPeople > 1) {
-      throw new Error('拼团已开始，无法取消');
-    }
-    
-    await db.collection(GROUP_BUY_TEAM_COLLECTION).doc(teamId).update({
-      status: 'cancelled',
-      updatedAt: now,
-    });
+    await adminService.update(TEAM_COLLECTION, teamId, { status: 'cancelled', updatedAt: now });
     
     // 更新活动活跃拼团数
     if (team.activity) {
-      await db.collection(GROUP_BUY_ACTIVITY_COLLECTION).doc(team.activity._id).update({
+      await adminService.update(ACTIVITY_COLLECTION, team.activity._id, {
         activeGroups: Math.max(0, team.activity.activeGroups - 1),
         updatedAt: now,
       });
@@ -486,11 +353,8 @@ export const groupBuyService = {
    */
   async getActivityById(activityId: string): Promise<GroupBuyActivity | null> {
     try {
-      const db = app.database();
-      const result = await db.collection(GROUP_BUY_ACTIVITY_COLLECTION).doc(activityId).get();
-      // 兼容处理不同的返回格式
-      const data = (result as any)?.data || result;
-      return data ? (data as GroupBuyActivity) : null;
+      const res = await adminService.get(ACTIVITY_COLLECTION, activityId);
+      return res?.data as GroupBuyActivity || null;
     } catch (error) {
       console.error('[GroupBuyDB] getActivityById 失败:', error);
       return null;
@@ -502,40 +366,24 @@ export const groupBuyService = {
    */
   async updateExpiredTeams(): Promise<number> {
     try {
-      const db = app.database();
       const now = new Date().toISOString();
       
-      // 获取所有过期的待处理拼团
-      const expiredResult = await db
-        .collection(GROUP_BUY_TEAM_COLLECTION)
-        .where({
-          status: 'pending',
-          expiresAt: db.command.lt(now),
-        })
-        .get();
-      
-      // 兼容处理不同的返回格式
-      const expiredTeams = (expiredResult as any)?.data || expiredResult || [];
+      const expiredResult = await adminService.listWithOps(TEAM_COLLECTION, {
+        status: 'pending',
+        expiresAt: { '$lt': now },
+      }, { limit: 200 });
+      const expiredTeams = extractList<GroupBuyTeam>(expiredResult);
       
       let updatedCount = 0;
-      
       for (const team of expiredTeams) {
-        const teamData = team as GroupBuyTeam;
+        await adminService.update(TEAM_COLLECTION, team._id, { status: 'failed', updatedAt: now });
         
-        // 标记为失败
-        await db.collection(GROUP_BUY_TEAM_COLLECTION).doc(teamData._id).update({
-          status: 'failed',
-          updatedAt: now,
-        });
-        
-        // 更新活动活跃拼团数
-        if (teamData.activity) {
-          await db.collection(GROUP_BUY_ACTIVITY_COLLECTION).doc(teamData.activity._id).update({
-            activeGroups: Math.max(0, teamData.activity.activeGroups - 1),
+        if (team.activity) {
+          await adminService.update(ACTIVITY_COLLECTION, team.activity._id, {
+            activeGroups: Math.max(0, team.activity.activeGroups - 1),
             updatedAt: now,
           });
         }
-        
         updatedCount++;
       }
       
@@ -551,29 +399,16 @@ export const groupBuyService = {
    */
   async updateExpiredActivities(): Promise<number> {
     try {
-      const db = app.database();
       const now = new Date().toISOString();
       
-      // 更新已结束的活动
-      const expiredResult = await db
-        .collection(GROUP_BUY_ACTIVITY_COLLECTION)
-        .where({
-          status: 'active',
-          endDate: db.command.lt(now),
-        })
-        .get();
-      
-      // 兼容处理不同的返回格式
-      const expiredActivities = (expiredResult as any)?.data || expiredResult || [];
+      const expiredResult = await adminService.listWithOps(ACTIVITY_COLLECTION, {
+        status: 'active',
+        endDate: { '$lt': now },
+      }, { limit: 100 });
+      const expiredActivities = extractList<GroupBuyActivity>(expiredResult);
       
       for (const activity of expiredActivities) {
-        await db
-          .collection(GROUP_BUY_ACTIVITY_COLLECTION)
-          .doc(activity._id)
-          .update({
-            status: 'ended',
-            updatedAt: now,
-          });
+        await adminService.update(ACTIVITY_COLLECTION, activity._id, { status: 'ended', updatedAt: now });
       }
       
       return expiredActivities.length;
@@ -587,50 +422,25 @@ export const groupBuyService = {
    * 获取拼团统计数据（管理员）
    */
   async getStatistics(activityId: string): Promise<{
-    totalTeams: number;
-    successTeams: number;
-    failedTeams: number;
-    pendingTeams: number;
-    totalMembers: number;
-    totalRevenue: number;
+    totalTeams: number; successTeams: number; failedTeams: number;
+    pendingTeams: number; totalMembers: number; totalRevenue: number;
   }> {
     try {
-      const db = app.database();
-      const result = await db
-        .collection(GROUP_BUY_TEAM_COLLECTION)
-        .where({ activityId })
-        .get();
-      
-      // 兼容处理不同的返回格式
-      const teams = (result as any)?.data || result || [];
-      const teamsData = Array.isArray(teams) ? teams as GroupBuyTeam[] : [];
+      const result = await adminService.list(TEAM_COLLECTION, { activityId }, { limit: 500 });
+      const teamsData = extractList<GroupBuyTeam>(result);
     
-    const successTeams = teamsData.filter(t => t.status === 'success').length;
-    const failedTeams = teamsData.filter(t => t.status === 'failed').length;
-    const pendingTeams = teamsData.filter(t => t.status === 'pending').length;
-    const totalMembers = teamsData.reduce((sum, t) => sum + t.currentPeople, 0);
-    const totalRevenue = teamsData
-      .filter(t => t.status === 'success')
-      .reduce((sum, t) => sum + t.currentPeople * t.activity.groupPrice, 0);
+      const successTeams = teamsData.filter(t => t.status === 'success').length;
+      const failedTeams = teamsData.filter(t => t.status === 'failed').length;
+      const pendingTeams = teamsData.filter(t => t.status === 'pending').length;
+      const totalMembers = teamsData.reduce((sum, t) => sum + t.currentPeople, 0);
+      const totalRevenue = teamsData
+        .filter(t => t.status === 'success')
+        .reduce((sum, t) => sum + t.currentPeople * t.activity.groupPrice, 0);
     
-    return {
-      totalTeams: teamsData.length,
-      successTeams,
-      failedTeams,
-      pendingTeams,
-      totalMembers,
-      totalRevenue,
-    };
+      return { totalTeams: teamsData.length, successTeams, failedTeams, pendingTeams, totalMembers, totalRevenue };
     } catch (error) {
       console.error('[GroupBuyDB] getStatistics 失败:', error);
-      return {
-        totalTeams: 0,
-        successTeams: 0,
-        failedTeams: 0,
-        pendingTeams: 0,
-        totalMembers: 0,
-        totalRevenue: 0,
-      };
+      return { totalTeams: 0, successTeams: 0, failedTeams: 0, pendingTeams: 0, totalMembers: 0, totalRevenue: 0 };
     }
   },
 };

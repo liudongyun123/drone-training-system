@@ -159,6 +159,51 @@ export const adminService = {
     return { code: 0, data: result.total || 0 }
   },
 
+  // ==================== 高级查询方法（支持操作符）====================
+
+  /**
+   * 查询列表（支持 MongoDB 风格操作符 $gt/$lt/$in/$or/$regex 等）
+   */
+  async listWithOps(collection: string, query: Record<string, any> = {}, options: Record<string, any> = {}): Promise<{ code: number; data: ListResponse }> {
+    const { skip, limit, orderBy, order, page, pageSize } = options
+    
+    const result = await httpRequest<{ code: number; data: any[]; total: number; skip: number; limit: number }>('query', {
+      collection,
+      query,
+      useOperators: true,
+      skip: skip ?? page ? ((page - 1) * (pageSize || limit || 20)) : 0,
+      limit: limit ?? pageSize ?? 20,
+      orderBy: orderBy ?? 'createdAt',
+      order: order ?? 'desc',
+    })
+    
+    return {
+      code: 0,
+      data: {
+        list: result.data || [],
+        total: result.total || 0,
+        skip: result.skip || 0,
+        limit: result.limit || 20,
+      },
+    }
+  },
+
+  /**
+   * 统计（支持 MongoDB 风格操作符）
+   */
+  async countWithOps(collection: string, query: Record<string, any> = {}): Promise<{ code: number; data: number }> {
+    const result = await httpRequest<{ code: number; total: number }>('count', { collection, query, useOperators: true })
+    return { code: 0, data: result.total || 0 }
+  },
+
+  /**
+   * 更新（支持 MongoDB 风格操作符 $inc/$addToSet/$push 等）
+   */
+  async updateWithOps(collection: string, id: string, data: Record<string, any>): Promise<{ code: number }> {
+    await httpRequest('update', { collection, id, data, useOperators: true })
+    return { code: 0 }
+  },
+
   // ==================== 便捷方法 ====================
   
   // 课程
