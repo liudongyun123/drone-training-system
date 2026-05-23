@@ -8,9 +8,14 @@
 // 数据来源: systemConfig 集合的 dictionaries 字段
 // ============================================================================
 
-import { app, ensureInit, isReady } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 
 const CONFIG_COLLECTION = 'systemConfig';
+
+/** 辅助：将 adminService.list 的结果转为数组 */
+function extractList(result: any): any[] {
+  return result?.data?.list || result?.data || [];
+}
 
 // ============================================================================
 // 类型定义
@@ -267,27 +272,8 @@ export async function getDictionaries(): Promise<Record<string, any>> {
   }
 
   try {
-    // 检查 SDK 是否已初始化
-    if (!isReady()) {
-      console.warn('[DictionaryService] SDK 未初始化，尝试初始化...');
-      try {
-        await ensureInit();
-      } catch (initError) {
-        console.warn('[DictionaryService] SDK 初始化失败，使用默认值');
-        return DEFAULT_DICTIONARIES;
-      }
-    }
-    
-    const db = app.database();
-    if (!db) {
-      console.warn('[DictionaryService] database() 返回 null，使用默认值');
-      return DEFAULT_DICTIONARIES;
-    }
-    
-    const { data } = await db.collection(CONFIG_COLLECTION)
-      .where({ type: 'dictionaries' })
-      .limit(1)
-      .get();
+    const result = await adminService.list(CONFIG_COLLECTION, { type: 'dictionaries' }, { limit: 1 });
+    const data = extractList(result);
 
     if (data && data.length > 0 && data[0].dictionaries) {
       cachedDictionaries = data[0].dictionaries;

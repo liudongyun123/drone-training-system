@@ -1,10 +1,15 @@
 // ============================================================================
 // 学习进度服务
 // ============================================================================
-import { app } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 
 // 统一使用 user_progress 集合（与 CloudProgressService 一致）
 const PROGRESS_COLLECTION = 'user_progress';
+
+/** 辅助：将 adminService.list 的结果转为数组 */
+function extractList(result: any): any[] {
+  return result?.data?.list || result?.data || [];
+}
 
 export interface StudyProgress {
   _id: string;
@@ -25,26 +30,24 @@ export const progressService = {
    * 获取用户的学习进度
    */
   async getUserProgress(userId: string): Promise<StudyProgress[]> {
-    const db = app.database();
-    const { data } = await db.collection(PROGRESS_COLLECTION).where({ userId }).get();
-    return data as StudyProgress[];
+    const result = await adminService.list(PROGRESS_COLLECTION, { userId }, { limit: 999 });
+    return extractList(result) as StudyProgress[];
   },
 
   /**
    * 获取特定课程的学习进度
    */
   async getCourseProgress(userId: string, courseId: string): Promise<StudyProgress[]> {
-    const db = app.database();
-    const { data } = await db.collection(PROGRESS_COLLECTION).where({ userId, courseId }).get();
-    return data as StudyProgress[];
+    const result = await adminService.list(PROGRESS_COLLECTION, { userId, courseId }, { limit: 999 });
+    return extractList(result) as StudyProgress[];
   },
 
   /**
    * 获取特定章节的学习进度
    */
   async getLessonProgress(userId: string, lessonId: string): Promise<StudyProgress | null> {
-    const db = app.database();
-    const { data } = await db.collection(PROGRESS_COLLECTION).where({ userId, lessonId }).get();
+    const result = await adminService.list(PROGRESS_COLLECTION, { userId, lessonId }, { limit: 1 });
+    const data = extractList(result);
     return data.length > 0 ? (data[0] as StudyProgress) : null;
   },
 
@@ -52,24 +55,18 @@ export const progressService = {
    * 保存学习进度
    */
   async saveProgress(progress: Omit<StudyProgress, '_id' | 'createdAt' | 'updatedAt'>): Promise<StudyProgress> {
-    const db = app.database();
     const now = new Date().toISOString();
 
     // 检查是否已存在进度记录
-    const { data: existing } = await db
-      .collection(PROGRESS_COLLECTION)
-      .where({ userId: progress.userId, lessonId: progress.lessonId })
-      .get();
+    const result = await adminService.list(PROGRESS_COLLECTION, { userId: progress.userId, lessonId: progress.lessonId }, { limit: 1 });
+    const existing = extractList(result);
 
     if (existing.length > 0) {
       // 更新现有记录
-      const { data: result } = await db
-        .collection(PROGRESS_COLLECTION)
-        .doc(existing[0]._id)
-        .update({
-          ...progress,
-          updatedAt: now,
-        });
+      await adminService.update(PROGRESS_COLLECTION, existing[0]._id, {
+        ...progress,
+        updatedAt: now,
+      });
       return { ...progress, _id: existing[0]._id, updatedAt: now } as StudyProgress;
     } else {
       // 创建新记录
@@ -78,8 +75,8 @@ export const progressService = {
         createdAt: now,
         updatedAt: now,
       };
-      const { data: result } = await db.collection(PROGRESS_COLLECTION).add(doc);
-      return { _id: result.id, ...doc } as StudyProgress;
+      const addResult = await adminService.add(PROGRESS_COLLECTION, doc);
+      return { _id: addResult.data?.id || '', ...doc } as StudyProgress;
     }
   },
 
@@ -87,23 +84,17 @@ export const progressService = {
    * 标记章节为已完成
    */
   async markAsCompleted(userId: string, lessonId: string): Promise<boolean> {
-    const db = app.database();
     const now = new Date().toISOString();
 
-    const { data: existing } = await db
-      .collection(PROGRESS_COLLECTION)
-      .where({ userId, lessonId })
-      .get();
+    const result = await adminService.list(PROGRESS_COLLECTION, { userId, lessonId }, { limit: 1 });
+    const existing = extractList(result);
 
     if (existing.length > 0) {
-      await db
-        .collection(PROGRESS_COLLECTION)
-        .doc(existing[0]._id)
-        .update({
-          completed: true,
-          watchProgress: 100,
-          updatedAt: now,
-        });
+      await adminService.update(PROGRESS_COLLECTION, existing[0]._id, {
+        completed: true,
+        watchProgress: 100,
+        updatedAt: now,
+      });
       return true;
     }
     return false;
