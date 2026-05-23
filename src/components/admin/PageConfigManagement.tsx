@@ -379,9 +379,6 @@ export default function PageConfigManagement() {
         visible: true
       }));
       setCourseConfigs(defaultItems);
-      if (defaultItems.length > 0) {
-        await saveCourseConfigsDirect(defaultItems);
-      }
     } catch (error) {
       console.error('[PageConfig] loadCourseConfigsWithSourceId error:', error);
       setCourseConfigs([]);
@@ -422,9 +419,6 @@ export default function PageConfigManagement() {
         visible: true
       }));
       setClassConfigs(defaultItems);
-      if (defaultItems.length > 0) {
-        await saveClassConfigsDirect(defaultItems);
-      }
     } catch (error) {
       console.error('[PageConfig] loadClassConfigsWithSourceId error:', error);
       setClassConfigs([]);
@@ -524,10 +518,6 @@ export default function PageConfigManagement() {
         visible: true
       }));
       setLearningPathConfigs(defaultItems);
-      // 自动保存默认配置
-      if (defaultItems.length > 0) {
-        await saveLearningPathConfigsDirect(defaultItems);
-      }
     } catch (error) {
       console.error('[PageConfig] loadLearningPathConfigsWithSourceId error:', error);
       const defaultItems = pathGroups.map((g, index) => ({
@@ -1021,10 +1011,6 @@ export default function PageConfigManagement() {
         visible: true
       }));
       setCourseConfigs(defaultItems);
-      // 自动保存默认配置
-      if (defaultItems.length > 0) {
-        await saveCourseConfigsDirect(defaultItems);
-      }
     } catch (error) {
       console.error('加载课程配置失败:', error);
       const defaultItems = courses.map((c, index) => ({
@@ -1119,10 +1105,6 @@ export default function PageConfigManagement() {
         visible: true
       }));
       setClassConfigs(defaultItems);
-      // 自动保存默认配置
-      if (defaultItems.length > 0) {
-        await saveClassConfigsDirect(defaultItems);
-      }
     } catch (error) {
       console.error('加载培训班配置失败:', error);
       const defaultItems = classes.map((c, index) => ({
@@ -1214,10 +1196,6 @@ export default function PageConfigManagement() {
         visible: true
       }));
       setLearningPathConfigs(defaultItems);
-      // 自动保存默认配置
-      if (defaultItems.length > 0) {
-        await saveLearningPathConfigsDirect(defaultItems);
-      }
     } catch (error) {
       console.error('加载学习路径配置失败:', error);
       const defaultItems = learningPaths.map((g, index) => ({
