@@ -169,9 +169,9 @@ export async function getOpenId(): Promise<{ openid: string } | null> {
       return null
     }
     
-    // 使用 HTTP API 调用 login-http 云函数获取 openid
+    // 使用 HTTP API 调用 api-auth 云函数获取 openid
     const { callFunction } = require('./http')
-    const res = await callFunction('login-http', { 
+    const res = await callFunction('auth-api', { 
       action: 'wxMiniappLogin',
       code: loginResult.code
     })

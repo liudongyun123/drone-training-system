@@ -72,6 +72,14 @@
                   <text class="course-price">{{item.price}}</text>
                   <text class="course-sales">{{item.salesCount || 0}}人已学</text>
                 </view>
+                <!-- 学习进度条 -->
+                <view class="course-progress-mini" wx:if="{{item.progressData && item.progressData.totalLessons > 0}}">
+                  <view class="progress-bar-mini">
+                    <view class="progress-fill-mini {{item.progressData.progress >= 100 ? 'completed' : ''}}" 
+                          style="width: {{item.progressData.progress}}%"></view>
+                  </view>
+                  <text class="progress-text-mini">{{item.progressData.progress}}% ({{item.progressData.learnedLessons}}/{{item.progressData.totalLessons}}节)</text>
+                </view>
               </view>
             </view>
           </view>

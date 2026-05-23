@@ -35,7 +35,7 @@ export const productApi = {
     page?: number
     pageSize?: number
   } = {}): Promise<{ products: Product[], total: number }> {
-    const { categoryId, status = 'onsale', keyword, page = 1, pageSize = 10 } = filters
+    const { categoryId, status = 'active', keyword, page = 1, pageSize = 10 } = filters
     
     const where: Record<string, any> = { status }
     if (categoryId) where.categoryId = categoryId
@@ -66,7 +66,7 @@ export const productApi = {
    * 获取推荐商品
    */
   async getFeatured(limit: number = 6): Promise<Product[]> {
-    const result = await adminService.list('products', { status: 'onsale', isFeatured: true }, { orderBy: 'salesCount', order: 'desc', limit })
+    const result = await adminService.list('products', { status: 'active', isFeatured: true }, { orderBy: 'salesCount', order: 'desc', limit })
     return extractList(result) as Product[]
   },
 

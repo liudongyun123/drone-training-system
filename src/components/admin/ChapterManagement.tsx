@@ -49,7 +49,6 @@ import {
   CloudQuestionBankAdminService,
   CloudCourseAdminService,
 } from '../../services/CloudAdminService'
-// @ts-ignore
 import type { CourseChapter } from '../../types/class'
 import type { Course, QuestionBank } from '@/types/service'
 import AdminTablePagination from './AdminTablePagination'
@@ -520,8 +519,7 @@ export default function ChapterManagement() {
         setSnackbar({ open: true, message: `成功设置 ${selectedChapters.length} 个章节为试看`, severity: 'success' })
       } else if (batchAction === 'test') {
         // 批量关联题库需要额外UI选择题库
-        // @ts-ignore
-        setSnackbar({ open: true, message: '请单独设置章节关联的题库', severity: 'info' })
+        setSnackbar({ open: true, message: '请单独设置章节关联的题库', severity: 'info' } as any)
       }
       
       setBatchDialogOpen(false)

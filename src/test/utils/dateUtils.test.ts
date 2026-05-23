@@ -24,8 +24,7 @@ describe('日期工具函数', () => {
 
     it('应该处理时间戳数字', () => {
       const timestamp = 1705315800000
-      // @ts-ignore
-      const result = parseDate(timestamp)
+      const result = parseDate(timestamp as any)
       expect(result).toBeInstanceOf(Date)
     })
   })

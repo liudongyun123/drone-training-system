@@ -111,10 +111,19 @@ export default function AdminLearningProgress() {
     setShowDetailDrawer(true);
   };
 
-  // 进度更新功能（暂未使用）
-  // @ts-expect-error 进度更新功能待实现
-  const handleUpdateProgress = async (progressId: string, data: any) => {
-    // TODO: 实现进度更新功能
+  const [editingProgress, setEditingProgress] = useState(false);
+  const [newProgressValue, setNewProgressValue] = useState(0);
+
+  const handleUpdateProgress = async (progressId: string, data: { progress?: number; status?: string }) => {
+    try {
+      const res = await progressApi.updateProgress(progressId, data);
+      if (res.success) {
+        setEditingProgress(false);
+        loadData();
+      }
+    } catch (err) {
+      console.error('更新进度失败', err);
+    }
   };
 
   const handleCompleteLesson = async (progressId: string) => {
@@ -597,6 +606,50 @@ export default function AdminLearningProgress() {
                     </span>
                   </div>
                 </div>
+              </div>
+              
+              {/* 手动调整进度 */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="text-sm font-medium text-gray-500 mb-3">手动调整进度</h4>
+                {editingProgress ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={newProgressValue}
+                        onChange={(e) => setNewProgressValue(parseInt(e.target.value))}
+                        className="flex-1"
+                      />
+                      <span className="font-bold text-lg w-12 text-right">{newProgressValue}%</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleUpdateProgress(selectedProgress._id, { progress: newProgressValue })}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                      >
+                        保存进度
+                      </button>
+                      <button
+                        onClick={() => setEditingProgress(false)}
+                        className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 text-sm"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setNewProgressValue(selectedProgress.progress || 0);
+                      setEditingProgress(true);
+                    }}
+                    className="w-full px-4 py-2 border border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-blue-400 hover:text-blue-600 text-sm"
+                  >
+                    + 手动设置进度百分比
+                  </button>
+                )}
               </div>
               
               {/* 操作按钮 */}

@@ -182,8 +182,7 @@ export default function BannerManagement() {
 
   // 获取课程标题
   const getCourseTitle = (courseId: string) => {
-    // @ts-ignore
-    const course = courses.find(c => c.id === courseId)
+    const course = (courses as any[]).find((c: any) => c.id === courseId)
     return course ? course.title : ''
   }
 
@@ -344,12 +343,10 @@ export default function BannerManagement() {
                 <em>不关联课程</em>
               </MenuItem>
               {courses.map((course) => (
-                // @ts-ignore
-                <MenuItem key={course.id} value={course.id}>
+                <MenuItem key={(course as any).id} value={(course as any).id}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <img 
-                      // @ts-ignore
-                      src={course.thumbnail} 
+                      src={(course as any).thumbnail} 
                       alt="" 
                       style={{ width: 40, height: 30, objectFit: 'cover', borderRadius: 4 }} 
                     />

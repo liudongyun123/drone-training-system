@@ -234,6 +234,7 @@ export default function AdminFinance() {
     isOpen: boolean;
     order: Order | null;
   }>({ isOpen: false, order: null });
+  const [rejectReason, setRejectReason] = useState('');
   const [loading, setLoading] = useState(false);
   
   // 统计数据
@@ -245,6 +246,7 @@ export default function AdminFinance() {
     todayOrders: 0,
     weekRevenue: 0,
     monthRevenue: 0,
+    paidUsers: 0,
   });
   
   // 订单数据
@@ -317,13 +319,29 @@ export default function AdminFinance() {
 
   const loadStats = async () => {
     try {
-      const result = await financeService.getRevenueStats();
-      if (result.data) {
+      // 并行加载总体收入和分时段数据
+      const [revenueResult, paymentResult] = await Promise.all([
+        financeService.getRevenueStats(),
+        financeService.getPaymentStats()
+      ]);
+      
+      if (revenueResult.data) {
         setStats(prev => ({
           ...prev,
-          totalRevenue: result.data.totalRevenue,
-          totalOrders: result.data.totalOrders,
-          avgOrderValue: result.data.avgOrderValue,
+          totalRevenue: revenueResult.data.totalRevenue,
+          totalOrders: revenueResult.data.totalOrders,
+          avgOrderValue: revenueResult.data.avgOrderValue,
+          paidUsers: revenueResult.data.paidUsers || revenueResult.data.totalOrders || 0,
+        }));
+      }
+      
+      if (paymentResult.code === 0 && paymentResult.data) {
+        setStats(prev => ({
+          ...prev,
+          todayRevenue: paymentResult.data.todayAmount,
+          todayOrders: paymentResult.data.todayCount,
+          weekRevenue: paymentResult.data.weekAmount,
+          monthRevenue: paymentResult.data.monthAmount,
         }));
       }
     } catch (error) {
@@ -367,8 +385,7 @@ export default function AdminFinance() {
 
   const loadTeacherPerformance = async () => {
     try {
-      const result = await financeService.getTeacherPerformanceStats();
-      // @ts-ignore
+      const result: any = await financeService.getTeacherPerformanceStats();
       setTeacherPerformance(result.data || []);
     } catch (error) {
       console.error('加载教师业绩失败:', error);
@@ -634,7 +651,7 @@ export default function AdminFinance() {
               </div>
             </div>
             <p className="text-slate-500 text-sm mb-1">付费学员</p>
-            <p className="text-3xl font-bold text-slate-800">{Math.floor(stats.totalOrders * 0.8)}</p>
+            <p className="text-3xl font-bold text-slate-800">{stats.paidUsers || 0}</p>
           </div>
         </div>
 
@@ -692,25 +709,59 @@ export default function AdminFinance() {
                   ))}
                 </div>
 
-                {/* 趋势图表占位 */}
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-8 text-center border border-slate-200">
-                  <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <BarChart3 className="text-blue-400" size={40} />
+                {/* 收入趋势图表 */}
+                <div className="bg-white rounded-xl p-6 border border-slate-200">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-base font-semibold text-slate-700 flex items-center gap-2">
+                      <BarChart3 className="text-blue-500" size={20} />
+                      收入趋势
+                    </h3>
                   </div>
-                  <p className="text-lg font-medium text-slate-700">收入趋势图表</p>
-                  <p className="text-sm text-slate-400 mt-2">完成订单后将在此处展示收入变化趋势</p>
-                  <div className="flex justify-center gap-8 mt-6 text-center">
-                    <div>
-                      <p className="text-2xl font-bold text-slate-600">{formatMoney(stats.todayRevenue || 0)}</p>
-                      <p className="text-xs text-slate-400">今日</p>
+                  <div className="flex items-end justify-around gap-6 h-48 mb-4">
+                    {/* 今日柱 */}
+                    <div className="flex flex-col items-center flex-1">
+                      {(() => {
+                        const maxVal = Math.max(stats.todayRevenue, stats.weekRevenue, stats.monthRevenue, 1);
+                        const height = maxVal > 0 ? Math.max(8, (stats.todayRevenue / maxVal) * 100) : 0;
+                        return (
+                          <div className="w-full flex flex-col items-center gap-2">
+                            <span className="text-sm font-bold text-slate-700">{formatMoney(stats.todayRevenue)}</span>
+                            <div className="w-full max-w-[80px] bg-gradient-to-t from-blue-400 to-blue-300 rounded-t-lg transition-all duration-500"
+                              style={{ height: `${height}%` }} />
+                          </div>
+                        );
+                      })()}
+                      <span className="text-xs text-slate-500 mt-3 font-medium">今日</span>
                     </div>
-                    <div className="border-l border-slate-200 pl-8">
-                      <p className="text-2xl font-bold text-slate-600">{formatMoney(stats.weekRevenue || 0)}</p>
-                      <p className="text-xs text-slate-400">本周</p>
+                    {/* 本周柱 */}
+                    <div className="flex flex-col items-center flex-1">
+                      {(() => {
+                        const maxVal = Math.max(stats.todayRevenue, stats.weekRevenue, stats.monthRevenue, 1);
+                        const height = maxVal > 0 ? Math.max(8, (stats.weekRevenue / maxVal) * 100) : 0;
+                        return (
+                          <div className="w-full flex flex-col items-center gap-2">
+                            <span className="text-sm font-bold text-slate-700">{formatMoney(stats.weekRevenue)}</span>
+                            <div className="w-full max-w-[80px] bg-gradient-to-t from-indigo-400 to-indigo-300 rounded-t-lg transition-all duration-500"
+                              style={{ height: `${height}%` }} />
+                          </div>
+                        );
+                      })()}
+                      <span className="text-xs text-slate-500 mt-3 font-medium">本周</span>
                     </div>
-                    <div className="border-l border-slate-200 pl-8">
-                      <p className="text-2xl font-bold text-slate-600">{formatMoney(stats.monthRevenue || 0)}</p>
-                      <p className="text-xs text-slate-400">本月</p>
+                    {/* 本月柱 */}
+                    <div className="flex flex-col items-center flex-1">
+                      {(() => {
+                        const maxVal = Math.max(stats.todayRevenue, stats.weekRevenue, stats.monthRevenue, 1);
+                        const height = maxVal > 0 ? Math.max(8, (stats.monthRevenue / maxVal) * 100) : 0;
+                        return (
+                          <div className="w-full flex flex-col items-center gap-2">
+                            <span className="text-sm font-bold text-slate-700">{formatMoney(stats.monthRevenue)}</span>
+                            <div className="w-full max-w-[80px] bg-gradient-to-t from-purple-400 to-purple-300 rounded-t-lg transition-all duration-500"
+                              style={{ height: `${height}%` }} />
+                          </div>
+                        );
+                      })()}
+                      <span className="text-xs text-slate-500 mt-3 font-medium">本月</span>
                     </div>
                   </div>
                 </div>
@@ -1360,6 +1411,8 @@ export default function AdminFinance() {
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">拒绝原因</label>
                 <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
                   rows={3}
                   placeholder="请输入拒绝原因（将通知用户）"
@@ -1374,9 +1427,24 @@ export default function AdminFinance() {
                 取消
               </button>
               <button
-                onClick={() => {
-                  setRefundModal({ isOpen: false, order: null });
-                  // 实际拒绝逻辑
+                onClick={async () => {
+                  if (!rejectReason.trim()) {
+                    await confirm({ title: '提示', message: '请输入拒绝原因', variant: 'info' });
+                    return;
+                  }
+                  const result = await financeService.rejectRefund(
+                    refundModal.order!._id!,
+                    rejectReason
+                  );
+                  if (result.code === 0) {
+                    await confirm({ title: '操作成功', message: '已拒绝退款申请', variant: 'success' });
+                    setRefundModal({ isOpen: false, order: null });
+                    setRejectReason('');
+                    loadRefundList();
+                    loadPaymentStats();
+                  } else {
+                    await confirm({ title: '操作失败', message: result.message || '拒绝退款失败', variant: 'error' });
+                  }
                 }}
                 className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
               >

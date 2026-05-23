@@ -242,8 +242,7 @@ export class BaseService {
 
       if (opts.dedupe) {
         // 请求去重模式
-        // @ts-ignore
-        result = await serviceCache.deduplicate(cacheKey, queryFn, opts.cacheTTL)
+        result = await (serviceCache.deduplicate as any)(cacheKey, queryFn, opts.cacheTTL)
       } else if (opts.cache) {
         // 缓存模式
         const cached = serviceCache.get<T[]>(cacheKey)
@@ -256,12 +255,10 @@ export class BaseService {
           })
           return cached
         }
-        // @ts-ignore
-        result = await queryFn()
+        result = await (queryFn as any)()
         serviceCache.set(cacheKey, result, opts.cacheTTL)
       } else {
-        // @ts-ignore
-        result = await queryFn()
+        result = await (queryFn as any)()
       }
 
       perfMonitor.record({
@@ -345,7 +342,6 @@ export class BaseService {
       updatedAt: new Date().toISOString()
     }
     const result = await this.db.collection(collectionName).add(doc)
-    // @ts-ignore
     return { _id: (result as any).id || (result as any)._id, ...doc } as T
   }
 

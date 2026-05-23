@@ -6,13 +6,10 @@
  */
 
 import axios, { AxiosInstance } from 'axios'
+import { API_BASE_URL, REQUEST_TIMEOUT } from '@/config/api'
+import type { DbQuery, QueryOptions, ListData, CloudFunctionResponse } from '@/types/admin'
 
-// API 基础配置
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com'
-const DB_INIT_URL = `${API_BASE}/db-init`
-
-// 请求超时配置
-const REQUEST_TIMEOUT = 30000
+const DB_INIT_URL = `${API_BASE_URL}/db-init`
 
 // 创建 Axios 实例
 const httpClient: AxiosInstance = axios.create({
@@ -51,11 +48,9 @@ httpClient.interceptors.response.use(
 
 // ==================== 通用 CRUD 操作 ====================
 
-async function httpRequest<T = any>(action: string, params: Record<string, any> = {}): Promise<T> {
-  // 直接 post 返回响应拦截器的结果（拦截器已解包 response.data）
-  const response: any = await httpClient.post('', { action, ...params })
+async function httpRequest<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
+  const response = await httpClient.post('', { action, ...params }) as Record<string, unknown>
   
-  // 检查响应中是否有错误
   if (response && typeof response === 'object' && response.code !== undefined && response.code !== 0) {
     console.error(`[adminService] ${action} 返回错误:`, response)
   }
@@ -63,8 +58,8 @@ async function httpRequest<T = any>(action: string, params: Record<string, any> 
   return response as T
 }
 
-export interface ListResponse {
-  list: any[]
+export interface ListResponse<T = unknown> {
+  list: T[]
   total: number
   skip: number
   limit: number
@@ -78,10 +73,10 @@ export const adminService = {
   /**
    * 查询列表
    */
-  async list(collection: string, query: Record<string, any> = {}, options: Record<string, any> = {}): Promise<{ code: number; data: ListResponse }> {
+  async list<T = unknown>(collection: string, query: DbQuery = {}, options: QueryOptions = {}): Promise<{ code: number; data: ListResponse<T> }> {
     const { skip, limit, orderBy, order, page, pageSize } = options
     
-    const result = await httpRequest<{ code: number; data: any[]; total: number; skip: number; limit: number }>('query', {
+    const result = await httpRequest<CloudFunctionResponse<T[]> & { total: number; skip: number; limit: number }>('query', {
       collection,
       query,
       skip: skip ?? page ? ((page - 1) * (pageSize || limit || 20)) : 0,
@@ -104,18 +99,16 @@ export const adminService = {
   /**
    * 获取单条记录
    */
-  async get(collection: string, id: string): Promise<{ code: number; data: any }> {
-    const result = await httpRequest<{ code: number; data: any }>('get', { collection, id })
-    return result
+  async get<T = unknown>(collection: string, id: string): Promise<{ code: number; data: T }> {
+    const result = await httpRequest<CloudFunctionResponse<T>>('get', { collection, id })
+    return { code: result.code ?? 0, data: result.data as T }
   },
 
   /**
    * 添加记录
    */
-  async add(collection: string, data: Record<string, any>): Promise<{ code: number; data: { id: string } }> {
-    const result = await httpRequest<any>('add', { collection, data })
-    // 云函数返回 { code: 0, data: { id: '...' } }
-    // httpRequest 返回 response.data，即云函数的完整响应对象
+  async add(collection: string, data: Record<string, unknown>): Promise<{ code: number; data: { id: string } }> {
+    const result = await httpRequest<{ data?: { id?: string }; id?: string }>('add', { collection, data })
     const id = result?.data?.id || result?.id || ''
     if (!id) {
       console.warn('[adminService] add 返回的 id 为空, result:', JSON.stringify(result))
@@ -126,7 +119,7 @@ export const adminService = {
   /**
    * 更新记录
    */
-  async update(collection: string, id: string, data: Record<string, any>): Promise<{ code: number }> {
+  async update(collection: string, id: string, data: Record<string, unknown>): Promise<{ code: number }> {
     await httpRequest('update', { collection, id, data })
     return { code: 0 }
   },
@@ -142,8 +135,8 @@ export const adminService = {
   /**
    * 统计数量
    */
-  async count(collection: string, query: Record<string, any> = {}): Promise<{ code: number; data: number }> {
-    const result = await httpRequest<{ code: number; total: number }>('count', { collection, query })
+  async count(collection: string, query: DbQuery = {}): Promise<{ code: number; data: number }> {
+    const result = await httpRequest<CloudFunctionResponse & { total: number }>('count', { collection, query })
     return { code: 0, data: result.total || 0 }
   },
 
@@ -152,10 +145,10 @@ export const adminService = {
   /**
    * 查询列表（支持 MongoDB 风格操作符 $gt/$lt/$in/$or/$regex 等）
    */
-  async listWithOps(collection: string, query: Record<string, any> = {}, options: Record<string, any> = {}): Promise<{ code: number; data: ListResponse }> {
+  async listWithOps<T = unknown>(collection: string, query: DbQuery = {}, options: QueryOptions = {}): Promise<{ code: number; data: ListResponse<T> }> {
     const { skip, limit, orderBy, order, page, pageSize } = options
     
-    const result = await httpRequest<{ code: number; data: any[]; total: number; skip: number; limit: number }>('query', {
+    const result = await httpRequest<CloudFunctionResponse<unknown[]> & { total: number; skip: number; limit: number }>('query', {
       collection,
       query,
       useOperators: true,
@@ -179,15 +172,15 @@ export const adminService = {
   /**
    * 统计（支持 MongoDB 风格操作符）
    */
-  async countWithOps(collection: string, query: Record<string, any> = {}): Promise<{ code: number; data: number }> {
-    const result = await httpRequest<{ code: number; total: number }>('count', { collection, query, useOperators: true })
+  async countWithOps(collection: string, query: DbQuery = {}): Promise<{ code: number; data: number }> {
+    const result = await httpRequest<CloudFunctionResponse & { total: number }>('count', { collection, query, useOperators: true })
     return { code: 0, data: result.total || 0 }
   },
 
   /**
    * 更新（支持 MongoDB 风格操作符 $inc/$addToSet/$push 等）
    */
-  async updateWithOps(collection: string, id: string, data: Record<string, any>): Promise<{ code: number }> {
+  async updateWithOps(collection: string, id: string, data: Record<string, unknown>): Promise<{ code: number }> {
     await httpRequest('update', { collection, id, data, useOperators: true })
     return { code: 0 }
   },
@@ -195,10 +188,10 @@ export const adminService = {
   // ==================== 便捷方法 ====================
   
   // 课程
-  listCourses: (options: Record<string, any> = {}) => adminService.list('courses', {}, options),
+  listCourses: (options: QueryOptions = {}) => adminService.list('courses', {}, options),
   getCourse: (id: string) => adminService.get('courses', id),
-  createCourse: (data: Record<string, any>) => adminService.add('courses', data),
-  updateCourse: (id: string, data: Record<string, any>) => adminService.update('courses', id, data),
+  createCourse: (data: Record<string, unknown>) => adminService.add('courses', data),
+  updateCourse: (id: string, data: Record<string, unknown>) => adminService.update('courses', id, data),
   deleteCourse: (id: string) => adminService.delete('courses', id),
 
   // 班级
@@ -287,6 +280,36 @@ export const adminService = {
   createUserRole: (data: Record<string, any>) => adminService.add('user_roles', data),
   updateUserRole: (id: string, data: Record<string, any>) => adminService.update('user_roles', id, data),
   deleteUserRole: (id: string) => adminService.delete('user_roles', id),
+
+  // ==================== 云函数调用 ====================
+
+  /**
+   * 调用 admin 云函数（自定义 action）
+   * 用于数据修复等特殊操作
+   */
+  async callAdminFunction(action: string, data: Record<string, any> = {}): Promise<any> {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/admin`, { action, ...data })
+      return response.data
+    } catch (error: any) {
+      console.error('[callAdminFunction] 调用失败:', error.message)
+      return { code: -1, message: error.message }
+    }
+  },
+
+  /**
+   * 通用云函数 HTTP 调用
+   * 替代 app.callFunction()，统一走 HTTP
+   */
+  async callFunction(functionName: string, data: Record<string, any> = {}): Promise<any> {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/${functionName}`, data)
+      return response.data
+    } catch (error: any) {
+      console.error(`[callFunction] ${functionName} 调用失败:`, error.message)
+      return { code: -1, message: error.message }
+    }
+  },
 }
 
 export default adminService

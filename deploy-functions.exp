@@ -1,6 +1,6 @@
 #!/usr/bin/expect -f
 set timeout 120
-set functions {api-admin api-auth api-exam api-shop api-training api-pay api-home}
+set functions {api-auth api-exam api-shop api-training api-pay api-home}
 
 foreach fn $functions {
     puts "Deploying $fn..."

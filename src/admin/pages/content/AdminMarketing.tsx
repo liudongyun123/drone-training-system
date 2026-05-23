@@ -257,10 +257,8 @@ export default function AdminMarketing() {
       const [couponRes, groupBuyRes, couponStatRes, groupBuyStatRes] = await Promise.all([
         couponService.getList(), groupBuyService.getList(), couponService.getStats(), groupBuyService.getStats(),
       ]);
-      // @ts-ignore
-      setCoupons(couponRes.data || []);
-      // @ts-ignore
-      setGroupBuys(groupBuyRes.data || []);
+      setCoupons(Array.isArray((couponRes as any).data) ? (couponRes as any).data : ((couponRes as any).data?.list || []));
+      setGroupBuys(Array.isArray((groupBuyRes as any).data) ? (groupBuyRes as any).data : ((groupBuyRes as any).data?.list || []));
       setCouponStats(couponStatRes.data || { total: 0, active: 0, used: 0, expired: 0 });
       setGroupBuyStats(groupBuyStatRes.data || { total: 0, active: 0, completed: 0, expired: 0, totalParticipants: 0, totalSavings: 0 });
     } catch (error) { console.error('[营销] 加载数据失败:', error); }
@@ -454,7 +452,7 @@ export default function AdminMarketing() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-500">
-                        {new Date(coupon.validFrom).toLocaleDateString()} - {new Date(coupon.validTo).toLocaleDateString()}
+                        {coupon.validFrom ? new Date(coupon.validFrom).toLocaleDateString() : '-'} - {coupon.validTo ? new Date(coupon.validTo).toLocaleDateString() : '-'}
                       </td>
                       <td className="px-6 py-4"><StatusChip status={coupon.status} /></td>
                       <td className="px-6 py-4 text-right">
@@ -512,7 +510,7 @@ export default function AdminMarketing() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-500">
-                        {new Date(groupBuy.validFrom).toLocaleDateString()} - {new Date(groupBuy.validTo).toLocaleDateString()}
+                        {groupBuy.validFrom ? new Date(groupBuy.validFrom).toLocaleDateString() : '-'} - {groupBuy.validTo ? new Date(groupBuy.validTo).toLocaleDateString() : '-'}
                       </td>
                       <td className="px-6 py-4"><StatusChip status={groupBuy.status} /></td>
                       <td className="px-6 py-4 text-right">

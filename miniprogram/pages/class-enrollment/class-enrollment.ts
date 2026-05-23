@@ -100,8 +100,19 @@ Page({
       const phone = getPhone() || ''
       const openid = wx.getStorageSync('openid') || ''
 
+      // ★ 手机号是所有订单的查询条件，必须先绑定
       if (!phone) {
-        showToast('请先登录')
+        wx.showModal({
+          title: '请先绑定手机号',
+          content: '报名培训班需要绑定手机号，是否前往绑定？',
+          confirmText: '去绑定',
+          success: (res) => {
+            if (res.confirm) {
+              wx.navigateTo({ url: '/pages/login/login?redirect=bindPhone' })
+            }
+          }
+        })
+        this.setData({ submitting: false })
         return
       }
 
@@ -161,15 +172,19 @@ Page({
       })
 
       // 3. 完成培训班报名
-      logger.debug('培训班报名', '创建报名记录')
+      // 线上支付：自动确认；线下缴费：需管理员审核（pending）
+      const enrollmentStatus = this.data.payMethod === 'online' ? 'confirmed' : 'pending'
+      const enrollmentSource = this.data.payMethod === 'online' ? 'online_purchase' : 'offline_enroll'
+      
+      logger.debug('培训班报名', '创建报名记录', { status: enrollmentStatus, source: enrollmentSource })
       await callFunction('api-order', {
         action: 'enrollClass',
         data: {
           classId: this.classId,
           phone,
           openid,
-          status: 'confirmed',
-          source: 'online_purchase',
+          status: enrollmentStatus,
+          source: enrollmentSource,
           userName: this.data.contactName,
           idCard: this.data.idCard,
           contactPhone: this.data.contactPhone,

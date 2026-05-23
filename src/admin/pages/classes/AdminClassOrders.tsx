@@ -330,6 +330,35 @@ export default function AdminClassOrders() {
 
     setOfflineEnrollLoading(true);
     try {
+      // ★ 重复报名检测：查询该手机号是否已有此班级的有效订单
+      const existingResult = await adminService.list('orders', {
+        phone: memberPhone,
+        classId: classId,
+        status: { $in: ['pending', 'paid', 'paid_offline', 'completed'] }
+      }, { limit: 1 }) as unknown as { code: number; data: { list: any[] } };
+      
+      if (existingResult?.code === 0 && existingResult.data?.list?.length > 0) {
+        await confirm({ title: '重复报名', message: `该手机号（${memberPhone}）已报名此班级，无需重复报名`, variant: 'info' });
+        setOfflineEnrollLoading(false);
+        return;
+      }
+
+      // 也检查 enrollments 集合
+      try {
+        const enrollCheck = await adminService.list('enrollments', {
+          phone: memberPhone,
+          classId: classId,
+          status: { $ne: 'cancelled' }
+        }, { limit: 1 }) as unknown as { code: number; data: { list: any[] } };
+        if (enrollCheck?.code === 0 && enrollCheck.data?.list?.length > 0) {
+          await confirm({ title: '重复报名', message: `该手机号（${memberPhone}）已有此班级的报名记录，无需重复报名`, variant: 'info' });
+          setOfflineEnrollLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('检查报名记录失败:', e);
+      }
+
       // 1. 创建订单
       const orderData = {
         type: 'class',

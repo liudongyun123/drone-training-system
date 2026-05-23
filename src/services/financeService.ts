@@ -415,6 +415,25 @@ export const financeService = {
   },
 
   /**
+   * 拒绝退款
+   */
+  async rejectRefund(refundId: string, reason: string) {
+    try {
+      // 将退款记录状态更新为已拒绝
+      await CloudDBService.update('refunds', refundId, {
+        status: 'rejected',
+        rejectReason: reason,
+        rejectedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+      return { code: 0, message: '已拒绝退款' }
+    } catch (error: any) {
+      console.error('拒绝退款失败:', error)
+      return { code: -1, message: error.message || '拒绝退款失败' }
+    }
+  },
+
+  /**
    * 导出支付记录
    */
   async exportPaymentReport() {

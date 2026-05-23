@@ -103,20 +103,16 @@ export default function LessonPlayerPage() {
             videoUrl: lesson.videoUrl || '',
             order: lesson.order,
             chapterId: `chapter_${chapterOrder}`,
-            // @ts-ignore
-            resources: lesson.resources
+            resources: (lesson as any).resources
           });
         });
         
-        // @ts-ignore
-        courseDetail.chapters = Array.from(chapterMap.values()).sort((a, b) => a.order - b.order);
+        (courseDetail as any).chapters = Array.from(chapterMap.values()).sort((a: any, b: any) => a.order - b.order);
       } else {
-        // @ts-ignore
-        courseDetail.chapters = [];
+        (courseDetail as any).chapters = [];
       }
       
-      // @ts-ignore
-      setCourse(courseDetail);
+      setCourse(courseDetail as any);
 
       // 加载学习进度
       if (user?.uid) {
@@ -129,8 +125,7 @@ export default function LessonPlayerPage() {
 
         // 找到第一个未完成的课时或上次学习的课时
         let targetLesson: Lesson | null = null;
-        // @ts-ignore
-        const allLessons = courseDetail.chapters?.flatMap((c: Chapter) => c.lessons) || [];
+        const allLessons = (courseDetail as any).chapters?.flatMap((c: any) => c.lessons) || [];
         
         // 先尝试找 URL 参数指定的课时
         const urlLessonId = searchParams.get('lessonId');

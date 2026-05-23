@@ -5,10 +5,10 @@
 
 import { adminService } from './adminService';
 import type { 
-  Exam, Question, ExamAttempt, ApiResponse, PaginatedResponse,
+  Exam, ExamAttempt, ApiResponse, PaginatedResponse,
   QuestionBank, BankQuestion, PracticeRecord, WrongQuestion, FavoriteQuestion
 } from '../types';
-import type { Question as QuestionType } from '@/types/service';
+import type { Question as ServiceQuestion } from '@/types/service';
 
 // ============================================================================
 // 辅助：从 adminService 响应中提取数据
@@ -162,27 +162,25 @@ export const examService = {
       console.log('[examService] getQuestions 获取到题目:', questionsData.length);
       
       // 转换为 Question 格式
-      // @ts-ignore
-      const questions: QuestionType[] = (questionsData as RawQuestion[])
+      const questions = (questionsData as RawQuestion[])
         .map((q, index) => ({
           _id: q._id,
           id: q._id,
           questionBankId: q.bankId,
-          type: normalizeQuestionType(q.type),
+          type: normalizeQuestionType(q.type) as ServiceQuestion['type'],
           question: q.question || '',
           content: q.question || '',
           options: (q.options || []).map((opt: any) => typeof opt === 'string' ? opt : (opt.content || opt.key || '')).filter(Boolean),
           answer: q.answer,
           score: q.score || 1,
-          difficulty: (q.difficulty as QuestionType['difficulty']) || 'medium',
+          difficulty: (q.difficulty as ServiceQuestion['difficulty']) || 'medium',
           order: index,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }))
         .filter(q => q.question);
       
-      // @ts-ignore
-      return { success: true, data: questions };
+      return { success: true, data: questions as any };
     } catch (error: any) {
       console.error('获取考试题目失败:', error);
       return { success: false, message: '获取考试题目失败' };
@@ -224,19 +222,18 @@ export const examService = {
       
       console.log('[examService] startExam 获取题目数:', questionsData.length);
       
-      // @ts-ignore
-      const questions: QuestionType[] = (questionsData as RawQuestion[])
+      const questions: ServiceQuestion[] = (questionsData as RawQuestion[])
         .map((q, index) => ({
           _id: q._id,
           id: q._id,
           questionBankId: q.bankId,
-          type: normalizeQuestionType(q.type),
+          type: normalizeQuestionType(q.type) as ServiceQuestion['type'],
           question: q.question || '',
           content: q.question || '',
           options: (q.options || []).map((opt: any) => typeof opt === 'string' ? opt : (opt.content || opt.key || '')).filter(Boolean),
           answer: q.answer,
           score: q.score || 1,
-          difficulty: (q.difficulty as QuestionType['difficulty']) || 'medium',
+          difficulty: (q.difficulty as ServiceQuestion['difficulty']) || 'medium',
           order: index,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -247,8 +244,7 @@ export const examService = {
         success: true,
         data: {
           attemptId: `attempt_${Date.now()}`,
-          // @ts-ignore
-          questions
+          questions: questions as any
         }
       };
     } catch (error: any) {
@@ -703,21 +699,31 @@ export const questionBankService = {
       const result = await adminService.list('questions', query, { limit: 500 });
       const data = extractList(result) as RawQuestion[];
       
-      // @ts-ignore
-      let questions: BankQuestion[] = data.map((q, index) => ({
-        _id: q._id,
-        bankId: q.bankId || bankId,
-        type: q.type === 'single' ? 'single' : q.type === 'multiple' ? 'multiple' : q.type === 'judgment' ? 'judge' : q.type === 'judge' ? 'judge' : 'essay',
-        question: q.question || '',
-        options: q.options || [],
-        answer: q.answer,
-        explanation: q.explanation || '',
-        knowledgePoint: '',
-        order: index,
-        score: q.score || 1,
-        // @ts-ignore
-        createdAt: q.createdAt || new Date().toISOString()
-      }));
+      let questions: BankQuestion[] = data.map((q, index) => {
+        const qType = q.type || 'single';
+        const mappedType = (
+          qType === 'single' ? 'single' as const : 
+          qType === 'multiple' ? 'multiple' as const : 
+          qType === 'judgment' || qType === 'judge' ? 'judge' as const : 
+          'essay' as const
+        );
+        return {
+          _id: q._id,
+          bankId: q.bankId || bankId,
+          type: mappedType,
+          question: q.question || '',
+          content: q.question || '',
+          options: q.options || [],
+          answer: q.answer,
+          explanation: q.explanation || '',
+          knowledgePoint: '',
+          difficulty: (q.difficulty as BankQuestion['difficulty']) || 'medium',
+          order: index,
+          score: q.score || 1,
+          createdAt: (q as any).createdAt || new Date().toISOString(),
+          updatedAt: (q as any).updatedAt || new Date().toISOString()
+        } as BankQuestion;
+      });
       
       if (params?.limit) {
         questions = questions.slice(0, params.limit);
@@ -926,7 +932,7 @@ export const questionBankService = {
       }, { limit: 500 });
       const questionsData = extractList(qResult);
       
-      const questionsMap = new Map(questionsData.map((q: any) => [q._id, q]));
+      const questionsMap = new Map(questionsData.map((q: any) => [q._id, q as RawQuestion]));
       
       let correctCount = 0;
       const scoredAnswers = answers.map(a => {
@@ -942,22 +948,17 @@ export const questionBankService = {
           };
         }
         
-        // @ts-ignore
         const isCorrect = Array.isArray(question.answer)
-          // @ts-ignore
-          ? JSON.stringify((a.answer as string[]).sort()) === JSON.stringify(question.answer.sort())
-          // @ts-ignore
-          : a.answer === question.answer;
+          ? JSON.stringify((Array.isArray(a.answer) ? a.answer : [a.answer]).sort()) === JSON.stringify((question.answer as string[]).sort())
+          : String(a.answer) === String(question.answer);
         
         if (isCorrect) correctCount++;
         
         return {
           questionId: a.questionId,
-          // @ts-ignore
-          question: question.question,
+          question: question.question || '',
           userAnswer: a.answer,
-          // @ts-ignore
-          correctAnswer: question.answer,
+          correctAnswer: question.answer || '',
           isCorrect,
           isFavorite: a.isFavorite
         };
@@ -971,11 +972,12 @@ export const questionBankService = {
         bankName = bankData?.title || '';
       }
       
-      // @ts-ignore
       const record: Omit<PracticeRecord, '_id'> = {
         userId: finalUserId,
         bankId,
         bankName,
+        mode: 'random' as const,
+        courseId: '',
         questionCount: answers.length,
         correctCount,
         score: Math.round((correctCount / answers.length) * 100),

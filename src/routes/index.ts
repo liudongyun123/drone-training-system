@@ -56,7 +56,7 @@ export { default as AdminSchedules } from '../admin/pages/classes/AdminClassSche
 export { default as AdminAttendance } from '../admin/pages/classes/AdminRegistrations';
 export { default as AdminFinance } from '../admin/pages/orders/AdminFinance';
 export { default as AdminExamsUnited } from '../admin/pages/exams/AdminExamsUnited';
-export { default as AdminBanners } from '../admin/pages/shop/AdminProducts';
+export { default as AdminBanners } from '../admin/pages/content/AdminBanners';
 export { default as AdminPageConfig } from '../admin/pages/content/AdminPageConfigNew';
 export { default as AdminCertificates } from '../admin/pages/users/AdminCertificates';
 export { default as AdminMarketing } from '../admin/pages/content/AdminMarketing';

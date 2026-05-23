@@ -3,24 +3,22 @@
 
 import { productApi } from '../../utils/api'
 import logger from '../../utils/logger'
+import { DEFAULT_COVER, DEFAULT_STOCK } from '../../utils/constants'
 
 Page({
   data: {
-    categories: [
-      { _id: '', name: '全部' },
-      { _id: 'drone', name: '无人机' },
-      { _id: 'battery', name: '电池' },
-      { _id: 'propeller', name: '桨叶' }
-    ] as any[],
+    categories: [] as any[],
     currentCategory: '',
     products: [] as any[],
     loading: false,
     page: 1,
-    hasMore: true
+    hasMore: true,
+    defaultCover: DEFAULT_COVER
   },
 
   onLoad() {
     wx.setNavigationBarTitle({ title: '商城' })
+    this.loadCategories()
     this.loadProducts()
   },
 
@@ -41,6 +39,8 @@ Page({
       this.setData({ categories: [{ _id: '', name: '全部' }, ...categories] })
     } catch (err) {
       logger.error('商城', '加载分类失败', err)
+      // 加载失败时仅显示"全部"
+      this.setData({ categories: [{ _id: '', name: '全部' }] })
     }
   },
 
@@ -119,7 +119,7 @@ Page({
         name: product.name,
         price: product.price,
         coverImage: product.coverImage || product.cover || '',
-        stock: product.stock || 99,
+        stock: product.stock || DEFAULT_STOCK,
         quantity: 1
       })
     }

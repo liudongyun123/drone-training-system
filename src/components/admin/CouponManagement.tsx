@@ -141,18 +141,15 @@ export default function CouponManagement() {
       setCouponForm({
         name: coupon.name,
         code: coupon.code,
-        // @ts-ignore
-        type: coupon.type,
+        type: coupon.type as 'discount' | 'fixed' | 'free',
         value: coupon.value,
         minAmount: coupon.minAmount,
         totalCount: coupon.totalCount,
         usedCount: coupon.usedCount,
-        // @ts-ignore
-        courseLimit: coupon.courseLimit,
+        courseLimit: coupon.courseLimit as 'all' | 'specific' | 'category',
         courseId: coupon.courseId || '',
         categoryId: coupon.categoryId || '',
-        // @ts-ignore
-        status: coupon.status,
+        status: coupon.status as 'active' | 'inactive' | 'expired',
         startTime: coupon.startTime,
         endTime: coupon.endTime,
       })
@@ -210,8 +207,7 @@ export default function CouponManagement() {
       setError('请输入优惠码')
       return
     }
-    // @ts-ignore
-    if (couponForm.value <= 0 && couponForm.type !== 'free') {
+    if (couponForm.value <= 0 && (couponForm.type as string) !== 'free') {
       setError('请输入有效的优惠金额/折扣')
       return
     }
@@ -520,8 +516,7 @@ export default function CouponManagement() {
               <MenuItem value="free">免费</MenuItem>
             </TextField>
 
-            // @ts-ignore
-            {couponForm.type !== 'free' && (
+            {(couponForm.type as string) !== 'free' && (
               <TextField
                 margin="dense"
                 label={(couponForm as { type?: string }).type === 'discount' ? '折扣比例(%)' : '优惠金额(¥)'}
@@ -571,8 +566,7 @@ export default function CouponManagement() {
               <MenuItem value="category">指定分类</MenuItem>
             </TextField>
 
-            // @ts-ignore
-            {(couponForm as { courseLimit?: string }).courseLimit === 'specific' && (
+            {(couponForm.courseLimit as string) === 'specific' && (
               <TextField
                 margin="dense"
                 label="课程ID"
@@ -584,7 +578,7 @@ export default function CouponManagement() {
               />
             )}
 
-            {(couponForm as { courseLimit?: string }).courseLimit === 'category' && (
+            {(couponForm.courseLimit as string) === 'category' && (
               <TextField
                 margin="dense"
                 label="分类ID"
@@ -622,10 +616,9 @@ export default function CouponManagement() {
               control={
                 <Switch
                   checked={couponForm.status === 'active'}
-                  // @ts-ignore
                   onChange={(e) => setCouponForm(prev => ({
                     ...prev,
-                    status: e.target.checked ? 'active' : 'inactive'
+                    status: (e.target.checked ? 'active' : 'inactive') as typeof prev.status
                   }))}
                 />
               }

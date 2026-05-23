@@ -39,8 +39,8 @@ interface AdminCRUDResult {
 }
 
 const DEFAULT_SOURCES: Source[] = [
-  { code: 'RENSHE', name: '人社培训' },
-  { code: 'CAAC', name: 'CAAC培训' },
+  { _id: 'RENSHE', code: 'RENSHE', name: '人社培训' },
+  { _id: 'CAAC', code: 'CAAC', name: 'CAAC培训' },
 ];
 
 const DEFAULT_CATEGORY: {
@@ -87,7 +87,7 @@ export default function AdminCategories() {
 
   const loadSources = async () => {
     try {
-      const result = await adminService.listSources({ limit: 100 }) as unknown as AdminListResult<Source>;
+      const result = await adminService.listSources({}, { limit: 100 }) as unknown as AdminListResult<Source>;
       if (result.data?.list && result.data.list.length > 0) {
         setSources(result.data.list);
       }
@@ -99,7 +99,14 @@ export default function AdminCategories() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await adminService.list('categories', {}, { limit: 100, orderBy: 'sort', order: 'asc' }) as unknown as AdminListResult<CourseCategory>;
+      const where: any = {};
+      if (sourceFilter) {
+        where.sourceId = sourceFilter;
+      }
+      if (statusFilter && statusFilter !== 'all') {
+        where.status = statusFilter;
+      }
+      const res = await adminService.list('categories', where, { limit: 100, orderBy: 'sort', order: 'asc' }) as unknown as AdminListResult<CourseCategory>;
 
       if (res.code === 0 && Array.isArray(res.data?.list)) {
         const list = res.data.list;

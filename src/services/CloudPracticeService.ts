@@ -398,8 +398,7 @@ export const CloudPracticeService = {
       }
 
       // 转换为排行榜数据
-      // @ts-ignore
-      const leaderboard: LeaderboardEntry[] = Array.from(userStatsMap.values())
+      const leaderboard: LeaderboardEntry[] = (Array.from(userStatsMap.values()) as any[])
         .map((stat) => ({
           rank: 0,
           userId: stat.userId,

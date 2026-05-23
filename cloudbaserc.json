@@ -27,7 +27,31 @@
               "memorySize": 256,
               "runtime": "Nodejs18.15",
               "handler": "index.main",
-              "envVariables": {},
+              "envVariables": {
+                "WX_APPID": "",
+                "WX_SECRET": "",
+                "TCB_ENV_ID": "rcwljy-5ghmq2ex26764978"
+              },
+              "triggers": [
+                {
+                  "name": "http-trigger",
+                  "type": "http"
+                }
+              ]
+            },
+            {
+              "name": "api-auth",
+              "timeout": 60,
+              "memorySize": 256,
+              "runtime": "Nodejs18.15",
+              "handler": "index.main",
+              "envVariables": {
+                "ADMIN_USERNAME": "",
+                "ADMIN_PASSWORD": "",
+                "TCB_ENV_ID": "rcwljy-5ghmq2ex26764978",
+                "WX_APPID": "wx25aaf895ab86181a",
+                "WX_SECRET": "4836700e9a4212516aed373393a38248"
+              },
               "triggers": [
                 {
                   "name": "http-trigger",

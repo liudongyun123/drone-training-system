@@ -195,7 +195,6 @@ async function handleRegister(data) {
 
   // 创建用户
   await db.collection(COLLECTIONS.USERS).add({
-    data: {
       userId,
       phone,
       password: hashPassword(password),
@@ -210,12 +209,10 @@ async function handleRegister(data) {
       totalExams: 0,
       createdAt: now,
       updatedAt: now
-    }
-  })
+    })
 
   // 创建默认设置
   await db.collection(COLLECTIONS.USER_SETTINGS).add({
-    data: {
       userId,
       openid: '',
       notifications: {
@@ -231,8 +228,7 @@ async function handleRegister(data) {
       timezone: 'Asia/Shanghai',
       createdAt: now,
       updatedAt: now
-    }
-  })
+    })
 
   return success({ userId, message: '注册成功' })
 }
@@ -261,11 +257,9 @@ async function handleLogin(data) {
 
   // 更新登录信息
   await db.collection(COLLECTIONS.USERS).doc(user._id).update({
-    data: {
       lastLoginAt: new Date(),
       updatedAt: new Date()
-    }
-  })
+    })
 
   return success({ user }, '登录成功')
 }
@@ -312,7 +306,7 @@ async function handleUpdateProfile(openid, data) {
 
   await db.collection(COLLECTIONS.USERS)
     .where({ openid })
-    .update({ data: updateData })
+    .update(updateData)
 
   return success({ message: '资料更新成功' })
 }
@@ -399,12 +393,10 @@ async function handleUpgradeMember(openid, data) {
   await db.collection(COLLECTIONS.USERS)
     .where({ openid })
     .update({
-      data: {
         memberLevel: level,
         memberExpireTime: expireTime,
         updatedAt: new Date()
-      }
-    })
+      })
 
   return success({ level, expireTime }, '升级成功')
 }
@@ -526,7 +518,6 @@ async function handleUpdateSettings(openid, data) {
   if (existing.total === 0) {
     // 创建设置
     await db.collection(COLLECTIONS.USER_SETTINGS).add({
-      data: {
         openid,
         notifications: notifications || { push: true, email: false, sms: false },
         privacy: privacy || { showProfile: true, showProgress: true },
@@ -534,13 +525,12 @@ async function handleUpdateSettings(openid, data) {
         timezone: timezone || 'Asia/Shanghai',
         createdAt: new Date(),
         updatedAt: new Date()
-      }
-    })
+      })
   } else {
     // 更新设置
     await db.collection(COLLECTIONS.USER_SETTINGS)
       .where({ openid })
-      .update({ data: updateData })
+      .update(updateData)
   }
 
   return success({ message: '设置更新成功' })
@@ -599,7 +589,6 @@ async function handleUpdatePreferences(openid, data) {
 
   if (existing.total === 0) {
     await db.collection(COLLECTIONS.USER_SETTINGS).add({
-      data: {
         openid,
         ...updateData,
         notifications: { push: true, email: false, sms: false },
@@ -607,12 +596,11 @@ async function handleUpdatePreferences(openid, data) {
         language: 'zh-CN',
         timezone: 'Asia/Shanghai',
         createdAt: new Date()
-      }
-    })
+      })
   } else {
     await db.collection(COLLECTIONS.USER_SETTINGS)
       .where({ openid })
-      .update({ data: updateData })
+      .update(updateData)
   }
 
   return success({ message: '偏好设置更新成功' })
@@ -747,7 +735,6 @@ async function handleUpdateDailyStats(openid, data) {
   if (existing.total === 0) {
     // 创建统计
     await db.collection(COLLECTIONS.DAILY_STATS).add({
-      data: {
         openid,
         date: targetDate,
         learningTime,
@@ -756,8 +743,7 @@ async function handleUpdateDailyStats(openid, data) {
         loginCount: 1,
         createdAt: new Date(),
         updatedAt: new Date()
-      }
-    })
+      })
   } else {
     // 更新统计
     const updateData = { updatedAt: new Date() }
@@ -767,7 +753,7 @@ async function handleUpdateDailyStats(openid, data) {
 
     await db.collection(COLLECTIONS.DAILY_STATS)
       .where({ openid, date: targetDate })
-      .update({ data: updateData })
+      .update(updateData)
   }
 
   return success({ message: '统计更新成功' })
@@ -789,11 +775,9 @@ async function handleIncrementStat(openid, field) {
   await db.collection(COLLECTIONS.USERS)
     .where({ openid })
     .update({
-      data: {
         [field]: _.inc(1),
         updatedAt: new Date()
-      }
-    })
+      })
 
   return success({ message: '统计更新成功' })
 }

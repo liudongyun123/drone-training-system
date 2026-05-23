@@ -1,9 +1,7 @@
 /**
  * api-exam 云函数 - 考试服务
  * 
- * 合并来源：
- * - mobile-exam（考试列表）
- * - submit-exam（考试提交）
+ * 功能：考试列表、考试提交
  * 
  * 功能：
  * - 题库管理
@@ -13,27 +11,13 @@
  */
 
 const cloudbase = require('@cloudbase/node-sdk')
-const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const app = cloudbase.init({ env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978' })
 const db = app.database()
 const _ = db.command
 
 // ========== 工具函数 ==========
 
-function getCorsHeaders(origin = '') {
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com'
-  ]
-  
-  return {
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json; charset=utf-8'
-  }
-}
+const { getCorsHeaders } = require('./lib/cors')
 
 /**
  * 题目归一化 — 兼容两套数据源
@@ -592,8 +576,6 @@ async function getAttemptDetail(attemptId, userId) {
 // ========== 主入口 ==========
 
 exports.main = async (event, context) => {
-  console.log('[api-exam] 收到请求:', event.action)
-
   // CORS 预检
   if (event.httpMethod === 'OPTIONS') {
     return {

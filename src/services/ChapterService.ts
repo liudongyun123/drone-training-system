@@ -1,6 +1,16 @@
 import { dbService } from './cloudBaseService'
-// @ts-ignore
 import type { CourseChapter } from '../types/class'
+
+// 章节学习进度（本地类型定义）
+interface ChapterProgress {
+  id: string
+  userId: string
+  chapterId: string
+  courseId: string
+  isCompleted: boolean
+  videoProgress: number
+  completedAt?: string
+}
 
 // 课程章节数据服务
 export const ChapterService = {
@@ -122,7 +132,6 @@ export const ChapterService = {
   // ========== 学习进度管理 ==========
 
   // 获取用户的学习进度
-  // @ts-ignore
   async getUserProgress(userId: string, courseId?: string): Promise<ChapterProgress[]> {
     try {
       const data = await dbService.getAll('chapter_progress')
@@ -148,7 +157,6 @@ export const ChapterService = {
   },
 
   // 更新学习进度
-  // @ts-ignore
   async updateProgress(progressData: Partial<ChapterProgress>): Promise<ChapterProgress | null> {
     try {
       // 查找是否已有进度记录
@@ -177,8 +185,7 @@ export const ChapterService = {
       return {
         id: result.id || existing?._id,
         ...progressData,
-      // @ts-ignore
-      } as ChapterProgress
+      } as unknown as ChapterProgress
     } catch (error) {
       console.error('更新学习进度失败:', error)
       return null

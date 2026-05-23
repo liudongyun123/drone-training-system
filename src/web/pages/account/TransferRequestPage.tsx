@@ -805,8 +805,7 @@ function TransferRequestForm({ onSuccess, onCancel, user }: TransferRequestFormP
         excludeScheduleId: schedule._id || schedule.id
       })
       if (result.code === 0) {
-        // @ts-ignore
-        setTargetSchedules(result.data || [])
+        setTargetSchedules((result as any).data || [])
       }
     } catch (error) {
       console.error('加载可选排课失败:', error)

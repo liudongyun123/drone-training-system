@@ -8,6 +8,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import app from '../config/tcb'
 import { ensureInit } from '@/utils/cloudbase'
+import { adminService } from '@/services/adminService'
 
 export type UserRole = 'anonymous' | 'visitor' | 'student' | 'teacher' | 'admin'
 export type LoginType = 'anonymous' | 'wechat' | 'phone' | 'password'
@@ -200,20 +201,17 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // 手机验证码登录（通过云函数）
+      // 手机验证码登录（通过 HTTP 云函数）
       loginWithPhone: async (phone: string, code: string) => {
         set({ isLoading: true, loginError: null })
         try {
-          const result = await app.callFunction({
-            name: 'mobile-auth',
-            data: {
-              action: 'loginBySms',
-              data: { phone, code }
-            }
+          const result = await adminService.callFunction('auth-api', {
+            action: 'loginBySms',
+            data: { phone, code }
           })
           
-          if (result.result?.success) {
-            const userData = result.result.data.user
+          if (result?.success) {
+            const userData = result.data.user
             
             // 查询 user_roles 表识别身份（通过 adminService HTTP）
             let role: UserRole = 'student'
@@ -252,13 +250,13 @@ export const useAuthStore = create<AuthState>()(
               loginAt: new Date().toISOString()
             }
             // 保存 token 到本地
-            localStorage.setItem('auth_token', result.result.data.token)
+            localStorage.setItem('auth_token', result.data.token)
             localStorage.setItem('user_id', userData._id)
             localStorage.setItem('user_phone', phone)
             set({ user, isAuthenticated: true, isAdmin, isLoading: false })
             return { success: true, isAdmin }
           } else {
-            const errorMsg = result.result?.error || '登录失败'
+            const errorMsg = result?.error || '登录失败'
             set({ isLoading: false, loginError: errorMsg })
             return { success: false, error: errorMsg }
           }
@@ -268,10 +266,10 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // 发送手机验证码（暂不可用 - mobile-auth 云函数未部署）
+      // 发送手机验证码
       sendPhoneCode: async (phone: string) => {
-        // 暂时禁用验证码登录，提示用户使用账号密码登录
-        return { success: false, error: '验证码登录暂不可用，请使用账号密码登录 (admin/admin123)' }
+        // 验证码登录暂未部署，提示用户使用账号密码
+        return { success: false, error: '验证码登录暂不可用，请使用账号密码登录' }
       },
 
       // ★ 检查用户是否已绑定手机
@@ -287,19 +285,10 @@ export const useAuthStore = create<AuthState>()(
         
         // 否则检查数据库中是否有绑定记录
         try {
-          const result = await app.callFunction({
-            name: 'admin',
-            data: {
-              action: 'list',
-              collection: 'members',
-              query: { _id: user.id },
-              options: { limit: 1 }
-            }
-          })
+          const result = await adminService.listWithOps('members', { _id: user.id }, { limit: 1 })
           
-          const data = result.result as any
-          if (data.code === 0 && data.data?.length > 0) {
-            const member = data.data[0]
+          if (result.code === 0 && result.data?.list?.length > 0) {
+            const member = result.data.list[0]
             if (member.phone) {
               // 更新用户信息中的手机号
               set({ user: { ...user, phone: member.phone } })
@@ -330,32 +319,16 @@ export const useAuthStore = create<AuthState>()(
           }
           
           // 2. 查找或创建用户记录
-          const memberResult = await app.callFunction({
-            name: 'admin',
-            data: {
-              action: 'list',
-              collection: 'members',
-              query: { phone },
-              options: { limit: 1 }
-            }
-          }) as any
+          const memberResult = await adminService.listWithOps('members', { phone }, { limit: 1 })
           
-          if (memberResult.code === 0 && memberResult.data?.length > 0) {
+          if (memberResult.code === 0 && memberResult.data?.list?.length > 0) {
             // 手机号已存在，更新关联
-            const existingMember = memberResult.data[0]
-            await app.callFunction({
-              name: 'admin',
-              data: {
-                action: 'update',
-                collection: 'members',
-                docId: existingMember._id,
-                data: {
-                  authUid: user.id,
-                  _openid: user._openid || user.wxOpenId, // ★ 更新 openid
-                  wxOpenId: user.wxOpenId || undefined,
-                  lastLoginAt: new Date().toISOString()
-                }
-              }
+            const existingMember = memberResult.data.list[0]
+            await adminService.update('members', existingMember._id, {
+              authUid: user.id,
+              _openid: user._openid || user.wxOpenId, // ★ 更新 openid
+              wxOpenId: user.wxOpenId || undefined,
+              lastLoginAt: new Date().toISOString()
             })
 
             // ★ 保存手机号到 localStorage
@@ -365,24 +338,17 @@ export const useAuthStore = create<AuthState>()(
             set({ user: { ...user, phone, name: existingMember.name || user.nickname } })
           } else {
             // 手机号未注册，创建新记录
-            await app.callFunction({
-              name: 'admin',
-              data: {
-                action: 'add',
-                collection: 'members',
-                data: {
-                  _id: user.id,
-                  authUid: user.id,
-                  phone,
-                  name: user.nickname || user.name || '新用户',
-                  wxOpenId: user.wxOpenId || undefined,
-                  type: 'user',
-                  role: 'student',
-                  status: 'active',
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString()
-                }
-              }
+            await adminService.add('members', {
+              _id: user.id,
+              authUid: user.id,
+              phone,
+              name: user.nickname || user.name || '新用户',
+              wxOpenId: user.wxOpenId || undefined,
+              type: 'user',
+              role: 'student',
+              status: 'active',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
             })
 
             // ★ 保存手机号到 localStorage
@@ -394,18 +360,11 @@ export const useAuthStore = create<AuthState>()(
           
           // 3. 记录手机绑定日志
           try {
-            await app.callFunction({
-              name: 'admin',
-              data: {
-                action: 'add',
-                collection: 'phone_bind_logs',
-                data: {
-                  userId: user.id,
-                  phone,
-                  loginType: user.loginType,
-                  boundAt: new Date().toISOString()
-                }
-              }
+            await adminService.add('phone_bind_logs', {
+              userId: user.id,
+              phone,
+              loginType: user.loginType,
+              boundAt: new Date().toISOString()
             })
           } catch (logError) {
             console.error('记录绑定日志失败:', logError)
@@ -485,41 +444,49 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // ★ 管理员登录（支持账号密码和手机验证码两种方式）
+      // ★ 管理员登录（通过 api-auth 云函数验证）
       adminLogin: async (username: string, password: string, phone?: string, code?: string) => {
-        // 立即设置 loading 状态，不等待任何异步操作
         set({ isLoading: true, loginError: null })
         
-        // 故意延迟一点让 UI 有反馈时间
-        await new Promise(resolve => setTimeout(resolve, 100))
-        
         try {
-          // ★ 账号密码登录（仅限 admin 账号）
-          // 默认管理员账号验证 - 完全本地验证，不依赖任何云服务
-          if (username.trim().toLowerCase() === 'admin' && password === 'admin123') {
-            // 简化登录：直接设置管理员状态，不依赖外部服务
+          // 手机验证码登录（暂不可用）
+          if (phone && code) {
+            set({ isLoading: false })
+            return { success: false, error: '验证码登录暂不可用，请使用账号密码登录' }
+          }
+          
+          // ✅ 通过 api-auth HTTP 云函数验证（支持数据库用户 + 环境变量测试凭证）
+          const result = await adminService.callFunction('auth-api', {
+            action: 'adminLogin',
+            username,
+            password
+          })
+          
+          if (result?.success) {
+            const { user: userData, token } = result.data
+            
             const user: User = {
-              id: 'admin',
-              uid: 'admin',
-              phone: '17628157097',
-              email: 'admin@drone-training.com',
-              name: '系统管理员',
-              nickname: '管理员',
-              avatar: '',
-              role: 'admin',
+              id: userData._id,
+              uid: userData._id,
+              phone: userData.phone || '',
+              email: userData.email || '',
+              name: userData.username || '管理员',
+              nickname: userData.username || '管理员',
+              avatar: userData.avatar || '',
+              role: userData.role === 'admin' ? 'admin' : 'student',
               loginType: 'password',
               isAnonymous: false,
               permissions: ROLE_PERMISSIONS.admin,
               loginAt: new Date().toISOString()
             }
             
-            // 保存登录信息到 localStorage
-            localStorage.setItem('user_phone', '17628157097')
+            // 保存登录信息
+            if (userData.phone) localStorage.setItem('user_phone', userData.phone)
+            localStorage.setItem('auth_token', token)
             localStorage.setItem('admin_auth', 'true')
             localStorage.setItem('user_role', 'admin')
             localStorage.setItem('user_role_name', '超级管理员')
             
-            // 立即更新状态
             set({ 
               user, 
               isAuthenticated: true, 
@@ -528,24 +495,19 @@ export const useAuthStore = create<AuthState>()(
               loginError: null 
             })
             
-            console.log('[Admin] 账号密码登录成功')
+            console.log('[Admin] 通过云函数验证登录成功:', userData.username)
             return { success: true, message: '登录成功' }
           }
           
-          // 如果是手机验证码登录，但云函数不可用，提示用户使用账号密码
-          if (phone && code) {
-            set({ isLoading: false })
-            return { success: false, error: '验证码登录暂不可用，请使用账号密码登录' }
-          }
-
-          // 其他情况：账号密码错误
-          set({ isLoading: false, loginError: '用户名或密码错误' })
-          return { success: false, error: '用户名或密码错误' }
+          // 认证失败
+          const errorMsg = result?.error || '用户名或密码错误'
+          set({ isLoading: false, loginError: errorMsg })
+          return { success: false, error: errorMsg }
           
         } catch (error: any) {
           console.error('[Admin] 登录失败:', error)
-          set({ isLoading: false, loginError: error.message })
-          return { success: false, error: error.message || '登录失败' }
+          set({ isLoading: false, loginError: error.message || '网络错误，请稍后重试' })
+          return { success: false, error: error.message || '登录失败，请检查网络连接' }
         }
       },
 

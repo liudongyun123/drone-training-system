@@ -16,7 +16,7 @@ const API_TIMEOUT = parseInt(env.VITE_API_TIMEOUT || "30000", 10);
 const DEBUG_MODE = env.VITE_DEBUG_MODE === "true";
 
 // 构建版本号
-const BUILD_VERSION = 'v20260523-1045-fix-sourceid-code';
+const BUILD_VERSION = 'v20260524-0225-all-fixed';
 
 // Sentry 配置
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
@@ -72,8 +72,6 @@ export default defineConfig({
       'zustand',
       'dayjs',
       'axios',
-    ],
-    include: [
       '@cloudbase/js-sdk',  // CloudBase SDK 由 Vite 打包
     ],
   },

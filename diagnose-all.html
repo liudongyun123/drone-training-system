@@ -76,11 +76,11 @@
 
     const tests = [
       { id: 'sdk', name: 'CloudBase SDK 初始化', cat: 'sdk', fn: async () => { app = cloudbase.init({ env: ENV_ID }); return { success: true, msg: 'SDK 初始化成功' }; }},
-      { id: 'fn-courses', name: 'api-admin list(courses)', cat: 'functions', fn: async () => callFn('api-admin', { action: 'list', collection: 'courses', limit: 3 })},
-      { id: 'fn-banners', name: 'api-admin list(banners)', cat: 'functions', fn: async () => callFn('api-admin', { action: 'list', collection: 'banners', limit: 3 })},
-      { id: 'fn-classes', name: 'api-admin list(classes)', cat: 'functions', fn: async () => callFn('api-admin', { action: 'list', collection: 'classes', limit: 3 })},
-      { id: 'fn-members', name: 'api-admin list(members)', cat: 'functions', fn: async () => callFn('api-admin', { action: 'list', collection: 'members', limit: 3 })},
-      { id: 'fn-enroll', name: 'api-admin list(enrollments)', cat: 'functions', fn: async () => callFn('api-admin', { action: 'list', collection: 'enrollments', limit: 3 })},
+      { id: 'fn-courses', name: 'api-admin list(courses)', cat: 'functions', fn: async () => callFn('admin', { action: 'list', collection: 'courses', limit: 3 })},
+      { id: 'fn-banners', name: 'api-admin list(banners)', cat: 'functions', fn: async () => callFn('admin', { action: 'list', collection: 'banners', limit: 3 })},
+      { id: 'fn-classes', name: 'api-admin list(classes)', cat: 'functions', fn: async () => callFn('admin', { action: 'list', collection: 'classes', limit: 3 })},
+      { id: 'fn-members', name: 'api-admin list(members)', cat: 'functions', fn: async () => callFn('admin', { action: 'list', collection: 'members', limit: 3 })},
+      { id: 'fn-enroll', name: 'api-admin list(enrollments)', cat: 'functions', fn: async () => callFn('admin', { action: 'list', collection: 'enrollments', limit: 3 })},
       { id: 'db-courses', name: '数据库 courses', cat: 'database', fn: async () => dbQuery('courses')},
       { id: 'db-banners', name: '数据库 banners', cat: 'database', fn: async () => dbQuery('banners')},
       { id: 'db-classes', name: '数据库 classes', cat: 'database', fn: async () => dbQuery('classes')},

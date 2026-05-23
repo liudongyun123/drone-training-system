@@ -166,6 +166,33 @@ export default function AdminOfflineEnrollment() {
     setErrorMessage('');
 
     try {
+      // ★ 重复报名检测：查询该手机号是否已有此班级的有效订单
+      const existingOrders = await orderService.list(
+        { phone: enrollmentForm.phone, classId: selectedClass._id, status: { $in: ['pending', 'paid', 'paid_offline', 'completed'] } },
+        { page: 1, pageSize: 1 }
+      ) as unknown as { code: number; data: { list: any[] } };
+      
+      if (existingOrders?.code === 0 && existingOrders.data?.list?.length > 0) {
+        setErrorMessage(`该用户（${enrollmentForm.phone}）已报名此培训班，无需重复报名`);
+        setSubmitting(false);
+        return;
+      }
+
+      // 也检查 enrollments 集合
+      try {
+        const existingEnrollments = await adminService.list('enrollments', 
+          { phone: enrollmentForm.phone, classId: selectedClass._id, status: { $ne: 'cancelled' } },
+          { limit: 1 }
+        ) as unknown as { code: number; data: { list: any[] } };
+        if (existingEnrollments?.code === 0 && existingEnrollments.data?.list?.length > 0) {
+          setErrorMessage(`该用户（${enrollmentForm.phone}）已有此培训班的报名记录，无需重复报名`);
+          setSubmitting(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('检查报名记录失败:', e);
+      }
+
       // 1. 创建订单
       const orderData = {
         type: 'class',
@@ -185,8 +212,7 @@ export default function AdminOfflineEnrollment() {
         paidAt: new Date().toISOString(),
       };
 
-      // @ts-ignore
-      const orderResult = await orderService.create(orderData);
+      const orderResult: any = await orderService.create(orderData);
       
       if (!orderResult || orderResult.code !== 0) {
         throw new Error(orderResult?.message || '创建订单失败');

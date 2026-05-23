@@ -77,6 +77,9 @@ Page({
       const result = await getMyEnrollments(phone)
       let classes = result.data || []
 
+      // ★ 过滤掉待审核的记录（线下报名需要管理员通过后才显示）
+      classes = classes.filter((c: any) => c.status !== 'pending')
+
       // 去重（按 classId + source 去重）
       const seen = new Set()
       classes = classes.filter((c: any) => {

@@ -3,7 +3,15 @@
 
 import { SourceService } from '../../utils/SourceService'
 import { loadLevels, getLevelName } from '../../utils/api'
+import { dbGetList } from '../../utils/http'
 import logger from '../../utils/logger'
+
+// 等级 fallback（数据库加载失败时使用）
+const DEFAULT_RENSHE_LEVELS = ['初级工', '中级工', '高级工', '技师', '高级技师']
+const DEFAULT_CAAC_LEVELS = ['视距内驾驶员', '超视距驾驶员', '教员']
+
+// 从 SourceService 获取 codeToName
+const codeToNameMap = SourceService.codeToName
 
 interface LearningPathStage {
   level: string
@@ -22,6 +30,9 @@ interface PageData {
   loading: boolean
   courseLevels: string[]
   classLevels: string[]
+  // 用户进度相关
+  phone: string
+  progressMap: Record<string, { learnedLessons: number; totalLessons: number; progress: number; lastLearnTime: string }>
 }
 
 Page<PageData>({
@@ -34,13 +45,19 @@ Page<PageData>({
     isAllEmpty: true,
     loading: true,
     courseLevels: [],
-    classLevels: []
+    classLevels: [],
+    phone: '',
+    progressMap: {}
   },
 
   onLoad(options: any) {
     const { id, name, source } = options || {}
     
     logger.info('[学习路径] onLoad', { id, name, source })
+    
+    // 获取用户手机号用于查询进度
+    const phone = wx.getStorageSync('phone') || ''
+    this.setData({ phone })
     
     if (id || name) {
       // id 格式是 "SOURCE:CODE"（如 "RENSHE:PLANT_PROTECTION"）
@@ -59,7 +76,7 @@ Page<PageData>({
       })
     } else {
       // 没有参数时，显示默认等级进度（人社体系）
-      const levelOrder = ['初级工', '中级工', '高级工', '技师', '高级技师']
+      const levelOrder = DEFAULT_RENSHE_LEVELS
       const stages = levelOrder.map((level, index) => ({ level, levelIndex: index, courses: [], classes: [] }))
       this.setData({ loading: false, isAllEmpty: true, stages, categoryName: '未选择分类' })
     }
@@ -67,17 +84,7 @@ Page<PageData>({
 
   // 将分类代码转换为中文名称
   codeToName(code: string): string {
-    const CATEGORY_CODE_MAP: Record<string, string> = {
-      'PLANT_PROTECTION': '植保无人机',
-      'AERIAL_PHOTOGRAPHY': '航拍',
-      'INSPECTION': '巡检',
-      'MULTI_ROTOR': '多旋翼',
-      'FIXED_WING': '固定翼',
-      'HELICOPTER': '直升机',
-      'DRONE_RACING': '竞速无人机',
-      'OTHER': '其他'
-    }
-    return CATEGORY_CODE_MAP[code?.toUpperCase()] || code || ''
+    return codeToNameMap(code) || code || ''
   },
 
   async loadData() {
@@ -111,8 +118,8 @@ Page<PageData>({
 
       // 根据体系确定等级顺序
       const levelOrder = source === 'CAAC' 
-        ? ['视距内驾驶员', '超视距驾驶员', '教员']
-        : ['初级工', '中级工', '高级工', '技师', '高级技师']  // RENSHE 完整等级名称
+        ? DEFAULT_CAAC_LEVELS
+        : DEFAULT_RENSHE_LEVELS
 
       // 处理课程和培训班，添加 levelText
       const processedCourses = (courses || []).map((course: any) => ({
@@ -140,14 +147,76 @@ Page<PageData>({
       )
 
       this.setData({ stages, isAllEmpty, loading: false })
+      
+      // 加载用户学习进度（非阻塞）
+      this.loadLearningProgress(processedCourses)
     } catch (err) {
       logger.error('[学习路径] 加载失败', err)
       // 确保即使加载失败也显示页面内容和分类名称
       const levelOrder = source === 'CAAC' 
-        ? ['视距内驾驶员', '超视距驾驶员', '教员']
-        : ['初级工', '中级工', '高级工', '技师', '高级技师']
+        ? DEFAULT_CAAC_LEVELS
+        : DEFAULT_RENSHE_LEVELS
       const stages = levelOrder.map((level, index) => ({ level, levelIndex: index, courses: [], classes: [] }))
       this.setData({ stages, isAllEmpty: true, loading: false })
+    }
+  },
+
+  // 加载用户学习进度
+  async loadLearningProgress(courses: any[]) {
+    const { phone, stages } = this.data
+    if (!phone || courses.length === 0) return
+
+    try {
+      // 查询用户的所有学习进度记录
+      const courseIds = courses.map(c => c._id).filter(Boolean)
+      if (courseIds.length === 0) return
+
+      const progressResult = await dbGetList('user_progress', {
+        where: { phone, courseId: { $in: courseIds } },
+        limit: 500
+      })
+      const progressRecords = progressResult.data || []
+
+      // 查询所有课程的课时数
+      const lessonsResult = await dbGetList('lessons', {
+        where: { courseId: { $in: courseIds } },
+        limit: 500
+      })
+      const allLessons = lessonsResult.data || []
+
+      // 计算每个课程的进度
+      const progressMap: Record<string, any> = {}
+      courseIds.forEach(courseId => {
+        const courseLessons = allLessons.filter((l: any) => l.courseId === courseId)
+        const totalLessons = courseLessons.length
+        const courseProgress = progressRecords.filter((p: any) => 
+          p.courseId === courseId && p.completed
+        )
+        const learnedLessons = courseProgress.length
+        const lastLearn = progressRecords
+          .filter((p: any) => p.courseId === courseId)
+          .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
+
+        progressMap[courseId] = {
+          learnedLessons,
+          totalLessons,
+          progress: totalLessons > 0 ? Math.round((learnedLessons / totalLessons) * 100) : 0,
+          lastLearnTime: lastLearn?.updatedAt || ''
+        }
+      })
+
+      // 更新 stages 中的课程进度
+      const updatedStages = stages.map(stage => ({
+        ...stage,
+        courses: stage.courses.map((course: any) => ({
+          ...course,
+          progressData: progressMap[course._id] || { learnedLessons: 0, totalLessons: 0, progress: 0, lastLearnTime: '' }
+        }))
+      }))
+
+      this.setData({ stages: updatedStages, progressMap })
+    } catch (err) {
+      logger.error('[学习路径] 加载进度失败', err)
     }
   },
 
@@ -167,14 +236,4 @@ Page<PageData>({
     })
   },
 
-  // 合并两个数组，根据 _id 去重
-  mergeById(arr1: any[], arr2: any[]): any[] {
-    const map = new Map()
-    ;[...arr1, ...arr2].forEach(item => {
-      if (item?._id && !map.has(item._id)) {
-        map.set(item._id, item)
-      }
-    })
-    return Array.from(map.values())
-  }
 })

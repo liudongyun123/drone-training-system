@@ -51,3 +51,12 @@ functions/
 
 # Generated images
 generated-images/
+
+# Sensitive credentials - 密钥文件决不提交
+**/custom-login-key.json
+**/private-key*.json
+**/*-key.json
+*.pem
+*.key
+.playwright-cli/
+test-results/

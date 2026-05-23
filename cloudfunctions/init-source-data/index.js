@@ -13,7 +13,7 @@
 const cloudbase = require('@cloudbase/node-sdk')
 
 const app = cloudbase.init({
-  env: 'rcwljy-5ghmq2ex26764978'
+  env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978'
 })
 
 const db = app.database()

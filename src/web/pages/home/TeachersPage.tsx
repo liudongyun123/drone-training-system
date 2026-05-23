@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Award, BookOpen, Users, Star, Mail, Phone } from 'lucide-react';
-import { teacherService } from '@/services/database';
+import { adminService } from '@/services/adminService';
 import { Loading, EmptyState } from '@/components';
 
 interface Teacher {
@@ -37,8 +37,9 @@ export default function TeachersPage() {
   const loadTeachers = async () => {
     setLoading(true);
     try {
-      const result = await teacherService.getList({ page: 1, pageSize: 50 });
-      setTeachers(result.list);
+      const result = await adminService.list('teacher_profiles', {}, { limit: 50 });
+      const list = result.data?.list || [];
+      setTeachers(list);
     } catch (error) {
       console.error('加载教师列表失败:', error);
     } finally {
@@ -82,8 +83,7 @@ export default function TeachersPage() {
 
         {/* 教师列表 */}
         {filteredTeachers.length === 0 ? (
-          // @ts-ignore
-          <EmptyState message="暂无教师信息" />
+          <EmptyState {...({} as any)} message="暂无教师信息" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTeachers.map((teacher) => (

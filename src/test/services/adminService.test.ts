@@ -35,13 +35,11 @@ describe('adminService', () => {
     })
 
     it('应该有 batchDelete 方法', () => {
-      // @ts-ignore
-      expect(typeof adminService.batchDelete).toBe('function')
+      expect(typeof (adminService as any).batchDelete).toBe('function')
     })
 
     it('应该有 aggregate 方法', () => {
-      // @ts-ignore
-      expect(typeof adminService.aggregate).toBe('function')
+      expect(typeof (adminService as any).aggregate).toBe('function')
     })
   })
 })

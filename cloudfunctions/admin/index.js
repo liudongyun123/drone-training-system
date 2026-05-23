@@ -13,7 +13,7 @@
  */
 
 const cloudbase = require('@cloudbase/node-sdk')
-const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const app = cloudbase.init({ env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978' })
 const db = app.database()
 const _ = db.command
 
@@ -21,52 +21,8 @@ const _ = db.command
 const router = new Router(db, _)
 const auditLogger = new AuditLogger(app, db)
 
-// 允许的跨域来源
-const ALLOWED_ORIGINS = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000',
-  'https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com',
-  'https://rcwljy-5ghmq2ex26764978-1318564729.ap-shanghai.app.tcloudbase.com'
-]
-
-/**
- * 获取 CORS 头 - 生产环境使用严格模式，开发环境允许所有来源
- */
-function getCorsHeaders(event) {
-  // 尝试从event中获取origin（HTTP触发器格式）
-  let origin = ''
-  
-  // CloudBase HTTP触发器的event结构
-  if (event.request) {
-    origin = event.request.headers?.origin || 
-             event.request.headers?.Origin || 
-             event.request.origin || 
-             ''
-  }
-  
-  // 检查来源是否在白名单中
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
-    return {
-      'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, tcb-uuid, X-TCB-UUID',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Max-Age': '86400',
-      'Content-Type': 'application/json; charset=utf-8'
-    }
-  }
-  
-  // 默认允许所有来源（用于调试）
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, tcb-uuid, X-TCB-UUID',
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Max-Age': '86400',
-    'Content-Type': 'application/json; charset=utf-8'
-  }
-}
+// CORS 跨域处理 → 共享模块 ./lib/cors
+const { getAdminCorsHeaders: getCorsHeaders } = require('./lib/cors')
 
 /**
  * 鉴权中间件

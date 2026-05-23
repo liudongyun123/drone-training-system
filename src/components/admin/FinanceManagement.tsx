@@ -137,7 +137,7 @@ export default function FinanceManagement() {
           todayRevenue,
           monthRevenue,
           orderCount: allOrders.length,
-          revenueGrowth: 12.5, // 这里应该根据历史数据计算
+          revenueGrowth: allOrders.length >= 2 ? Math.round(((totalRevenue - monthRevenue) / (monthRevenue || 1)) * 1000) / 10 : 0, // 基于真实数据计算
         })
       }
     } catch (err) {
@@ -151,8 +151,7 @@ export default function FinanceManagement() {
     try {
       setLoading(true)
       const orders = await CloudOrderAdminService.getAll()
-      // @ts-ignore
-      setOrders(orders)
+      setOrders(orders as any)
     } catch (err) {
       setError('加载订单数据失败: ' + (err as Error).message)
     } finally {
@@ -185,12 +184,42 @@ export default function FinanceManagement() {
       labels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
     }
 
-    // 简化处理：生成一些模拟数据
+    // 基于真实订单数据聚合收入趋势
     for (let i = 0; i < days; i++) {
+      // 根据时间范围计算日期区间
+      let startDate = new Date()
+      let endDate = new Date()
+      if (filter === 'today') {
+        startDate.setHours(i, 0, 0, 0)
+        endDate.setHours(i + 1, 0, 0, 0)
+      } else if (filter === 'week') {
+        startDate.setDate(startDate.getDate() - (6 - i))
+        startDate.setHours(0, 0, 0, 0)
+        endDate = new Date(startDate)
+        endDate.setDate(endDate.getDate() + 1)
+      } else if (filter === 'month') {
+        startDate.setDate(i + 1)
+        startDate.setHours(0, 0, 0, 0)
+        endDate = new Date(startDate)
+        endDate.setDate(endDate.getDate() + 1)
+      } else if (filter === 'year') {
+        startDate.setMonth(i, 1)
+        startDate.setHours(0, 0, 0, 0)
+        endDate = new Date(startDate)
+        endDate.setMonth(endDate.getMonth() + 1)
+      }
+
+      const dayRevenue = _orders
+        .filter((o: any) => {
+          const d = new Date(o.createdAt || o.created_at)
+          return d >= startDate && d < endDate && (o.status === 'paid' || o.status === 'completed')
+        })
+        .reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || 0), 0)
+
       data.push({
         name: labels[i] || `${i + 1}`,
         date: labels[i] || `${i + 1}`,
-        value: Math.floor(Math.random() * 5000) + 1000,
+        value: Math.round(dayRevenue * 100) / 100,
       })
     }
 
@@ -339,7 +368,6 @@ export default function FinanceManagement() {
                 title="订单数量"
                 value={financeData.orderCount}
                 icon={TrendingUp}
-                trend={8.2}
               />
             </Grid>
           </Grid>

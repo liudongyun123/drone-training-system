@@ -102,8 +102,7 @@ export default function MyTrainingPage() {
       console.log('[我的培训] 报名记录:', registrations);
       
       // 过滤出有班级的记录
-      // @ts-ignore
-      const offlineRegs = registrations.filter((r: any) => 
+      const offlineRegs = (registrations as any[]).filter((r: any) => 
         (r.source === 'offline' || r.source === 'hybrid' || r.source === 'online_enroll') && r.classId
       );
       console.log('[我的培训] 有班级的报名:', offlineRegs);

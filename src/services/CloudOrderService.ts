@@ -1,14 +1,8 @@
 /**
- * @deprecated 此服务已废弃，建议迁移到 orderApi (from '@/shared/services/orderApi')
+ * 订单数据服务（Web 端）
  * 
- * 注意：orderApi 提供更简洁的 API：
- * - create(params): 创建订单
- * - getByUserId(userId): 获取用户订单
- * - getById(orderId): 获取订单详情
- * - updateStatus(orderId, status): 更新订单状态
- * 
- * 此服务保留用于向后兼容，因为它包含复杂的授权逻辑，
- * 将在后续版本中迁移到统一订单服务后删除
+ * 统一通过 HTTP → db-init 云函数访问数据库
+ * 包含创建订单、查询用户订单、更新状态、支付后授权等完整逻辑
  */
 
 /**
@@ -20,7 +14,7 @@ import { dbService, authService } from './cloudBaseService'
 import { Order, OrderItem, normalizeOrder } from '../types/database'
 import { membersService } from './membersService'
 import { useAuthStore } from '../store/authStore'
-import { app } from '../utils/cloudbase'
+import { adminService } from './adminService'
 
 // 统一的订单数据服务
 export const CloudOrderService = {
@@ -51,9 +45,8 @@ export const CloudOrderService = {
 
       console.log('[CloudOrderService] 创建订单，用户手机号:', phone)
 
-      const order: Partial<Order> = {
+      const order: any = {
         userId: user.uid,
-        // @ts-ignore
         phone: phone,  // ★ 关键：保存手机号
         userName: storeUser?.nickname || storeUser?.name || (user as any).nickName || (user as any).username || '匿名用户',
         _openid: (user as any)._openid,
@@ -100,39 +93,32 @@ export const CloudOrderService = {
         return [];
       }
 
-      // ★ 调用云函数查询订单
+      // ★ 调用云函数查询订单（HTTP 方式）
       let result: any
       try {
-        result = await app.callFunction({
-          name: 'admin',
-          data: {
-            action: 'getUserOrders',
-            phone: phone,
-            openid: openid,
-            userId: uid
-          }
+        result = await adminService.callAdminFunction('getUserOrders', {
+          phone: phone,
+          openid: openid,
+          userId: uid
         })
-        console.log('[CloudOrderService] 云函数原始返回:', JSON.stringify(result));
+        console.log('[CloudOrderService] 云函数返回:', JSON.stringify(result));
       } catch (callError: any) {
         console.error('[CloudOrderService] 云函数调用异常:', callError);
         return []
       }
 
-      // 解析返回结果 - CloudBase SDK 返回 { result: { code, data, message } }
+      // 解析返回结果 - HTTP 直接返回 { code, data, message }
       if (!result) {
         console.error('[CloudOrderService] 云函数返回结果为空');
         return []
       }
 
-      const response = result.result || result
-      console.log('[CloudOrderService] 解析后响应:', response);
-
-      if (response.code === 0) {
-        const orders = response.data || []
+      if (result.code === 0) {
+        const orders = result.data || []
         console.log('[CloudOrderService] 找到订单:', orders.length, '条');
         return orders.map((d: any) => normalizeOrder(d))
       } else {
-        console.error('[CloudOrderService] 云函数调用失败:', response.message);
+        console.error('[CloudOrderService] 查询失败:', result.message);
         return []
       }
     } catch (error: any) {
@@ -147,8 +133,7 @@ export const CloudOrderService = {
       if (!id) {
         throw new Error('订单ID不能为空')
       }
-      // @ts-ignore
-      const result = await dbService.get('orders', id)
+      const result = await (dbService.get as any)('orders', id)
       if (!result) return null
       return normalizeOrder(result)
     } catch (error) {
@@ -205,21 +190,17 @@ export const CloudOrderService = {
           // ★ 关键修复：写入 course_permissions 集合
           for (const courseId of courseIds) {
             try {
-              await app.callFunction({
-                name: 'admin',
+              await adminService.callAdminFunction('upsert', {
+                collection: 'course_permissions',
+                query: { phone, courseId },
                 data: {
-                  action: 'upsert',
-                  collection: 'course_permissions',
-                  query: { phone, courseId },
-                  data: {
-                    phone,
-                    courseId,
-                    orderId: order._id || id,
-                    source: 'purchase',
-                    status: 'active',
-                    grantedAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                  }
+                  phone,
+                  courseId,
+                  orderId: order._id || id,
+                  source: 'purchase',
+                  status: 'active',
+                  grantedAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
                 }
               })
               console.log('[CloudOrderService] course_permissions 写入成功:', { phone, courseId })

@@ -319,8 +319,7 @@ export const orderService = {
           const membersService = (await import('./membersService')).membersService;
           const memberResult = await membersService.getByPhone(phone);
           if (memberResult?.success && memberResult.data) {
-            // @ts-ignore
-            memberId = memberResult.data._id || memberResult.data.userId || '';
+            memberId = (memberResult.data as any)._id || (memberResult.data as any).userId || '';
             console.log('[grantPermission] 找到会员:', memberId);
           } else {
             console.log('[grantPermission] 手机号未找到会员:', phone);
@@ -362,10 +361,9 @@ export const orderService = {
       // 3. 如果有课程ID，授予视频课程权限
       if (order.courseId && phone) {
         const membersService = (await import('./membersService')).membersService;
-        await membersService.grantCoursePermission(
+        await (membersService.grantCoursePermission as any)(
           phone,
           order.courseId,
-          // @ts-ignore
           { source: order.paymentMethod === 'online' ? 'online_purchase' : 'offline_enroll', orderId }
         );
       }

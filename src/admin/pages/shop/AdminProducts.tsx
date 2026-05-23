@@ -77,7 +77,7 @@ export default function AdminProducts() {
       }))
       
       setProducts(mappedProducts)
-      setCategories(categoriesResult.data || [])
+      setCategories(categoriesResult.data?.list || (Array.isArray(categoriesResult.data) ? categoriesResult.data : []))
     } catch (err) {
       console.error('加载商品失败:', err)
     } finally {

@@ -128,7 +128,7 @@ export default function MessageManagement() {
         order: 'desc'
       })
       
-      let data = result.data || []
+      let data = result.data?.list || []
       
       // 搜索过滤
       if (searchText) {
@@ -452,8 +452,7 @@ export default function MessageManagement() {
           </div>
           <Select
             value={selectedType}
-            // @ts-ignore
-            onChange={(value) => setSelectedType(value)}
+            onChange={(value: any) => setSelectedType(value)}
             options={typeOptions}
             style={{ width: 150 }}
           />
@@ -545,32 +544,32 @@ export default function MessageManagement() {
                   <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
                       <Button 
-                        // @ts-ignore
                         size="small" 
                         variant="ghost"
                         icon={<Eye className="w-4 h-4" />}
                         onClick={() => handleViewDetail(message)}
+                        {...({} as any)}
                       >
                         查看
                       </Button>
                       {message.status === 'unread' && (
                         <Button 
-                          // @ts-ignore
                           size="small" 
                           variant="ghost"
                           icon={<Check className="w-4 h-4" />}
                           onClick={() => handleMarkRead(message._id)}
+                          {...({} as any)}
                         >
                           已读
                         </Button>
                       )}
                       <Button 
-                        // @ts-ignore
                         size="small" 
                         variant="ghost"
                         icon={<Trash2 className="w-4 h-4" />}
                         onClick={() => handleDelete(message._id)}
                         className="text-red-500 hover:text-red-600"
+                        {...({} as any)}
                       >
                         删除
                       </Button>

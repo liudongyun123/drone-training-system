@@ -72,18 +72,16 @@ export const groupBuyService = {
       }
 
       return {
-        // @ts-ignore
         data: mapped,
         total: mapped.length,
-        page: params?.page || 1,
-        limit: params?.limit || 10,
-      };
+        page: 1,
+        limit: 10,
+      } as any;
     } catch (error) {
       console.error('获取拼团列表失败:', error);
       return {
-        // @ts-ignore
         data: [], total: 0, page: params?.page || 1, limit: params?.limit || 10,
-      };
+      } as any;
     }
   },
 

@@ -278,8 +278,7 @@ export default function MemberManagement() {
       email: member.email || '',
       type: member.type,
       role: member.role || 'student',
-      // @ts-ignore
-      status: member.status || 'active',
+      status: (member as any).status || 'active',
       level: member.profile?.level || 'beginner',
     })
     setEditDialogOpen(true)
@@ -303,8 +302,7 @@ export default function MemberManagement() {
         },
       }
       
-      // @ts-ignore
-      await membersService.update(selectedMember._id, updateData)
+      await (membersService.update as any)(selectedMember._id, updateData)
       setSnackbar({ open: true, message: '保存成功', severity: 'success' })
       setEditDialogOpen(false)
       await loadMembers()
@@ -387,8 +385,7 @@ export default function MemberManagement() {
         email: createForm.email || undefined,
         type: createForm.type,
         role: 'student',
-        // @ts-ignore
-        level: createForm.level,
+        level: (createForm as any).level,
       })
       
       if (result.success) {

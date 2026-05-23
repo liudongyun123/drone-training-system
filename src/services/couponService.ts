@@ -15,8 +15,7 @@ export const couponService = {
       
       if (!Array.isArray(coupons)) {
         console.error('[CouponService] 返回数据不是数组:', coupons);
-        // @ts-ignore
-        return { data: [], total: 0, page: 1, limit: 10 };
+        return { data: [], total: 0, page: 1, limit: 10 } as any;
       }
       
       let filtered = coupons.map(c => ({
@@ -41,16 +40,14 @@ export const couponService = {
       }
 
       return {
-        // @ts-ignore
         data: filtered,
         total: filtered.length,
         page: params?.page || 1,
         limit: params?.limit || 10,
-      };
+      } as any;
     } catch (error) {
       console.error('获取优惠券列表失败:', error);
-      // @ts-ignore
-      return { data: [], total: 0, page: 1, limit: 10 };
+      return { data: [], total: 0, page: 1, limit: 10 } as any;
     }
   },
 
@@ -108,8 +105,7 @@ export const couponService = {
   // 使用优惠券
   useCoupon: async (code: string, orderId: string): Promise<ApiResponse<CouponUsage>> => {
     try {
-      // @ts-ignore
-      const { data: userCoupons } = await import('./coupon').then(m => m.couponService.getUserCoupons('current_user'));
+      const { data: userCoupons } = (await import('./coupon').then(m => m.couponService.getUserCoupons('current_user'))) as any;
       const userCoupon = userCoupons.find((uc: any) => uc.couponCode === code && uc.status === 'unused');
       if (!userCoupon) {
         return { data: null as any, success: false, message: '未找到可用的优惠券' };
@@ -134,8 +130,7 @@ export const couponService = {
   // 获取使用记录
   getUsages: async (couponId?: string): Promise<ApiResponse<CouponUsage[]>> => {
     try {
-      // @ts-ignore
-      const { data: allUserCoupons } = await import('./coupon').then(m => m.couponService.getUserCoupons('current_user'));
+      const { data: allUserCoupons } = (await import('./coupon').then(m => m.couponService.getUserCoupons('current_user'))) as any;
       const usages = allUserCoupons
         .filter((uc: any) => uc.status === 'used' && (!couponId || uc.couponId === couponId))
         .map((uc: any) => ({
@@ -157,7 +152,6 @@ export const couponService = {
     try {
       const coupon = await dbCouponService.createCoupon({
         code: data.code,
-        // @ts-ignore
         type: data.type,
         value: data.value,
         minAmount: data.minAmount,
@@ -167,9 +161,8 @@ export const couponService = {
         endDate: data.validTo,
         status: data.status,
         applicableCourses: data.courseIds,
-        // @ts-ignore
-        description: data.description,
-      });
+        description: (data as any).description,
+      } as any);
 
       return {
         data: {
@@ -210,8 +203,7 @@ export const couponService = {
       if (data.courseIds !== undefined) updates.applicableCourses = data.courseIds;
       if (data.validFrom !== undefined) updates.startDate = data.validFrom;
       if (data.validTo !== undefined) updates.endDate = data.validTo;
-      // @ts-ignore
-      if (data.description !== undefined) updates.description = data.description;
+      if ((data as any).description !== undefined) updates.description = (data as any).description;
 
       await dbCouponService.updateCoupon(id, updates);
 

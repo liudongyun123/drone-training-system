@@ -341,8 +341,7 @@ export default function StudentScheduleChange() {
                 <div>课程：{selectedSchedule.title}</div>
                 <div>日期：{selectedSchedule.date}</div>
                 <div>时间：{selectedSchedule.startTime} - {selectedSchedule.endTime}</div>
-                // @ts-ignore
-                <div>场地：{selectedSchedule.location}</div>
+                <div>场地：{(selectedSchedule as any).location}</div>
               </div>
             </div>
 

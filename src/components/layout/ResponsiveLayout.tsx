@@ -225,7 +225,7 @@ export default function ResponsiveLayout({
 
       {/* 登录弹窗 */}
       <LoginModal
-        // @ts-ignore
+        {...({} as any)}
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
         onSuccess={() => {

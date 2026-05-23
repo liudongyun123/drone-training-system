@@ -199,11 +199,10 @@ export default function OrderManagement() {
         total={total}
         page={page}
         rowsPerPage={rowsPerPage}
-        // @ts-ignore
+        {...({} as any)}
         onPageChange={(_, newPage) => setPage(newPage)}
         onRowsPerPageChange={(e) => {
-          // @ts-ignore
-          setRowsPerPage(parseInt(e.target.value, 10))
+          setRowsPerPage(parseInt((e.target as any).value, 10))
           setPage(0)
         }}
       />

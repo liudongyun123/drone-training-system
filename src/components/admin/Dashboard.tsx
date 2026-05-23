@@ -27,7 +27,7 @@ import {
   CloudCourseAdminService,
   CloudQuestionBankAdminService,
 } from '../../services/CloudAdminService'
-// @ts-ignore
+// @ts-expect-error - Legacy database type imports
 import { Order, Course, getOrderAmount, isOrderPaid, ORDER_STATUS_LABELS } from '../../types/database'
 import { parseDate, formatDateStr } from '@/utils/dateUtils'
 
@@ -70,19 +70,20 @@ export default function Dashboard() {
         CloudUserAdminService.count(),
         CloudOrderAdminService.count(),
         CloudCourseAdminService.count(),
-        // @ts-ignore
-        CloudQuestionBankAdminService.count(),
+        (CloudQuestionBankAdminService as any).count(),
       ])
 
       // 并行获取必要的列表数据（用于排行和最近订单）
-      const [ordersResult, coursesResult] = await Promise.all([
+      const [ordersResult, coursesResult, usersResult] = await Promise.all([
         CloudOrderAdminService.getAll({ limit: 100 }), // 订单需要计算收入和排行
         CloudCourseAdminService.getAll({ limit: 100 }), // 课程需要销量排行
+        CloudUserAdminService.getAll({ limit: 1000 }), // 用户需要计算活跃数
       ])
 
       // 提取数据
       const orders = ordersResult.success ? ordersResult.data : []
       const courses = coursesResult.success ? coursesResult.data : []
+      const users = usersResult.success ? usersResult.data : []
 
       // 计算统计数据（从已获取的订单数据中计算，不需要额外请求）
       const totalUsers = typeof usersCountResult === 'number' ? usersCountResult : 0
@@ -113,8 +114,7 @@ export default function Dashboard() {
       const courseSales: Record<string, number> = {}
       orders.forEach((o) => {
         if (isOrderPaid(o)) {
-          // @ts-ignore
-          const courseIds = getOrderCourseIds(o)
+          const courseIds = (getOrderCourseIds as any)(o) as string[]
           courseIds.forEach(courseId => {
             courseSales[courseId] = (courseSales[courseId] || 0) + 1
           })
@@ -140,7 +140,7 @@ export default function Dashboard() {
 
       setStats({
         totalUsers,
-        activeUsers: 0, // 如果需要这个指标，需要单独的查询
+        activeUsers: users.length > 0 ? users.filter((u: any) => u.status === 'active').length : 0,
         totalOrders,
         totalRevenue,
         totalCourses,
@@ -355,8 +355,7 @@ export default function Dashboard() {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            // @ts-ignore
-                            {getOrderCourseNames(order).join(', ') || order.courseName || '-'}
+                            {(getOrderCourseNames as any)(order).join(', ') || order.courseName || '-'}
                           </TableCell>
                           <TableCell>{formatCurrency(getOrderAmount(order))}</TableCell>
                           <TableCell>

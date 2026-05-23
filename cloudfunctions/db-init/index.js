@@ -7,7 +7,7 @@
 'use strict';
 
 const cloudbase = require('@cloudbase/node-sdk')
-const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const app = cloudbase.init({ env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978' })
 const db = app.database()
 const _ = db.command;
 
@@ -312,7 +312,7 @@ exports.main = async (event, context) => {
         delete insertData._id;
         delete insertData._openid;
         
-        // 服务端 SDK (tcb-admin-node) 直接传入文档对象，不需要 { data: ... } 包装
+        // @cloudbase/node-sdk 直接传入文档对象，不需要 { data: ... } 包装
         const addResult = await db.collection(collection).add(insertData);
         // 服务端 add 返回的 id 字段名可能是 id 或 _id
         const newId = addResult.id || addResult._id || '';

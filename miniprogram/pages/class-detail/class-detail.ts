@@ -5,6 +5,7 @@ import { classApi, orderApi } from '../../utils/api'
 import { checkLogin, getPhone, showToast } from '../../utils/util'
 import { dbGetList } from '../../utils/http'
 import logger from '../../utils/logger'
+import { DEFAULT_COVER, SERVICE_PHONE } from '../../utils/constants'
 
 Page({
   data: {
@@ -44,7 +45,7 @@ Page({
       // 确保封面图片有值（数据库可能没有封面字段）
       if (classInfo && !classInfo.coverImage && !classInfo.cover) {
         // 使用默认封面图
-        classInfo.coverImage = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+        classInfo.coverImage = DEFAULT_COVER
       }
       
       // 检查用户是否已购买/已报名
@@ -149,12 +150,12 @@ Page({
   contactService() {
     wx.showModal({
       title: '联系客服',
-      content: '如有疑问，请拨打客服电话：17628157097',
+      content: `如有疑问，请拨打客服电话：${SERVICE_PHONE}`,
       confirmText: '拨打',
       success: (res) => {
         if (res.confirm) {
           wx.makePhoneCall({
-            phoneNumber: '17628157097'
+            phoneNumber: SERVICE_PHONE
           })
         }
       }

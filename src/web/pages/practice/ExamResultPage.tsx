@@ -9,8 +9,7 @@ import { examService } from '@/services/examService';
 import Loading from '@/components/Loading';
 
 export default function ExamResult() {
-  // @ts-ignore
-  const { attemptId } = useParams<{ attemptId: string }>;
+  const { attemptId } = useParams() as { attemptId?: string };
   const navigate = useNavigate();
   
   const [attempt, setAttempt] = useState<ExamAttempt | null>(null);
@@ -52,8 +51,8 @@ export default function ExamResult() {
       setError(null);
       console.log('[ExamResult] loadLatestAttempt: 正在查询最新记录');
       
-      // @ts-ignore
-      const { getDb } = await import('@/services/cloudBaseService');
+      const cloudService = await import('@/services/cloudBaseService') as any;
+      const { getDb } = cloudService;
       const result = await getDb()
         .collection('examAttempts')
         .orderBy('submitTime', 'desc')
@@ -118,8 +117,8 @@ export default function ExamResult() {
       
       try {
         console.log('[ExamResult] 步骤2.1: 导入 cloudBaseService');
-        // @ts-ignore
-        const { getDb } = await import('@/services/cloudBaseService');
+        const cloudService2 = await import('@/services/cloudBaseService') as any;
+        const { getDb } = cloudService2;
         console.log('[ExamResult] 步骤2.2: 导入成功，准备查询');
         
         // 直接查询，不依赖任何用户身份
@@ -184,8 +183,7 @@ export default function ExamResult() {
       setAttempt(attemptData);
       
       // 获取考试信息
-      // @ts-ignore
-      let examInfo: Exam = {
+      let examInfo: any = {
         _id: attemptData.examId || 'unknown',
         title: '无人机考试',
         totalScore: 100,

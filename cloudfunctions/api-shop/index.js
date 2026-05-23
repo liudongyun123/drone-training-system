@@ -15,7 +15,7 @@
  */
 
 const cloudbase = require('@cloudbase/node-sdk')
-const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const app = cloudbase.init({ env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978' })
 const db = app.database()
 const _ = db.command
 
@@ -29,21 +29,7 @@ const CONFIG = {
 
 // ========== 工具函数 ==========
 
-function getCorsHeaders(origin = '') {
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com'
-  ]
-  
-  return {
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json; charset=utf-8'
-  }
-}
+const { getCorsHeaders } = require('./lib/cors')
 
 /**
  * 生成订单号
@@ -201,7 +187,8 @@ async function addToCart(data) {
     if (phone) addData.phone = phone
     if (openid) addData._openid = openid
 
-    await db.collection('cart').add({ data: addData })
+    // ★ Admin SDK: add() 直接传数据对象
+    await db.collection('cart').add(addData)
   }
 
   return { success: true }
@@ -315,7 +302,8 @@ async function createOrder(data, userId) {
     order.userId = openid
   }
 
-  const result = await db.collection('orders').add({ data: order })
+  // ★ Admin SDK: add() 直接传数据对象
+  const result = await db.collection('orders').add(order)
 
   // 清空购物车
   if (data.clearCart) {
@@ -496,16 +484,14 @@ async function payOrder(data, userId) {
 
       if (!existing.data || existing.data.length === 0) {
         await db.collection('course_permissions').add({
-          data: {
-            _openid: openid,
-            userId: openid,
-            courseId,
-            orderId,
-            source: 'purchase',
-            status: 'active',
-            grantedAt: now,
-            createdAt: now
-          }
+          _openid: openid,
+          userId: openid,
+          courseId,
+          orderId,
+          source: 'purchase',
+          status: 'active',
+          grantedAt: now,
+          createdAt: now
         })
       }
 

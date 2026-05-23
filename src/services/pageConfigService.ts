@@ -71,10 +71,15 @@ export interface PageConfig {
   updatedAt?: string;
 }
 
-// 默认配置数据
-export const defaultPageConfig: Record<string, PageConfig['data']> = {
+// 默认配置数据（精确类型）
+export const defaultPageConfig: {
+  hero: HeroConfig
+  stats: StatItem[]
+  features: FeatureItem[]
+  contact: NonNullable<PageConfig['data']['contact']>
+  footer: FooterConfig
+} = {
   hero: {
-    // @ts-ignore
     logoIcon: 'Plane',
     logoText: '无人机培训中心',
     mainTitle: '翱翔蓝天',
@@ -86,14 +91,12 @@ export const defaultPageConfig: Record<string, PageConfig['data']> = {
     featureImage: 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800&h=600&fit=crop',
     trustBadges: ['官方认证', '不过退费', '推荐就业'],
   },
-  // @ts-ignore
   stats: [
     { label: '累计学员', value: '5,000+', icon: 'Users', color: 'blue' },
     { label: '持证飞行员', value: '2,800+', icon: 'Award', color: 'amber' },
     { label: '合作机构', value: '120+', icon: 'Globe', color: 'emerald' },
     { label: '课程时长', value: '800+', icon: 'Clock', color: 'purple' },
   ],
-  // @ts-ignore
   features: [
     {
       icon: 'Shield',
@@ -117,14 +120,12 @@ export const defaultPageConfig: Record<string, PageConfig['data']> = {
     },
   ],
   contact: {
-    // @ts-ignore
     title: '准备好开始您的飞行之旅了吗？',
     description: '立即咨询报名，专业顾问为您定制学习方案。\n现在报名可享首期优惠，还能获得推荐就业机会。',
     ctaPrimaryText: '立即报名',
     ctaSecondaryText: '了解更多',
   },
   footer: {
-    // @ts-ignore
     logoText: '无人机培训中心',
     description: '专业无人机驾驶培训机构，中国航空运输协会认证。',
     phone: '400-888-8888',
@@ -137,7 +138,7 @@ export const defaultPageConfig: Record<string, PageConfig['data']> = {
       { label: '教官团队', path: '/teachers' },
     ],
     copyright: '© 2024 无人机培训中心 版权所有',
-    icp: '京ICP备XXXXXXXX号',
+    icp: (import.meta.env.VITE_ICP_NUMBER as string) || '',
   },
 };
 
@@ -260,11 +261,11 @@ export const pageConfigService = {
     
     // 合并所有配置，使用默认值填充
     const result = {
-      hero: defaultPageConfig.hero!,
-      stats: defaultPageConfig.stats!,
-      features: defaultPageConfig.features!,
+      hero: defaultPageConfig.hero,
+      stats: defaultPageConfig.stats,
+      features: defaultPageConfig.features,
       contact: defaultPageConfig.contact,
-      footer: defaultPageConfig.footer!,
+      footer: defaultPageConfig.footer,
     };
 
     configs.forEach(config => {
@@ -281,7 +282,6 @@ export const pageConfigService = {
       }
     });
 
-    // @ts-ignore
     return result;
   },
 };

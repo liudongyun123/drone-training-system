@@ -141,26 +141,11 @@ class AuditLogger {
   }
 
   /**
-   * 获取 CORS 头
+   * 获取 CORS 头（委托共享模块）
    */
   static getCorsHeaders(event) {
-    const origin = event.request?.headers?.origin || event.request?.headers?.Origin
-    
-    if (origin && ALLOWED_ORIGINS.includes(origin)) {
-      return {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-        'Access-Control-Max-Age': '86400'
-      }
-    }
-    
-    return {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-      'Access-Control-Max-Age': '86400'
-    }
+    const origin = event.request?.headers?.origin || event.request?.headers?.Origin || ''
+    return getCorsHeaders(origin)
   }
 }
 

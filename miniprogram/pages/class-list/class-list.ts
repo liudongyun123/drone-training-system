@@ -4,6 +4,7 @@
 import { classApi } from '../../utils/api'
 import { SourceService } from '../../utils/SourceService'
 import logger from '../../utils/logger'
+import { DEFAULT_COVER } from '../../utils/constants'
 
 Page({
   data: {
@@ -293,7 +294,7 @@ Page({
     logger.debug('培训班列表', '图片加载失败, index:', index)
     const classList = this.data.classList
     if (classList[index]) {
-      const defaultCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      const defaultCover = DEFAULT_COVER
       classList[index].coverImage = defaultCover
       classList[index].cover = defaultCover
       logger.debug('培训班列表', '已设置默认封面')

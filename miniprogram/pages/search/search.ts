@@ -1,9 +1,10 @@
 // pages/search/search.ts
 // 搜索页面
 
-import { courseApi } from '../../utils/api'
-import { classApi } from '../../utils/api'
+import { courseApi, classApi } from '../../utils/api'
+import { dbGetList } from '../../utils/http'
 import logger from '../../utils/logger'
+import { DEFAULT_COVER } from '../../utils/constants'
 
 const HISTORY_KEY = 'search_history'
 const MAX_HISTORY = 10
@@ -17,7 +18,7 @@ Page({
     page: 1,
     hasSearched: false,  // 是否已执行搜索
     history: [] as string[],  // 搜索历史
-    hotKeywords: ['无人机', 'CAAC', '考证', '飞行', '基础'],  // 热门关键词
+    hotKeywords: [] as string[],  // 热门关键词（从后台获取）
     recommendations: [] as any[],  // 推荐内容
     searchType: 'course'  // 搜索类型: course 或 class
   },
@@ -36,6 +37,27 @@ Page({
     }
     
     this.loadHistory()
+    this.loadHotKeywords()
+  },
+
+  // 从后台加载热门搜索关键词
+  async loadHotKeywords() {
+    try {
+      const result = await dbGetList('system_config', {
+        where: { type: 'hot_keywords' },
+        limit: 1
+      })
+      const config = (result.data || [])[0]
+      if (config && config.keywords && config.keywords.length > 0) {
+        this.setData({ hotKeywords: config.keywords })
+      } else {
+        // 后台无配置时使用默认关键词
+        this.setData({ hotKeywords: ['无人机', 'CAAC', '考证', '飞行', '基础'] })
+      }
+    } catch (err) {
+      logger.error('[搜索] 加载热门关键词失败', err)
+      this.setData({ hotKeywords: ['无人机', 'CAAC', '考证', '飞行', '基础'] })
+    }
   },
 
   // 加载搜索历史
@@ -224,7 +246,7 @@ Page({
     const index = e.currentTarget.dataset.index
     const results = this.data.results
     if (results && results[index]) {
-      results[index].coverImage = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      results[index].coverImage = DEFAULT_COVER
       this.setData({ results })
     }
   }

@@ -1,7 +1,8 @@
 // utils/api.ts
 // API 封装 - 通过 HTTP 请求连接腾讯云 CloudBase
 
-import { dbGetList, dbQuery, callFunction, callMobileLearning, callApiUser, callApiOrder } from './http'
+import { dbGetList, dbQuery, callFunction, callApiCourse, callApiUser, callApiOrder } from './http'
+import { DEFAULT_COVER, DEFAULT_STOCK } from './constants'
 
 // 等级缓存（从数据库动态加载）
 let levelCache: Array<{ code: string; name: string; sourceCode: string }> = []
@@ -114,7 +115,7 @@ function transformClass(classItem: any) {
  */
 export const bannerApi = {
   async getList(limit: number = 10) {
-    const defaultBanner = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+    const defaultBanner = DEFAULT_COVER
     
     try {
       const result = await dbGetList('banners', {
@@ -342,7 +343,7 @@ export const courseApi = {
       let courses = (result.data || []).map(transformCourse)
       
       // 确保封面图片有值
-      const defaultCourseCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      const defaultCourseCover = DEFAULT_COVER
       courses = courses.map(course => ({
         ...course,
         coverImage: course.coverImage || course.cover || defaultCourseCover,
@@ -513,7 +514,7 @@ export const classApi = {
     let classes = (result.data || []).map(transformClass)
     
     // 确保封面图片有值（数据库可能没有封面字段）
-    const defaultCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+    const defaultCover = DEFAULT_COVER
     classes = classes.map(cls => ({
       ...cls,
       coverImage: cls.coverImage || cls.cover || defaultCover,
@@ -605,7 +606,7 @@ export const productApi = {
     })
 
     // 映射字段：数据库 title -> name, cover -> coverImage
-    const defaultProductCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+    const defaultProductCover = DEFAULT_COVER
     const products = (result.data || []).map((p: any) => {
       // 优先使用 coverImage（新字段），其次 cover（旧字段）
       let cover = p.coverImage || p.cover
@@ -621,7 +622,7 @@ export const productApi = {
         cover: cover,
         categoryId: p.category || p.categoryId,
         salesCount: p.sales || p.salesCount || 0,
-        stock: p.stock || 99,
+        stock: p.stock || DEFAULT_STOCK,
         description: p.description
       }
     })
@@ -634,7 +635,7 @@ export const productApi = {
     if (result.data && result.data.length > 0) {
       const p = result.data[0]
       // 映射字段确保兼容性
-      const defaultProductCover = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      const defaultProductCover = DEFAULT_COVER
       let cover = p.coverImage || p.cover
       if (!cover || cover.includes('unsplash.com') || cover.includes('via.placeholder.com')) {
         cover = defaultProductCover
@@ -647,7 +648,7 @@ export const productApi = {
         originalPrice: p.originalPrice || p.price || 0,
         coverImage: cover,
         cover: cover,
-        stock: p.stock || 99,
+        stock: p.stock || DEFAULT_STOCK,
         description: p.description || '',
         category: p.category || p.categoryId,
         specs: p.specs || [],
@@ -703,7 +704,6 @@ export const orderApi = {
     // 优先使用 orderData 中已有的 phone（来自表单输入），其次用 storage 中的
     const phone = orderData.phone || wx.getStorageSync('phone') || ''
     console.log('[orderApi.create] phone 来源:', { orderDataPhone: orderData.phone, storagePhone: wx.getStorageSync('phone'), finalPhone: phone })
-    const { callFunction } = require('./http')
     return callFunction('api-order', {
       action: 'create',
       data: { ...orderData, phone }
@@ -712,7 +712,6 @@ export const orderApi = {
 
   async updateStatus(orderId: string, status: string) {
     try {
-      const { callFunction } = require('./http')
       const res = await callFunction('api-order', {
         action: 'updateStatus',
         data: { orderId, status }
@@ -784,14 +783,14 @@ export const userApi = {
 // ============== 新云函数 API (Feature-Based) ==============
 
 /**
- * 学习路径 API - mobile-learning
+ * 学习路径 API - api-course
  */
 export const learningPathApi = {
   /**
    * 获取学习路径列表
    */
   async getList(filters: any = {}) {
-    const res = await callMobileLearning('getLearningPaths', filters)
+    const res = await callApiCourse('getLearningPaths', filters)
     // 云函数返回 { list, total, page, pageSize }
     return res.data?.list || res.data || []
   },
@@ -800,7 +799,7 @@ export const learningPathApi = {
    * 获取学习路径详情
    */
   async getDetail(pathId: string) {
-    const res = await callMobileLearning('getLearningPathDetail', { pathId })
+    const res = await callApiCourse('getLearningPathDetail', { pathId })
     return res.data
   },
 
@@ -808,7 +807,7 @@ export const learningPathApi = {
    * 获取路径学习进度
    */
   async getProgress(pathId: string) {
-    const res = await callMobileLearning('getPathProgress', { pathId })
+    const res = await callApiCourse('getPathProgress', { pathId })
     return res.data
   },
 
@@ -816,7 +815,7 @@ export const learningPathApi = {
    * 开始学习路径
    */
   async start(pathId: string) {
-    const res = await callMobileLearning('startPath', { pathId })
+    const res = await callApiCourse('startPath', { pathId })
     return res.data
   },
 
@@ -824,7 +823,7 @@ export const learningPathApi = {
    * 更新学习进度
    */
   async updateProgress(pathId: string, courseId: string, lessonId: string) {
-    const res = await callMobileLearning('updateProgress', { pathId, courseId, lessonId })
+    const res = await callApiCourse('updateProgress', { pathId, courseId, lessonId })
     return res.data
   },
 
@@ -832,20 +831,20 @@ export const learningPathApi = {
    * 完成学习路径
    */
   async complete(pathId: string) {
-    const res = await callMobileLearning('completePath', { pathId })
+    const res = await callApiCourse('completePath', { pathId })
     return res.data
   }
 }
 
 /**
- * 证书 API - mobile-learning
+ * 证书 API - api-course
  */
 export const certificateApi = {
   /**
    * 获取证书列表
    */
   async getList(filters: any = {}) {
-    const res = await callMobileLearning('getCertificates', filters)
+    const res = await callApiCourse('getCertificates', filters)
     // 云函数返回 { list, total, page, pageSize }
     return res.data?.list || res.data || []
   },
@@ -854,7 +853,7 @@ export const certificateApi = {
    * 获取证书详情
    */
   async getDetail(certificateId: string) {
-    const res = await callMobileLearning('getCertificateDetail', { certificateId })
+    const res = await callApiCourse('getCertificateDetail', { certificateId })
     return res.data
   },
 
@@ -862,7 +861,7 @@ export const certificateApi = {
    * 下载证书
    */
   async download(certificateId: string) {
-    const res = await callMobileLearning('downloadCertificate', { certificateId })
+    const res = await callApiCourse('downloadCertificate', { certificateId })
     return res.data
   },
 
@@ -870,7 +869,7 @@ export const certificateApi = {
    * 生成证书
    */
   async generate(params: { courseId?: string; examId?: string; pathId?: string }) {
-    const res = await callMobileLearning('generateCertificate', params)
+    const res = await callApiCourse('generateCertificate', params)
     return res.data
   },
 
@@ -878,7 +877,7 @@ export const certificateApi = {
    * 验证证书
    */
   async verify(certificateCode: string) {
-    const res = await callMobileLearning('verifyCertificate', { certificateCode })
+    const res = await callApiCourse('verifyCertificate', { certificateCode })
     return res.data
   }
 }
@@ -891,10 +890,7 @@ export const newUserApi = {
    * 用户注册
    */
   async register(params: { phone: string; password: string; nickname?: string }) {
-    const res = await callApiUser({
-      action: 'register',
-      data: params
-    })
+    const res = await callApiUser('register', params)
     return res
   },
 
@@ -902,10 +898,7 @@ export const newUserApi = {
    * 用户登录
    */
   async login(params: { phone: string; password: string }) {
-    const res = await callApiUser({
-      action: 'login',
-      data: params
-    })
+    const res = await callApiUser('login', params)
     if (res.success && res.data?.user) {
       // 保存用户信息到本地
       wx.setStorageSync('user', res.data.user)

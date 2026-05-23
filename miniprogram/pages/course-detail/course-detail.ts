@@ -5,6 +5,7 @@ import { courseApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
 import { dbGetList, request } from '../../utils/http'
 import logger from '../../utils/logger'
+import { DEFAULT_COVER, SERVICE_PHONE } from '../../utils/constants'
 
 // 云存储临时链接缓存（避免重复请求）
 const tempUrlCache = new Map<string, string>()
@@ -15,7 +16,8 @@ Page({
     course: null as any,
     lessons: [] as any[],
     hasPermission: false,
-    loading: true
+    loading: true,
+    defaultCover: DEFAULT_COVER
   },
 
   onLoad(options: any) {
@@ -164,12 +166,12 @@ Page({
   contactService() {
     wx.showModal({
       title: '联系客服',
-      content: '如有疑问，请拨打客服电话：17628157097',
+      content: `如有疑问，请拨打客服电话：${SERVICE_PHONE}`,
       confirmText: '拨打',
       success: (res) => {
         if (res.confirm) {
           wx.makePhoneCall({
-            phoneNumber: '17628157097'
+            phoneNumber: SERVICE_PHONE
           })
         }
       }
@@ -189,7 +191,7 @@ Page({
     const course = this.data.course
     if (course) {
       // 使用默认封面图
-      course.coverImage = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      course.coverImage = DEFAULT_COVER
       this.setData({ course })
     }
   },

@@ -62,15 +62,20 @@ export default function ExamManagement() {
     severity: 'success' as 'success' | 'error',
   })
 
-  const [examForm, setExamForm] = useState({
-    title: '',
-    description: '',
-    bankIds: [] as string[],
+  // 试卷默认参数（可配置化）
+  const DEFAULT_EXAM_PARAMS = {
     timeLimit: 120,
     passingScore: 60,
     totalScore: 100,
     shuffleQuestions: true,
     allowRetake: false,
+  }
+
+  const [examForm, setExamForm] = useState({
+    title: '',
+    description: '',
+    bankIds: [] as string[],
+    ...DEFAULT_EXAM_PARAMS,
   })
 
   useEffect(() => {
@@ -120,10 +125,7 @@ export default function ExamManagement() {
       title: '',
       description: '',
       bankIds: [],
-      timeLimit: 120,
-      passingScore: 60,
-      totalScore: 100,
-      shuffleQuestions: true,
+      ...DEFAULT_EXAM_PARAMS,
       allowRetake: false,
     })
     setDialogOpen(true)
@@ -207,25 +209,22 @@ export default function ExamManagement() {
       if (result.success) {
         setSnackbar({ open: true, message: result.message || '试卷删除成功', severity: 'success' })
       } else {
-        // @ts-ignore
-        setSnackbar({ open: true, message: result.error || '操作完成，请确认数据状态', severity: 'info' })
+        setSnackbar({ open: true, message: result.error || '操作完成，请确认数据状态', severity: 'info' } as any)
       }
     } catch (error: any) {
       console.error('删除试卷异常:', error)
       // 异常情况下也刷新列表
       await loadExams()
-      // @ts-ignore
-      setSnackbar({ open: true, message: '操作完成，请确认数据状态', severity: 'info' })
+      setSnackbar({ open: true, message: '操作完成，请确认数据状态', severity: 'info' } as any)
     }
   }
 
   const generateExamPreview = async (exam: ExamPaper) => {
     try {
       // 从选中的题库中随机抽取题目
-      // @ts-ignore
       let allQuestions: Question[] = []
       for (const bankId of exam.bankIds) {
-        const questions = await CloudPracticeService.getBankQuestions(bankId)
+        const questions = await CloudPracticeService.getBankQuestions(bankId) as any as Question[]
         allQuestions = [...allQuestions, ...questions]
       }
 

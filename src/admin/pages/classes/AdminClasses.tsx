@@ -8,7 +8,7 @@ import { useConfirm } from '@/admin/hooks/useConfirm';
 import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { classService } from '@/services';
-import { adminApi } from '@/services/adminApiService';
+import { adminService } from '@/services/adminService';
 import type { ClassV2 as Class, Course, Teacher } from '@/types';
 import { CloudAdminService } from '@/services/CloudAdminService';
 import {
@@ -239,13 +239,13 @@ export default function AdminClasses() {
   // 加载关联数据
   const loadRelatedData = async () => {
     try {
-      // 使用 adminApi 获取课程列表
-      const coursesResult = await adminApi.listCourses({}, { limit: 100 });
-      setCourses((coursesResult.data || []) as Course[]);
+      // 使用 adminService 获取课程列表
+      const coursesResult = await adminService.listCourses({ limit: 100 });
+      setCourses((coursesResult.data?.list || []) as Course[]);
       
-      // 使用 adminApi 获取教师列表
-      const teachersResult = await adminApi.listTeachers({ status: 'active' }, { limit: 100 });
-      setTeachers((teachersResult.data || []) as Teacher[]);
+      // 使用 adminService 获取教师列表
+      const teachersResult = await adminService.listTeachers({ limit: 100 });
+      setTeachers((teachersResult.data?.list || []) as Teacher[]);
     } catch (error) {
       console.error('加载关联数据失败:', error);
       // 出错时设置为空数组
@@ -359,8 +359,7 @@ export default function AdminClasses() {
       if (editingClass) {
         await classService.update(editingClass._id!, submitData);
       } else {
-        // @ts-ignore
-        await classService.create(submitData);
+        await (classService as any).create(submitData);
       }
 
       setIsModalOpen(false);

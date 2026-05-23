@@ -798,7 +798,7 @@ export default function PageConfigManagement() {
       { label: '教官团队', path: '/teachers' },
     ],
     copyright: '© 2024 无人机培训中心 版权所有',
-    icp: '京ICP备XXXXXXXX号',
+    icp: (import.meta.env.VITE_ICP_NUMBER as string) || '',
   });
 
   const loadFooter = async () => {

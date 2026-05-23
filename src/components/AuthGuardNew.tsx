@@ -33,8 +33,7 @@ export function AuthGuard({
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, user, isLoading } = useAuthStore();
-  // @ts-ignore
-  const { hasPermission } = usePermission();
+  const { hasPermission } = usePermission() as any;
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {

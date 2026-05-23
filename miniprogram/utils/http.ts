@@ -446,8 +446,8 @@ export async function callApiOrder(action: string, data?: any) {
 }
 
 /**
- * 调用 mobile-learning 云函数
+ * 调用 api-course 云函数
  */
-export async function callMobileLearning(action: string, data?: any) {
-  return request<any>('/mobile-learning', 'POST', { action, data })
+export async function callApiCourse(action: string, data?: any) {
+  return request<any>('/api-course', 'POST', { action, data })
 }

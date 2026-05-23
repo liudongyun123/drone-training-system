@@ -24,6 +24,7 @@ interface DashboardStats {
   // ★ 历史对比数据（真实趋势）
   yesterdayStudents: number;
   yesterdayOrders: number;
+  yesterdayCourses: number;
   lastWeekRevenue: number;
   // ★ 会员来源统计
   memberSourceStats: {
@@ -63,6 +64,7 @@ export default function AdminDashboard() {
     // ★ 历史对比数据（真实趋势）
     yesterdayStudents: 0,
     yesterdayOrders: 0,
+    yesterdayCourses: 0,
     lastWeekRevenue: 0,
     // ★ 会员来源统计
     memberSourceStats: {
@@ -178,6 +180,10 @@ export default function AdminDashboard() {
         const orderDate = parseDate(o.createdAt);
         return orderDate !== null && orderDate >= yesterday && orderDate < today;
       });
+      const yesterdayCourses = coursesList.filter((c: any) => {
+        const courseDate = parseDate(c.createdAt);
+        return courseDate !== null && courseDate >= yesterday && courseDate < today;
+      });
 
       // 上周同期数据（上周同一时间段）
       const lastWeekStart = new Date(weekAgo);
@@ -209,6 +215,7 @@ export default function AdminDashboard() {
         // ★ 真实历史对比数据
         yesterdayStudents: yesterdayEnrollments.length,
         yesterdayOrders: yesterdayOrders.length,
+        yesterdayCourses: yesterdayCourses.length,
         lastWeekRevenue,
         // ★ 会员来源统计
         memberSourceStats,
@@ -289,7 +296,7 @@ export default function AdminDashboard() {
         title: c.title,
         students: c.students || c.enrollmentCount || 0,
         revenue: (c.price || 0) * (c.students || c.enrollmentCount || 0),
-        rating: c.rating || 4.5,
+        rating: c.rating || 0,  // 无评分显示 0，不显示虚假高分
       })));
     } catch (error) {
       console.error('加载仪表板数据失败:', error);
@@ -359,7 +366,7 @@ export default function AdminDashboard() {
       value: stats.totalCourses, 
       icon: BookOpen, 
       color: 'green',
-      trend: { value: 0, up: true },
+      trend: calcTrend(stats.totalCourses, stats.yesterdayCourses),
       subtitle: '所有课程',
       detail: '课程总数稳定'
     },
@@ -565,7 +572,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="font-medium text-slate-800">¥{course.revenue}</p>
-                    <p className="text-xs text-amber-500">★ {course.rating}</p>
+                    {course.rating > 0 && <p className="text-xs text-amber-500">★ {course.rating}</p>}
                   </div>
                 </div>
               ))}

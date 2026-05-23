@@ -51,14 +51,15 @@ interface SystemConfig {
 export default function SystemSettings() {
   const [tabValue, setTabValue] = useState(0)
   const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(true)
 
   const [config, setConfig] = useState<SystemConfig>({
     basic: {
-      siteName: '在线学习平台',
+      siteName: '',
       siteLogo: '',
-      siteUrl: 'https://example.com',
-      adminEmail: 'admin@example.com',
-      icp: 'ICP备案号',
+      siteUrl: '',
+      adminEmail: '',
+      icp: '',
     },
     security: {
       enableCaptcha: true,
@@ -71,20 +72,59 @@ export default function SystemSettings() {
       uploadMaxSize: 100,
       allowedFormats: 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
       storageType: 'qcloud',
-      cdnDomain: 'cdn.example.com',
+      cdnDomain: '',
     },
     notification: {
       enableEmail: true,
-      emailSmtp: 'smtp.example.com',
+      emailSmtp: '',
       emailPort: 587,
-      emailUsername: 'noreply@example.com',
+      emailUsername: '',
       enableSms: true,
       smsProvider: 'qcloud',
     },
   })
 
-  const handleSave = () => {
-    setSuccess('配置保存成功!')
+  useEffect(() => {
+    loadConfig()
+  }, [])
+
+  const loadConfig = async () => {
+    try {
+      setLoading(true)
+      const { adminService } = await import('../../services/adminService')
+      const result = await adminService.list('system_config', { type: 'settings' }, { limit: 1 })
+      const data = result?.data?.list?.[0] || result?.data?.[0]
+      if (data) {
+        setConfig(prev => ({
+          basic: data.basic || prev.basic,
+          security: data.security || prev.security,
+          storage: data.storage || prev.storage,
+          notification: data.notification || prev.notification,
+        }))
+      }
+    } catch (error) {
+      console.error('加载系统配置失败:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      const { adminService } = await import('../../services/adminService')
+      // 尝试更新已有配置，若不存在则创建
+      const listResult = await adminService.list('system_config', { type: 'settings' }, { limit: 1 })
+      const existing = listResult?.data?.list?.[0] || listResult?.data?.[0]
+      if (existing?._id) {
+        await adminService.update('system_config', existing._id, { ...config, type: 'settings' })
+      } else {
+        await adminService.add('system_config', { ...config, type: 'settings' })
+      }
+      setSuccess('配置保存成功!')
+    } catch (error) {
+      console.error('保存配置失败:', error)
+      setSuccess('保存失败，请重试')
+    }
     setTimeout(() => setSuccess(''), 3000)
   }
 

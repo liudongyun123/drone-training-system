@@ -13,7 +13,7 @@ import {
 import { CloudOrderService } from '@/services/CloudOrderService';
 import { useAuthStore } from '@/store/authStore';
 import { Loading, EmptyState } from '@/components';
-import { app } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 import { getUserPhone } from '@/utils/userQuery';
 
 interface OrderItem {
@@ -80,43 +80,34 @@ export default function MyOrdersPage() {
       console.log('[MyOrdersPage] 获取到购买订单:', userOrders.length, '条');
       
       // 处理订单数据，支持新旧格式
-      const processedOrders: Order[] = userOrders.map(o => ({
+      const processedOrders: Order[] = userOrders.map(o => {
+        const oa = o as any
+        return {
         id: o.id || o._id,
         _id: o.id || o._id,
         orderNo: o.id || o._id,
         items: o.items,
-        // @ts-ignore
-        total: o.total || (o as any).totalAmount || (o as any).amount,
-        courseId: (o as any).courseId,
-        courseName: (o as any).courseName,
-        courseCover: (o as any).courseCover,
-        // @ts-ignore
-        price: o.total || (o as any).price || (o as any).amount || 0,
+        total: o.total || oa.totalAmount || oa.amount,
+        courseId: oa.courseId,
+        courseName: oa.courseName,
+        courseCover: oa.courseCover,
+        price: o.total || oa.price || oa.amount || 0,
         status: o.status,
         paymentMethod: o.paymentMethod,
         createdAt: o.createdAt,
         paidAt: o.paidAt,
         isEnrollment: false,
-      }));
+      }
+    });
       
       // 2. 获取线下报班记录 - 统一使用 phone 查询
       try {
         // ★ 统一使用 phone 查询
         const query = { phone: phone };
         
-        const regResult: any = await new Promise((resolve, reject) => {
-          app.callFunction({
-            name: 'admin',
-            data: {
-              action: 'list',
-              collection: 'registrations',
-              query: query
-            }
-          }).then(res => resolve(res)).catch(reject);
-        });
+        const regResult = await adminService.listWithOps('registrations', query, { limit: 100 });
         
-        const regResponse = regResult?.result || regResult;
-        const registrations = regResponse?.data || [];
+        const registrations = regResult?.data?.list || [];
         console.log('[MyOrdersPage] 获取到报班记录:', registrations.length, '条', registrations);
         
         // 将报班记录转换为订单格式
@@ -128,19 +119,9 @@ export default function MyOrdersPage() {
           
           if (reg.classId) {
             try {
-              const classResult: any = await new Promise((resolve, reject) => {
-                app.callFunction({
-                  name: 'admin',
-                  data: {
-                    action: 'get',
-                    collection: 'classes',
-                    docId: reg.classId
-                  }
-                }).then(res => resolve(res)).catch(reject);
-              });
+              const classResult = await adminService.get('classes', reg.classId);
               
-              const classResponse = classResult?.result || classResult;
-              const classData = classResponse?.data;
+              const classData = classResult?.data;
               console.log('[MyOrdersPage] 班级详情:', classData);
               
               if (classData) {
@@ -289,8 +270,7 @@ export default function MyOrdersPage() {
           ].map((stat) => (
             <button
               key={stat.label}
-              // @ts-ignore
-              onClick={() => setFilter(stat.filter)}
+              onClick={() => setFilter(stat.filter as any)}
               className={`p-4 rounded-xl text-left transition-all ${
                 filter === stat.filter
                   ? 'bg-blue-600 text-white'
@@ -305,8 +285,8 @@ export default function MyOrdersPage() {
 
         {/* 订单列表 */}
         {filteredOrders.length === 0 ? (
-          // @ts-ignore
-          <EmptyState 
+          <EmptyState
+            {...({} as any)}
             message="暂无订单" 
             description="您还没有购买任何课程，快去浏览课程吧"
           >

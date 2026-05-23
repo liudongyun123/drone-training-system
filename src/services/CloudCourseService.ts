@@ -1,15 +1,8 @@
 /**
- * @deprecated 此服务已废弃，建议迁移到 courseApi (from '@/shared/services/courseApi')
+ * 课程数据服务（Web 端）
  * 
- * 注意：courseApi 提供更强大的功能：
- * - getList(filters): 支持分页、筛选、排序
- * - getDetail(courseId): 获取课程详情（含章节）
- * - getHotCourses(limit): 热门课程
- * - getRecommendedCourses(category): 推荐课程
- * - getCategories(): 分类列表
- * 
- * ★ Stage 3 迁移：数据库操作统一走 HTTP → adminService → db-init 云函数
- * 此服务保留用于向后兼容，将在后续版本中删除
+ * 通过 adminService → db-init 云函数访问数据库
+ * 提供课程列表、详情、搜索、分类筛选等功能
  */
 
 import { adminService } from './adminService'

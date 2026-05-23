@@ -3,6 +3,7 @@
 
 import { initCloud } from './utils/cloudbase'
 import logger from './utils/logger'
+import { PRIVACY_POPUP_CONTENT } from './utils/constants'
 
 interface IAppOption {
   globalData: {
@@ -111,7 +112,7 @@ App<IAppOption>({
     
     wx.showModal({
       title: '用户隐私政策',
-      content: '欢迎使用无人机培训系统！\n\n我们重视您的隐私保护。在使用本小程序时，我们可能需要获取以下信息：\n\n• 微信昵称和头像：用于个人中心展示\n• 手机号：用于身份验证和课程服务\n• 照片/相册：用于上传个人头像\n\n我们承诺不会将您的个人信息泄露给第三方。\n\n点击"同意"即表示您同意上述隐私政策。',
+      content: PRIVACY_POPUP_CONTENT,
       confirmText: '同意',
       cancelText: '不同意',
       success: (res) => {

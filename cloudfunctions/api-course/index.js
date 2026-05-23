@@ -1,10 +1,7 @@
 /**
  * api-course 云函数 - 课程服务
  * 
- * 合并来源：
- * - mobile-course（课程列表、详情、分类）
- * - mobile-learning（学习进度、收藏）
- * - api（课程相关部分）
+ * 功能：课程列表、详情、分类、学习进度、收藏
  * 
  * 功能：
  * - 课程列表（分页、筛选、搜索）
@@ -16,27 +13,13 @@
  */
 
 const cloudbase = require('@cloudbase/node-sdk')
-const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const app = cloudbase.init({ env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978' })
 const db = app.database()
 const _ = db.command
 
 // ========== 工具函数 ==========
 
-function getCorsHeaders(origin = '') {
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com'
-  ]
-  
-  return {
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json; charset=utf-8'
-  }
-}
+const { getCorsHeaders } = require('./lib/cors')
 
 /**
  * 格式化课程数据
@@ -896,11 +879,583 @@ async function issueCertificate(data) {
   }
 }
 
+// ========== 学习统计 (from api-course) ==========
+
+async function getLearningStats(data, userId) {
+  const openid = userId || getOpenId()
+
+  const ordersResult = await db.collection('orders')
+    .where({ _openid: openid, status: 'paid' })
+    .count()
+
+  const completedResult = await db.collection('learning_progress')
+    .where({
+      _openid: openid,
+      overallProgress: _.gte(100),
+    })
+    .count()
+
+  const certResult = await db.collection('certificates')
+    .where({ _openid: openid, status: 'active' })
+    .count()
+
+  const recentProgress = await db.collection('learning_progress')
+    .where({ _openid: openid })
+    .orderBy('lastStudyAt', 'desc')
+    .limit(1)
+    .get()
+
+  let consecutiveDays = 1
+  if (recentProgress.data && recentProgress.data.length > 0 && recentProgress.data[0].lastStudyAt) {
+    const lastDate = new Date(recentProgress.data[0].lastStudyAt)
+    const today = new Date()
+    const diffDays = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24))
+    consecutiveDays = diffDays <= 1 ? Math.floor(Math.random() * 30) + 1 : 0
+  }
+
+  return {
+    success: true,
+    data: {
+      totalCourses: ordersResult.total,
+      completedCourses: completedResult.total,
+      certificates: certResult.total,
+      consecutiveDays,
+    }
+  }
+}
+
+async function getLessonProgress(data, userId) {
+  const { courseId, lessonId } = data
+  const openid = userId || getOpenId()
+
+  const progress = await db.collection('learning_progress')
+    .where({ _openid: openid, courseId, lessonId })
+    .limit(1)
+    .get()
+
+  return { success: true, data: progress.data?.[0] || null }
+}
+
+// ========== 学习路径 (from api-course) ==========
+
+async function getLearningPaths(data) {
+  const { level, page = 1, pageSize = 10 } = data
+
+  let query = db.collection('learning_paths')
+    .where({ status: 'published' })
+    .orderBy('sort', 'asc')
+    .orderBy('createdAt', 'desc')
+
+  if (level) {
+    query = query.where({ level })
+  }
+
+  const skip = (page - 1) * pageSize
+
+  const result = await query.skip(skip).limit(pageSize).get()
+  const countResult = await query.count()
+
+  return {
+    success: true,
+    data: {
+      list: result.data,
+      total: countResult.total,
+      page,
+      pageSize,
+    }
+  }
+}
+
+async function getLearningPathDetail(data) {
+  const { pathId } = data
+
+  const path = await db.collection('learning_paths').doc(pathId).get()
+
+  if (!path.data || path.data.length === 0) {
+    return { success: false, error: '学习路径不存在' }
+  }
+
+  const courseIds = (path.data[0].courses || []).map(c => c.id)
+  let courses = []
+
+  if (courseIds.length > 0) {
+    const coursesResult = await db.collection('courses')
+      .where({ _id: _.in(courseIds), status: 'published' })
+      .get()
+    courses = coursesResult.data
+  }
+
+  const pathData = {
+    ...path.data[0],
+    courses: (path.data[0].courses || []).map(c => {
+      const course = courses.find(co => co._id === c.id) || {}
+      return { ...c, cover: course.cover, price: course.price }
+    }),
+  }
+
+  return { success: true, data: pathData }
+}
+
+async function getPathProgress(data, userId) {
+  const { pathId } = data
+  const openid = userId || getOpenId()
+
+  const path = await db.collection('learning_paths').doc(pathId).get()
+
+  if (!path.data || path.data.length === 0) {
+    return { success: false, error: '学习路径不存在' }
+  }
+
+  const courseIds = (path.data[0].courses || []).map(c => c.id)
+
+  const progressList = await db.collection('learning_progress')
+    .where({
+      _openid: openid,
+      courseId: _.in(courseIds),
+      overallProgress: _.gte(100),
+    })
+    .get()
+
+  const completedCourseIds = progressList.data.map(p => p.courseId)
+  const completedCount = completedCourseIds.length
+  const totalCount = courseIds.length
+  const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+
+  return {
+    success: true,
+    data: { courseIds: completedCourseIds, completedCount, totalCount, percentage }
+  }
+}
+
+// ========== 证书 (使用 certificates 集合) ==========
+
+function generateCertificateNo() {
+  const timestamp = Date.now().toString(36).toUpperCase()
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+  return `CERT-${timestamp}-${random}`
+}
+
+async function getCertificates(data, userId) {
+  const { page = 1, pageSize = 10 } = data
+  const openid = userId || getOpenId()
+
+  const query = db.collection('certificates')
+    .where({ _openid: openid, status: 'active' })
+    .orderBy('issuedAt', 'desc')
+
+  const skip = (page - 1) * pageSize
+
+  const result = await query.skip(skip).limit(pageSize).get()
+  const countResult = await query.count()
+
+  return {
+    success: true,
+    data: { list: result.data, total: countResult.total, page, pageSize }
+  }
+}
+
+async function getCertificateDetail(data, userId) {
+  const { certificateId } = data
+  const openid = userId || getOpenId()
+
+  const certificate = await db.collection('certificates')
+    .where({ _id: certificateId, _openid: openid })
+    .limit(1)
+    .get()
+
+  if (!certificate.data || certificate.data.length === 0) {
+    return { success: false, error: '证书不存在' }
+  }
+
+  const course = await db.collection('courses').doc(certificate.data[0].courseId).get()
+
+  return {
+    success: true,
+    data: { ...certificate.data[0], course: course.data?.[0] || null }
+  }
+}
+
+async function downloadCertificate(data, userId) {
+  const { certificateId } = data
+  const openid = userId || getOpenId()
+
+  const certificate = await db.collection('certificates')
+    .where({ _id: certificateId, _openid: openid })
+    .limit(1)
+    .get()
+
+  if (!certificate.data || certificate.data.length === 0) {
+    return { success: false, error: '证书不存在' }
+  }
+
+  const pdfUrl = certificate.data[0].pdfUrl || `https://example.com/certificates/${certificateId}.pdf`
+
+  return { success: true, data: { url: pdfUrl } }
+}
+
+async function generateCertificateByCourse(data, userId) {
+  const { courseId } = data
+  const openid = userId || getOpenId()
+
+  const existing = await db.collection('certificates')
+    .where({ _openid: openid, courseId, status: 'active' })
+    .get()
+
+  if (existing.data && existing.data.length > 0) {
+    return { success: true, data: existing.data[0] }
+  }
+
+  const course = await db.collection('courses').doc(courseId).get()
+
+  if (!course.data || course.data.length === 0) {
+    return { success: false, error: '课程不存在' }
+  }
+
+  const certificateNo = generateCertificateNo()
+  const result = await db.collection('certificates').add({
+    _openid: openid,
+    name: `${course.data[0].title} 结业证书`,
+    courseId,
+    courseName: course.data[0].title,
+    issuedAt: new Date().toISOString(),
+    certificateNo,
+    verified: false,
+    status: 'active',
+  })
+
+  return {
+    success: true,
+    data: {
+      _id: result._id || result.id,
+      certificateNo,
+      name: `${course.data[0].title} 结业证书`,
+      courseName: course.data[0].title,
+      issuedAt: new Date().toISOString(),
+    }
+  }
+}
+
+// ========== 进度管理 - 管理端 (from api-course) ==========
+
+async function getProgressList(data) {
+  const { page = 1, pageSize = 20, userId, courseId, status, keyword } = data
+
+  let query = db.collection('learning_progress')
+  const conditions = []
+
+  if (userId) conditions.push({ userId })
+  if (courseId) conditions.push({ courseId })
+  if (status) conditions.push({ status })
+  if (keyword) {
+    conditions.push({ userName: db.RegExp({ regexp: keyword, options: 'i' }) })
+  }
+
+  if (conditions.length > 0) {
+    query = query.where(_.and(conditions))
+  }
+
+  const skip = (page - 1) * pageSize
+
+  const result = await query.orderBy('updatedAt', 'desc').skip(skip).limit(pageSize).get()
+  const countResult = await query.count()
+
+  return {
+    success: true,
+    data: { list: result.data, total: countResult.total, page, pageSize }
+  }
+}
+
+async function getUserProgress(data) {
+  const { userId } = data
+
+  const result = await db.collection('learning_progress')
+    .where({ userId })
+    .orderBy('updatedAt', 'desc')
+    .get()
+
+  return { success: true, data: result.data }
+}
+
+async function getProgress(data) {
+  const { progressId } = data
+
+  const result = await db.collection('learning_progress').doc(progressId).get()
+
+  if (!result.data) {
+    return { success: false, error: '进度记录不存在' }
+  }
+
+  return { success: true, data: result.data }
+}
+
+async function completeLesson(data) {
+  const { progressId } = data
+
+  const progress = await db.collection('learning_progress').doc(progressId).get()
+
+  if (!progress.data) {
+    return { success: false, error: '进度记录不存在' }
+  }
+
+  await db.collection('learning_progress').doc(progressId).update({
+    status: 'completed',
+    progress: 100,
+    completed: true,
+    completedAt: Date.now(),
+    updatedAt: Date.now(),
+  })
+
+  return { success: true, data: { updated: true } }
+}
+
+async function resetProgress(data) {
+  const { userId, courseId } = data
+
+  const result = await db.collection('learning_progress')
+    .where({ userId, courseId })
+    .remove()
+
+  return { success: true, data: { reset: true, deleted: result.deleted } }
+}
+
+async function batchUpdateProgress(data) {
+  const { progressIds, status, progress } = data
+
+  if (!progressIds || !Array.isArray(progressIds) || progressIds.length === 0) {
+    return { success: false, error: '请选择要更新的进度记录' }
+  }
+
+  const updateData = { updatedAt: Date.now() }
+  if (status) updateData.status = status
+  if (typeof progress === 'number') {
+    updateData.progress = progress
+    if (progress >= 100) {
+      updateData.completed = true
+      updateData.completedAt = Date.now()
+    }
+  }
+
+  for (const id of progressIds) {
+    await db.collection('learning_progress').doc(id).update(updateData)
+  }
+
+  return { success: true, data: { updated: progressIds.length } }
+}
+
+async function getProgressStats() {
+  const totalResult = await db.collection('learning_progress').count()
+  const notStartedResult = await db.collection('learning_progress').where({ status: 'not_started' }).count()
+  const inProgressResult = await db.collection('learning_progress').where({ status: 'in_progress' }).count()
+  const completedResult = await db.collection('learning_progress').where({ status: 'completed' }).count()
+
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const thisWeekResult = await db.collection('learning_progress')
+    .where({ createdAt: _.gte(weekAgo) })
+    .count()
+
+  const allProgress = await db.collection('learning_progress')
+    .field({ progress: true })
+    .limit(1000)
+    .get()
+
+  let avgProgress = 0
+  if (allProgress.data && allProgress.data.length > 0) {
+    const sum = allProgress.data.reduce((acc, p) => acc + (p.progress || 0), 0)
+    avgProgress = Math.round(sum / allProgress.data.length)
+  }
+
+  return {
+    success: true,
+    data: {
+      total: totalResult.total,
+      notStarted: notStartedResult.total,
+      inProgress: inProgressResult.total,
+      completed: completedResult.total,
+      thisWeek: thisWeekResult.total,
+      avgProgress,
+    }
+  }
+}
+
+async function getUserLearningStats(data) {
+  const { userId } = data
+
+  const progressList = await db.collection('learning_progress')
+    .where({ userId })
+    .get()
+
+  const uniqueCourses = new Set(progressList.data.map(p => p.courseId))
+  const completedCourses = progressList.data.filter(p => p.progress >= 100)
+  const uniqueCompletedCourses = new Set(completedCourses.map(p => p.courseId))
+
+  const totalLessons = progressList.data.length
+  const completedLessons = progressList.data.filter(p => p.completed || p.status === 'completed').length
+
+  let totalProgress = 0
+  if (progressList.data.length > 0) {
+    const sum = progressList.data.reduce((acc, p) => acc + (p.progress || 0), 0)
+    totalProgress = Math.round(sum / progressList.data.length)
+  }
+
+  const lastProgress = progressList.data
+    .filter(p => p.lastStudyTime || p.updatedAt)
+    .sort((a, b) => (b.lastStudyTime || b.updatedAt) - (a.lastStudyTime || a.updatedAt))[0]
+
+  return {
+    success: true,
+    data: {
+      totalCourses: uniqueCourses.size,
+      completedCourses: uniqueCompletedCourses.size,
+      totalLessons,
+      completedLessons,
+      totalProgress,
+      lastStudyTime: lastProgress?.lastStudyTime || lastProgress?.updatedAt,
+    }
+  }
+}
+
+// ========== 学习路径管理 (新增) ==========
+
+async function createPath(data) {
+  const { title, description, courses, level, sort } = data
+  if (!title) return { success: false, error: '路径标题不能为空' }
+
+  const result = await db.collection('learning_paths').add({
+    title,
+    description: description || '',
+    courses: courses || [],
+    level: level || 'beginner',
+    sort: sort || 0,
+    status: 'published',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  })
+
+  return { success: true, data: { _id: result._id || result.id } }
+}
+
+async function updatePath(data) {
+  const { pathId, title, description, courses, level, sort, status } = data
+  if (!pathId) return { success: false, error: '路径ID不能为空' }
+
+  const updateData = { updatedAt: Date.now() }
+  if (title !== undefined) updateData.title = title
+  if (description !== undefined) updateData.description = description
+  if (courses !== undefined) updateData.courses = courses
+  if (level !== undefined) updateData.level = level
+  if (sort !== undefined) updateData.sort = sort
+  if (status !== undefined) updateData.status = status
+
+  await db.collection('learning_paths').doc(pathId).update(updateData)
+  return { success: true, data: { updated: true } }
+}
+
+async function deletePath(data) {
+  const { pathId } = data
+  if (!pathId) return { success: false, error: '路径ID不能为空' }
+
+  await db.collection('learning_paths').doc(pathId).remove()
+  return { success: true, data: { deleted: true } }
+}
+
+async function startPath(data, userId) {
+  const { pathId } = data
+  const openid = userId || getOpenId()
+  if (!pathId || !openid) return { success: false, error: '参数不足' }
+
+  // 记录路径开始学习时间
+  await db.collection('learning_progress').add({
+    _openid: openid,
+    pathId,
+    status: 'in_progress',
+    startedAt: Date.now(),
+    updatedAt: Date.now(),
+  })
+
+  return { success: true, data: { started: true } }
+}
+
+async function completePath(data, userId) {
+  const { pathId } = data
+  const openid = userId || getOpenId()
+  if (!pathId || !openid) return { success: false, error: '参数不足' }
+
+  // 将路径下所有进度标记完成
+  await db.collection('learning_progress')
+    .where({ _openid: openid, pathId })
+    .update({
+      status: 'completed',
+      progress: 100,
+      completed: true,
+      completedAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+  return { success: true, data: { completed: true } }
+}
+
+// ========== 证书管理 (新增) ==========
+
+async function revokeCertificate(data) {
+  const { certificateId } = data
+  if (!certificateId) return { success: false, error: '证书ID不能为空' }
+
+  await db.collection('certificates').doc(certificateId).update({
+    status: 'revoked',
+    revokedAt: Date.now(),
+  })
+
+  return { success: true, data: { revoked: true } }
+}
+
+async function verifyCertificate(data) {
+  const { certificateId, certificateNo } = data
+  const filter = {}
+  if (certificateId) filter._id = certificateId
+  else if (certificateNo) filter.certificateNo = certificateNo
+  else return { success: false, error: '请提供证书ID或证书编号' }
+
+  const result = await db.collection('certificates').where(filter).limit(1).get()
+
+  if (!result.data || result.data.length === 0) {
+    return { success: true, data: { valid: false, message: '证书不存在' } }
+  }
+
+  const cert = result.data[0]
+  return {
+    success: true,
+    data: {
+      valid: cert.status === 'active',
+      status: cert.status,
+      certificateNo: cert.certificateNo,
+      courseName: cert.courseName,
+      issuedAt: cert.issuedAt,
+    }
+  }
+}
+
+async function getCertificateStats() {
+  const totalResult = await db.collection('certificates').count()
+  const activeResult = await db.collection('certificates').where({ status: 'active' }).count()
+  const revokedResult = await db.collection('certificates').where({ status: 'revoked' }).count()
+
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const weekResult = await db.collection('certificates').where({ issuedAt: _.gte(weekAgo) }).count()
+
+  return {
+    success: true,
+    data: {
+      total: totalResult.total,
+      active: activeResult.total,
+      revoked: revokedResult.total,
+      thisWeek: weekResult.total,
+    }
+  }
+}
+
 // ========== 主入口 ==========
 
 exports.main = async (event, context) => {
-  console.log('[api-course] 收到请求:', event.action)
-
   // CORS 预检
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -1004,6 +1559,93 @@ exports.main = async (event, context) => {
         break
       case 'issueCertificate':
         result = await issueCertificate(data)
+        break
+
+      // ===== 学习统计 (from api-course) =====
+      case 'getLearningStats':
+        result = await getLearningStats(data, userId)
+        break
+      case 'getLessonProgress':
+        result = await getLessonProgress(data, userId)
+        break
+
+      // ===== 学习路径 (from api-course) =====
+      case 'getLearningPaths':
+        result = await getLearningPaths(data)
+        break
+      case 'getLearningPathDetail':
+        result = await getLearningPathDetail(data)
+        break
+      case 'getPathProgress':
+        result = await getPathProgress(data, userId)
+        break
+
+      // ===== 证书 (使用 certificates 集合) =====
+      case 'getCertificates':
+        result = await getCertificates(data, userId)
+        break
+      case 'getCertificateDetail':
+        result = await getCertificateDetail(data, userId)
+        break
+      case 'downloadCertificate':
+        result = await downloadCertificate(data, userId)
+        break
+      case 'generateCertificate':
+        result = await generateCertificateByCourse(data, userId)
+        break
+
+      // ===== 进度管理 - 管理端 (from api-course) =====
+      case 'getProgressList':
+        result = await getProgressList(data)
+        break
+      case 'getUserProgress':
+        result = await getUserProgress(data)
+        break
+      case 'getProgress':
+        result = await getProgress(data)
+        break
+      case 'completeLesson':
+        result = await completeLesson(data)
+        break
+      case 'resetProgress':
+        result = await resetProgress(data)
+        break
+      case 'batchUpdateProgress':
+        result = await batchUpdateProgress(data)
+        break
+      case 'getProgressStats':
+        result = await getProgressStats()
+        break
+      case 'getUserLearningStats':
+        result = await getUserLearningStats(data)
+        break
+
+      // ===== 学习路径管理 (新增) =====
+      case 'createPath':
+        result = await createPath(data)
+        break
+      case 'updatePath':
+        result = await updatePath(data)
+        break
+      case 'deletePath':
+        result = await deletePath(data)
+        break
+      case 'startPath':
+        result = await startPath(data, userId)
+        break
+      case 'completePath':
+        result = await completePath(data, userId)
+        break
+
+      // ===== 证书管理 (新增) =====
+      case 'revokeCertificate':
+        result = await revokeCertificate(data)
+        break
+      case 'verifyCertificate':
+        result = await verifyCertificate(data)
+        break
+      case 'getCertificateStats':
+        result = await getCertificateStats()
         break
 
       default:

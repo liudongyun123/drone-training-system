@@ -4,6 +4,7 @@
 import { courseApi } from '../../utils/api'
 import { SourceService } from '../../utils/SourceService'
 import logger from '../../utils/logger'
+import { DEFAULT_COVER } from '../../utils/constants'
 
 Page({
   data: {
@@ -281,7 +282,7 @@ Page({
     const index = e.currentTarget.dataset.index
     const courses = this.data.courses
     if (courses[index]) {
-      courses[index].coverImage = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      courses[index].coverImage = DEFAULT_COVER
       this.setData({ courses })
     }
   }

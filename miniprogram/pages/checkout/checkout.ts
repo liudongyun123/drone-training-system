@@ -34,6 +34,9 @@ Page({
   courseId: '',
   openid: '',
 
+  // 运费配置（从后台获取）
+  freightConfig: { freeThreshold: 200, defaultFee: 10 } as { freeThreshold: number; defaultFee: number },
+
   onLoad(options: any) {
     const type = options.type || 'shop'
     wx.setNavigationBarTitle({ title: '确认订单' })
@@ -67,6 +70,9 @@ Page({
 
     // 获取 openid
     this.getUserOpenId()
+
+    // 加载运费配置
+    this.loadFreightConfig()
   },
   
   // 检查用户是否已有课程权限
@@ -93,6 +99,25 @@ Page({
       }
     } catch (err) {
       logger.warn('结算', '获取 openid 失败', err)
+    }
+  },
+
+  // 加载运费配置（从后台 system_config 集合）
+  async loadFreightConfig() {
+    try {
+      const result = await dbGetList('system_config', {
+        where: { type: 'freight' },
+        limit: 1
+      })
+      const config = (result.data || [])[0]
+      if (config) {
+        this.freightConfig = {
+          freeThreshold: config.freeThreshold || 200,
+          defaultFee: config.defaultFee || 10
+        }
+      }
+    } catch (err) {
+      logger.warn('结算', '加载运费配置失败，使用默认值', err)
     }
   },
 
@@ -126,7 +151,7 @@ Page({
       const price = item.sku?.price || item.product?.price || 0
       total += price * item.quantity
     })
-    const freight = total > 200 ? 0 : 10 // 满200包邮
+    const freight = total > this.freightConfig.freeThreshold ? 0 : this.freightConfig.defaultFee // 使用后台运费配置
     this.setData({
       items: items,
       totalAmount: total.toFixed(2),
@@ -329,10 +354,14 @@ Page({
         orderId = orderRes.data._id
       } else if (orderRes?.data?.id) {
         orderId = orderRes.data.id
+      } else if (orderRes?.data?.orderNo) {
+        orderId = orderRes.data.orderNo
       } else if (orderRes?._id) {
         orderId = orderRes._id
       } else if (orderRes?.id) {
         orderId = orderRes.id
+      } else if (orderRes?.orderNo) {
+        orderId = orderRes.orderNo
       } else if (typeof orderRes === 'string') {
         orderId = orderRes
       }
@@ -376,12 +405,14 @@ Page({
     const userId = getUserId() || ''
     // 使用已绑定的手机号
     const phone = this.checkPhoneBound() || this.data.address.phone || ''
-    logger.debug('Checkout.buildOrderData', 'phone:', phone, 'type:', this.data.type)
+    const openid = wx.getStorageSync('openid') || ''
+    logger.debug('Checkout.buildOrderData', 'phone:', phone, 'openid:', openid, 'type:', this.data.type)
     const orderNo = `ORD${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`
     
     const orderData: any = {
       orderNo,
       phone,
+      openid,  // ★ 添加 openid，确保数据关联
       userId,
       orderType: this.data.type,
       status: 'pending',
@@ -442,7 +473,7 @@ Page({
         openid: openid
       })
       
-      logger.debug('Checkout', 'wechat-pay 返回:', JSON.stringify(result))
+      logger.debug('Checkout', 'api-order 返回:', JSON.stringify(result))
       wx.hideLoading()
       
       if (result.code === 0 && result.data) {
@@ -501,43 +532,6 @@ Page({
       return true
     } catch {
       return false
-    }
-  },
-
-  // 模拟支付成功（开发环境或支付未配置时）
-  async mockPaymentSuccess(orderId: string) {
-    wx.showLoading({ title: '模拟支付中...' })
-
-    try {
-      // 更新订单状态
-      await orderApi.updateStatus(orderId, 'paid')
-
-      // 课程订单：创建学习权限
-      if (this.data.type === 'course' && this.data.courseInfo) {
-        const result = await coursePermissionApi.create(this.data.courseInfo._id, 'purchase')
-        if (result.success) {
-          logger.debug('Checkout', '课程权限创建成功')
-        } else {
-          logger.error('Checkout', '课程权限创建失败:', result.error)
-        }
-      }
-
-      // 培训班订单：创建报名记录
-      if (this.data.type === 'class' && this.data.courseInfo) {
-        await this.createClassEnrollment(this.data.courseInfo._id)
-      }
-
-      wx.hideLoading()
-      wx.showToast({ title: '模拟支付成功', icon: 'success' })
-
-      setTimeout(() => {
-        wx.redirectTo({ url: '/pages/my-orders/my-orders' })
-      }, 1500)
-    } catch (err) {
-      wx.hideLoading()
-      logger.error('Checkout', '模拟支付更新失败', err)
-      // 即使更新失败，也跳转到订单列表
-      wx.redirectTo({ url: '/pages/my-orders/my-orders' })
     }
   },
 

@@ -1,9 +1,7 @@
 /**
  * api-training 云函数 - 培训服务
  * 
- * 合并来源：
- * - mobile-course（班级/报名部分）
- * - class（班级管理）
+ * 功能：班级/报名管理、班级管理
  * - registration（报名）
  * - api（班级相关部分）
  * 
@@ -17,27 +15,13 @@
  */
 
 const cloudbase = require('@cloudbase/node-sdk')
-const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const app = cloudbase.init({ env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978' })
 const db = app.database()
 const _ = db.command
 
 // ========== 工具函数 ==========
 
-function getCorsHeaders(origin = '') {
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com'
-  ]
-  
-  return {
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json; charset=utf-8'
-  }
-}
+const { getCorsHeaders } = require('./lib/cors')
 
 /**
  * 格式化班级数据
@@ -496,8 +480,6 @@ async function getLearningPaths(params = {}) {
 // ========== 主入口 ==========
 
 exports.main = async (event, context) => {
-  console.log('[api-training] 收到请求:', event.action)
-
   // CORS 预检
   if (event.httpMethod === 'OPTIONS') {
     return {

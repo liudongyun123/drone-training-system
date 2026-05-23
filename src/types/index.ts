@@ -109,9 +109,8 @@ export {
   normalizeOrder 
 } from './database'
 
-// 教师类型
-// @ts-ignore
-export { TeacherProfile as Teacher } from './database'
+// 教师类型（从 service 层导出，兼容所有使用者）
+export type { Teacher } from './service'
 
 // 排课相关
 export interface Schedule {
@@ -465,29 +464,23 @@ export interface FilterParams {
 
 // ============ 学员/成员（新版）===========
 // 从 member.ts 导出完整类型
-export {
+export type {
   Member,
-  // @ts-ignore
   MemberType,
   MemberRole,
-  // @ts-ignore
   MemberStatus,
   MemberProfile,
   MemberStats,
   MemberQuery,
   CreateMemberRequest,
   UpdateMemberRequest,
-  // @ts-ignore
-  User,
-  // @ts-ignore
-  Student
 } from './member'
 
 // ============ 报名与班级管理（新增）===========
 export type {
   Registration,
-  Class,
-  ClassSchedule,
+  Class as RegistrationClass,
+  ClassSchedule as RegistrationClassSchedule,
   RegistrationAccess,
   RegistrationPayment,
   RegistrationReview,
@@ -499,19 +492,15 @@ export type {
   CheckVideoAccessResponse,
   RegistrationSource,
   RegistrationStatus,
-  // @ts-ignore
-  ClassStatus,
-  // @ts-ignore
-  ScheduleStatus
+  ClassStatus as RegistrationClassStatus,
+  ScheduleStatus as RegistrationScheduleStatus
 } from './registration'
 
 // ============ 班级管理 v2.0（重构）===========
 export type {
   Class as ClassV2,
   ClassSchedule as ClassScheduleV2,
-  // @ts-ignore
   ClassStatus,
-  // @ts-ignore
   ScheduleStatus,
   CreateClassRequest,
   UpdateClassRequest,
@@ -525,11 +514,9 @@ export type {
 
 // ============ 权限管理 ============
 export type {
-  // @ts-ignore
-  MemberType,
+  MemberType as PermissionMemberType,
   MemberLevel,
-  // @ts-ignore
-  MemberStatus,
+  MemberStatus as PermissionMemberStatus,
   PermissionSource,
   PermissionStatus,
   VideoAccess,

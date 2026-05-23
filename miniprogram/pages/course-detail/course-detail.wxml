@@ -85,7 +85,7 @@
       <view class="section" wx:if="{{course.instructor}}">
         <text class="section-title">👨‍🏫 授课讲师</text>
         <view class="teacher-card">
-          <image class="teacher-avatar" src="{{course.instructorAvatar || 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'}}" mode="aspectFill" />
+          <image class="teacher-avatar" src="{{course.instructorAvatar || defaultCover}}" mode="aspectFill" />
           <view class="teacher-info">
             <text class="teacher-name">{{course.instructor}}</text>
             <text class="teacher-title">{{course.instructorTitle || '资深教官'}}</text>

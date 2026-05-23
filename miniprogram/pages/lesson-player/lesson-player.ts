@@ -2,7 +2,7 @@
 // 课程视频播放页面 - 支持进度同步、断点续播、完成记录
 
 import { showToast } from '../../utils/util'
-import { dbGetList, request } from '../../utils/http'
+import { dbGetList, dbAdd, dbUpdate, request } from '../../utils/http'
 import logger from '../../utils/logger'
 
 // 云存储临时链接缓存
@@ -178,9 +178,15 @@ Page({
           cancelText: '从头播放',
           success: (res) => {
             if (res.confirm) {
-              setTimeout(() => {
-                this.data.videoContext?.seek(watchedDuration)
-              }, 500)
+              // 使用 requestAnimationFrame 等待视频准备好后再 seek
+              const trySeek = () => {
+                if (this.data.videoContext) {
+                  this.data.videoContext.seek(watchedDuration)
+                } else {
+                  setTimeout(trySeek, 100)
+                }
+              }
+              setTimeout(trySeek, 300)
             }
           }
         })
@@ -223,14 +229,15 @@ Page({
     const { courseId, lessonId, currentTime, duration, watchedDuration, _completed } = this.data
     const phone = wx.getStorageSync('phone')
 
-    if (!phone || !courseId || !lessonId || currentTime === 0) return
+    if (!phone || !courseId || !lessonId) return
+    // 允许保存 0 秒进度（用户打开后立即退出的情况也需要记录）
+    if (currentTime === 0 && watchedDuration === 0) return
 
     // 更新本地观看时长（取较大值）
     const newWatchedDuration = Math.max(watchedDuration, currentTime)
     this.setData({ watchedDuration: newWatchedDuration })
 
     try {
-      const { dbAdd, dbUpdate, dbGetList } = require('../../utils/http')
       
       // 查找已有记录
       const existing = await dbGetList('user_progress', {
@@ -299,7 +306,6 @@ Page({
 
     try {
       // 记录完成
-      const { dbUpdate, dbGetList } = require('../../utils/http')
       const existing = await dbGetList('user_progress', {
         where: { phone, courseId, lessonId }
       })
@@ -347,7 +353,6 @@ Page({
       if (!course || !course.certificateTemplate) return
 
       // 颁发证书
-      const { dbAdd, dbGetList } = require('../../utils/http')
       
       // 检查是否已颁发
       const existing = await dbGetList('certificates', {

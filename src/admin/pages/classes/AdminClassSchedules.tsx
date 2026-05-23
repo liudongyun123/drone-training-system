@@ -844,8 +844,7 @@ function AttendanceModal({ schedule, classInfo, onClose }: AttendanceModalProps)
     try {
       // 保存出勤记录到 attendance_records 集合
       for (const record of records) {
-        // @ts-ignore
-        await CloudAdminService.add({
+        await (CloudAdminService.add as any)({
           collection: 'attendance_records',
           data: {
             scheduleId: schedule._id,
@@ -858,13 +857,11 @@ function AttendanceModal({ schedule, classInfo, onClose }: AttendanceModalProps)
           }
         });
       }
-      // @ts-ignore
-      await confirm({ title: '提示', message: '出勤记录已保存', variant: 'info' });
+      await (confirm as any)({ title: '提示', message: '出勤记录已保存', variant: 'info' });
       onClose();
     } catch (error) {
       console.error('保存出勤记录失败:', error);
-      // @ts-ignore
-      await confirm({ title: '提示', message: '保存失败', variant: 'info' });
+      await (confirm as any)({ title: '提示', message: '保存失败', variant: 'info' });
     } finally {
       setSaving(false);
     }

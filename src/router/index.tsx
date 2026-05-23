@@ -247,6 +247,12 @@ const adminRoutes = [
   { path: '/admin/notices', element: adminRoute(() => <NoticeManagement />) }, // 公告管理
   { path: '/admin/messages', element: adminRoute(() => <AdminMessageManagement />) }, // 消息管理
   { path: '/admin/learning-paths', element: adminRoute(() => <Navigate to="/admin/page-config" replace />) }, // 旧学习路径 → 新内容配置
+
+  // 旧路由兼容重定向（侧边栏/面包屑可能引用）
+  { path: '/admin/settings', element: <Navigate to="/admin/site-config" replace /> },
+  { path: '/admin/shop', element: <Navigate to="/admin/products" replace /> },
+  { path: '/admin/registration-audit', element: <Navigate to="/admin/registrations" replace /> },
+  { path: '/admin/certificate-registration', element: <Navigate to="/admin/certificates" replace /> },
 ];
 
 const router = createHashRouter([

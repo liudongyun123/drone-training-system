@@ -36,8 +36,7 @@ import { pageConfigService, defaultPageConfig } from '@/services/pageConfigServi
 import type { HeroConfig, StatItem, FeatureItem, FooterConfig } from '@/services/pageConfigService';
 import { CloudBannerAdminService } from '@/services/CloudAdminService';
 import { featuredCourseService } from '@/services/featuredCourseService';
-import { featuredClassService } from '@/services/featuredClassService';
-import { featuredPathService } from '@/services/featuredPathService';
+import { featuredClassService, featuredPathService } from '@/services/featuredCourseService';
 import { CloudNoticeService } from '@/services/CloudNoticeService';
 import { categoryService } from '@/services/categoryService';
 import type { Course } from '@/types';

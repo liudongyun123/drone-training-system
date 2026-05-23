@@ -6,17 +6,12 @@
 
 const crypto = require('crypto')
 const cloudbase = require('@cloudbase/node-sdk')
-const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const app = cloudbase.init({ env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978' })
 const db = app.database()
 const _ = db.command
 
 // CORS 响应头
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Content-Type': 'application/json; charset=utf-8'
-}
+const { corsHeaders } = require('./lib/cors')
 
 // 统一返回格式
 function createResponse(data, statusCode = 200) {
@@ -38,6 +33,8 @@ const WX_PAY_CONFIG = {
   MCH_ID: process.env.WX_MCH_ID || '1726655499',
   API_KEY: process.env.WX_API_KEY || '',
   NOTIFY_URL: process.env.WX_NOTIFY_URL || 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com/api-order',
+  PRIVATE_KEY: (process.env.WX_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+  CERT_SERIAL_NO: process.env.WX_CERT_SERIAL_NO || '',
 }
 const WX_PAY_BASE = 'https://api.mch.weixin.qq.com'
 
@@ -46,10 +43,62 @@ function generateNonceStr(length = 32) {
   return crypto.randomBytes(length).toString('hex').slice(0, length)
 }
 
-// HTTP 请求封装
+// CloudBase doc().get() 返回格式可能为 { data: { _id, data: {...} } } 或 { data: [{ _id, data: {...} }] }
+function getDocData(docResult) {
+  if (!docResult || !docResult.data) return null
+  const data = docResult.data
+  // 兼容数组格式
+  if (Array.isArray(data)) {
+    if (data.length === 0) return null
+    return data[0].data || data[0]
+  }
+  // 兼容对象格式
+  return data.data || data
+}
+
+// 微信支付 v3 RSA-SHA256 签名（用于调起支付参数）
+function signWithRSA(data) {
+  const sign = crypto.createSign('RSA-SHA256')
+  sign.update(data)
+  sign.end()
+  return sign.sign(WX_PAY_CONFIG.PRIVATE_KEY, 'base64')
+}
+
+// 生成微信支付 v3 HTTP 请求的 Authorization 头
+function getWxPayAuth(method, urlPath, body) {
+  const nonceStr = generateNonceStr(32)
+  const timestamp = Math.floor(Date.now() / 1000).toString()
+  const bodyStr = body ? JSON.stringify(body) : ''
+  
+  // 构造签名串
+  const signMessage = `${method}\n${urlPath}\n${timestamp}\n${nonceStr}\n${bodyStr}\n`
+  
+  // RSA-SHA256 签名
+  const signature = signWithRSA(signMessage)
+  
+  // 构造 Authorization 头
+  return {
+    'Authorization': `WECHATPAY2-SHA256-RSA2048 mchid="${WX_PAY_CONFIG.MCH_ID}",nonce_str="${nonceStr}",signature="${signature}",timestamp="${timestamp}",serial_no="${WX_PAY_CONFIG.CERT_SERIAL_NO}"`,
+    'Wechatpay-Serial': WX_PAY_CONFIG.CERT_SERIAL_NO
+  }
+}
+
+// HTTP 请求封装（支持微信支付 v3 认证）
 async function httpRequest(url, method, data) {
   const https = require('https')
   const urlObj = new URL(url)
+  
+  const headers = { 
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (compatible; DroneTraining/1.0)'
+  }
+  
+  // 微信支付 API 需要 v3 认证
+  if (urlObj.hostname.includes('mch.weixin.qq.com') && WX_PAY_CONFIG.PRIVATE_KEY && WX_PAY_CONFIG.CERT_SERIAL_NO) {
+    const authHeaders = getWxPayAuth(method, urlObj.pathname + urlObj.search, data)
+    Object.assign(headers, authHeaders)
+  }
   
   return new Promise((resolve, reject) => {
     const options = {
@@ -57,7 +106,7 @@ async function httpRequest(url, method, data) {
       port: 443,
       path: urlObj.pathname + urlObj.search,
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
     }
     
     const req = https.request(options, (res) => {
@@ -77,7 +126,6 @@ async function httpRequest(url, method, data) {
 
 // 主函数
 exports.main = async (event, context) => {
-  console.log('[api-order] 收到请求:', JSON.stringify(event))
   
   // 处理预检请求
   if (event.httpMethod === 'OPTIONS') {
@@ -98,8 +146,6 @@ exports.main = async (event, context) => {
       console.error('[api-order] 解析 body 失败:', e)
     }
   }
-  
-  console.log('[api-order] action:', action, 'data:', JSON.stringify(data))
   
   try {
     switch (action) {
@@ -123,6 +169,12 @@ exports.main = async (event, context) => {
         return await handlePayCallback(event)
       case 'createJsapiOrder':
         return await createJsapiPayOrder(data)
+      case 'createPayOrder':
+        return await createPayOrder(data)
+      case 'queryOrder':
+        return await queryPayOrder(data)
+      case 'refund':
+        return await createRefund(data)
       default:
         return createResponse({ 
           code: 400, 
@@ -145,6 +197,7 @@ async function createOrder(data) {
   const { 
     orderNo, 
     phone, 
+    openid = '',
     userId, 
     orderType = 'course',
     status = 'pending',
@@ -154,6 +207,8 @@ async function createOrder(data) {
     address = {},
     items = [],
     courseId,
+    classId,
+    className = '',
     courseInfo,
     createdAt
   } = data
@@ -167,9 +222,50 @@ async function createOrder(data) {
   }
   
   try {
+    // ★ 防重复购买：课程和培训班不能重复下单
+    if (orderType === 'course' && courseId) {
+      const existingCourseOrder = await db.collection('orders')
+        .where({
+          phone,
+          courseId,
+          status: _.in(['pending', 'paid', 'completed'])
+        })
+        .limit(1)
+        .get()
+      
+      if (existingCourseOrder.data && existingCourseOrder.data.length > 0) {
+        return createResponse({
+          code: 400,
+          success: false,
+          error: '您已购买过该课程，无需重复购买'
+        })
+      }
+    }
+    
+    if (orderType === 'class' && classId) {
+      const existingClassOrder = await db.collection('orders')
+        .where({
+          phone,
+          classId,
+          status: _.in(['pending', 'paid', 'completed'])
+        })
+        .limit(1)
+        .get()
+      
+      if (existingClassOrder.data && existingClassOrder.data.length > 0) {
+        return createResponse({
+          code: 400,
+          success: false,
+          error: '您已报名此培训班，无需重复报名'
+        })
+      }
+    }
+    
     const orderData = {
       orderNo: orderNo || generateOrderNo(),
       phone,
+      _openid: openid || '',  // ★ CloudBase 安全规则需要 _openid 字段
+      openid: openid || '',   // 同时存一份便于查询
       userId: userId || '',
       orderType,
       status,
@@ -179,20 +275,25 @@ async function createOrder(data) {
       address,
       items,
       courseId: courseId || '',
+      classId: classId || '',
+      className: className || '',
       courseInfo: courseInfo || null,
       createdAt: createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
     
-    const result = await db.collection('orders').add({ data: orderData })
+    // ★ Admin SDK: add() 直接传数据对象，不需要 { data: } 包裹
+    const result = await db.collection('orders').add(orderData)
+    const docId = result.id || result._id
     
-    console.log('[api-order] 订单创建成功:', result._id)
+    console.log('[api-order] 订单创建成功:', docId)
     
     return createResponse({
       code: 0,
       success: true,
       data: {
-        _id: result._id,
+        _id: docId,
+        id: docId,
         ...orderData
       }
     })
@@ -229,7 +330,8 @@ async function updateOrderStatus(data) {
       updateData.paymentMethod = 'wechat'
     }
     
-    await db.collection('orders').doc(orderId).update({ data: updateData })
+    // ★ Admin SDK: update() 直接传数据对象
+    await db.collection('orders').doc(orderId).update(updateData)
     
     return createResponse({
       code: 0,
@@ -260,11 +362,9 @@ async function cancelOrder(data) {
   
   try {
     await db.collection('orders').doc(orderId).update({
-      data: {
-        status: 'cancelled',
-        cancelledAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+      status: 'cancelled',
+      cancelledAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     })
     
     return createResponse({
@@ -314,11 +414,13 @@ async function deleteOrder(data) {
 
 // 获取订单列表
 async function getOrderList(data) {
-  const { phone, status, page = 1, pageSize = 20 } = data
+  const { phone, openid, status, page = 1, pageSize = 20 } = data
   
   try {
     const where = {}
     if (phone) where.phone = phone
+    // ★ 同时使用 openid 做数据隔离
+    if (openid) where._openid = openid
     if (status) where.status = status
     
     const result = await db.collection('orders')
@@ -362,8 +464,9 @@ async function getOrderDetail(data) {
   
   try {
     const result = await db.collection('orders').doc(orderId).get()
+    const orderData = getDocData(result)
     
-    if (!result.data) {
+    if (!orderData) {
       return createResponse({
         code: 404,
         success: false,
@@ -374,7 +477,7 @@ async function getOrderDetail(data) {
     return createResponse({
       code: 0,
       success: true,
-      data: result.data
+      data: orderData
     })
   } catch (error) {
     console.error('[api-order] 获取订单详情失败:', error)
@@ -390,8 +493,6 @@ async function getOrderDetail(data) {
 async function createCoursePermission(data) {
   const { courseId, phone, openid, source = 'purchase', expiresAt = null, orderId = null } = data
 
-  console.log('[api-order] createCoursePermission 请求:', { courseId, phone, openid, source, orderId })
-
   if (!courseId) {
     return createResponse({
       code: 400,
@@ -404,10 +505,10 @@ async function createCoursePermission(data) {
   if (!phone && !openid && orderId) {
     try {
       const orderRes = await db.collection('orders').doc(orderId).get()
-      if (orderRes.data) {
-        data.phone = orderRes.data.phone
-        data.openid = orderRes.data.userId
-        console.log('[api-order] 从订单获取用户标识:', { phone: data.phone, openid: data.openid })
+      const orderData = getDocData(orderRes)
+      if (orderData) {
+        data.phone = orderData.phone
+        data.openid = orderData.userId
       }
     } catch (err) {
       console.error('[api-order] 从订单获取用户标识失败:', err)
@@ -427,12 +528,12 @@ async function createCoursePermission(data) {
     let courseName = ''
     try {
       const courseRes = await db.collection('courses').doc(courseId).get()
-      if (courseRes.data) {
-        courseName = courseRes.data.title || ''
+      const courseData = getDocData(courseRes)
+      if (courseData) {
+        courseName = courseData.title || ''
       }
     } catch (e) {
       // 课程可能不存在，但仍然创建权限（兼容外部课程ID）
-      console.log('[api-order] 课程查询失败（可能使用外部ID）:', courseId)
       courseName = data.courseName || courseId
     }
 
@@ -445,8 +546,6 @@ async function createCoursePermission(data) {
     const existing = await db.collection('course_permissions')
       .where(existingWhere)
       .get()
-
-    console.log('[api-order] 检查已有权限:', existingWhere, '结果:', existing.data?.length || 0)
 
     if (existing.data && existing.data.length > 0) {
       // 已存在权限，直接返回
@@ -482,9 +581,8 @@ async function createCoursePermission(data) {
       permissionData._openid = data.openid
     }
 
-    const result = await db.collection('course_permissions').add({
-      data: permissionData
-    })
+    // ★ Admin SDK: add() 直接传数据对象
+    const result = await db.collection('course_permissions').add(permissionData)
 
     console.log('[api-order] 权限创建成功:', result.id)
 
@@ -519,13 +617,14 @@ async function enrollClass(data) {
     idCard = '',
     emergencyContact = '',
     emergencyPhone = '',
+    contactPhone = '',
     notes = '',
+    remark = '',
     userId = '',
+    openid = '',
     status = 'pending',
     source = 'online_enroll'
   } = data
-
-  console.log('[api-order] enrollClass 请求:', { classId, phone, userName, source })
 
   if (!classId) {
     return createResponse({
@@ -534,26 +633,36 @@ async function enrollClass(data) {
       error: '缺少班级ID'
     })
   }
-  if (!userName && !phone) {
+  if (!phone) {
     return createResponse({
       code: 400,
       success: false,
-      error: '缺少用户信息（姓名或手机号）'
+      error: '缺少用户手机号（phone 是报名记录的查询条件）'
     })
   }
+  if (!userName) {
+    return createResponse({
+      code: 400,
+      success: false,
+      error: '缺少用户姓名'
+    })
+  }
+
+  // 字段映射：前端传 remark/contactPhone，统一映射到 notes/emergencyPhone
+  const finalNotes = notes || remark || ''
+  const finalEmergencyPhone = emergencyPhone || contactPhone || ''
 
   try {
     // 检查班级是否存在
     const classRes = await db.collection('classes').doc(classId).get()
-    if (!classRes.data) {
+    const cls = getDocData(classRes)
+    if (!cls) {
       return createResponse({
         code: 404,
         success: false,
         error: '班级不存在'
       })
     }
-
-    const cls = classRes.data
 
     // 检查是否已满员
     const memberCount = await db.collection('class_members')
@@ -608,25 +717,30 @@ async function enrollClass(data) {
 
     // 创建报名记录
     const now = new Date().toISOString()
-    const result = await db.collection('class_members').add({
-      data: {
-        classId,
-        className: cls.name,
-        courseId: cls.courseId || '',
-        userId,
-        userName,
-        phone,
-        idCard,
-        emergencyContact,
-        emergencyPhone,
-        notes,
-        status,
-        source,
-        enrollmentTime: now,
-        createdAt: now,
-        updatedAt: now
-      }
-    })
+    const memberData = {
+      classId,
+      className: cls.name,
+      courseId: cls.courseId || '',
+      userId,
+      userName,
+      phone,
+      idCard,
+      emergencyContact,
+      emergencyPhone: finalEmergencyPhone,
+      notes: finalNotes,
+      status,
+      source,
+      enrollmentTime: now,
+      createdAt: now,
+      updatedAt: now
+    }
+
+    // 如果有 openid，添加 _openid 字段（CloudBase 安全规则需要）
+    if (openid) {
+      memberData._openid = openid
+    }
+
+    const result = await db.collection('class_members').add(memberData)
 
     console.log('[api-order] 班级报名成功:', result.id)
 
@@ -654,10 +768,8 @@ async function enrollClass(data) {
 async function createJsapiPayOrder(data) {
   const { orderId, openid } = data
   
-  console.log('[api-order] createJsapiOrder:', { orderId, openid })
-  
-  if (!WX_PAY_CONFIG.API_KEY) {
-    return createResponse({ code: 500, error: '微信支付未配置' })
+  if (!WX_PAY_CONFIG.PRIVATE_KEY || !WX_PAY_CONFIG.CERT_SERIAL_NO) {
+    return createResponse({ code: 500, error: '微信支付证书未配置（需要 WX_PRIVATE_KEY 和 WX_CERT_SERIAL_NO）' })
   }
   
   if (!openid) {
@@ -668,10 +780,10 @@ async function createJsapiPayOrder(data) {
   let order
   try {
     const orderRes = await db.collection('orders').doc(orderId).get()
-    if (!orderRes.data) {
+    order = getDocData(orderRes)
+    if (!order) {
       return createResponse({ code: 404, error: '订单不存在' })
     }
-    order = orderRes.data
   } catch (err) {
     console.error('[api-order] 查询订单失败:', err)
     return createResponse({ code: 500, error: '查询订单失败' })
@@ -698,8 +810,6 @@ async function createJsapiPayOrder(data) {
     payer: { openid }
   }
   
-  console.log('[api-order] JSAPI 支付参数:', JSON.stringify(body))
-  
   // 4. 调用微信支付 API
   try {
     const result = await httpRequest(
@@ -708,18 +818,15 @@ async function createJsapiPayOrder(data) {
       body
     )
     
-    console.log('[api-order] 微信支付返回:', JSON.stringify(result))
-    
     if (result.prepay_id) {
       // 5. 构建小程序调起支付的参数
       const timeStamp = Math.floor(Date.now() / 1000).toString()
       const nonceStr = generateNonceStr(32)
       const packageStr = `prepay_id=${result.prepay_id}`
       
-      // 6. 签名
-      const signParams = [WX_PAY_CONFIG.APPID, timeStamp, nonceStr, packageStr].join('\n')
-      const paySign = crypto.createHmac('sha256', WX_PAY_CONFIG.API_KEY)
-        .update(signParams).digest('hex').toUpperCase()
+      // 6. RSA-SHA256 签名（微信支付 v3 要求）
+      const signMessage = `${WX_PAY_CONFIG.APPID}\n${timeStamp}\n${nonceStr}\n${packageStr}\n`
+      const paySign = signWithRSA(signMessage)
       
       // 更新订单的微信支付订单号
       await db.collection('orders').doc(orderId).update({
@@ -757,15 +864,11 @@ async function createJsapiPayOrder(data) {
 
 // ========== 微信支付回调处理 ==========
 async function handlePayCallback(event) {
-  console.log('[api-order] 收到微信支付回调:', JSON.stringify(event))
-
   try {
     // 从 event 中提取回调数据
     const callbackBody = event.body || event
-    console.log('[api-order] 回调 body:', JSON.stringify(callbackBody))
 
     // 解密回调数据（API v3 使用 AEAD_AES_256_GCM 加密）
-    // 如果是加密格式，需要用 API v3 密钥解密
     let notification = callbackBody
 
     // 如果有加密的 resource 字段，需要解密
@@ -773,7 +876,6 @@ async function handlePayCallback(event) {
       // 简化处理：直接使用 resource 中的明文数据（测试环境）
       // 生产环境需要用 AES-256-GCM 解密
       notification = callbackBody.resource
-      console.log('[api-order] 解密后数据:', JSON.stringify(notification))
     }
 
     // 提取关键信息
@@ -781,8 +883,6 @@ async function handlePayCallback(event) {
     const tradeState = notification.trade_state || notification.tradeState
     const transactionId = notification.transaction_id || notification.transactionId
     const amount = notification.amount || {}
-
-    console.log('[api-order] 回调处理:', { outTradeNo, tradeState, transactionId })
 
     if (!outTradeNo) {
       console.error('[api-order] 缺少订单号')
@@ -843,16 +943,14 @@ async function handlePayCallback(event) {
               if (!existing.data || existing.data.length === 0) {
                 const now = new Date().toISOString()
                 await db.collection('course_permissions').add({
-                  data: {
-                    phone,
-                    courseId,
-                    orderId: order._id,
-                    source: 'purchase',
-                    status: 'active',
-                    grantedAt: now,
-                    createdAt: now,
-                    updatedAt: now
-                  }
+                  phone,
+                  courseId,
+                  orderId: order._id,
+                  source: 'purchase',
+                  status: 'active',
+                  grantedAt: now,
+                  createdAt: now,
+                  updatedAt: now
                 })
                 console.log('[api-order] 课程权限创建成功:', phone, courseId)
               }
@@ -890,5 +988,105 @@ async function handlePayCallback(event) {
       },
       body: '<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[处理失败]]></return_msg></xml>'
     }
+  }
+}
+
+// ========== 查询支付状态 ==========
+async function queryPayOrder(data) {
+  const { outTradeNo } = data
+  if (!WX_PAY_CONFIG.PRIVATE_KEY || !WX_PAY_CONFIG.CERT_SERIAL_NO) {
+    return createResponse({ code: 500, success: false, error: '微信支付证书未配置' })
+  }
+  try {
+    const result = await httpRequest(
+      `${WX_PAY_BASE}/v3/pay/transactions/out-trade-no/${outTradeNo}?mchid=${WX_PAY_CONFIG.MCH_ID}`,
+      'GET'
+    )
+    return createResponse({
+      code: 0, success: true,
+      data: { tradeState: result.trade_state, tradeStateDesc: result.trade_state_desc, paidAt: result.success_time }
+    })
+  } catch (err) {
+    return createResponse({ code: 500, success: false, error: '查询支付状态失败' })
+  }
+}
+
+// ========== 申请退款 ==========
+async function createRefund(data) {
+  const { orderId, reason = '用户申请退款' } = data
+  if (!WX_PAY_CONFIG.PRIVATE_KEY || !WX_PAY_CONFIG.CERT_SERIAL_NO) {
+    return createResponse({ code: 500, success: false, error: '微信支付证书未配置' })
+  }
+  try {
+    const orderRes = await db.collection('orders').doc(orderId).get()
+    const order = getDocData(orderRes)
+    if (!order) return createResponse({ code: 404, success: false, error: '订单不存在' })
+    if (order.status !== 'paid') return createResponse({ code: 400, success: false, error: '只能退款已支付的订单' })
+    
+    const outRefundNo = `REF${Date.now()}`
+    const result = await httpRequest(
+      `${WX_PAY_BASE}/v3/refund/domestic/refunds`, 'POST',
+      {
+        out_trade_no: order.orderNo,
+        out_refund_no: outRefundNo,
+        reason,
+        amount: {
+          refund: Math.round((order.finalAmount || order.amount || 0) * 100),
+          total: Math.round((order.finalAmount || order.amount || 0) * 100),
+          currency: 'CNY'
+        }
+      }
+    )
+    if (result.refund_id) {
+      await db.collection('orders').doc(orderId).update({
+        status: 'refunded', refundNo: outRefundNo, refundReason: reason,
+        refundedAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      })
+      return createResponse({ code: 0, success: true, data: { refundId: result.refund_id }, message: '退款申请成功' })
+    }
+    return createResponse({ code: 500, success: false, error: '退款失败: ' + JSON.stringify(result) })
+  } catch (err) {
+    return createResponse({ code: 500, success: false, error: '退款失败: ' + err.message })
+  }
+}
+
+// ========== 创建支付订单（Native/H5）==========
+async function createPayOrder(data) {
+  const { orderId, payType = 'native', clientIp = '127.0.0.1' } = data
+  if (!WX_PAY_CONFIG.PRIVATE_KEY || !WX_PAY_CONFIG.CERT_SERIAL_NO) {
+    return createResponse({ code: 500, success: false, error: '微信支付证书未配置' })
+  }
+  try {
+    const orderRes = await db.collection('orders').doc(orderId).get()
+    const order = getDocData(orderRes)
+    if (!order) return createResponse({ code: 404, success: false, error: '订单不存在' })
+    if (order.status === 'paid') return createResponse({ code: 400, success: false, error: '订单已支付' })
+    
+    const outTradeNo = order.orderNo || `ORD${Date.now()}`
+    const body = {
+      appid: WX_PAY_CONFIG.APPID,
+      mchid: WX_PAY_CONFIG.MCH_ID,
+      description: order.courseName || `课程购买-${outTradeNo.slice(-8)}`,
+      out_trade_no: outTradeNo,
+      notify_url: WX_PAY_CONFIG.NOTIFY_URL,
+      amount: { total: Math.round((order.finalAmount || order.amount || 0) * 100), currency: 'CNY' }
+    }
+    if (payType === 'h5') {
+      body.scene_info = { payer_client_ip: clientIp, h5_info: { type: 'Wap' } }
+    }
+    
+    const result = await httpRequest(
+      `${WX_PAY_BASE}/v3/pay/transactions/${payType === 'h5' ? 'h5' : 'native'}`,
+      'POST', body
+    )
+    
+    if (result.code_url) {
+      return createResponse({ code: 0, success: true, data: { payType: 'native', codeUrl: result.code_url, outTradeNo, orderId: order._id }, message: '支付订单创建成功' })
+    } else if (result.h5_url) {
+      return createResponse({ code: 0, success: true, data: { payType: 'h5', h5Url: result.h5_url, outTradeNo, orderId: order._id }, message: '支付订单创建成功' })
+    }
+    return createResponse({ code: 500, success: false, error: '创建支付订单失败: ' + JSON.stringify(result) })
+  } catch (err) {
+    return createResponse({ code: 500, success: false, error: '请求微信支付失败: ' + err.message })
   }
 }

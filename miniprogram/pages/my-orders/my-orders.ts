@@ -146,6 +146,22 @@ Page({
 
   // 支付订单
   payOrder(e: any) {
+    // ★ 手机号是所有订单的查询条件，必须先绑定
+    const phone = wx.getStorageSync('phone') || ''
+    if (!phone) {
+      wx.showModal({
+        title: '请先绑定手机号',
+        content: '支付需要绑定手机号，是否前往绑定？',
+        confirmText: '去绑定',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({ url: '/pages/login/login?redirect=bindPhone' })
+          }
+        }
+      })
+      return
+    }
+
     const order = e.currentTarget.dataset.order
     wx.showModal({
       title: '确认支付',

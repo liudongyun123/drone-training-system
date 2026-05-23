@@ -407,8 +407,7 @@ export default function MyLearningPage() {
 
         {/* 课程列表 */}
         {filteredCourses.length === 0 ? (
-          // @ts-ignore
-          <EmptyState type={activeTab === 'completed' ? 'empty' : 'course'}
+          <EmptyState {...({} as any)} type={activeTab === 'completed' ? 'empty' : 'course'}
             title={activeTab === 'completed' ? '还没有完成的课程' : '还没有课程'}
             description={activeTab === 'completed' ? '继续学习，完成课程获取证书' : '快去购买课程开始学习吧'}
             action={<button onClick={() => navigate('/courses')} className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors">浏览课程</button>}

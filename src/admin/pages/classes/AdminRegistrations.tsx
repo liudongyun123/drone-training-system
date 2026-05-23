@@ -6,7 +6,8 @@
 // ============================================================================
 import { useState, useEffect } from 'react';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
-import { enrollmentService } from '@/services';
+import { enrollmentService, orderService } from '@/services';
+import { adminService } from '@/services/adminService';
 import { messageService } from '@/services/messageService';
 import type { Registration as Enrollment } from '@/types/registration';
 import { toast } from '@/components/Toast';
@@ -88,18 +89,16 @@ export default function AdminRegistrations() {
 
       const result = await enrollmentService.getList(query, { page, pageSize });
       if (result.code === 0) {
-        // @ts-ignore
-        const safeList = result.data?.data?.list || result.data?.list || [];
-        // @ts-ignore
-        const safeTotal = result.data?.data?.total || result.data?.total || 0;
+        const responseData = result.data as any
+        const safeList = responseData?.data?.list || responseData?.list || [];
+        const safeTotal = responseData?.data?.total || responseData?.total || 0;
         setEnrollments(safeList);
         setTotal(safeTotal);
 
         // 计算统计数据
         const allResult = await enrollmentService.getList({}, { page: 1, pageSize: 1000 });
         if (allResult.code === 0) {
-          // @ts-ignore
-          const allList = allResult.data?.data?.list || allResult.data?.list || [];
+          const allList = (allResult.data as any)?.data?.list || (allResult.data as any)?.list || [];
           setStats({
             total: safeTotal,
             paid: allList.filter((e: any) => e.paymentStatus === 'paid').length,
@@ -132,6 +131,38 @@ export default function AdminRegistrations() {
       });
       if (result.code === 0) {
         toast.success('报名已确认');
+        
+        // ★ 开放学习权限：通过 orderId 调用 grantPermission
+        const orderId = enrollment.orderId;
+        if (orderId) {
+          try {
+            const grantResult = await orderService.grantPermission(orderId);
+            if (grantResult.code === 0) {
+              toast.success('学习权限已开放');
+            } else {
+              console.warn('权限开放失败:', grantResult.message);
+            }
+          } catch (grantError) {
+            console.error('开放权限异常:', grantError);
+          }
+        } else {
+          // 没有 orderId 时，尝试通过 memberId + classId 创建权限
+          const phone = enrollment.phone;
+          const classId = enrollment.classId;
+          if (phone && classId) {
+            try {
+              // 先查是否有对应订单
+              const orderQuery = await adminService.list('orders', { phone, classId, status: 'paid' }, { limit: 1 });
+              const orderList = (orderQuery.data as any)?.list || (orderQuery.data as any)?.data || [];
+              if (orderList.length > 0) {
+                await orderService.grantPermission(orderList[0]._id);
+              }
+            } catch (e) {
+              console.error('尝试关联订单开放权限失败:', e);
+            }
+          }
+        }
+        
         // 发送通知
         await messageService.sendRegistrationNotification({
           ...enrollment,
@@ -218,8 +249,7 @@ export default function AdminRegistrations() {
     <AdminPageTemplate
       title="报名管理"
       description="管理课程选课记录"
-      // @ts-ignore
-      icon={BookOpen}
+      {...({ icon: BookOpen } as any)}
     >
       {/* 统计卡片 - 优化的视觉层次 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

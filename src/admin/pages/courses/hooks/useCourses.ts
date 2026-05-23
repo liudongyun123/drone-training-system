@@ -3,7 +3,7 @@
 // ============================================================================
 import { useState, useEffect, useCallback } from 'react';
 import { CloudAdminService } from '@/services/CloudAdminService';
-import { adminApi } from '@/services/adminApiService';
+import { adminService } from '@/services/adminService';
 import { courseService } from '@/services/database';
 import { useDictionary } from '@/admin/hooks/useDictionary';
 import { useConfirm } from '@/admin/hooks/useConfirm';
@@ -153,15 +153,15 @@ export function useCourses() {
         query.sourceId = selectedSourceId;
       }
       
-      // 使用 adminApi（HTTP 方式）查询
-      const result = await adminApi.list<Course>('courses', query, {
+      // 使用 adminService（HTTP 方式）查询
+      const result = await adminService.list('courses', query, {
         page,
         pageSize: 10,
         orderBy: 'createdAt',
         order: 'desc',
       });
-      setCourses(result.data);
-      setTotal(result.total);
+      setCourses(result.data?.list || []);
+      setTotal(result.data?.total || 0);
     } catch (error) {
       console.error('加载课程失败:', error);
       setCourses([]);
@@ -175,11 +175,12 @@ export function useCourses() {
   const loadSources = useCallback(async () => {
     setSourcesLoading(true);
     try {
-      const result = await adminApi.listSources({ limit: 100 }) as { data: { _id: string; name: string; code: string }[] };
-      setSources(result.data);
+      const result = await adminService.listSources({ status: 'active' }, { limit: 100 });
+      const sourcesList = result.data?.list || [];
+      setSources(sourcesList);
       // 如果没有选择体系，自动选择第一个
-      if (!selectedSourceId && result.data.length > 0) {
-        const firstSource = result.data[0];
+      if (!selectedSourceId && sourcesList.length > 0) {
+        const firstSource = sourcesList[0];
         setSelectedSource(firstSource._id);
         setSelectedSourceId(firstSource._id);
       }
@@ -194,8 +195,8 @@ export function useCourses() {
   const loadTeachers = useCallback(async () => {
     setTeachersLoading(true);
     try {
-      const result = await adminApi.listTeachers({ status: 'active' }, { limit: 100 });
-      setTeachers(result.data);
+      const result = await adminService.listTeachers({ limit: 100 });
+      setTeachers(result.data?.list || []);
     } catch (error) {
       console.error('加载教师列表失败:', error);
     } finally {
@@ -207,8 +208,9 @@ export function useCourses() {
   const loadCategories = useCallback(async () => {
     setCategoriesLoading(true);
     try {
-      const result = await adminApi.listCategories({ status: 'active' }, { limit: 100 }) as { data: { _id: string; name: string; code: string }[] };
-      setCategories(result.data);
+      const result = await adminService.listCategories({}, { limit: 100 });
+      const categoriesList = result.data?.list || [];
+      setCategories(categoriesList);
     } catch (error) {
       console.error('加载分类列表异常:', error);
     } finally {
@@ -532,7 +534,7 @@ export function useCourses() {
         }
 
         const result = await uploadFile(file, 'lessons/video', (progress) => {
-          setVideoProgress(Math.round(progress * 100));
+          setVideoProgress(Math.round(progress)); // storageService 已返回 0-100 的值
         });
 
         if (result.success && result.fileID) {

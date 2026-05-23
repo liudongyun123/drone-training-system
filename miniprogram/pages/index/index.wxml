@@ -14,8 +14,8 @@
         
         <!-- 标题 -->
         <view class="hero-title">
-          <text class="title-main">翱翔蓝天</text>
-          <text class="title-sub">成就飞行梦想</text>
+          <text class="title-main">{{heroTitle}}</text>
+          <text class="title-sub">{{heroSubtitle}}</text>
         </view>
         
         <!-- 按钮 -->
@@ -74,7 +74,7 @@
         <image 
           wx:if="{{heroBanners.length === 0}}"
           class="hero-banner-image" 
-          src="https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png" 
+          src="{{defaultCover}}" 
           mode="aspectFill"
         />
       </view>
@@ -82,7 +82,7 @@
     
     <!-- 底部：描述 -->
     <view class="hero-bottom">
-      <text class="hero-desc">零基础到专业飞手的完整培训体系，涵盖植保，航拍，巡检等</text>
+      <text class="hero-desc">{{heroDesc}}</text>
     </view>
   </view>
 

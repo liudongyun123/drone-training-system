@@ -24,7 +24,6 @@ export {
 export { 
   apiClient, 
   apiRateLimiter, 
-  callCloudFunction,
   addRequestInterceptor,
   addResponseInterceptor,
   type ApiError,

@@ -38,8 +38,7 @@ export const CloudCommentService = {
         status: 'approved'  // 只获取已审核通过的评论
       }
 
-      // @ts-ignore
-      const data = await dbService.getAll(this.collection, query, { limit, skip: offset })
+      const data = await (dbService.getAll as any)(this.collection, query, { limit, skip: offset })
 
       return {
         data: (data || []).map((item: any) => ({
@@ -140,8 +139,7 @@ export const CloudCommentService = {
       }
 
       const targetUserId = userId || user?.uid
-      // @ts-ignore
-      const data = await dbService.getAll(this.collection, { userId: targetUserId }, { limit: 50 })
+      const data = await (dbService.getAll as any)(this.collection, { userId: targetUserId }, { limit: 50 })
 
       return (data || []).map((item: any) => ({
         id: item._id,

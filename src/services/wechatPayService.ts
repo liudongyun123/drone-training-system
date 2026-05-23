@@ -3,7 +3,7 @@
  * 封装支付创建、轮询、二维码展示逻辑
  */
 
-import { app } from '@/utils/cloudbase'
+import { adminService } from '@/services/adminService'
 
 export interface WechatPayResult {
   codeUrl?: string    // Native Pay 二维码链接
@@ -22,16 +22,13 @@ export async function createWechatPay(params: {
   payType?: 'native' | 'h5'
 }): Promise<WechatPayResult | null> {
   try {
-    const result = await app.callFunction({
-      name: 'wechat-pay',
-      data: {
-        action: 'createOrder',
-        orderId: params.orderId,
-        payType: params.payType || 'native',
-      }
+    const result = await adminService.callFunction('api-order', {
+      action: 'createPayOrder',
+      orderId: params.orderId,
+      payType: params.payType || 'native',
     })
 
-    const response = result.result as any
+    const response = result as any
     
     if (response.code === 0 && response.data) {
       console.log('[WechatPay] 支付订单创建成功:', response.data)
@@ -55,15 +52,12 @@ export async function queryWechatPay(outTradeNo: string): Promise<{
   paidAt?: string
 } | null> {
   try {
-    const result = await app.callFunction({
-      name: 'wechat-pay',
-      data: {
-        action: 'queryOrder',
-        outTradeNo
-      }
+    const result = await adminService.callFunction('api-order', {
+      action: 'queryOrder',
+      outTradeNo
     })
 
-    const response = result.result as any
+    const response = result as any
     
     if (response.code === 0) {
       return response.data

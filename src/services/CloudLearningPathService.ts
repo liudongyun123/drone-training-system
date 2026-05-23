@@ -151,8 +151,7 @@ export const CloudLearningPathService = {
         return { success: true, data: [] }
       }
 
-      // @ts-ignore
-      const data = await dbService.getAll('courses', {
+      const data = await (dbService.getAll as any)('courses', {
         categoryId: categoryId,
         status: 'published'  // 只获取已发布的课程
       }, { limit: 100 })
@@ -176,8 +175,7 @@ export const CloudLearningPathService = {
       const user = await authService.getCurrentUser()
       if (!user) return null
 
-      // @ts-ignore
-      const data = await dbService.getAll(this.progressCollection, {
+      const data = await (dbService.getAll as any)(this.progressCollection, {
         pathId: pathId,
         userId: user.uid
       }, { limit: 1 })
@@ -303,10 +301,9 @@ export const CloudLearningPathService = {
       const user = await authService.getCurrentUser()
       if (!user) return []
 
-      // @ts-ignore
       const data = await dbService.getAll(this.progressCollection, {
         userId: user.uid
-      })
+      } as any)
 
       return (data || []).map((item: any) => ({
         id: item._id,

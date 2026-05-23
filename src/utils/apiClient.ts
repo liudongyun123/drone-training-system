@@ -141,8 +141,7 @@ async function request<T>(
       };
       
       for (const interceptor of requestInterceptors) {
-        // @ts-ignore
-        requestConfig = await interceptor(requestConfig);
+        requestConfig = await interceptor(requestConfig as any);
       }
       
       // 构建 URL
@@ -187,9 +186,8 @@ async function request<T>(
       
       // 网络错误或超时，尝试重试
       if (
-        config.retry &&
-        // @ts-ignore
-        attempt < config.retry &&
+        (config as any).retry &&
+        attempt < (config as any).retry &&
         (lastError.name === 'AbortError' || lastError.message.includes('network'))
       ) {
         await delay(config.retryDelay * attempt);

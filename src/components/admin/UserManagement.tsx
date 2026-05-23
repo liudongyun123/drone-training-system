@@ -55,7 +55,7 @@ export default function UserManagement() {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [addForm, setAddForm] = useState({
     phone: '',
-    password: '123456',
+    password: '',
     username: '',
     role: 'student' as 'student' | 'admin',
   })
@@ -163,11 +163,10 @@ export default function UserManagement() {
         },
       })
       
-      // @ts-ignore
-      if (result.code === 0) {
+      if ((result as any).code === 0) {
         setSnackbar({ open: true, message: '用户添加成功', severity: 'success' })
         setAddDialogOpen(false)
-        setAddForm({ phone: '', password: '123456', username: '', role: 'student' })
+        setAddForm({ phone: '', password: '', username: '', role: 'student' })
         await loadUsers()
       } else {
         setSnackbar({ open: true, message: result.message || '添加失败', severity: 'error' })
@@ -359,7 +358,7 @@ export default function UserManagement() {
               value={addForm.password}
               onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
               placeholder="请输入密码"
-              defaultValue="123456"
+              helperText="请设置安全密码"
             />
             <TextField
               fullWidth
@@ -383,7 +382,7 @@ export default function UserManagement() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddDialogOpen(false)}>取消</Button>
-          <Button onClick={handleAddUser} variant="contained" disabled={!addForm.phone}>
+          <Button onClick={handleAddUser} variant="contained" disabled={!addForm.phone || !addForm.password}>
             添加
           </Button>
         </DialogActions>

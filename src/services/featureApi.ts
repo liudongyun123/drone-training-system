@@ -4,7 +4,7 @@
  * 调用新云函数 API：
  * - api-user: 用户管理、会员管理、设置、统计
  * - api-order: 订单管理、购物车、优惠券
- * - mobile-learning: 学习路径、证书管理
+ * - api-course: 学习路径、证书管理
  */
 
 import { app } from '@/utils/cloudbase'
@@ -325,7 +325,7 @@ export const adminOrderApi = {
 }
 
 // ============================================================================
-// 学习路径 API (mobile-learning)
+// 学习路径 API (api-course)
 // ============================================================================
 
 export const adminLearningApi = {
@@ -333,7 +333,7 @@ export const adminLearningApi = {
    * 获取学习路径列表
    */
   async getLearningPaths(params?: { page?: number; pageSize?: number }): Promise<FeatureApiResponse<any[]>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getLearningPaths',
       data: params || {}
     })
@@ -343,7 +343,7 @@ export const adminLearningApi = {
    * 获取学习路径详情
    */
   async getLearningPathDetail(pathId: string): Promise<FeatureApiResponse<any>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getLearningPathDetail',
       data: { pathId }
     })
@@ -353,7 +353,7 @@ export const adminLearningApi = {
    * 获取路径学习进度
    */
   async getPathProgress(pathId: string): Promise<FeatureApiResponse<any>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getPathProgress',
       data: { pathId }
     })
@@ -363,7 +363,7 @@ export const adminLearningApi = {
    * 创建学习路径
    */
   async createPath(pathData: any): Promise<FeatureApiResponse<any>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'createPath',
       data: pathData
     })
@@ -373,7 +373,7 @@ export const adminLearningApi = {
    * 更新学习路径
    */
   async updatePath(pathId: string, pathData: any): Promise<FeatureApiResponse<void>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'updatePath',
       data: { pathId, ...pathData }
     })
@@ -383,7 +383,7 @@ export const adminLearningApi = {
    * 删除学习路径
    */
   async deletePath(pathId: string): Promise<FeatureApiResponse<void>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'deletePath',
       data: { pathId }
     })
@@ -393,7 +393,7 @@ export const adminLearningApi = {
    * 获取证书列表
    */
   async getCertificates(params?: { page?: number; pageSize?: number; status?: string }): Promise<FeatureApiResponse<any[]>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getCertificates',
       data: params || {}
     })
@@ -403,7 +403,7 @@ export const adminLearningApi = {
    * 获取证书详情
    */
   async getCertificateDetail(certificateId: string): Promise<FeatureApiResponse<any>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getCertificateDetail',
       data: { certificateId }
     })
@@ -413,7 +413,7 @@ export const adminLearningApi = {
    * 发放证书
    */
   async issueCertificate(certificateData: any): Promise<FeatureApiResponse<any>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'generateCertificate',
       data: certificateData
     })
@@ -423,7 +423,7 @@ export const adminLearningApi = {
    * 撤销证书
    */
   async revokeCertificate(certificateId: string): Promise<FeatureApiResponse<void>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'revokeCertificate',
       data: { certificateId }
     })
@@ -433,7 +433,7 @@ export const adminLearningApi = {
    * 验证证书
    */
   async verifyCertificate(certificateCode: string): Promise<FeatureApiResponse<any>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'verifyCertificate',
       data: { certificateCode }
     })
@@ -448,7 +448,7 @@ export const adminLearningApi = {
     pending: number
     revoked: number
   }>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getCertificateStats',
       data: {}
     })
@@ -472,7 +472,7 @@ export const adminLearningApi = {
     page: number
     pageSize: number
   }>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getProgressList',
       data: params || {}
     })
@@ -482,7 +482,7 @@ export const adminLearningApi = {
    * 获取学员进度详情
    */
   async getUserProgress(userId: string): Promise<FeatureApiResponse<any[]>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getUserProgress',
       data: { userId }
     })
@@ -492,7 +492,7 @@ export const adminLearningApi = {
    * 获取课程进度详情
    */
   async getCourseProgress(courseId: string): Promise<FeatureApiResponse<any[]>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getCourseProgress',
       data: { courseId }
     })
@@ -506,7 +506,7 @@ export const adminLearningApi = {
     status?: string
     videoProgress?: number
   }): Promise<FeatureApiResponse<void>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'updateProgress',
       data: { progressId, ...data }
     })
@@ -516,7 +516,7 @@ export const adminLearningApi = {
    * 完成课时
    */
   async completeLesson(progressId: string): Promise<FeatureApiResponse<void>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'completeLesson',
       data: { progressId }
     })
@@ -526,7 +526,7 @@ export const adminLearningApi = {
    * 重置进度
    */
   async resetProgress(userId: string, courseId: string): Promise<FeatureApiResponse<void>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'resetProgress',
       data: { userId, courseId }
     })
@@ -543,7 +543,7 @@ export const adminLearningApi = {
     thisWeek: number
     avgProgress: number
   }>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getProgressStats',
       data: {}
     })
@@ -560,7 +560,7 @@ export const adminLearningApi = {
     totalProgress: number
     lastStudyTime?: number
   }>> {
-    return callFunction('mobile-learning', {
+    return callFunction('api-course', {
       action: 'getUserLearningStats',
       data: { userId }
     })

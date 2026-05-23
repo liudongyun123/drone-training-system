@@ -44,8 +44,7 @@ export default function NoticePopup({ onClose }: NoticePopupProps) {
       const result = await CloudNoticeService.getPopupNotice()
       
       if (result.success && result.data) {
-        // @ts-ignore
-        const notice = result.data as Notice
+        const notice = (result as any).data as Notice
         
         // 检查是否今天已经关闭过
         const today = new Date().toDateString()

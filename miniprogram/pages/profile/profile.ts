@@ -4,6 +4,7 @@
 import { userApi, newUserApi } from '../../utils/api'
 import { dbQuery } from '../../utils/http'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
+import { SERVICE_PHONE, APP_VERSION, ABOUT_CONTENT, HELP_CONTENT } from '../../utils/constants'
 import logger from '../../utils/logger'
 
 Page({
@@ -21,7 +22,9 @@ Page({
     wx.setNavigationBarTitle({ title: '个人中心' })
     
     const userId = this.getUserId()
-    if (!userId) {
+    const openid = wx.getStorageSync('openid')
+    // 只有完全没有登录信息时才跳转登录（有 openid 无 userId 的情况也是已登录状态）
+    if (!userId && !openid) {
       wx.navigateTo({ url: '/pages/login/login' })
       return
     }
@@ -293,7 +296,7 @@ Page({
     try {
       // 使用统一的 HTTP API 调用云函数
       const { callFunction } = require('../../utils/http')
-      const res: any = await callFunction('login-http', {
+      const res: any = await callFunction('auth-api', {
         action: 'getPhoneNumber',
         code: e.detail.code
       })
@@ -391,15 +394,15 @@ Page({
   contactService() {
     wx.showModal({
       title: '联系客服',
-      content: '客服电话：17628157097\n工作时间：周一至周五 9:00-18:00',
+      content: `客服电话：${SERVICE_PHONE}\n工作时间：周一至周五 9:00-18:00`,
       showCancel: true,
       cancelText: '复制电话',
       confirmText: '拨打热线',
       success: (res) => {
         if (res.confirm) {
-          wx.makePhoneCall({ phoneNumber: '4008888888' })
+          wx.makePhoneCall({ phoneNumber: SERVICE_PHONE })
         } else if (res.cancel) {
-          wx.setClipboardData({ data: '17628157097' })
+          wx.setClipboardData({ data: SERVICE_PHONE })
           wx.showToast({ title: '已复制', icon: 'success' })
         }
       }
@@ -410,7 +413,7 @@ Page({
   showAbout() {
     wx.showModal({
       title: '关于我们',
-      content: '无人机培训中心\n\n中国航空运输协会认证培训机构\n专业无人机驾驶员培训机构\n\n版本：V1.0.0',
+      content: `${ABOUT_CONTENT}\n\n版本：${APP_VERSION}`,
       showCancel: false,
       confirmText: '知道了'
     })
@@ -420,7 +423,7 @@ Page({
   showHelp() {
     wx.showModal({
       title: '帮助中心',
-      content: '常见问题：\n\n1. 如何报名培训？\n进入课程详情页，点击立即报名即可。\n\n2. 证书如何获取？\n完成培训课程并通过考试后自动生成。\n\n3. 如何联系客服？\n点击联系客服查看电话。',
+      content: HELP_CONTENT,
       showCancel: false,
       confirmText: '知道了'
     })
@@ -439,7 +442,7 @@ Page({
   // 加载未读消息数量
   async loadNotificationCount() {
     try {
-      const phone = wx.getStorageSync('userPhone') || ''
+      const phone = wx.getStorageSync('phone') || ''
       if (!phone) {
         this.setData({ notificationCount: 0 })
         return

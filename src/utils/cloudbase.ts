@@ -22,7 +22,7 @@ let sdkStatus: SDKStatus = {
   loadTime: null,
 };
 
-const DEBUG = true;
+const DEBUG = import.meta.env.DEV;
 const log = {
   info: (...args: any[]) => DEBUG && console.log('[CloudBase]', ...args),
   warn: (...args: any[]) => DEBUG && console.warn('[CloudBase]', ...args),
@@ -223,7 +223,7 @@ export const app = {
     }
     return cloudbaseApp.uploadFile(options);
   },
-  getTempFileURL: async (options: { fileList: string[] }) => {
+  getTempFileURL: async (options: { fileList: Array<{ fileID: string; maxAge?: number } | string> }) => {
     await ensureInit();
     if (!cloudbaseApp?.getTempFileURL) {
       throw new Error('getTempFileURL 不可用');

@@ -369,8 +369,7 @@ export default function ExamPage() {
                                   if (e.target.checked) {
                                     handleAnswer(qId, [...current, optStr]);
                                   } else {
-                                    // @ts-ignore
-                                    handleAnswer(qId, current.filter((v: any) => v !== optStr));
+                                    handleAnswer(qId, (current as any).filter((v: any) => v !== optStr) as any);
                                   }
                                 }}
                                 value={optStr}
@@ -393,8 +392,7 @@ export default function ExamPage() {
                               type="radio"
                               name={qId}
                               className="radio radio-primary"
-                              // @ts-ignore
-                              checked={answers[qId] === true}
+                              checked={(answers as any)[qId] === true}
                               onChange={() => handleAnswer(qId, true)}
                             />
                             <span>正确</span>
@@ -406,8 +404,7 @@ export default function ExamPage() {
                               type="radio"
                               name={qId}
                               className="radio radio-primary"
-                              // @ts-ignore
-                              checked={answers[qId] === false}
+                              {...({ checked: answers[qId] === false } as any)}
                               onChange={() => handleAnswer(qId, false)}
                             />
                             <span>错误</span>

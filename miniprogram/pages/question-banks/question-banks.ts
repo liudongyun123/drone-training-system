@@ -3,6 +3,7 @@
 
 import { getQuestionBanks } from '../../utils/http'
 import logger from '../../utils/logger'
+import { getCategoryIcon } from '../../utils/constants'
 
 interface QuestionBank {
   _id: string
@@ -73,22 +74,9 @@ Page({
     }
   },
 
-  // 根据分类获取图标
+  // 根据分类获取图标（使用共享常量）
   getCategoryIcon(category: string): string {
-    const iconMap: Record<string, string> = {
-      '法规政策': '📜',
-      '飞行理论': '✈️',
-      '专业技能': '🎯',
-      '安全操作': '⚠️',
-      '气象知识': '🌤️',
-      '应急处理': '🚨',
-      '无人机法规': '📜',
-      '无人机飞行': '✈️',
-      '综合练习': '📚',
-      '综合': '📚',
-      'default': '📝'
-    }
-    return iconMap[category] || iconMap['default']
+    return getCategoryIcon(category)
   },
 
   // 分类筛选

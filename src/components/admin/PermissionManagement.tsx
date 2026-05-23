@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate'
 import { permissionService } from '@/services/permissionService'
 import { classService } from '@/services/classService'
+import { adminService } from '@/services/adminService'
 import type { CoursePermission, ClassMember, PermissionStats, ClassMemberStats } from '@/types/permission'
 import {
   Shield, Users, BookOpen, GraduationCap, Search, RefreshCw,
@@ -14,7 +15,6 @@ import {
   Plus, Minus, ChevronLeft, ChevronRight, MoreVertical, Trash2, Edit,
   UserPlus, X, Check, AlertCircle, Loader2
 } from 'lucide-react'
-import app from '@/config/tcb'
 
 type TabType = 'course-permissions' | 'class-members'
 
@@ -171,30 +171,22 @@ export default function PermissionManagement() {
         ? new Date(Date.now() + editFormData.videoValidDays * 24 * 60 * 60 * 1000).toISOString()
         : undefined
 
-      // 调用云函数更新权限
-      const result = await app.callFunction({
-        name: 'admin',
-        data: {
-          action: 'update',
-          collection: 'course_permissions',
-          docId: editingPermission._id,
-          data: {
-            videoAccess: {
-              enabled: editFormData.videoEnabled,
-              validUntil: videoValidUntil
-            },
-            status: editFormData.status,
-            updatedAt: new Date().toISOString()
-          }
-        }
-      }) as { result: { code: number; message?: string } }
+      // 通过 adminService 更新权限
+      const result = await adminService.update('course_permissions', editingPermission._id, {
+        videoAccess: {
+          enabled: editFormData.videoEnabled,
+          validUntil: videoValidUntil
+        },
+        status: editFormData.status,
+        updatedAt: new Date().toISOString()
+      })
 
-      if (result.result.code === 0) {
+      if (result.code === 0) {
         setEditResult({ success: true, message: '权限更新成功！' })
         // 刷新列表
         loadCoursePermissions()
       } else {
-        setEditResult({ success: false, message: result.result.message || '更新失败' })
+        setEditResult({ success: false, message: '更新失败' })
       }
     } catch (error: any) {
       console.error('更新权限失败:', error)
@@ -211,25 +203,17 @@ export default function PermissionManagement() {
     }
 
     try {
-      const result = await app.callFunction({
-        name: 'admin',
-        data: {
-          action: 'update',
-          collection: 'course_permissions',
-          docId: permission._id,
-          data: {
-            status: 'revoked',
-            revokedAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        }
-      }) as { result: { code: number; message?: string } }
+      const result = await adminService.update('course_permissions', permission._id, {
+        status: 'revoked',
+        revokedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
 
-      if (result.result.code === 0) {
+      if (result.code === 0) {
         alert('权限已撤销')
         loadCoursePermissions()
       } else {
-        alert(result.result.message || '撤销失败')
+        alert('撤销失败')
       }
     } catch (error: any) {
       console.error('撤销权限失败:', error)
@@ -332,51 +316,33 @@ export default function PermissionManagement() {
     setSearching(true)
     setSearchResults([])
     try {
-      // 并行搜索两个集合
+      // 并行搜索两个集合（通过 adminService HTTP 访问 db-init）
       const [membersResult, enrollmentsResult] = await Promise.all([
         // 搜索 members 集合
-        app.callFunction({
-          name: 'admin',
-          data: {
-            action: 'list',
-            collection: 'members',
-            query: {
-              $or: [
-                { name: { $regex: searchKeyword, $options: 'i' } },
-                { phone: { $regex: searchKeyword, $options: 'i' } }
-              ]
-            },
-            options: { limit: 20 }
-          }
-        }) as Promise<{ result: { code: number; data?: any[] } }>,
+        adminService.listWithOps('members', {
+          $or: [
+            { name: { $regex: searchKeyword, $options: 'i' } },
+            { phone: { $regex: searchKeyword, $options: 'i' } }
+          ]
+        }, { limit: 20 }),
         // 搜索 enrollments 集合（线下报名/线上报名的用户）
-        app.callFunction({
-          name: 'admin',
-          data: {
-            action: 'list',
-            collection: 'enrollments',
-            query: {
-              $or: [
-                { name: { $regex: searchKeyword, $options: 'i' } },
-                { phone: { $regex: searchKeyword, $options: 'i' } },
-                { studentName: { $regex: searchKeyword, $options: 'i' } },
-                { studentPhone: { $regex: searchKeyword, $options: 'i' } }
-              ]
-            },
-            options: { limit: 20 }
-          }
-        }) as Promise<{ result: { code: number; data?: any[] } }>
+        adminService.listWithOps('enrollments', {
+          $or: [
+            { name: { $regex: searchKeyword, $options: 'i' } },
+            { phone: { $regex: searchKeyword, $options: 'i' } },
+            { studentName: { $regex: searchKeyword, $options: 'i' } },
+            { studentPhone: { $regex: searchKeyword, $options: 'i' } }
+          ]
+        }, { limit: 20 })
       ])
 
       // 合并结果
-      const membersList = membersResult.result.code === 0 
-        // @ts-ignore
-        ? (Array.isArray(membersResult.result.data) ? membersResult.result.data : membersResult.result.data?.list || [])
+      const membersList = membersResult.code === 0 
+        ? (membersResult.data?.list || [])
         : []
       
-      const enrollmentsList = enrollmentsResult.result.code === 0
-        // @ts-ignore
-        ? (Array.isArray(enrollmentsResult.result.data) ? enrollmentsResult.result.data : enrollmentsResult.result.data?.list || [])
+      const enrollmentsList = enrollmentsResult.code === 0
+        ? (enrollmentsResult.data?.list || [])
         : []
 
       // 转换 enrollments 数据格式为统一的用户格式
@@ -473,8 +439,7 @@ export default function PermissionManagement() {
         userPhone: selectedUser.phone,
         className: selectedClass.name,
         courseId: selectedClass.courseId,
-        // @ts-ignore
-        source: 'admin_grant',
+        source: 'admin_grant' as any,
         videoEnabled,
         videoValidUntil
       })
@@ -550,7 +515,7 @@ export default function PermissionManagement() {
     <AdminPageTemplate
       title="权限管理"
       subtitle="管理课程视频权限和班级参与权限"
-      // @ts-ignore
+      {...({} as any)}
       icon={Shield}
     >
       {/* 统计卡片 */}

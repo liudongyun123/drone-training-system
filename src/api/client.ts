@@ -8,19 +8,11 @@ import { useAuthStore } from '@/store/authStore'
 import { showNotification } from '@/utils/notification'
 import { refreshAccessToken } from '@/api/modules/auth'
 
-// API 基础配置 - 从环境变量读取或使用默认值
-const getApiBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL
-  if (envUrl) {
-    return envUrl
-  }
-  // 默认使用当前环境的服务地址
-  return 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com'
-}
+import { API_BASE_URL, REQUEST_TIMEOUT } from '@/config/api'
 
 const API_CONFIG = {
-  baseURL: getApiBaseUrl(),
-  timeout: 30000,
+  baseURL: API_BASE_URL,
+  timeout: REQUEST_TIMEOUT,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -62,11 +54,9 @@ function onTokenRefreshed(token: string) {
 
 // 请求拦截器
 apiClient.interceptors.request.use(
-  // @ts-ignore
-  (config: AxiosRequestConfig) => {
+  ((config: any) => {
     // 添加 Access Token
-    // @ts-ignore
-    const token = useAuthStore.getState().accessToken
+    const token = (useAuthStore.getState() as any).accessToken
     if (token) {
       config.headers = config.headers || {}
       config.headers.Authorization = `Bearer ${token}`
@@ -206,8 +196,7 @@ function handleHttpError(status: number, data: any) {
 }
 
 // 处理 Token 过期
-// @ts-ignore
-async function handleTokenExpired(originalConfig?: InternalAxiosRequestConfig) {
+async function handleTokenExpired(originalConfig?: any) {
   const refreshToken = localStorage.getItem('refresh_token')
 
   if (!refreshToken) {

@@ -375,7 +375,6 @@ export interface DashboardStats {
   totalRevenue: number
   totalCourses: number
   activeEnrollments: number
-  // @ts-ignore
   recentOrders: Order[]
   popularCourses: Course[]
 }

@@ -131,7 +131,6 @@ export const courseApi = {
     const result = await adminService.list('courses', { status: 'published' }, { limit: 500 })
     const courses = extractList(result) as any[]
     const categories = [...new Set(courses.map(item => item.category))]
-    // @ts-ignore
-    return categories.filter(Boolean)
+    return (categories as any[]).filter(Boolean)
   }
 }

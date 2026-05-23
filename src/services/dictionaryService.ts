@@ -14,7 +14,11 @@ const CONFIG_COLLECTION = 'systemConfig';
 
 /** 辅助：将 adminService.list 的结果转为数组 */
 function extractList(result: any): any[] {
-  return result?.data?.list || result?.data || [];
+  const list = result?.data?.list;
+  if (Array.isArray(list)) return list;
+  // 兜底：result.data 本身可能是数组
+  if (Array.isArray(result?.data)) return result.data;
+  return [];
 }
 
 // ============================================================================

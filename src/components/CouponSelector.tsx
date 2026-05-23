@@ -48,20 +48,17 @@ export default function CouponSelector({
   const loadCoupons = async () => {
     setLoading(true);
     try {
-      const res = await couponService.getList({ status: 'active' });
+      const res = await (couponService.getList as any)({ status: 'active' });
       // 过滤出满足条件的优惠券
-      // @ts-ignore
-      const validCoupons = res.data.filter((c: Coupon) => {
+      const validCoupons = (res as any).data.filter((c: Coupon) => {
         // 检查最低金额
         if (orderAmount < c.minAmount) return false;
         // 检查有效期
         const validToDate = parseDate(c.validTo);
         if (!validToDate || validToDate < new Date()) return false;
         // 检查课程限制
-        // @ts-ignore
-        if (courseIds && c.courseIds && c.courseIds.length > 0) {
-          // @ts-ignore
-          return courseIds.some(id => c.courseIds?.includes(id));
+        if (courseIds && (c as any).courseIds && (c as any).courseIds.length > 0) {
+          return courseIds.some((id: any) => (c as any).courseIds?.includes(id));
         }
         return true;
       });

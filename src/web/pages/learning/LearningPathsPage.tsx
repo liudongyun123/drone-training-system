@@ -82,8 +82,7 @@ export default function LearningPathsPage() {
       setLoading(true);
       const result = await CloudLearningPathService.getAllPaths();
       if (result.success && result.data) {
-        // @ts-ignore
-        setPaths(result.data);
+        setPaths(result.data as any);
       }
     } catch (error) {
       console.error('加载学习路径失败:', error);
@@ -190,13 +189,10 @@ export default function LearningPathsPage() {
           return null;
         });
         
-        // @ts-ignore
-        const categoryResults = await Promise.all(categoryPromises);
-        categoryResults.forEach((r) => {
-          // @ts-ignore
-          if (r && r.courses.length > 0) {
+        const categoryResults = (await Promise.all(categoryPromises)) as any[];
+        categoryResults.forEach((r: any) => {
+          if (r && r.courses && r.courses.length > 0) {
             groups.push(r);
-            // @ts-ignore
             allCourses = [...allCourses, ...r.courses];
           }
         });

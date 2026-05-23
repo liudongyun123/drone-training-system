@@ -6,16 +6,11 @@
 const cloudbase = require('@cloudbase/node-sdk');
 
 const app = cloudbase.init({
-  env: 'rcwljy-5ghmq2ex26764978'
+  env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978'
 });
 
 // CORS 响应头
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Content-Type': 'application/json; charset=utf-8'
-};
+const { corsHeaders } = require('./lib/cors');
 
 function createResponse(data, statusCode = 200) {
   return {

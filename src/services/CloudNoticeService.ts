@@ -42,8 +42,7 @@ export const CloudNoticeService = {
         query.type = type
       }
 
-      // @ts-ignore
-      const data = await dbService.getAll(this.collection, query, { limit })
+      const data = await dbService.getAll(this.collection, query as any, { limit } as any)
 
       return (data || []).map((item: any) => ({
         id: item._id,
@@ -108,8 +107,7 @@ export const CloudNoticeService = {
           { endTime: { $gte: new Date().toISOString() } }
         ]
       }
-      // @ts-ignore
-      const data = await dbService.getAll(this.collection, query, { limit: 5 })
+      const data = await dbService.getAll(this.collection, query as any, { limit: 5 } as any)
 
       return (data || []).map((item: any) => ({
         id: item._id,
@@ -166,8 +164,7 @@ export const CloudNoticeService = {
         ]
       }
       
-      // @ts-ignore
-      const data = await dbService.getAll(this.collection, query, { limit: 1 })
+      const data = await dbService.getAll(this.collection, query as any, { limit: 1 } as any)
       
       if (!data || data.length === 0) {
         return { success: true, data: null }
@@ -189,7 +186,6 @@ export const CloudNoticeService = {
           views: item.views || 0,
           createdAt: item.createdAt,
           updatedAt: item.updatedAt,
-          // @ts-ignore
           linkType: item.linkType || 'none',
           linkId: item.linkId,
           linkUrl: item.linkUrl,
@@ -197,7 +193,7 @@ export const CloudNoticeService = {
           popupStyle: item.popupStyle || 'modal',
           showAsPopup: item.showAsPopup,
           isPopupEnabled: item.isPopupEnabled,
-        }
+        } as any
       }
     } catch (error) {
       console.error('获取弹窗公告失败:', error)

@@ -76,6 +76,8 @@ export default function CourseManagement() {
   })
   // 分类列表
   const [categories, setCategories] = useState<{ _id: string; name: string }[]>([])
+  // 等级列表（从字典动态获取）
+  const [levelOptions, setLevelOptions] = useState<string[]>(['初级工', '中级工', '高级工', '技师', '高级技师'])
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -93,6 +95,7 @@ export default function CourseManagement() {
   useEffect(() => {
     loadCourses()
     loadCategories()
+    loadLevels()
   }, [page, rowsPerPage, searchText])
 
   // 加载分类列表
@@ -101,18 +104,33 @@ export default function CourseManagement() {
       const { adminService } = await import('../../services/adminService')
       const result = await adminService.list('categories', {}, { orderBy: 'sort', order: 'asc', limit: 50 })
       const data = result?.data?.list || []
-      setCategories(data)
+      if (data.length > 0) {
+        setCategories(data)
+      } else {
+        // 数据库无分类数据时提示
+        setSnackbar({ open: true, message: '暂无分类数据，请先在分类管理中添加', severity: 'warning' })
+      }
     } catch (error) {
       console.error('加载分类失败:', error)
-      // 使用默认分类
-      setCategories([
-        { _id: '1', name: '植保无人机' },
-        { _id: '2', name: '安防无人机' },
-        { _id: '3', name: '航拍无人机' },
-        { _id: '4', name: '物流无人机' },
-        { _id: '5', name: '应急无人机' },
-        { _id: '6', name: '电力巡检无人机' },
-      ])
+      setSnackbar({ open: true, message: '加载分类失败，请刷新页面重试', severity: 'error' })
+    }
+  }
+
+  // 加载等级列表（从字典动态获取）
+  const loadLevels = async () => {
+    try {
+      const { adminService } = await import('../../services/adminService')
+      const result = await adminService.list('dictionaries', { type: 'level' }, { limit: 50 })
+      const data = result?.data?.list || []
+      if (data.length > 0) {
+        const levels = data.map((d: any) => d.name || d.label || d.value).filter(Boolean)
+        if (levels.length > 0) {
+          setLevelOptions(levels)
+        }
+      }
+    } catch (error) {
+      console.error('加载等级列表失败:', error)
+      // 使用默认等级列表
     }
   }
 
@@ -170,6 +188,7 @@ export default function CourseManagement() {
         category: '',
         categoryId: '',
         thumbnail: '',
+        videoUrl: '',
         duration: 0,
         status: 'published',
       })
@@ -181,7 +200,6 @@ export default function CourseManagement() {
     setDialogOpen(false)
     setEditMode(false)
     setSelectedCourse(null)
-    // @ts-ignore
     setCourseForm({
       title: '',
       description: '',
@@ -189,7 +207,9 @@ export default function CourseManagement() {
       price: 0,
       originalPrice: 0,
       category: '',
+      categoryId: '',
       thumbnail: '',
+      videoUrl: '',
       duration: 0,
       status: 'published',
     })
@@ -373,11 +393,9 @@ export default function CourseManagement() {
                     label="难度级别"
                     onChange={(e) => setCourseForm({ ...courseForm, level: e.target.value as any })}
                   >
-                    <MenuItem value="初级工">初级工</MenuItem>
-                    <MenuItem value="中级工">中级工</MenuItem>
-                    <MenuItem value="高级工">高级工</MenuItem>
-                    <MenuItem value="技师">技师</MenuItem>
-                    <MenuItem value="高级技师">高级技师</MenuItem>
+                    {levelOptions.map((level) => (
+                      <MenuItem key={level} value={level}>{level}</MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Grid>

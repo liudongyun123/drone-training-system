@@ -46,10 +46,8 @@ export default function NoticesPage() {
     try {
       setLoading(true);
       const result = await CloudNoticeService.getPublishedNotices({ limit: 50 });
-      // @ts-ignore
-      if (result.success && result.data) {
-        // @ts-ignore
-        setNotices(result.data);
+      if ((result as any).success && (result as any).data) {
+        setNotices((result as any).data);
       }
     } catch (error) {
       console.error('加载公告失败:', error);
@@ -66,8 +64,7 @@ export default function NoticesPage() {
   const viewNotice = async (notice: Notice) => {
     setSelectedNotice(notice);
     // 增加浏览数
-    // @ts-ignore
-    await CloudNoticeService.incrementViews(notice.id).catch(console.error);
+    await (CloudNoticeService as any).incrementViews(notice.id).catch(console.error);
   };
 
   // 关闭详情

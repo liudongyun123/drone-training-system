@@ -1,6 +1,8 @@
 // pages/cart/cart.ts
 // 购物车页
 
+import { DEFAULT_STOCK } from '../../utils/constants'
+
 Page({
   data: {
     cartList: [] as any[],
@@ -63,7 +65,7 @@ Page({
   onIncrease(e: any) {
     const index = e.currentTarget.dataset.index
     const cartList = [...this.data.cartList]
-    const stock = cartList[index].sku?.stock || cartList[index].product?.stock || 999
+    const stock = cartList[index].sku?.stock || cartList[index].product?.stock || DEFAULT_STOCK
     if (cartList[index].quantity < stock) {
       cartList[index].quantity++
       this.setData({ cartList })

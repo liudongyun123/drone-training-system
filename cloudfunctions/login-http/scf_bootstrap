@@ -1,2 +1,0 @@
-#!/bin/bash
-npx tcb-admin-node login-http

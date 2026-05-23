@@ -65,8 +65,7 @@ export default function MyPracticePage() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'records' | 'wrong' | 'ranking'>('records');
-  // @ts-ignore
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth() as any;
   const navigate = useNavigate();
 
   // 加载练习记录
@@ -77,9 +76,8 @@ export default function MyPracticePage() {
         CloudPracticeService.getUserRecords().catch(() => []),
         CloudPracticeService.getUserStats().catch(() => null)
       ]);
-      // @ts-ignore
-      setRecords(recordsData);
-      setStats(statsData);
+      setRecords(recordsData as any);
+      setStats(statsData as any);
     } catch (error) {
       console.error('加载练习记录失败:', error);
     } finally {

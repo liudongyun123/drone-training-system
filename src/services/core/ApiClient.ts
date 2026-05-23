@@ -8,7 +8,7 @@
  * - API限流
  */
 
-import app from '@/config/tcb';
+// 注意：云函数调用请使用 adminService(Http API) 而非 app.callFunction()
 
 // ============================================================================
 // 类型定义
@@ -284,71 +284,6 @@ class ApiClient {
 
 // 导出API客户端实例
 export const apiClient = new ApiClient()
-
-// ============================================================================
-// 云函数调用封装
-// ============================================================================
-
-interface CloudFunctionOptions {
-  name: string
-  data?: any
-  timeout?: number
-}
-
-export async function callCloudFunction<T = any>(
-  options: CloudFunctionOptions
-): Promise<ApiResponse<T>> {
-  const { name, data = {}, timeout = 30000 } = options
-  
-  const startTime = performance.now()
-
-  try {
-    // 检查限流
-    const rateLimitKey = `function:${name}`
-    if (!apiRateLimiter.canRequest(rateLimitKey)) {
-      const retryAfter = apiRateLimiter.getRetryAfter(rateLimitKey)
-      throw new Error(`云函数调用过于频繁，请 ${Math.ceil(retryAfter / 1000)} 秒后重试`)
-    }
-
-    const result = await app.callFunction({
-      name,
-      data,
-      timeout
-    })
-
-    const duration = performance.now() - startTime
-    console.log(`[CloudFunction] ${name} (${duration.toFixed(0)}ms)`, result.result)
-
-    // 标准化响应格式
-    if (result.result?.success !== undefined) {
-      return {
-        success: result.result.success,
-        data: result.result.data,
-        error: result.result.error ? {
-          code: result.result.code || -1,
-          message: result.result.error
-        } : undefined
-      }
-    }
-
-    return {
-      success: true,
-      data: result.result as T
-    }
-
-  } catch (error: any) {
-    const duration = performance.now() - startTime
-    console.error(`[CloudFunction] ${name} ERROR (${duration.toFixed(0)}ms)`, error.message)
-
-    return {
-      success: false,
-      error: {
-        code: error.code || -1,
-        message: error.message || '云函数调用失败'
-      }
-    }
-  }
-}
 
 // ============================================================================
 // 默认拦截器

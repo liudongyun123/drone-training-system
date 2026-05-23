@@ -29,7 +29,7 @@
       <view wx:if="{{product.tags && product.tags.length > 0}}" class="product-tags">
         <text class="tag" wx:for="{{product.tags}}" wx:key="*this">{{item}}</text>
       </view>
-      <text class="product-stock">库存: {{product.stock || 99}}件</text>
+      <text class="product-stock">库存: {{product.stock || 0}}件</text>
     </view>
 
     <!-- 规格选择入口（仅当有规格时显示） -->

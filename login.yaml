@@ -1,0 +1,104 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - link "无人机培训" [ref=e99] [cursor=pointer]:
+        - /url: /
+        - img [ref=e9]
+        - generic [ref=e12]: 无人机培训
+      - generic [ref=e13]:
+        - link "课程" [ref=e100] [cursor=pointer]:
+          - /url: /courses
+          - img [ref=e15]
+          - generic [ref=e17]: 课程
+        - link "开班信息" [ref=e101] [cursor=pointer]:
+          - /url: /registration
+          - img [ref=e19]
+          - generic [ref=e21]: 开班信息
+        - link "教师团队" [ref=e102] [cursor=pointer]:
+          - /url: /teachers
+          - img [ref=e23]
+          - generic [ref=e28]: 教师团队
+        - link "商城" [ref=e103] [cursor=pointer]:
+          - /url: /shop
+          - img [ref=e30]
+          - generic [ref=e34]: 商城
+        - link "题库与考试" [ref=e104] [cursor=pointer]:
+          - /url: /exam-center
+          - img [ref=e36]
+          - generic [ref=e39]: 题库与考试
+        - button "U" [ref=e105] [cursor=pointer]:
+          - generic [ref=e42]: U
+  - generic [ref=e107]:
+    - generic [ref=e108]:
+      - img [ref=e110]
+      - heading "欢迎回来" [level=2] [ref=e113]
+      - paragraph [ref=e114]: 请选择登录方式
+    - generic [ref=e115]:
+      - button "短信登录" [ref=e116] [cursor=pointer]:
+        - img [ref=e117]
+        - text: 短信登录
+      - button "邮箱登录" [ref=e119] [cursor=pointer]:
+        - img [ref=e120]
+        - text: 邮箱登录
+      - button "密码登录" [ref=e123] [cursor=pointer]:
+        - img [ref=e124]
+        - text: 密码登录
+      - button "微信登录" [ref=e127] [cursor=pointer]:
+        - img [ref=e128]
+        - text: 微信登录
+    - generic [ref=e130]:
+      - generic [ref=e131]:
+        - generic [ref=e132]: 手机号
+        - generic [ref=e133]:
+          - img [ref=e134]
+          - textbox "请输入手机号" [ref=e136]
+      - button "获取验证码" [ref=e137] [cursor=pointer]
+    - button "访客浏览" [ref=e138] [cursor=pointer]:
+      - img [ref=e139]
+      - text: 访客浏览
+    - paragraph [ref=e143]:
+      - text: 还没有账号？
+      - button "立即注册" [ref=e144] [cursor=pointer]
+    - button "管理员登录" [ref=e146] [cursor=pointer]:
+      - img [ref=e147]
+      - text: 管理员登录
+  - contentinfo [ref=e48]:
+    - generic [ref=e49]:
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - heading "无人机培训中心" [level=3] [ref=e150]
+          - paragraph [ref=e53]: 专业无人机驾驶培训机构，中国航空运输协会认证。
+          - paragraph [ref=e55]: "电话: 400-888-8888"
+        - generic [ref=e56]:
+          - heading "快速链接" [level=4] [ref=e151]
+          - list [ref=e58]:
+            - listitem [ref=e59]:
+              - link "课程中心" [ref=e152] [cursor=pointer]:
+                - /url: /courses
+            - listitem [ref=e61]:
+              - link "题库练习" [ref=e153] [cursor=pointer]:
+                - /url: /exam-center
+            - listitem [ref=e63]:
+              - link "证书查询" [ref=e154] [cursor=pointer]:
+                - /url: /certificates
+            - listitem [ref=e65]:
+              - link "教官团队" [ref=e155] [cursor=pointer]:
+                - /url: /teachers
+        - generic [ref=e67]:
+          - heading "联系我们" [level=4] [ref=e156]
+          - list [ref=e69]:
+            - listitem [ref=e70]: "邮箱: info@drone-train.com"
+            - listitem [ref=e71]: "地址: 北京市朝阳区航空路88号"
+        - generic [ref=e72]:
+          - heading "学习资源" [level=4] [ref=e157]
+          - list [ref=e74]:
+            - listitem [ref=e75]:
+              - link "公告通知" [ref=e158] [cursor=pointer]:
+                - /url: /notices
+            - listitem [ref=e77]:
+              - link "学习路径" [ref=e159] [cursor=pointer]:
+                - /url: /learning-paths
+            - listitem [ref=e79]:
+              - link "题库练习" [ref=e160] [cursor=pointer]:
+                - /url: /exam-center
+      - paragraph [ref=e82]: © 2024 无人机培训中心 版权所有 | 京ICP备XXXXXXXX号

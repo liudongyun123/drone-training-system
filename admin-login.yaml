@@ -1,0 +1,25 @@
+- generic [ref=e9]:
+  - generic [ref=e10]:
+    - img [ref=e12]
+    - heading "超级管理员登录" [level=2] [ref=e15]
+    - paragraph [ref=e16]: 仅限授权管理员使用
+  - generic [ref=e17]:
+    - button "验证码登录" [ref=e18] [cursor=pointer]:
+      - img [ref=e19]
+      - text: 验证码登录
+    - button "账号密码登录" [ref=e21] [cursor=pointer]:
+      - img [ref=e22]
+      - text: 账号密码登录
+  - generic [ref=e25]:
+    - generic [ref=e26]:
+      - img [ref=e27]
+      - textbox "用户名" [ref=e30]
+    - generic [ref=e31]:
+      - img [ref=e32]
+      - textbox "密码" [ref=e35]
+      - button [ref=e36] [cursor=pointer]:
+        - img [ref=e37]
+    - button "登录" [ref=e40] [cursor=pointer]:
+      - text: 登录
+      - img [ref=e41]
+  - button "← 返回首页" [ref=e44] [cursor=pointer]

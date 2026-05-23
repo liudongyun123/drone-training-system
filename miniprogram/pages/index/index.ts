@@ -4,7 +4,9 @@
 
 import { productApi, bannerApi, loadLevels, getLevelName, configVersionApi } from '../../utils/api'
 import { SourceService } from '../../utils/SourceService'
+import { dbGetList } from '../../utils/http'
 import logger from '../../utils/logger'
+import { DEFAULT_COVER } from '../../utils/constants'
 
 // 数据状态枚举
 enum LoadState {
@@ -30,6 +32,11 @@ interface IndexData {
   currentSource: string
   currentSourceId: string
   sourceList: Array<{ key: string; name: string; icon: string; id: string }>
+  
+  // 首页文案配置
+  heroTitle: string
+  heroSubtitle: string
+  heroDesc: string
   
   // 统计概览 & 特色优势（体系相关）
   statsData: Array<{label: string; value: string; icon: string; color: string}>
@@ -58,14 +65,17 @@ Page<IndexData>({
     learningPathLevelCount: 5,
     currentSource: 'RENSHE',
     currentSourceId: '',
-    sourceList: [
-      { key: 'RENSHE', name: '人社培训', icon: '🏛️', id: '' },
-      { key: 'CAAC', name: 'CAAC培训', icon: '✈️', id: '' }
-    ],
+    sourceList: [],
     
     // 统计概览 & 特色优势
     statsData: [],
     featuresData: [],
+    
+    // 首页文案（默认值，可从后台覆盖）
+    heroTitle: '翱翔蓝天',
+    heroSubtitle: '成就飞行梦想',
+    heroDesc: '零基础到专业飞手的完整培训体系，涵盖植保，航拍，巡检等',
+    defaultCover: DEFAULT_COVER,
     
     // 骨架屏
     skeletonVisible: true,
@@ -231,6 +241,25 @@ Page<IndexData>({
       const isClassesEmpty = !classes || classes.length === 0
       const isPathsEmpty = !paths || paths.length === 0
 
+      // 加载首页文案配置
+      let heroTitle = this.data.heroTitle
+      let heroSubtitle = this.data.heroSubtitle
+      let heroDesc = this.data.heroDesc
+      try {
+        const pageConfigResult = await dbGetList('page_configs', {
+          where: { page: 'index', sourceId: currentSourceId },
+          limit: 1
+        })
+        const pageConfig = (pageConfigResult.data || [])[0]
+        if (pageConfig) {
+          heroTitle = pageConfig.heroTitle || heroTitle
+          heroSubtitle = pageConfig.heroSubtitle || heroSubtitle
+          heroDesc = pageConfig.heroDesc || heroDesc
+        }
+      } catch (err) {
+        logger.warn('[首页] 加载页面配置失败，使用默认文案', err)
+      }
+
       this.setData({
         loadState: LoadState.SUCCESS,
         skeletonVisible: false,
@@ -242,6 +271,9 @@ Page<IndexData>({
         learningPathLevelCount: levelCount,
         statsData: stats || [],
         featuresData: processedFeatures || [],
+        heroTitle,
+        heroSubtitle,
+        heroDesc,
         isCoursesEmpty,
         isClassesEmpty,
         isPathsEmpty
@@ -423,7 +455,7 @@ Page<IndexData>({
     const index = e.currentTarget.dataset.index
     const hotCourses = this.data.hotCourses
     if (hotCourses[index]) {
-      hotCourses[index].coverImage = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      hotCourses[index].coverImage = DEFAULT_COVER
       this.setData({ hotCourses })
     }
   },
@@ -433,7 +465,7 @@ Page<IndexData>({
     const index = e.currentTarget.dataset.index
     const heroBanners = this.data.heroBanners
     if (heroBanners[index]) {
-      heroBanners[index].image = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+      heroBanners[index].image = DEFAULT_COVER
       this.setData({ heroBanners })
     }
   },

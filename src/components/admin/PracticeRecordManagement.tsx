@@ -66,8 +66,7 @@ export default function PracticeRecordManagement() {
   const loadRecords = async () => {
     try {
       setLoading(true)
-      const result = await CloudPracticeService.getUserRecords()
-      // @ts-ignore
+      const result: any = await CloudPracticeService.getUserRecords()
       const mappedData: UserPracticeRecord[] = (Array.isArray(result) ? result : []).map((item: any) => ({
         id: item._id || item.id,
         bankId: item.bankId || item.bank_id || '',
@@ -118,8 +117,7 @@ export default function PracticeRecordManagement() {
               score: record.score,
               isPassed: record.isPassed,
               userAnswer: answer.userAnswer,
-              // @ts-ignore
-              correctAnswer: answer.correctAnswer,
+              correctAnswer: (answer as any).correctAnswer,
               timesWrong: 1,
             })
           }
@@ -251,8 +249,7 @@ export default function PracticeRecordManagement() {
                     <td className="px-6 py-4">
                       <span className="flex items-center gap-1 text-slate-600">
                         <Clock className="w-4 h-4" />
-                        // @ts-ignore
-                        {formatTime(record.duration || 0)}
+                        {formatTime((record as any).duration || 0)}
                       </span>
                     </td>
                     <td className="px-6 py-4">

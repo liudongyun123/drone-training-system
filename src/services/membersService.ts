@@ -2,11 +2,9 @@
  * 学员/成员服务
  * 统一管理用户、学员、毕业学员的数据
  * 
- * ★ Stage 3 迁移：数据库操作统一走 HTTP → adminService → db-init 云函数
- * ★ Auth 操作（verifyOtp/callFunction）保留 CloudBase SDK
+ * ★ Stage 3 迁移：所有操作统一走 HTTP → adminService
  */
 
-import { app } from '@/utils/cloudbase'
 import { adminService } from './adminService'
 import type { 
   Member, 
@@ -779,22 +777,19 @@ export const membersService = {
 
   /**
    * ★ 通过微信 code 获取手机号
-   * 保留 CloudBase SDK - 调用云函数
+   * HTTP 方式调用 api-auth 云函数
    */
   async getPhoneByWechatCode(wechatCode: string): Promise<{ success: boolean; phone?: string; error?: string }> {
     try {
-      const result = await app.callFunction({
-        name: 'mobile-auth',
-        data: {
-          action: 'getPhoneByCode',
-          data: { code: wechatCode }
-        }
+      const result = await adminService.callFunction('auth-api', {
+        action: 'getPhoneByCode',
+        data: { code: wechatCode }
       })
       
-      if (result.result?.success && result.result?.phone) {
-        return { success: true, phone: result.result.phone }
+      if (result?.success && result?.phone) {
+        return { success: true, phone: result.phone }
       }
-      return { success: false, error: result.result?.error || '获取手机号失败' }
+      return { success: false, error: result?.error || '获取手机号失败' }
     } catch (error: any) {
       console.error('[membersService] 获取手机号失败:', error)
       return { success: false, error: error.message || '获取手机号失败' }

@@ -3,6 +3,7 @@
 
 import { productApi } from '../../utils/api'
 import logger from '../../utils/logger'
+import { DEFAULT_COVER, DEFAULT_STOCK } from '../../utils/constants'
 
 Page({
   data: {
@@ -14,7 +15,7 @@ Page({
     quantity: 1,
     showSkuPicker: false,
     buyType: 'cart' as 'cart' | 'buy',
-    defaultCover: 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+    defaultCover: DEFAULT_COVER
   },
 
   productId: '',
@@ -41,7 +42,7 @@ Page({
         title: product.title || product.name || '未命名商品',
         coverImage: product.coverImage || product.cover || '',
         price: product.price || 0,
-        stock: product.stock || 99,
+        stock: product.stock || DEFAULT_STOCK,
         specs: product.specs || [],
         skus: product.skus || []
       }
@@ -143,7 +144,7 @@ Page({
 
   // 数量增加
   increaseQty() {
-    const stock = this.data.selectedSku?.stock || this.data.product?.stock || 999
+    const stock = this.data.selectedSku?.stock || this.data.product?.stock || DEFAULT_STOCK
     if (this.data.quantity < stock) {
       this.setData({ quantity: this.data.quantity + 1 })
     }

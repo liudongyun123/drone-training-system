@@ -323,9 +323,8 @@ export const VALIDATION_RULES = {
     message: message || `数值必须在${min}到${max}之间`
   }),
 
-  password: (message?: string): ValidationRule => ({
-    validate: (value) => validatePasswordStrength(value || '').valid,
-    // @ts-ignore
+  password: (message?: string): any => ({
+    validate: (value: string) => validatePasswordStrength(value || '').valid,
     message: message || validatePasswordStrength(value || '').message
   })
 }

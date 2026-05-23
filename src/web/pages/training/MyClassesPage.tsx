@@ -389,8 +389,7 @@ export default function MyClassesPage() {
                         {schedule.status === 'scheduled' ? '待上课' :
                          schedule.status === 'completed' ? '已完成' :
                          schedule.status === 'cancelled' ? '已取消' :
-                         // @ts-ignore
-                         schedule.status === 'adjusted' ? '已调整' : schedule.status}
+                         (schedule as any).status === 'adjusted' ? '已调整' : schedule.status}
                       </span>
                     </div>
                     {schedule.content && (

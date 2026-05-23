@@ -2,7 +2,6 @@
  * 通知工具
  * 提供统一的用户通知功能
  */
-// @ts-ignore
 import { message } from 'antd';
 
 type NotificationType = 'success' | 'info' | 'warning' | 'error';

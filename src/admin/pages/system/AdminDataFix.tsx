@@ -3,15 +3,11 @@
  * 统一课程、排课、报名的关联关系
  */
 import { useState } from 'react'
-import { app } from '@/utils/cloudbase'
+import { adminService } from '@/services/adminService'
 
-// 云函数调用
+// 云函数调用（统一走 HTTP → admin 云函数）
 async function callFunction(action: string, data: any = {}) {
-  const result = await app.callFunction({
-    name: 'admin',
-    data: { ...data, action }
-  })
-  return result.result
+  return adminService.callAdminFunction(action, data)
 }
 
 interface FixResult {

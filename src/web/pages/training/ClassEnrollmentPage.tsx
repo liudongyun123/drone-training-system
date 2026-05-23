@@ -37,6 +37,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Loading, EmptyState, Card, Modal } from '@/components';
 import { formatDateStr } from '@/utils/dateUtils';
 import { classApi } from '@/services/webApi';
+import { adminService } from '@/services/adminService';
 
 interface ClassInfo {
   _id: string;
@@ -276,10 +277,7 @@ export default function ClassEnrollmentPage() {
     setEnrolling(true);
     try {
       // 创建订单并发起支付
-      const result = await app.callFunction({
-        name: 'admin',
-        data: {
-          action: 'createOrder',
+      const result = await adminService.callAdminFunction('createOrder', {
           data: {
             items: [{
               type: 'class',
@@ -291,15 +289,14 @@ export default function ClassEnrollmentPage() {
             phone: enrollmentForm.phone,
             studentName: enrollmentForm.name,
           }
-        }
       });
       
-      if ((result.result as any)?.code === 0) {
+      if (result?.code === 0) {
         // 跳转支付页面
-        const orderId = (result.result as any)?.data?.orderId;
+        const orderId = result?.data?.orderId;
         navigate(`/checkout?orderId=${orderId}&type=class`);
       } else {
-        setError((result.result as any)?.message || '创建订单失败');
+        setError(result?.message || '创建订单失败');
         setEnrolling(false);
       }
     } catch (e: any) {

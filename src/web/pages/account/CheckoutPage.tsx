@@ -18,8 +18,7 @@ import WechatQRCode from '@/components/payment/WechatQRCode';
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  // @ts-ignore
-  const { user, isAuthenticated, loginWithPhone, phone } = useAuthStore();
+  const { user, isAuthenticated, loginWithPhone, phone } = useAuthStore() as any;
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedCoupon, setSelectedCoupon] = useState<any>(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
@@ -143,8 +142,7 @@ export default function CheckoutPage() {
         userId,
         orderNo: newOrderNo,
         items: orderItems,
-        // @ts-ignore
-        total: totalAmount,
+        total: totalAmount as any,
         discountAmount: couponDiscount,
         finalAmount,
         paymentMethod,

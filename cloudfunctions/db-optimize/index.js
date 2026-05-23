@@ -10,7 +10,7 @@
 const cloudbase = require('@cloudbase/node-sdk')
 
 const app = cloudbase.init({
-  env: 'rcwljy-5ghmq2ex26764978'
+  env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978'
 })
 
 const db = app.database()
@@ -292,7 +292,6 @@ exports.main = async (event, context) => {
   console.log('='.repeat(60))
   console.log('数据库优化任务')
   console.log('='.repeat(60))
-  console.log()
 
   const results = {
     created: [],
@@ -325,7 +324,6 @@ exports.main = async (event, context) => {
           }
         }
       }
-      console.log()
     }
 
     // 2. 删除冗余集合
@@ -341,7 +339,6 @@ exports.main = async (event, context) => {
           results.errors.push(result)
         }
       }
-      console.log()
     }
 
     // 3. 为核心集合创建索引
@@ -384,7 +381,6 @@ exports.main = async (event, context) => {
           }
         }
       }
-      console.log()
     }
 
   } catch (error) {
@@ -396,12 +392,10 @@ exports.main = async (event, context) => {
   console.log('='.repeat(60))
   console.log('执行完成')
   console.log('='.repeat(60))
-  console.log()
   console.log(`创建集合: ${results.created.length} 个`)
   console.log(`删除集合: ${results.deleted.length} 个`)
   console.log(`创建索引: ${results.indexed.length} 个`)
   console.log(`失败操作: ${results.errors.length} 个`)
-  console.log()
 
   if (results.errors.length > 0) {
     console.log('错误详情:')

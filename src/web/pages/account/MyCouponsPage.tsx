@@ -44,9 +44,7 @@ export default function MyCouponsPage() {
   const loadCoupons = async () => {
     setLoading(true);
     try {
-      // 从数据库读取用户优惠券
-      // @ts-ignore
-      const result = await couponService.getUserCoupons();
+      const result: any = await couponService.getUserCoupons();
       if (result && result.length > 0) {
         setCoupons(result);
       } else {

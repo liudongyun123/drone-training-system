@@ -1,6 +1,6 @@
 // api-message 云函数 - 消息推送服务 v2.0
 const cloudbase = require('@cloudbase/node-sdk')
-const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const app = cloudbase.init({ env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex26764978' })
 const db = app.database()
 const _ = db.command
 
@@ -103,7 +103,7 @@ async function sendMessage(params) {
   }
 
   try {
-    const result = await db.collection('messages').add({ data: message })
+    const result = await db.collection('messages').add(message)
     return {
       code: 0,
       msg: '发送成功',
@@ -161,7 +161,7 @@ async function sendBatchMessage(params) {
   }))
 
   try {
-    const result = await db.collection('messages').add({ data: messages })
+    const result = await db.collection('messages').add(messages)
     return {
       code: 0,
       msg: `成功发送 ${messages.length} 条消息`,
@@ -451,7 +451,7 @@ async function subscribe(params) {
     status: 'active'
   }
 
-  const { _id } = await db.collection('subscriptions').add({ data: record })
+  const { _id } = await db.collection('subscriptions').add(record)
 
   return {
     code: 0,
