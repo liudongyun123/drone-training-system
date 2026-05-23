@@ -292,3 +292,171 @@ async getList(): Promise<CourseItem[]> { ... }
 - [ ] 组件用的 MUI + sx？→ 不是 className
 - [ ] import 没有未使用的？→ `npm run build` 零 error
 - [ ] 新文件命名符合规范？→ 对照 5.5 节
+
+---
+
+## 八、目录结构约定
+
+```
+src/
+├── admin/            # 管理后台页面（仅管理员可见）
+│   └── pages/
+│       ├── classes/      # 班级、排课、报名
+│       ├── content/      # 内容管理（配置、分类、教师）
+│       ├── courses/      # 课程管理
+│       ├── exams/        # 考试题库
+│       ├── learning/     # 学习进度
+│       ├── orders/       # 订单财务
+│       ├── shop/         # 商城
+│       ├── system/       # 系统设置、仪表板
+│       └── users/        # 用户会员
+├── web/              # Web 客户端页面（学员端）
+│   └── pages/
+│       ├── account/      # 登录、注册、转账
+│       ├── home/         # 首页、师资、公告
+│       ├── learning/     # 课程、学习路径、我的学习
+│       ├── practice/     # 练习、考试
+│       └── training/     # 线下培训、我的班级
+├── components/       # 公共组件
+│   ├── admin/            # 管理后台专用组件
+│   └── *.tsx             # 跨端共享组件（Button、Modal、Loading 等）
+├── services/         # 数据服务层（每个 Service 只导 adminService）
+├── hooks/            # 自定义 React hooks
+├── store/            # zustand 全局状态
+├── types/            # TypeScript 类型定义
+├── utils/            # 工具函数（cloudbase.ts 是 SDK 入口）
+├── router/           # 路由配置
+├── features/         # 业务功能模块
+├── shared/           # 共享工具和类型
+└── contexts/         # React Context（AuthContext 等）
+```
+
+**放文件规则：**
+
+| 你要创建的是 | 放在 |
+|-------------|------|
+| 管理后台新页面 | `src/admin/pages/<模块>/` |
+| 学员端新页面 | `src/web/pages/<模块>/` |
+| 跨端共用组件 | `src/components/` |
+| 管理后台专用组件 | `src/components/admin/` |
+| 新 Service | `src/services/xxxService.ts` |
+| 新 Hook | `src/hooks/useXxx.ts` |
+| 新类型 | `src/types/xxx.ts` |
+| 新工具函数 | `src/utils/xxx.ts` |
+| 新云函数 | `cloudfunctions/<功能名>/` |
+
+---
+
+## 九、Git 提交规范
+
+### 9.1 Commit Message 格式
+
+```
+<type>: <简短描述>
+
+<详细说明（可选，多行）>
+```
+
+### 9.2 Type 分类
+
+| Type | 用途 | 示例 |
+|------|------|------|
+| `feat` | 新功能 | `feat: 添加学员转班功能` |
+| `fix` | 修 Bug | `fix: 修复 db-init 云函数 add 操作参数格式` |
+| `refactor` | 重构（不改功能） | `refactor: 统一 Service 层数据库访问方式` |
+| `docs` | 文档 | `docs: 添加编码规范` |
+| `chore` | 杂项（构建、依赖） | `chore: 更新 BUILD_VERSION` |
+| `style` | 样式调整 | `style: 统一管理后台表格样式` |
+| `perf` | 性能优化 | `perf: 课程列表懒加载优化` |
+| `debug` | 临时调试日志 | `debug: 添加保存失败排查日志` |
+
+### 9.3 规则
+
+```
+✅ feat: 添加学员转班功能
+✅ fix: 修复报名状态类型错误
+✅ refactor: courseService 改为 HTTP 调用
+❌ update code
+❌ 改了点东西
+❌ fix bug（太模糊）
+```
+
+---
+
+## 十、构建部署流程
+
+### 10.1 本地构建验证
+
+```bash
+# 1. 确保编译通过
+npm run build
+
+# 2. 有 error 必须先修，不能部署
+```
+
+### 10.2 更新版本号
+
+```bash
+# 修改 vite.config.ts 中的 BUILD_VERSION
+const BUILD_VERSION = 'v20260101-1200-简短描述';
+```
+
+### 10.3 部署到 CloudBase
+
+```bash
+# 方式一：执行脚本
+bash build-and-deploy.sh
+
+# 方式二：手动
+npm run build
+npx cloudbase hosting:deploy dist -e rcwljy-5ghmq2ex26764978
+```
+
+### 10.4 部署后验证
+
+1. 打开 `https://rcwljy-5ghmq2ex26764978-1318564729.tcloudbaseapp.com/`
+2. `Cmd+Shift+R` 强制刷新（防止 CDN 缓存）
+3. 在控制台确认加载的 JS 文件名包含最新 BUILD_VERSION
+
+### 10.5 云函数部署
+
+```bash
+# 通过 CloudBase MCP 工具或 CLI
+npx cloudbase functions:deploy <函数名> -e rcwljy-5ghmq2ex26764978
+```
+
+---
+
+## 十一、管理后台添加路由
+
+### 步骤
+
+**1. 创建页面文件**
+
+```
+src/admin/pages/<模块>/AdminXxx.tsx
+```
+
+**2. 在 lazyRoutes.tsx 添加懒加载**
+
+```typescript
+// src/router/lazyRoutes.tsx
+export const AdminXxx = lazy(() => import('@/admin/pages/<模块>/AdminXxx'));
+```
+
+**3. 在 router/index.tsx 注册路由**
+
+```typescript
+// 1. 顶部 import 区加入 AdminXxx
+import { ..., AdminXxx } from '@/router/lazyRoutes';
+
+// 2. 在路由数组中添加（需要管理员权限）
+{ path: '/admin/xxx', element: adminRoute(AdminXxx) },
+
+// 3.（可选）在面包屑映射中添加标题
+const breadcrumbMap: Record<string, string> = {
+  '/admin/xxx': '新页面标题',
+}
+```
+
+**4. 在 Layout.tsx 导航菜单中添加（按需）**
