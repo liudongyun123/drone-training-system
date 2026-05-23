@@ -789,19 +789,10 @@ export function useCourses() {
     setPermissionStats(null);
 
     try {
-      const { app, ensureInit } = await import('@/utils/cloudbase');
-      // ★ 关键修复：必须先确保 SDK 初始化完成
-      await ensureInit();
-      await app.auth().getLoginState();
-      const db = app.database();
+      const { adminService } = await import('@/services/adminService');
 
-      const permResult = await db
-        .collection('course_permissions')
-        .where({ courseId: course._id })
-        .limit(1000)
-        .get();
-
-      const permissions = permResult.data || [];
+      const permResult = await adminService.list('course_permissions', { courseId: course._id }, { limit: 1000 });
+      const permissions = permResult?.data?.list || [];
 
       const stats = {
         total: permissions.length,

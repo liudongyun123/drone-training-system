@@ -98,12 +98,13 @@ export default function CourseManagement() {
   // 加载分类列表
   const loadCategories = async () => {
     try {
-      const { app } = await import('../../utils/cloudbase')
-      const result = await app.database().collection('categories').orderBy('sort', 'asc').get()
-      setCategories(result.data || [])
+      const { adminService } = await import('../../services/adminService')
+      const result = await adminService.list('categories', {}, { orderBy: 'sort', order: 'asc', limit: 50 })
+      const data = result?.data?.list || []
+      setCategories(data)
     } catch (error) {
       console.error('加载分类失败:', error)
-      // 使用默认分类（与 categories 集合一致）
+      // 使用默认分类
       setCategories([
         { _id: '1', name: '植保无人机' },
         { _id: '2', name: '安防无人机' },

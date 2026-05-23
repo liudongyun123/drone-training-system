@@ -7,7 +7,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import app from '../config/tcb'
-import { ensureInit, app as cloudbaseApp } from '@/utils/cloudbase'
+import { ensureInit } from '@/utils/cloudbase'
 
 export type UserRole = 'anonymous' | 'visitor' | 'student' | 'teacher' | 'admin'
 export type LoginType = 'anonymous' | 'wechat' | 'phone' | 'password'
@@ -215,18 +215,16 @@ export const useAuthStore = create<AuthState>()(
           if (result.result?.success) {
             const userData = result.result.data.user
             
-            // 查询 user_roles 表识别身份
+            // 查询 user_roles 表识别身份（通过 adminService HTTP）
             let role: UserRole = 'student'
             let isAdmin = false
             try {
-              const db = app.database()
-              const roleRes = await db.collection('user_roles')
-                .where({ phone, status: 'active' })
-                .limit(1)
-                .get()
+              const { adminService } = await import('@/services/adminService')
+              const roleRes = await adminService.list('user_roles', { phone, status: 'active' }, { limit: 1 })
+              const roleData = roleRes?.data?.list || []
               
-              if (roleRes.data && roleRes.data.length > 0) {
-                const userRole = roleRes.data[0]
+              if (roleData.length > 0) {
+                const userRole = roleData[0]
                 // 管理员或教师角色
                 if (['super_admin', 'admin'].includes(userRole.role)) {
                   role = 'admin'
@@ -730,23 +728,19 @@ export const initAuth = async () => {
           // ★ 如果没有缓存手机号，通过 openid 从 members 集合查询
           try {
             console.log('[Auth] 未找到缓存手机号，尝试通过 openid 查询:', openid)
-            const database = app.database()
+            const { adminService } = await import('@/services/adminService')
             // 先尝试 openid 字段
-            let membersRes = await database.collection('members')
-              .where({ openid: openid })
-              .limit(1)
-              .get()
+            let membersRes = await adminService.list('members', { openid: openid }, { limit: 1 })
+            let membersData = membersRes?.data?.list || []
             
             // 如果没找到，尝试 wxOpenId 字段
-            if (!membersRes.data || membersRes.data.length === 0) {
-              membersRes = await database.collection('members')
-                .where({ wxOpenId: openid })
-                .limit(1)
-                .get()
+            if (membersData.length === 0) {
+              membersRes = await adminService.list('members', { wxOpenId: openid }, { limit: 1 })
+              membersData = membersRes?.data?.list || []
             }
             
-            if (membersRes.data && membersRes.data.length > 0) {
-              const member = membersRes.data[0]
+            if (membersData.length > 0) {
+              const member = membersData[0]
               const phoneFromDb = member.phone
               if (phoneFromDb) {
                 // 保存到 localStorage

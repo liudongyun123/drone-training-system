@@ -7,7 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { transferService, TransferRequest, TransferStats } from '@/services/transferService'
 import { useAuthStore } from '@/store/authStore'
-import { app } from '@/utils/cloudbase'
+import { adminService } from '@/services/adminService'
 
 // 辅助函数：格式化日期
 const formatDate = (dateStr: string | undefined | null) => {
@@ -670,13 +670,6 @@ function TransferRequestForm({ onSuccess, onCancel, user }: TransferRequestFormP
   const loadMySchedules = async () => {
     setLoadingSchedules(true)
     try {
-      const db = app.database()
-      if (!db) {
-        console.error('数据库未初始化')
-        setMySchedules([])
-        return
-      }
-
       // 获取用户身份信息（支持多种字段）
       const userPhone = user?.phone || localStorage.getItem('user_phone') || ''
       const userId = user?.uid || user?.studentId || user?._openid || ''
@@ -688,26 +681,28 @@ function TransferRequestForm({ onSuccess, onCancel, user }: TransferRequestFormP
 
       // 方式A：按手机号查询
       if (userPhone) {
-        const result1 = await db.collection('class_members')
-          .where(db.command.or([
+        const result1 = await adminService.listWithOps('class_members', {
+          '$or': [
             { phone: userPhone },
             { studentId: `phone_${userPhone}` }
-          ]))
-          .get()
-        members = result1.data || []
+          ]
+        })
+        const data1 = result1?.data?.list || []
+        members = data1
         console.log('[调课] 手机号匹配成员记录:', members.length, '条')
       }
 
       // 方式B：如果手机号没查到，尝试按 userId/studentId 查询
       if (members.length === 0 && userId) {
-        const result2 = await db.collection('class_members')
-          .where(db.command.or([
+        const result2 = await adminService.listWithOps('class_members', {
+          '$or': [
             { studentId: userId },
             { memberId: userId },
             { userId: userId }
-          ]))
-          .get()
-        members = result2.data || []
+          ]
+        })
+        const data2 = result2?.data?.list || []
+        members = data2
         console.log('[调课] ID匹配成员记录:', members.length, '条')
       }
 
@@ -722,8 +717,8 @@ function TransferRequestForm({ onSuccess, onCancel, user }: TransferRequestFormP
             regQuery.$or = regQuery.$or || []
             regQuery.$or.push({ userId })
           }
-          const regResult = await db.collection('registrations').where(regQuery).limit(20).get()
-          const regs = regResult.data || []
+          const regResult = await adminService.listWithOps('registrations', regQuery, { limit: 20 })
+          const regs = regResult?.data?.list || []
           if (regs.length > 0) {
             // 用 registrations 的 classId 直接构建虚拟成员
             members = regs.map((r: any) => ({
@@ -754,11 +749,11 @@ function TransferRequestForm({ onSuccess, onCancel, user }: TransferRequestFormP
       }
       
       // 3. 查询 classes 获取班级信息
-      const classesResult = await db.collection('classes')
-        .where(db.command.or(classIds.map(id => ({ _id: id }))))
-        .get()
+      const classesResult = await adminService.listWithOps('classes', {
+        '$or': classIds.map(id => ({ _id: id }))
+      })
       
-      const classes = classesResult.data || []
+      const classes = classesResult?.data?.list || []
       console.log('对应的班级:', classes)
       
       if (classes.length === 0) {
@@ -768,20 +763,15 @@ function TransferRequestForm({ onSuccess, onCancel, user }: TransferRequestFormP
       
       // 4. 查询 class_schedules 获取排课（只查询未开始的）
       const today = new Date().toISOString().split('T')[0]
-      const schedulesResult = await db.collection('class_schedules')
-        .where(
-          db.command.and([
-            { classId: db.command.in(classIds) },
-            { date: db.command.gte(today) }
-          ])
-        )
-        .orderBy('date', 'asc')
-        .orderBy('startTime', 'asc')
-        .limit(50)
-        .get()
+      const schedulesResult = await adminService.listWithOps('class_schedules', {
+        '$and': [
+          { classId: { '$in': classIds } },
+          { date: { '$gte': today } }
+        ]
+      }, { orderBy: 'date', order: 'asc', limit: 50 })
       
       // 5. 补充班级名称
-      const schedules = (schedulesResult.data || []).map((s: any) => {
+      const schedules = (schedulesResult?.data?.list || []).map((s: any) => {
         const classInfo = classes.find((c: any) => c._id === s.classId)
         return {
           ...s,

@@ -1,13 +1,25 @@
 // ============================================================================
-// 统一订单 API - 共用层
+// 统一订单 API - 共用层（统一通过 adminService HTTP）
 // 课程订单 + 商城订单 统一管理
 // ============================================================================
 
-import { app } from '@/utils/cloudbase'
+import { adminService } from '@/services/adminService'
 import type { UnifiedOrder, OrderFilters, OrderListResponse, OrderStatistics } from '@/shared/types/unifiedOrder'
 
-const db = app.database()
-const _ = db.command
+function extractList(result: any): any[] {
+  if (!result) return [];
+  if (Array.isArray(result.data)) return result.data;
+  if (result.data?.list) return result.data.list;
+  if (result.list) return result.list;
+  return [];
+}
+
+function extractSingle(result: any): any | null {
+  if (!result) return null;
+  if (result.data && !Array.isArray(result.data) && typeof result.data === 'object') return result.data;
+  if (Array.isArray(result.data) && result.data.length > 0) return result.data[0];
+  return result.data || null;
+}
 
 /**
  * 统一订单 API
@@ -29,7 +41,7 @@ export const unifiedOrderApi = {
       pageSize = 10
     } = filters
     
-    const where: Record<string, unknown> = {}
+    const where: Record<string, any> = {}
     
     // 类型筛选
     if (orderType && orderType !== 'all') {
@@ -53,38 +65,32 @@ export const unifiedOrderApi = {
     
     // 时间筛选
     if (startDate || endDate) {
-      where.createdAt = {}
-      if (startDate) where.createdAt = _.gte(startDate)
-      if (endDate) where.createdAt = _.and(where.createdAt, _.lte(endDate))
+      const dateFilter: Record<string, any> = {}
+      if (startDate) dateFilter['$gte'] = startDate
+      if (endDate) dateFilter['$lte'] = endDate
+      where.createdAt = dateFilter
     }
     
     // 关键词搜索（订单号）
     if (keyword) {
-      where.orderNo = db.RegExp({
-        regexp: keyword,
-        options: 'i'
-      })
+      where.orderNo = { '$regex': keyword }
     }
     
-    // 查询总数
-    const countResult = await db.collection('orders').where(where).count()
-    const total = countResult.total
+    // 使用操作符查询（支持 $regex, $gte, $lte）
+    const hasOperators = keyword !== undefined || startDate !== undefined || endDate !== undefined
+    const listResult = hasOperators
+      ? await adminService.listWithOps('orders', where, { orderBy: 'createdAt', order: 'desc', page, pageSize })
+      : await adminService.list('orders', where, { orderBy: 'createdAt', order: 'desc', page, pageSize })
     
-    // 查询数据
-    const skip = (page - 1) * pageSize
-    const result = await db.collection('orders')
-      .where(where)
-      .orderBy('createdAt', 'desc')
-      .skip(skip)
-      .limit(pageSize)
-      .get()
-    
+    const orders = extractList(listResult) as UnifiedOrder[]
+    const total = listResult?.data?.total || orders.length
+
     return {
-      orders: result.data as UnifiedOrder[],
+      orders,
       total,
       page,
       pageSize,
-      hasMore: skip + pageSize < total
+      hasMore: ((page - 1) * pageSize + orders.length) < total
     }
   },
 
@@ -92,30 +98,25 @@ export const unifiedOrderApi = {
    * 获取订单详情
    */
   async getDetail(orderId: string): Promise<UnifiedOrder | null> {
-    const result = await db.collection('orders').doc(orderId).get()
-    return result.data as UnifiedOrder || null
+    return extractSingle(await adminService.get('orders', orderId)) as UnifiedOrder || null
   },
 
   /**
    * 获取用户的订单列表
    */
   async getByUserId(userId: string, orderType?: 'course' | 'shop'): Promise<UnifiedOrder[]> {
-    const where: Record<string, unknown> = { userId }
+    const where: Record<string, any> = { userId }
     if (orderType) where.orderType = orderType
     
-    const result = await db.collection('orders')
-      .where(where)
-      .orderBy('createdAt', 'desc')
-      .get()
-    
-    return result.data as UnifiedOrder[]
+    const result = await adminService.list('orders', where, { orderBy: 'createdAt', order: 'desc', limit: 100 })
+    return extractList(result) as UnifiedOrder[]
   },
 
   /**
    * 取消订单
    */
   async cancelOrder(orderId: string): Promise<void> {
-    await db.collection('orders').doc(orderId).update({
+    await adminService.update('orders', orderId, {
       status: 'cancelled',
       updatedAt: new Date().toISOString()
     })
@@ -125,7 +126,7 @@ export const unifiedOrderApi = {
    * 发货（商城订单）
    */
   async shipOrder(orderId: string, params: { company: string; trackingNumber: string }): Promise<void> {
-    await db.collection('orders').doc(orderId).update({
+    await adminService.update('orders', orderId, {
       status: 'shipped',
       shippingInfo: {
         company: params.company,
@@ -140,25 +141,22 @@ export const unifiedOrderApi = {
   /**
    * 退款
    */
-  async refundOrder(orderId: string, reason?: string): Promise<void> {
-    await db.collection('orders').doc(orderId).update({
+  async refundOrder(orderId: string, _reason?: string): Promise<void> {
+    await adminService.update('orders', orderId, {
       status: 'refunded',
       refundedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     })
     
-    // 如果是商城订单，恢复库存
-    const order = await db.collection('orders').doc(orderId).get()
-    if (order.data) {
-      const orderData = order.data as UnifiedOrder
-      if (orderData.orderType === 'shop' && orderData.shopItems) {
-        // 这里需要引入 productApi，暂时用 db 直接操作
-        for (const item of orderData.shopItems) {
-          await db.collection('products').doc(item.productId).update({
-            stock: _.inc(item.quantity),
-            updatedAt: new Date().toISOString()
-          })
-        }
+    // 如果是商城订单，恢复库存（使用 $inc 操作符）
+    const orderResult = await adminService.get('orders', orderId)
+    const orderData = extractSingle(orderResult) as UnifiedOrder
+    if (orderData && orderData.orderType === 'shop' && orderData.shopItems) {
+      for (const item of orderData.shopItems) {
+        await adminService.updateWithOps('products', item.productId, {
+          $inc: { stock: item.quantity } as any,
+          updatedAt: new Date().toISOString()
+        } as any)
       }
     }
   },
@@ -172,16 +170,20 @@ export const unifiedOrderApi = {
   } = {}): Promise<OrderStatistics> {
     const { startDate, endDate } = params
     
-    const where: Record<string, unknown> = {}
+    const where: Record<string, any> = {}
     if (startDate || endDate) {
-      where.createdAt = {}
-      if (startDate) where.createdAt = _.gte(startDate)
-      if (endDate) where.createdAt = _.and(where.createdAt, _.lte(endDate))
+      const dateFilter: Record<string, any> = {}
+      if (startDate) dateFilter['$gte'] = startDate
+      if (endDate) dateFilter['$lte'] = endDate
+      where.createdAt = dateFilter
     }
     
-    // 获取所有订单
-    const result = await db.collection('orders').where(where).get()
-    const orders = result.data as UnifiedOrder[]
+    // 获取所有订单（用于统计）
+    const hasOperators = startDate !== undefined || endDate !== undefined
+    const result = hasOperators
+      ? await adminService.listWithOps('orders', where, { limit: 5000 })
+      : await adminService.list('orders', where, { limit: 5000 })
+    const orders = extractList(result) as UnifiedOrder[]
     
     // 统计课程订单
     const courseOrders = orders.filter(o => o.orderType === 'course')

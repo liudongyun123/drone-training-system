@@ -4,8 +4,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import app from '../config/tcb'
 import { checkLogin } from '@/utils/cloudbase'
+import { adminService } from '@/services/adminService'
 
 interface UseCloudDataOptions {
   collection: string
@@ -26,23 +26,13 @@ export function useCloudData<T>(options: UseCloudDataOptions) {
       // 确保已登录（使用 checkLogin 防止并发请求）
       await checkLogin()
 
-      const db = app.database()
-      let query = db.collection(options.collection)
-      
-      // 如果有查询条件
-      if (options.where) {
-        query = query.where(options.where)
-      }
-      
-      const result = await query.limit(options.limit || 100).get()
+      const result = await adminService.list(options.collection, options.where || {}, {
+        limit: options.limit || 100
+      })
       
       console.log(`[useCloudData] ${options.collection} 查询结果:`, result)
       
-      if (result.code && result.code !== 0) {
-        throw new Error(result.message || '查询失败')
-      }
-      
-      setData(result.data || [])
+      setData((result?.data?.list || []) as T[])
     } catch (err: any) {
       console.error(`[useCloudData] ${options.collection} 加载失败:`, err)
       setError(err.message || '加载数据失败')

@@ -1,11 +1,11 @@
 /**
- * 通用数据变更 Hook
+ * 通用数据变更 Hook（统一通过 adminService HTTP）
  * 处理增删改操作，提供加载状态和错误处理
  */
 
 import { useState, useCallback } from 'react'
 import { useAuth } from './useAuth'
-import app from '../config/tcb'
+import { adminService } from '@/services/adminService'
 import { AppError, convertTcbError, getErrorMessage } from '../utils/errors'
 
 export interface MutationOptions {
@@ -23,7 +23,7 @@ export interface MutationResult<T> {
 /**
  * 创建文档
  */
-export function useAdd<T>(
+export function useAdd<T extends Record<string, any>>(
   collectionName: string,
   options: MutationOptions = {}
 ): MutationResult<T> {
@@ -41,10 +41,9 @@ export function useAdd<T>(
     setError(null)
 
     try {
-      const db = app.database()
-      const result = await db.collection(collectionName).add(data)
+      const result = await adminService.add(collectionName, data)
 
-      if (result.code) {
+      if (result.code && result.code !== 0) {
         const appError = convertTcbError(result)
         setError(getErrorMessage(appError))
         console.error(`[useAdd] 添加到 ${collectionName} 失败:`, appError)
@@ -52,7 +51,7 @@ export function useAdd<T>(
         return null
       }
 
-      console.log(`[useAdd] 成功添加到 ${collectionName}:`, result.id)
+      console.log(`[useAdd] 成功添加到 ${collectionName}:`, result.data?.id)
       options.onSuccess?.(result)
       return result
     } catch (err: any) {
@@ -94,10 +93,9 @@ export function useUpdate<T>(
     setError(null)
 
     try {
-      const db = app.database()
-      const result = await db.collection(collectionName).doc(id).update(data)
+      const result = await adminService.update(collectionName, id, data)
 
-      if (result.code) {
+      if (result.code && result.code !== 0) {
         const appError = convertTcbError(result)
         setError(getErrorMessage(appError))
         console.error(`[useUpdate] 更新 ${collectionName}/${id} 失败:`, appError)
@@ -147,10 +145,9 @@ export function useDelete(
     setError(null)
 
     try {
-      const db = app.database()
-      const result = await db.collection(collectionName).doc(id).remove()
+      const result = await adminService.delete(collectionName, id)
 
-      if (result.code) {
+      if (result.code && result.code !== 0) {
         const appError = convertTcbError(result)
         setError(getErrorMessage(appError))
         console.error(`[useDelete] 删除 ${collectionName}/${id} 失败:`, appError)

@@ -1,12 +1,12 @@
 /**
- * 通用数据库查询 Hook
+ * 通用数据库查询 Hook（统一通过 adminService HTTP）
  * 统一处理加载状态、错误、分页等
  */
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from './useAuth'
-import app from '../config/tcb'
-import { AppError, convertTcbError, getErrorMessage } from '../utils/errors'
+import { adminService } from '@/services/adminService'
+import { convertTcbError, getErrorMessage } from '../utils/errors'
 
 export interface QueryOptions {
   limit?: number
@@ -26,6 +26,19 @@ export interface QueryResult<T> {
   loadMore: () => Promise<void>
 }
 
+function extractList(result: any): any[] {
+  if (!result) return [];
+  if (result.data?.list) return result.data.list;
+  if (Array.isArray(result.data)) return result.data;
+  return [];
+}
+
+function extractTotal(result: any): number {
+  if (result?.data?.total !== undefined) return result.data.total;
+  if (result?.total !== undefined) return result.total;
+  return 0;
+}
+
 /**
  * 通用数据查询 Hook
  */
@@ -39,7 +52,6 @@ export function useQuery<T>(
   const [error, setError] = useState<string | null>(null)
   const [total, setTotal] = useState(0)
   const [currentOffset, setCurrentOffset] = useState(0)
-  const [initialLoadDone, setInitialLoadDone] = useState(false)
 
   const {
     limit = 20,
@@ -49,12 +61,10 @@ export function useQuery<T>(
   } = options
 
   const fetchData = useCallback(async (offset = 0) => {
-    // 对于公开集合（如 courses），不需要登录
-    // 对于私有集合（如 orders, user_progress），需要登录
+    // 对于公开集合，不需要登录
     const publicCollections = ['courses', 'announcements', 'banners', 'coupons']
     const requireAuth = !publicCollections.includes(collectionName)
     
-    // 如果需要登录但用户未登录，跳过查询
     if (requireAuth && !isLoggedIn) {
       console.log(`[useQuery] ${collectionName} 需要登录，当前未登录，跳过查询`);
       return;
@@ -64,51 +74,24 @@ export function useQuery<T>(
     setError(null)
 
     try {
-      // 确保 app 已初始化
-      if (!app) {
-        console.error(`[useQuery] CloudBase SDK 未初始化`);
-        setError('SDK 未初始化');
-        return;
-      }
+      const result = await adminService.list(collectionName, where || {}, {
+        orderBy,
+        order,
+        skip: offset,
+        limit,
+      })
 
-      const db = app.database()
-      if (!db) {
-        console.error(`[useQuery] database() 返回 null`);
-        setError('数据库初始化失败');
-        return;
-      }
+      const newData = extractList(result)
+      const totalCount = extractTotal(result)
 
-      let query = db.collection(collectionName)
-
-      // 添加查询条件
-      if (where && Object.keys(where).length > 0) {
-        query = query.where(where)
-      }
-
-      // 执行查询
-      const result = await query
-        .orderBy(orderBy, order)
-        .skip(offset)
-        .limit(limit)
-        .get()
-
-      if (result.code) {
-        const appError = convertTcbError(result)
-        setError(getErrorMessage(appError))
-        console.error(`[useQuery] 查询 ${collectionName} 失败:`, appError)
-        return
-      }
-
-      const newData = result.data || []
       if (offset === 0) {
         setData(newData)
       } else {
         setData(prev => [...prev, ...newData])
       }
 
-      setTotal(result.pager?.Total || newData.length)
+      setTotal(totalCount)
       setCurrentOffset(offset + newData.length)
-      setInitialLoadDone(true)
       console.log(`[useQuery] ${collectionName} 加载成功:`, newData.length, '条');
     } catch (err: any) {
       const appError = convertTcbError(err)
@@ -119,12 +102,11 @@ export function useQuery<T>(
     }
   }, [collectionName, isLoggedIn, limit, orderBy, order, where])
 
-  // 初始加载 - 公开集合总是加载，私有集合需要登录
+  // 初始加载
   useEffect(() => {
     const publicCollections = ['courses', 'announcements', 'banners', 'coupons']
     const requireAuth = !publicCollections.includes(collectionName)
     
-    // 公开集合总是加载，私有集合需要登录
     if (!requireAuth || isLoggedIn) {
       fetchData(0)
     }
@@ -153,7 +135,6 @@ export function useQuery<T>(
 
 /**
  * 单条数据查询 Hook
- * 支持公开集合（无需登录）
  */
 export function useDocument<T>(
   collectionName: string,
@@ -173,24 +154,28 @@ export function useDocument<T>(
 
   const fetchData = useCallback(async () => {
     if (!documentId) return
-    // 如果需要登录且用户未登录，跳过查询
     if (requireAuth && !isLoggedIn) return
 
     setLoading(true)
     setError(null)
 
     try {
-      const db = app.database()
-      const result = await db.collection(collectionName).doc(documentId).get()
+      const result = await adminService.get(collectionName, documentId)
 
-      if (result.code) {
+      if (result?.code && result.code !== 0) {
         const appError = convertTcbError(result)
         setError(getErrorMessage(appError))
         console.error(`[useDocument] 查询 ${collectionName}/${documentId} 失败:`, appError)
         return
       }
 
-      setData(result.data[0] || null)
+      if (result?.data && !Array.isArray(result.data)) {
+        setData(result.data as T)
+      } else if (Array.isArray(result?.data) && result.data.length > 0) {
+        setData(result.data[0] as T)
+      } else {
+        setData(null)
+      }
     } catch (err: any) {
       const appError = convertTcbError(err)
       setError(getErrorMessage(appError))
@@ -201,7 +186,6 @@ export function useDocument<T>(
   }, [collectionName, documentId, isLoggedIn, requireAuth])
 
   useEffect(() => {
-    // 公开集合：直接查询；私有集合：需要登录
     const shouldFetch = requireAuth ? isLoggedIn : true
     if (shouldFetch && documentId) {
       fetchData()
@@ -212,10 +196,5 @@ export function useDocument<T>(
     await fetchData()
   }, [fetchData])
 
-  return {
-    data,
-    loading,
-    error,
-    refresh
-  }
+  return { data, loading, error, refresh }
 }

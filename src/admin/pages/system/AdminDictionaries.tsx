@@ -49,14 +49,15 @@ export default function AdminDictionaries() {
     if (!hasChanges) return;
     setSaving(true);
     try {
-      // 调用数据库 API 更新配置
-      const db = (await import('@/utils/cloudbase')).app.database();
-      const { data } = await db.collection('systemConfig').where({ type: 'dictionaries' }).limit(1).get();
+      // 调用数据库 API 更新配置（通过 adminService HTTP）
+      const { adminService } = await import('@/services/adminService');
+      const configRes = await adminService.list('systemConfig', { type: 'dictionaries' }, { limit: 1 });
+      const data = configRes?.data?.list || [];
       
       if (data.length > 0) {
         const currentDicts = data[0].dictionaries || {};
         const updated = { ...currentDicts, [selectedGroup]: raw };
-        await db.collection('systemConfig').doc(data[0]._id).update({
+        await adminService.update('systemConfig', data[0]._id, {
           dictionaries: updated,
           updatedAt: new Date(),
         });

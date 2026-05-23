@@ -1,12 +1,25 @@
 // ============================================================================
-// 订单 API - 共用层
+// 订单 API - 共用层（统一通过 adminService HTTP）
 // ============================================================================
 
-import { app } from '@/utils/cloudbase'
+import { adminService } from '@/services/adminService'
 import type { Order, OrderItem, OrderStatus, PaymentMethod } from '@/shared/types/order'
 import type { CartItem } from '@/types'
 
-const db = app.database()
+function extractList(result: any): any[] {
+  if (!result) return [];
+  if (Array.isArray(result.data)) return result.data;
+  if (result.data?.list) return result.data.list;
+  if (result.list) return result.list;
+  return [];
+}
+
+function extractSingle(result: any): any | null {
+  if (!result) return null;
+  if (result.data && !Array.isArray(result.data) && typeof result.data === 'object') return result.data;
+  if (Array.isArray(result.data) && result.data.length > 0) return result.data[0];
+  return result.data || null;
+}
 
 export const orderApi = {
   /**
@@ -45,10 +58,10 @@ export const orderApi = {
       updatedAt: new Date().toISOString()
     }
 
-    const result = await db.collection('orders').add(order)
+    const result = await adminService.add('orders', order)
     
     return {
-      _id: result.id || result.insertedId as string,
+      _id: result.data?.id || '',
       ...order
     } as Order
   },
@@ -57,27 +70,22 @@ export const orderApi = {
    * 获取用户订单列表
    */
   async getByUserId(userId: string): Promise<Order[]> {
-    const result = await db.collection('orders')
-      .where({ userId })
-      .orderBy('createdAt', 'desc')
-      .get()
-    
-    return result.data as Order[]
+    const result = await adminService.list('orders', { userId }, { orderBy: 'createdAt', order: 'desc', limit: 100 })
+    return extractList(result) as Order[]
   },
 
   /**
    * 获取订单详情
    */
   async getById(orderId: string): Promise<Order | null> {
-    const result = await db.collection('orders').doc(orderId).get()
-    return result.data as Order || null
+    return extractSingle(await adminService.get('orders', orderId)) as Order || null
   },
 
   /**
    * 更新订单状态
    */
   async updateStatus(orderId: string, status: OrderStatus, extra?: Partial<Order>): Promise<void> {
-    await db.collection('orders').doc(orderId).update({
+    await adminService.update('orders', orderId, {
       status,
       updatedAt: new Date().toISOString(),
       ...extra

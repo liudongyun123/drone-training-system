@@ -1,12 +1,13 @@
 /**
- * CloudDBService - 统一数据访问服务
+ * CloudDBService - 统一数据访问服务（兼容层，v5.0）
  * 
- * 所有端（小程序、Web、管理后台）统一使用此服务进行数据库操作
- * 基于 HTTP 调用 db-init 云函数
+ * ⚠️ DEPRECATED: 此文件已改为 adminService 的兼容包装层。
+ * 所有数据库操作统一通过 adminService → db-init 云函数。
+ * 新代码请直接使用 adminService。
  * 
  * @example
  * // 查询列表
- * const { data, total } = await CloudDBService.query('courses', { status: 'active' })
+ * const { data, total } = await CloudDBService.query('courses', { where: { status: 'active' } })
  * 
  * // 获取单条
  * const course = await CloudDBService.get('courses', 'course-id')
@@ -19,45 +20,9 @@
  * 
  * // 删除
  * await CloudDBService.delete('courses', 'course-id')
- * 
- * // 统计
- * const { total } = await CloudDBService.count('courses', { status: 'active' })
  */
 
-import axios, { AxiosInstance } from 'axios'
-
-// API 配置
-const API_BASE = typeof window !== 'undefined' 
-  ? (import.meta.env.VITE_API_BASE_URL || 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com')
-  : 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com'
-const DB_INIT_URL = `${API_BASE}/db-init`
-
-// 请求超时
-const REQUEST_TIMEOUT = 30000
-
-// 创建 Axios 实例
-const httpClient: AxiosInstance = axios.create({
-  baseURL: DB_INIT_URL,
-  timeout: REQUEST_TIMEOUT,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// 响应拦截器
-httpClient.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    if (error.response) {
-      const message = error.response.data?.message || `服务器错误: ${error.response.status}`
-      return Promise.reject(new Error(message))
-    }
-    if (error.request) {
-      return Promise.reject(new Error('网络连接失败'))
-    }
-    return Promise.reject(error)
-  }
-)
+import { adminService } from './adminService'
 
 // 统一响应格式
 export interface DBResponse<T = any> {
@@ -85,8 +50,32 @@ export interface ListResponse<T = any> {
   limit: number
 }
 
+// 辅助函数：从 adminService 响应中提取数据
+function extractList<T>(result: any): { data: T[]; total: number; skip: number; limit: number } {
+  if (result?.data) {
+    return {
+      data: result.data.list || result.data.data || [],
+      total: result.data.total || 0,
+      skip: result.data.skip || 0,
+      limit: result.data.limit || 20,
+    }
+  }
+  return { data: [], total: 0, skip: 0, limit: 20 }
+}
+
+function extractSingle<T>(result: any): T | null {
+  if (result?.data) {
+    return result.data as T
+  }
+  return null
+}
+
+function extractId(result: any): string {
+  return result?.data?.id || ''
+}
+
 /**
- * 统一数据访问服务
+ * 统一数据访问服务（兼容包装层）
  */
 export const CloudDBService = {
   /**
@@ -94,8 +83,8 @@ export const CloudDBService = {
    */
   async ping(): Promise<{ success: boolean; timestamp?: string }> {
     try {
-      const result = await httpClient.post<DBResponse>('', { action: 'ping' })
-      return { success: result.code === 0, timestamp: result.message }
+      const result = await adminService.count('courses', {})
+      return { success: result?.code === 0, timestamp: new Date().toISOString() }
     } catch (error: any) {
       console.error('[CloudDBService] ping 失败:', error)
       return { success: false }
@@ -109,28 +98,26 @@ export const CloudDBService = {
     collection: string, 
     options: QueryOptions = {}
   ): Promise<ListResponse<T>> {
-    const { where = {}, orderBy = 'createdAt', order = 'desc', skip = 0, limit = 20, field } = options
-    
-    const result = await httpClient.post<DBResponse<{ list: T[]; total: number }>>('', {
-      action: 'query',
-      collection,
-      query: where,
-      orderBy,
-      order,
-      skip,
-      limit,
-      field,
-    })
-    
-    // 兼容 db-init 返回格式
-    const list = result.data?.list || result.data || []
-    const total = result.total || (result.data as any)?.total || 0
-    
-    return {
-      data: list,
-      total,
-      skip: result.skip || skip,
-      limit: result.limit || limit,
+    try {
+      const { where = {}, orderBy = 'createdAt', order = 'desc', skip = 0, limit = 20 } = options
+      
+      const result = await adminService.list(collection, where, {
+        skip,
+        limit,
+        orderBy,
+        order,
+      })
+      
+      const extracted = extractList<T>(result)
+      return {
+        data: extracted.data,
+        total: extracted.total,
+        skip: extracted.skip,
+        limit: extracted.limit,
+      }
+    } catch (error: any) {
+      console.error('[CloudDBService] query 失败:', error)
+      return { data: [], total: 0, skip: 0, limit: 0 }
     }
   },
 
@@ -139,16 +126,8 @@ export const CloudDBService = {
    */
   async get<T = any>(collection: string, id: string): Promise<T | null> {
     try {
-      const result = await httpClient.post<DBResponse<T>>('', {
-        action: 'get',
-        collection,
-        id,
-      })
-      
-      if (result.code === 0 && result.data) {
-        return result.data
-      }
-      return null
+      const result = await adminService.get(collection, id)
+      return extractSingle<T>(result)
     } catch (error) {
       console.error('[CloudDBService] get 失败:', error)
       return null
@@ -163,16 +142,12 @@ export const CloudDBService = {
     data: Partial<T>
   ): Promise<{ id: string } | null> {
     try {
-      const result = await httpClient.post<DBResponse<{ id: string }>>('', {
-        action: 'add',
-        collection,
-        data,
-      })
-      
-      if (result.code === 0 && result.data) {
-        return { id: result.data.id }
+      const result = await adminService.add(collection, data as Record<string, any>)
+      const id = extractId(result)
+      if (id) {
+        return { id }
       }
-      throw new Error(result.message || '添加失败')
+      throw new Error('添加失败：未返回 ID')
     } catch (error: any) {
       console.error('[CloudDBService] add 失败:', error)
       throw error
@@ -188,17 +163,8 @@ export const CloudDBService = {
     data: Record<string, any>
   ): Promise<boolean> {
     try {
-      const result = await httpClient.post('', {
-        action: 'update',
-        collection,
-        id,
-        data,
-      })
-      
-      if (result.code === 0) {
-        return true
-      }
-      throw new Error(result.message || '更新失败')
+      const result = await adminService.update(collection, id, data)
+      return result?.code === 0
     } catch (error: any) {
       console.error('[CloudDBService] update 失败:', error)
       throw error
@@ -206,7 +172,7 @@ export const CloudDBService = {
   },
 
   /**
-   * 条件更新
+   * 条件更新（先查询再逐个更新）
    */
   async updateWhere(
     collection: string, 
@@ -214,17 +180,17 @@ export const CloudDBService = {
     data: Record<string, any>
   ): Promise<{ updated: number }> {
     try {
-      const result = await httpClient.post('', {
-        action: 'updateWhere',
-        collection,
-        query: where,
-        data,
-      })
+      const listResult = await adminService.listWithOps(collection, where, { limit: 1000 })
+      const items = extractList<{ _id: string }>(listResult)
       
-      if (result.code === 0) {
-        return { updated: result.updated || 0 }
+      let updated = 0
+      for (const item of items.data) {
+        if (item._id) {
+          await adminService.update(collection, item._id, data)
+          updated++
+        }
       }
-      throw new Error(result.message || '更新失败')
+      return { updated }
     } catch (error: any) {
       console.error('[CloudDBService] updateWhere 失败:', error)
       throw error
@@ -236,16 +202,8 @@ export const CloudDBService = {
    */
   async delete(collection: string, id: string): Promise<boolean> {
     try {
-      const result = await httpClient.post('', {
-        action: 'delete',
-        collection,
-        id,
-      })
-      
-      if (result.code === 0) {
-        return true
-      }
-      throw new Error(result.message || '删除失败')
+      const result = await adminService.delete(collection, id)
+      return result?.code === 0
     } catch (error: any) {
       console.error('[CloudDBService] delete 失败:', error)
       throw error
@@ -253,23 +211,24 @@ export const CloudDBService = {
   },
 
   /**
-   * 条件删除
+   * 条件删除（先查询再逐个删除）
    */
   async deleteWhere(
     collection: string, 
     where: Record<string, any>
   ): Promise<{ deleted: number }> {
     try {
-      const result = await httpClient.post('', {
-        action: 'deleteWhere',
-        collection,
-        query: where,
-      })
+      const listResult = await adminService.listWithOps(collection, where, { limit: 1000 })
+      const items = extractList<{ _id: string }>(listResult)
       
-      if (result.code === 0) {
-        return { deleted: result.deleted || 0 }
+      let deleted = 0
+      for (const item of items.data) {
+        if (item._id) {
+          await adminService.delete(collection, item._id)
+          deleted++
+        }
       }
-      throw new Error(result.message || '删除失败')
+      return { deleted }
     } catch (error: any) {
       console.error('[CloudDBService] deleteWhere 失败:', error)
       throw error
@@ -281,16 +240,8 @@ export const CloudDBService = {
    */
   async count(collection: string, where: Record<string, any> = {}): Promise<number> {
     try {
-      const result = await httpClient.post<DBResponse<{ total: number }>>('', {
-        action: 'count',
-        collection,
-        query: where,
-      })
-      
-      if (result.code === 0) {
-        return result.total || 0
-      }
-      return 0
+      const result = await adminService.count(collection, where)
+      return result?.data || 0
     } catch (error) {
       console.error('[CloudDBService] count 失败:', error)
       return 0
@@ -298,31 +249,18 @@ export const CloudDBService = {
   },
 
   /**
-   * 聚合查询
+   * 聚合查询（暂不支持，返回空数组）
    */
   async aggregate<T = any>(
-    collection: string, 
-    pipeline: any[]
+    _collection: string, 
+    _pipeline: any[]
   ): Promise<T[]> {
-    try {
-      const result = await httpClient.post<DBResponse<T[]>>('', {
-        action: 'aggregate',
-        collection,
-        pipeline,
-      })
-      
-      if (result.code === 0 && result.data) {
-        return result.data
-      }
-      return []
-    } catch (error) {
-      console.error('[CloudDBService] aggregate 失败:', error)
-      return []
-    }
+    console.warn('[CloudDBService] aggregate 暂不支持，请使用 adminService')
+    return []
   },
 
   /**
-   * 搜索（正则匹配）
+   * 搜索（使用 $regex 操作符）
    */
   async search<T = any>(
     collection: string,
@@ -332,19 +270,19 @@ export const CloudDBService = {
     limit: number = 20
   ): Promise<T[]> {
     try {
-      const result = await httpClient.post<DBResponse<T[]>>('', {
-        action: 'search',
-        collection,
-        keyword,
-        fields,
-        where,
-        limit,
-      })
+      // 构建 $or 查询
+      const orConditions = fields.map(field => ({
+        [field]: { '$regex': keyword, '$options': 'i' }
+      }))
       
-      if (result.code === 0 && result.data) {
-        return result.data
+      const query: Record<string, any> = { ...where }
+      if (orConditions.length > 0) {
+        query['$or'] = orConditions
       }
-      return []
+      
+      const result = await adminService.listWithOps(collection, query, { limit })
+      const extracted = extractList<T>(result)
+      return extracted.data
     } catch (error) {
       console.error('[CloudDBService] search 失败:', error)
       return []
@@ -358,25 +296,23 @@ export const CloudDBService = {
     collection: string, 
     items: Partial<T>[]
   ): Promise<{ id: string; success: boolean }[]> {
-    try {
-      const result = await httpClient.post('', {
-        action: 'batchAdd',
-        collection,
-        items,
-      })
-      
-      if (result.code === 0 && result.data) {
-        return result.data
+    const results: { id: string; success: boolean }[] = []
+    
+    for (const item of items) {
+      try {
+        const result = await adminService.add(collection, item as Record<string, any>)
+        const id = extractId(result)
+        results.push({ id, success: !!id })
+      } catch (error) {
+        results.push({ id: '', success: false })
       }
-      throw new Error(result.message || '批量添加失败')
-    } catch (error: any) {
-      console.error('[CloudDBService] batchAdd 失败:', error)
-      throw error
     }
+    
+    return results
   },
 
   /**
-   * 原子递增
+   * 原子递增（使用 $inc 操作符）
    */
   async increment(
     collection: string, 
@@ -385,18 +321,10 @@ export const CloudDBService = {
     amount: number = 1
   ): Promise<boolean> {
     try {
-      const result = await httpClient.post('', {
-        action: 'increment',
-        collection,
-        id,
-        field,
-        amount,
+      const result = await adminService.updateWithOps(collection, id, {
+        '$inc': { [field]: amount }
       })
-      
-      if (result.code === 0) {
-        return true
-      }
-      return false
+      return result?.code === 0
     } catch (error) {
       console.error('[CloudDBService] increment 失败:', error)
       return false
@@ -411,12 +339,13 @@ export const CloudDBService = {
     limit: number = 10,
     where: Record<string, any> = {}
   ): Promise<T[]> {
-    return this.query<T>(collection, {
+    const { data } = await this.query<T>(collection, {
       where,
       orderBy: 'updatedAt',
       order: 'desc',
       limit,
-    }).then(r => r.data)
+    })
+    return data
   },
 
   /**
@@ -427,17 +356,17 @@ export const CloudDBService = {
     field: string, 
     value: any
   ): Promise<T[]> {
-    return this.query<T>(collection, {
+    const { data } = await this.query<T>(collection, {
       where: { [field]: value },
       limit: 100,
-    }).then(r => r.data)
+    })
+    return data
   },
 }
 
-// 导出类型
-export type { QueryOptions, ListResponse, DBResponse }
+// 类型已在顶部通过 interface/export type 导出，无需重复
 
-// 快捷方法
+// 快捷方法（保持向后兼容）
 export const db = {
   query: CloudDBService.query.bind(CloudDBService),
   get: CloudDBService.get.bind(CloudDBService),

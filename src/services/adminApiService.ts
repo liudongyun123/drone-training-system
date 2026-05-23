@@ -1,61 +1,11 @@
 /**
- * 管理后台 API 服务 - 生产级别
+ * 管理后台 API 服务 - 兼容层 v5.0
  * 
- * 通过 HTTP 方式访问 db-init 云函数
- * 解决 Web 端无法直接使用 CloudBase SDK 数据库 API 的问题
+ * ⚠️ DEPRECATED: 此文件已改为 adminService 的兼容包装层。
+ * 新代码请直接使用 adminService。
  */
 
-import axios, { AxiosInstance } from 'axios'
-
-// API 基础配置
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com'
-const DB_INIT_URL = `${API_BASE}/db-init`
-
-// 请求超时配置
-const REQUEST_TIMEOUT = 30000
-
-// 创建 Axios 实例
-const httpClient: AxiosInstance = axios.create({
-  baseURL: DB_INIT_URL,
-  timeout: REQUEST_TIMEOUT,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// 请求拦截器
-httpClient.interceptors.request.use(
-  (config) => {
-    // 添加请求时间戳
-    config.headers['X-Request-Time'] = Date.now().toString()
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
-
-// 响应拦截器
-httpClient.interceptors.response.use(
-  (response) => {
-    const { data } = response
-    if (data.code !== 0) {
-      throw new Error(data.message || '请求失败')
-    }
-    return data
-  },
-  (error) => {
-    if (error.response) {
-      throw new Error(`服务器错误: ${error.response.status}`)
-    }
-    if (error.request) {
-      throw new Error('网络连接失败')
-    }
-    throw error
-  }
-)
-
-// ==================== 类型定义 ====================
+import { adminService } from './adminService'
 
 export interface QueryOptions {
   skip?: number
@@ -80,7 +30,18 @@ export interface ListResponse<T> {
   limit: number
 }
 
-// ==================== 通用 CRUD API ====================
+// 辅助：从 adminService 响应提取数据
+function extractList(result: any): { data: any[]; total: number; skip: number; limit: number } {
+  if (result?.data) {
+    return {
+      data: result.data.list || result.data.data || [],
+      total: result.data.total || 0,
+      skip: result.data.skip || 0,
+      limit: result.data.limit || 20,
+    }
+  }
+  return { data: [], total: 0, skip: 0, limit: 20 }
+}
 
 export const adminApi = {
   /**
@@ -91,20 +52,21 @@ export const adminApi = {
     query: Record<string, any> = {},
     options: QueryOptions = {}
   ): Promise<ListResponse<T>> {
-    // 使用 POST 请求确保 query 对象能正确传递
-    const response = await httpClient.post<ApiResponse<T[]>>('', {
-      action: 'query',
-      collection,
-      query,
-      ...Object.fromEntries(
-        Object.entries(options).filter(([, v]) => v !== undefined)
-      ),
+    const { skip, limit, orderBy, order, page, pageSize } = options
+    
+    const result = await adminService.list(collection, query, {
+      skip: skip ?? (page ? ((page - 1) * (pageSize || 20)) : 0),
+      limit: limit ?? pageSize ?? 20,
+      orderBy: orderBy ?? 'createdAt',
+      order: order ?? 'desc',
     })
+    
+    const extracted = extractList(result)
     return {
-      data: response.data || [],
-      total: response.total || 0,
-      skip: response.skip || 0,
-      limit: response.limit || 20,
+      data: extracted.data,
+      total: extracted.total,
+      skip: extracted.skip,
+      limit: extracted.limit,
     }
   },
 
@@ -112,149 +74,110 @@ export const adminApi = {
    * 获取单条记录
    */
   async get<T>(collection: string, id: string): Promise<T | null> {
-    const response = await httpClient.post<ApiResponse<T>>('', {
-      action: 'get',
-      collection,
-      id,
-    })
-    return response.data || null
+    const result = await adminService.get(collection, id)
+    return result?.data || null
   },
 
   /**
    * 创建记录
    */
   async add(collection: string, data: Record<string, any>): Promise<{ id: string }> {
-    const response = await httpClient.post<ApiResponse<{ id: string }>>('', {
-      action: 'add',
-      collection,
-      data,
-    })
-    return response.data
+    const result = await adminService.add(collection, data)
+    return { id: result?.data?.id || '' }
   },
 
   /**
    * 更新记录
    */
   async update(collection: string, id: string, data: Record<string, any>): Promise<void> {
-    await httpClient.post('', {
-      action: 'update',
-      collection,
-      id,
-      data,
-    })
+    await adminService.update(collection, id, data)
   },
 
   /**
    * 删除记录
    */
   async delete(collection: string, id: string): Promise<void> {
-    await httpClient.post('', {
-      action: 'delete',
-      collection,
-      id,
-    })
+    await adminService.delete(collection, id)
   },
 
   /**
    * 统计数量
    */
   async count(collection: string, query: Record<string, any> = {}): Promise<number> {
-    const response = await httpClient.post<ApiResponse<{ total: number }>>('', {
-      action: 'count',
-      collection,
-      query,
-    })
-    return response.total || 0
+    const result = await adminService.count(collection, query)
+    return result?.data || 0
   },
 
   // ==================== 专用业务 API ====================
 
-  // 等级管理
   async listLevels(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('levels', query, { orderBy: 'sortOrder', order: 'asc', ...options })
   },
 
-  // 体系管理（sources 集合）
   async listSources(options?: QueryOptions) {
     return this.list('sources', { status: 'active' }, { orderBy: 'sortOrder', order: 'asc', ...options })
   },
 
-  // 课程管理
   async listCourses(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('courses', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 分类管理
   async listCategories(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('categories', { status: 'active', ...query }, { orderBy: 'sortOrder', order: 'asc', ...options })
   },
 
-  // 班级管理
   async listClasses(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('classes', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 排课管理
   async listSchedules(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('class_schedules', query, { orderBy: 'scheduledAt', order: 'asc', ...options })
   },
 
-  // 报名管理
   async listEnrollments(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('enrollments', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 学员管理
   async listMembers(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('members', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 教师管理
   async listTeachers(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('teachers', { status: 'active', ...query }, { orderBy: 'sortOrder', order: 'asc', ...options })
   },
 
-  // 订单管理
   async listOrders(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('orders', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 商品管理
   async listProducts(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('products', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 优惠券管理
   async listCoupons(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('coupons', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 轮播图管理
   async listBanners(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('banners', query, { orderBy: 'sortOrder', order: 'asc', ...options })
   },
 
-  // 公告管理
   async listNotices(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('notices', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 考试管理
   async listExams(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('exams', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 题库管理
   async listQuestionBanks(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('question_banks', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 证书管理
   async listCertificates(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('certificates', query, { orderBy: 'createdAt', order: 'desc', ...options })
   },
 
-  // 考勤管理
   async listAttendances(query: Record<string, any> = {}, options?: QueryOptions) {
     return this.list('attendances', query, { orderBy: 'date', order: 'desc', ...options })
   },

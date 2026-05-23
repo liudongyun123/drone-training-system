@@ -63,12 +63,12 @@ export function useSystemConfig(): UseSystemConfigReturn {
   const handleUpdateDictionary = useCallback(async (key: string, data: OptionItem[]): Promise<boolean> => {
     if (!config?._id) return false;
     try {
-      const db = (await import('@/utils/cloudbase')).app.database();
+      const { adminService } = await import('@/services/adminService');
       const updatedDictionaries = {
         ...config.dictionaries,
         [key]: data,
       };
-      await db.collection('systemConfig').doc(config._id).update({
+      await adminService.update('systemConfig', config._id, {
         dictionaries: updatedDictionaries,
         updatedAt: new Date(),
       });

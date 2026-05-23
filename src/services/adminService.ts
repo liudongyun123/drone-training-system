@@ -52,8 +52,8 @@ httpClient.interceptors.response.use(
 // ==================== 通用 CRUD 操作 ====================
 
 async function httpRequest<T = any>(action: string, params: Record<string, any> = {}): Promise<T> {
-  // 直接 post 返回响应拦截器的结果
-  const response = await httpClient.post<T>('', { action, ...params })
+  // 直接 post 返回响应拦截器的结果（拦截器已解包 response.data）
+  const response: any = await httpClient.post('', { action, ...params })
   
   // 检查响应中是否有错误
   if (response && typeof response === 'object' && response.code !== undefined && response.code !== 0) {
@@ -63,20 +63,8 @@ async function httpRequest<T = any>(action: string, params: Record<string, any> 
   return response as T
 }
 
-// 统一的列表查询
-interface ListParams {
-  collection: string
-  query?: Record<string, any>
-  skip?: number
-  limit?: number
-  orderBy?: string
-  order?: 'asc' | 'desc'
-  page?: number
-  pageSize?: number
-}
-
-interface ListResponse {
-  data: any[]
+export interface ListResponse {
+  list: any[]
   total: number
   skip: number
   limit: number

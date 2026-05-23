@@ -1,13 +1,25 @@
 // ============================================================================
-// 培训班 API - 共用层
+// 培训班 API - 共用层（统一通过 adminService HTTP）
 // ============================================================================
 
-import { app } from '@/utils/cloudbase'
+import { adminService } from '@/services/adminService'
 import type { TrainingClass, ClassSchedule, Enrollment, Teacher } from '@/shared/types/class'
 import type { Course } from '@/shared/types/course'
 
-const db = app.database()
-const _ = db.command
+function extractList(result: any): any[] {
+  if (!result) return [];
+  if (Array.isArray(result.data)) return result.data;
+  if (result.data?.list) return result.data.list;
+  if (result.list) return result.list;
+  return [];
+}
+
+function extractSingle(result: any): any | null {
+  if (!result) return null;
+  if (result.data && !Array.isArray(result.data) && typeof result.data === 'object') return result.data;
+  if (Array.isArray(result.data) && result.data.length > 0) return result.data[0];
+  return result.data || null;
+}
 
 /**
  * 培训班 API
@@ -25,31 +37,22 @@ export const classApi = {
   } = {}): Promise<{ classes: TrainingClass[], total: number }> {
     const { status, teacherId, keyword, page = 1, pageSize = 10 } = filters
     
-    const where: Record<string, unknown> = {}
+    const where: Record<string, any> = {}
     if (status) where.status = status
     if (teacherId) where.teacherId = teacherId
     if (keyword) {
-      where.name = db.RegExp({
-        regexp: keyword,
-        options: 'i'
-      })
+      where.name = { '$regex': keyword }
     }
     
-    const countResult = await db.collection('classes').where(where).count()
-    const total = countResult.total
+    const hasOperators = keyword !== undefined
+    const listResult = hasOperators
+      ? await adminService.listWithOps('classes', where, { orderBy: 'createdAt', order: 'desc', page, pageSize })
+      : await adminService.list('classes', where, { orderBy: 'createdAt', order: 'desc', page, pageSize })
     
-    const skip = (page - 1) * pageSize
-    const result = await db.collection('classes')
-      .where(where)
-      .orderBy('createdAt', 'desc')
-      .skip(skip)
-      .limit(pageSize)
-      .get()
-    
-    return {
-      classes: result.data as TrainingClass[],
-      total
-    }
+    const classes = extractList(listResult) as TrainingClass[]
+    const total = listResult?.data?.total || classes.length
+
+    return { classes, total }
   },
 
   /**
@@ -61,25 +64,23 @@ export const classApi = {
     teacher: Teacher | null
   } | null> {
     // 获取培训班信息
-    const classResult = await db.collection('classes').doc(classId).get()
-    if (!classResult.data) return null
-    
-    const classData = classResult.data as TrainingClass
+    const classResult = await adminService.get('classes', classId)
+    const classData = extractSingle(classResult) as TrainingClass
+    if (!classData) return null
     
     // 获取包含的课程
     let includedCourses: Course[] = []
     if (classData.includedCourses && classData.includedCourses.length > 0) {
-      const coursesResult = await db.collection('courses')
-        .where({ _id: _.in(classData.includedCourses) })
-        .get()
-      includedCourses = coursesResult.data as Course[]
+      const coursesResult = await adminService.listWithOps('courses', {
+        _id: { '$in': classData.includedCourses }
+      }, { limit: 100 })
+      includedCourses = extractList(coursesResult) as Course[]
     }
     
     // 获取教师信息
     let teacher: Teacher | null = null
     if (classData.teacherId) {
-      const teacherResult = await db.collection('teachers').doc(classData.teacherId).get()
-      teacher = teacherResult.data as Teacher || null
+      teacher = extractSingle(await adminService.get('teachers', classData.teacherId)) as Teacher || null
     }
     
     return {
@@ -93,23 +94,18 @@ export const classApi = {
    * 获取可报名的培训班（前台用）
    */
   async getEnrollingClasses(limit: number = 10): Promise<TrainingClass[]> {
-    const result = await db.collection('classes')
-      .where({ status: 'enrolling' })
-      .orderBy('startDate', 'asc')
-      .limit(limit)
-      .get()
-    
-    return result.data as TrainingClass[]
+    const result = await adminService.list('classes', { status: 'enrolling' }, { orderBy: 'startDate', order: 'asc', limit })
+    return extractList(result) as TrainingClass[]
   },
 
   /**
-   * 更新培训班报名人数
+   * 更新培训班报名人数（使用 $inc 操作符）
    */
   async updateStudentCount(classId: string, delta: number): Promise<void> {
-    await db.collection('classes').doc(classId).update({
-      currentStudents: _.inc(delta),
+    await adminService.updateWithOps('classes', classId, {
+      $inc: { currentStudents: delta } as any,
       updatedAt: new Date().toISOString()
-    })
+    } as any)
   }
 }
 
@@ -121,13 +117,8 @@ export const scheduleApi = {
    * 获取培训班排课列表
    */
   async getByClassId(classId: string): Promise<ClassSchedule[]> {
-    const result = await db.collection('class_schedules')
-      .where({ classId })
-      .orderBy('date', 'asc')
-      .orderBy('startTime', 'asc')
-      .get()
-    
-    return result.data as ClassSchedule[]
+    const result = await adminService.list('class_schedules', { classId }, { orderBy: 'date', order: 'asc', limit: 100 })
+    return extractList(result) as ClassSchedule[]
   },
 
   /**
@@ -135,22 +126,18 @@ export const scheduleApi = {
    */
   async getByUserId(userId: string): Promise<ClassSchedule[]> {
     // 先获取用户报名的班级
-    const enrollmentsResult = await db.collection('enrollments')
-      .where({ userId, status: 'confirmed' })
-      .get()
-    
-    const classIds = enrollmentsResult.data.map(e => (e as Enrollment).classId)
+    const enrollmentsResult = await adminService.list('enrollments', { userId, status: 'confirmed' }, { limit: 100 })
+    const enrollments = extractList(enrollmentsResult) as Enrollment[]
+    const classIds = enrollments.map(e => e.classId)
     
     if (classIds.length === 0) return []
     
     // 获取这些班级的排课
-    const schedulesResult = await db.collection('class_schedules')
-      .where({ classId: _.in(classIds) })
-      .orderBy('date', 'asc')
-      .orderBy('startTime', 'asc')
-      .get()
+    const schedulesResult = await adminService.listWithOps('class_schedules', {
+      classId: { '$in': classIds }
+    }, { orderBy: 'date', order: 'asc', limit: 200 })
     
-    return schedulesResult.data as ClassSchedule[]
+    return extractList(schedulesResult) as ClassSchedule[]
   }
 }
 
@@ -178,17 +165,17 @@ export const enrollmentApi = {
       userId: params.userId,
       phone: params.phone,
       paymentMethod: params.paymentMethod,
-      paymentStatus: params.paymentMethod === 'online' ? 'pending' : 'pending',
-      grantedCourses: [], // 支付确认后授权
+      paymentStatus: 'pending',
+      grantedCourses: [],
       status: 'pending',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
     
-    const result = await db.collection('enrollments').add(enrollment)
+    const result = await adminService.add('enrollments', enrollment)
     
     return {
-      _id: result.id || result.insertedId as string,
+      _id: result.data?.id || '',
       ...enrollment
     } as Enrollment
   },
@@ -197,7 +184,7 @@ export const enrollmentApi = {
    * 确认报名（支付成功后调用）
    */
   async confirmEnrollment(enrollmentId: string, grantedCourses: string[]): Promise<void> {
-    await db.collection('enrollments').doc(enrollmentId).update({
+    await adminService.update('enrollments', enrollmentId, {
       paymentStatus: 'paid',
       status: 'confirmed',
       grantedCourses,
@@ -205,9 +192,10 @@ export const enrollmentApi = {
     })
     
     // 更新培训班报名人数
-    const enrollment = await db.collection('enrollments').doc(enrollmentId).get()
-    if (enrollment.data) {
-      await classApi.updateStudentCount((enrollment.data as Enrollment).classId, 1)
+    const enrollmentResult = await adminService.get('enrollments', enrollmentId)
+    const enrollment = extractSingle(enrollmentResult) as Enrollment
+    if (enrollment) {
+      await classApi.updateStudentCount(enrollment.classId, 1)
     }
   },
 
@@ -218,16 +206,15 @@ export const enrollmentApi = {
     confirmedBy: string
     remark?: string
   }): Promise<void> {
-    const enrollment = await db.collection('enrollments').doc(enrollmentId).get()
-    if (!enrollment.data) throw new Error('报名记录不存在')
-    
-    const enrollmentData = enrollment.data as Enrollment
+    const enrollmentResult = await adminService.get('enrollments', enrollmentId)
+    const enrollmentData = extractSingle(enrollmentResult) as Enrollment
+    if (!enrollmentData) throw new Error('报名记录不存在')
     
     // 获取培训班信息，拿到包含的课程
     const classDetail = await classApi.getDetail(enrollmentData.classId)
     const grantedCourses = classDetail?.class.includedCourses || []
     
-    await db.collection('enrollments').doc(enrollmentId).update({
+    await adminService.update('enrollments', enrollmentId, {
       paymentStatus: 'confirmed',
       status: 'confirmed',
       grantedCourses,
@@ -246,7 +233,7 @@ export const enrollmentApi = {
     
     // 授权课程
     for (const courseId of grantedCourses) {
-      await db.collection('course_permissions').add({
+      await adminService.add('course_permissions', {
         userId: enrollmentData.userId,
         courseId,
         source: 'class_enrollment',
@@ -260,24 +247,16 @@ export const enrollmentApi = {
    * 获取用户的报名记录
    */
   async getByUserId(userId: string): Promise<Enrollment[]> {
-    const result = await db.collection('enrollments')
-      .where({ userId })
-      .orderBy('createdAt', 'desc')
-      .get()
-    
-    return result.data as Enrollment[]
+    const result = await adminService.list('enrollments', { userId }, { orderBy: 'createdAt', order: 'desc', limit: 100 })
+    return extractList(result) as Enrollment[]
   },
 
   /**
    * 获取培训班的报名列表（后台用）
    */
   async getByClassId(classId: string): Promise<Enrollment[]> {
-    const result = await db.collection('enrollments')
-      .where({ classId })
-      .orderBy('createdAt', 'desc')
-      .get()
-    
-    return result.data as Enrollment[]
+    const result = await adminService.list('enrollments', { classId }, { orderBy: 'createdAt', order: 'desc', limit: 100 })
+    return extractList(result) as Enrollment[]
   }
 }
 
@@ -289,19 +268,14 @@ export const teacherApi = {
    * 获取教师列表
    */
   async getList(): Promise<Teacher[]> {
-    const result = await db.collection('teachers')
-      .where({ status: 'active' })
-      .orderBy('createdAt', 'desc')
-      .get()
-    
-    return result.data as Teacher[]
+    const result = await adminService.list('teachers', { status: 'active' }, { orderBy: 'createdAt', order: 'desc', limit: 100 })
+    return extractList(result) as Teacher[]
   },
 
   /**
    * 获取教师详情
    */
   async getDetail(teacherId: string): Promise<Teacher | null> {
-    const result = await db.collection('teachers').doc(teacherId).get()
-    return result.data as Teacher || null
+    return extractSingle(await adminService.get('teachers', teacherId)) as Teacher || null
   }
 }

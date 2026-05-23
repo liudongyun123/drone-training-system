@@ -8,7 +8,7 @@
  * - 统一错误处理
  */
 
-import app from '@/config/tcb';
+import { adminService } from '@/services/adminService';
 
 // ============================================================================
 // 缓存配置
@@ -208,8 +208,22 @@ const DEFAULT_OPTIONS: Required<ServiceOptions> = {
   dedupe: false
 }
 
+function extractList(result: any): any[] {
+  if (!result) return [];
+  if (Array.isArray(result.data)) return result.data;
+  if (result.data?.list) return result.data.list;
+  if (result.list) return result.list;
+  return [];
+}
+
+function extractSingle(result: any): any | null {
+  if (!result) return null;
+  if (result.data && !Array.isArray(result.data) && typeof result.data === 'object') return result.data;
+  if (Array.isArray(result.data) && result.data.length > 0) return result.data[0];
+  return result.data || null;
+}
+
 export class BaseService {
-  protected db = app.database()
 
   /**
    * 通用查询方法（带缓存、重试、去重）
@@ -298,20 +312,14 @@ export class BaseService {
     }
   ): Promise<{ list: T[]; total: number; page: number; pageSize: number }> {
     const { page = 1, pageSize = 20, where = {}, orderBy, order = 'desc' } = params
-    const skip = (page - 1) * pageSize
-    
-    let collection = this.db.collection(collectionName).where(where)
-    
-    if (orderBy) {
-      collection = collection.orderBy(orderBy, order)
-    }
 
-    const countResult = await collection.count()
-    const { data } = await collection.skip(skip).limit(pageSize).get()
+    const result = await adminService.list(collectionName, where, { orderBy, order, page, pageSize })
+    const data = extractList(result)
+    const total = result?.data?.total || data.length
 
     return {
       list: data as T[],
-      total: countResult.total || 0,
+      total,
       page,
       pageSize
     }
@@ -321,8 +329,7 @@ export class BaseService {
    * 根据ID查询
    */
   async findById<T>(collectionName: string, id: string): Promise<T | null> {
-    const { data } = await this.db.collection(collectionName).doc(id).get()
-    return Array.isArray(data) && data.length > 0 ? data[0] as T : null
+    return extractSingle(await adminService.get(collectionName, id)) as T || null
   }
 
   /**
@@ -362,8 +369,13 @@ export class BaseService {
    * 删除记录
    */
   async remove(collectionName: string, id: string): Promise<boolean> {
-    const result = await this.db.collection(collectionName).doc(id).remove()
-    return (result as any)?.data?.deleted > 0 || true
+    try {
+      await adminService.delete(collectionName, id)
+      return true
+    } catch (error) {
+      console.error(`[BaseService] 删除 ${collectionName}/${id} 失败:`, error)
+      return false
+    }
   }
 
   /**
@@ -377,21 +389,21 @@ export class BaseService {
       id?: string
     }>
   ): Promise<boolean> {
-    const batch = this.db.batch()
-    
-    for (const op of operations) {
-      const doc = this.db.collection(collectionName).doc(op.id!)
-      if (op.type === 'add') {
-        batch.add(doc, { ...op.data, createdAt: new Date().toISOString() })
-      } else if (op.type === 'update') {
-        batch.update(doc, { ...op.data, updatedAt: new Date().toISOString() })
-      } else if (op.type === 'remove') {
-        batch.remove(doc)
+    try {
+      for (const op of operations) {
+        if (op.type === 'add') {
+          await adminService.add(collectionName, { ...op.data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+        } else if (op.type === 'update' && op.id) {
+          await adminService.update(collectionName, op.id, { ...op.data, updatedAt: new Date().toISOString() })
+        } else if (op.type === 'remove' && op.id) {
+          await adminService.delete(collectionName, op.id)
+        }
       }
+      return true
+    } catch (error) {
+      console.error(`[BaseService] 批量操作 ${collectionName} 失败:`, error)
+      return false
     }
-
-    const result = await batch.commit()
-    return result.ok
   }
 
   /**

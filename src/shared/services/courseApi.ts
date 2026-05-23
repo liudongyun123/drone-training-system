@@ -1,13 +1,25 @@
 // ============================================================================
-// 课程 API - 共用层
+// 课程 API - 共用层（统一通过 adminService HTTP）
 // Web端、移动端、后台都调用这一套 API
 // ============================================================================
 
-import { app } from '@/utils/cloudbase'
+import { adminService } from '@/services/adminService'
 import type { Course, CourseFilters, CourseListResponse, CourseDetail, Lesson } from '@/shared/types/course'
 
-const db = app.database()
-const _ = db.command
+function extractList(result: any): any[] {
+  if (!result) return [];
+  if (Array.isArray(result.data)) return result.data;
+  if (result.data?.list) return result.data.list;
+  if (result.list) return result.list;
+  return [];
+}
+
+function extractSingle(result: any): any | null {
+  if (!result) return null;
+  if (result.data && !Array.isArray(result.data) && typeof result.data === 'object') return result.data;
+  if (Array.isArray(result.data) && result.data.length > 0) return result.data[0];
+  return result.data || null;
+}
 
 /**
  * 课程 API 服务
@@ -30,50 +42,50 @@ export const courseApi = {
       pageSize = 10
     } = filters
 
-    // 构建查询条件
-    const where: Record<string, unknown> = {}
+    // 构建查询条件（MongoDB 风格操作符）
+    const where: Record<string, any> = {}
     
     if (status) where.status = status
     if (category) where.category = category
     if (level) where.level = level
+    
+    // 价格范围筛选
     if (minPrice !== undefined || maxPrice !== undefined) {
-      where.price = {}
-      if (minPrice !== undefined) where.price = _.gte(minPrice)
-      if (maxPrice !== undefined) where.price = maxPrice !== undefined 
-        ? (minPrice !== undefined ? _.gte(minPrice).and(_.lte(maxPrice)) : _.lte(maxPrice))
-        : where.price
+      const priceFilter: Record<string, any> = {}
+      if (minPrice !== undefined) priceFilter['$gte'] = minPrice
+      if (maxPrice !== undefined) priceFilter['$lte'] = maxPrice
+      where.price = priceFilter
     }
+    
+    // 关键词搜索
     if (keyword) {
-      where.title = db.RegExp({
-        regexp: keyword,
-        options: 'i'
-      })
+      where.title = { '$regex': keyword }
     }
 
-    // 查询总数
-    const countResult = await db.collection('courses').where(where).count()
-    const total = countResult.total
-
-    // 查询数据
-    const skip = (page - 1) * pageSize
+    // 确定排序方式
+    const orderMap: Record<string, string> = {
+      salesCount: 'salesCount',
+      rating: 'rating',
+      price: 'price',
+    }
+    const orderBy = orderMap[sortBy] || 'createdAt'
     const orderDirection = sortOrder === 'asc' ? 'asc' : 'desc'
+
+    // 使用操作符查询（支持 $regex, $gte, $lte）
+    const hasOperators = keyword !== undefined || minPrice !== undefined || maxPrice !== undefined
+    const listResult = hasOperators
+      ? await adminService.listWithOps('courses', where, { orderBy, order: orderDirection, page, pageSize })
+      : await adminService.list('courses', where, { orderBy, order: orderDirection, page, pageSize })
     
-    let query = db.collection('courses').where(where)
-    
-    // 排序
-    if (sortBy === 'salesCount') query = query.orderBy('salesCount', orderDirection)
-    else if (sortBy === 'rating') query = query.orderBy('rating', orderDirection)
-    else if (sortBy === 'price') query = query.orderBy('price', orderDirection)
-    else query = query.orderBy('createdAt', orderDirection)
-    
-    const result = await query.skip(skip).limit(pageSize).get()
-    
+    const courses = extractList(listResult) as Course[]
+    const total = listResult?.data?.total || courses.length
+
     return {
-      courses: result.data as Course[],
+      courses,
       total,
       page,
       pageSize,
-      hasMore: skip + pageSize < total
+      hasMore: ((page - 1) * pageSize + courses.length) < total
     }
   },
 
@@ -82,20 +94,17 @@ export const courseApi = {
    */
   async getDetail(courseId: string): Promise<CourseDetail | null> {
     // 获取课程信息
-    const courseResult = await db.collection('courses').doc(courseId).get()
-    if (!courseResult.data) return null
-    
-    const course = courseResult.data as Course
+    const courseResult = await adminService.get('courses', courseId)
+    const course = extractSingle(courseResult) as Course
+    if (!course) return null
     
     // 获取章节列表
-    const lessonsResult = await db.collection('lessons')
-      .where({ courseId })
-      .orderBy('order', 'asc')
-      .get()
+    const lessonsResult = await adminService.list('lessons', { courseId }, { orderBy: 'order', order: 'asc', limit: 100 })
+    const lessons = extractList(lessonsResult) as Lesson[]
     
     return {
       ...course,
-      lessons: lessonsResult.data as Lesson[]
+      lessons
     }
   },
 
@@ -103,42 +112,25 @@ export const courseApi = {
    * 获取热门课程
    */
   async getHotCourses(limit: number = 6): Promise<Course[]> {
-    const result = await db.collection('courses')
-      .where({ status: 'published' })
-      .orderBy('salesCount', 'desc')
-      .limit(limit)
-      .get()
-    
-    return result.data as Course[]
+    const result = await adminService.list('courses', { status: 'published' }, { orderBy: 'salesCount', order: 'desc', limit })
+    return extractList(result) as Course[]
   },
 
   /**
    * 获取推荐课程（根据分类）
    */
   async getRecommendedCourses(category: string, limit: number = 4): Promise<Course[]> {
-    const result = await db.collection('courses')
-      .where({ 
-        status: 'published',
-        category 
-      })
-      .orderBy('rating', 'desc')
-      .limit(limit)
-      .get()
-    
-    return result.data as Course[]
+    const result = await adminService.list('courses', { status: 'published', category }, { orderBy: 'rating', order: 'desc', limit })
+    return extractList(result) as Course[]
   },
 
   /**
    * 获取课程分类列表
    */
   async getCategories(): Promise<string[]> {
-    const result = await db.collection('courses')
-      .where({ status: 'published' })
-      .field({ category: true })
-      .get()
-    
-    // 去重
-    const categories = [...new Set(result.data.map(item => (item as { category: string }).category))]
+    const result = await adminService.list('courses', { status: 'published' }, { limit: 500 })
+    const courses = extractList(result) as any[]
+    const categories = [...new Set(courses.map(item => item.category))]
     // @ts-ignore
     return categories.filter(Boolean)
   }

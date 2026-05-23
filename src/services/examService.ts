@@ -1,4 +1,9 @@
-import { app } from '@/utils/cloudbase';
+/**
+ * 考试服务 - 在线考试、题库练习、成绩管理
+ * 统一通过 adminService (HTTP → db-init 云函数) 访问数据库
+ */
+
+import { adminService } from './adminService';
 import type { 
   Exam, Question, ExamAttempt, ApiResponse, PaginatedResponse,
   QuestionBank, BankQuestion, PracticeRecord, WrongQuestion, FavoriteQuestion
@@ -6,11 +11,34 @@ import type {
 import type { Question as QuestionType } from '@/types/service';
 
 // ============================================================================
-// 考试服务 - 在线考试、题库练习、成绩管理
-// 优先使用 adminService（云函数）查询，绕过数据库安全规则限制
+// 辅助：从 adminService 响应中提取数据
 // ============================================================================
+function extractList(result: any): any[] {
+  if (!result) return [];
+  if (Array.isArray(result.data)) return result.data;
+  if (result.data?.list) return result.data.list;
+  if (result.list) return result.list;
+  return [];
+}
 
+function extractTotal(result: any): number {
+  if (result?.data?.total !== undefined) return result.data.total;
+  if (result?.total !== undefined) return result.total;
+  return 0;
+}
+
+function extractSingle(result: any): any | null {
+  if (!result) return null;
+  if (result.data && !Array.isArray(result.data) && typeof result.data === 'object' && (result.data._id || result.data.id)) {
+    return result.data;
+  }
+  if (Array.isArray(result.data) && result.data.length > 0) return result.data[0];
+  return result.data || null;
+}
+
+// ============================================================================
 // 数据库原始数据类型（用于类型转换）
+// ============================================================================
 interface RawQuestion {
   _id: string
   bankId?: string
@@ -41,27 +69,8 @@ interface RawBank {
   updatedAt?: string
 }
 
-// 延迟初始化 db，确保 app 已完成初始化
-const getDb = () => {
-  if (!app) {
-    console.error('[examService] CloudBase SDK 未初始化');
-    throw new Error('CloudBase SDK 未初始化');
-  }
-  try {
-    const db = app.database();
-    if (!db) {
-      console.error('[examService] database() 返回 null');
-      throw new Error('database() 返回 null');
-    }
-    return db;
-  } catch (error: unknown) {
-    console.error('[examService] 获取数据库实例失败:', error);
-    throw error;
-  }
-};
-
 // ============================================================================
-// 辅助：标准化题型字段（独立函数，供 examService 内部调用）
+// 辅助：标准化题型字段
 // ============================================================================
 function normalizeQuestionType(type?: string): string {
   const t = String(type || '').toLowerCase();
@@ -69,7 +78,7 @@ function normalizeQuestionType(type?: string): string {
   if (t === 'single' || t === 'choice') return 'single';
   if (t === 'multiple' || t === 'multichoice') return 'multiple';
   if (t === 'judge' || t === 'judgment' || t === 'truefalse' || t === 'boolean') return 'truefalse';
-  return 'single'; // 默认单选
+  return 'single';
 }
 
 // ============================================================================
@@ -77,16 +86,14 @@ function normalizeQuestionType(type?: string): string {
 // ============================================================================
 
 export const examService = {
-  // 获取考试列表（★ 先尝试云函数查询，失败则回退到直接数据库查询）
+  // 获取考试列表
   async getList(params?: { keyword?: string; courseId?: string }): Promise<ApiResponse<Exam[]>> {
-    // 方式1：通过 adminService 云函数查询（绕过安全规则）
     try {
-      const { adminService } = await import('@/services/adminService');
       const query: any = {};
       if (params?.courseId) query.courseId = params.courseId;
       
       const result = await adminService.list('exams', query, { limit: 50 });
-      let data: any[] = Array.isArray(result.data) ? result.data : (result.data?.list || []);
+      let data = extractList(result);
       
       if (params?.keyword) {
         data = data.filter((e: any) => e.title?.includes(params.keyword!));
@@ -94,66 +101,34 @@ export const examService = {
       
       console.log('[examService] getList 通过云函数获取:', data.length, '条');
       return { success: true, data: data as Exam[] };
-    } catch (cloudErr: any) {
-      console.warn('[examService] 云函数查询失败，回退到直接数据库查询:', cloudErr.message);
-    }
-
-    // 方式2：直接数据库查询（可能受安全规则限制）
-    try {
-      let query = getDb().collection('exams');
-      
-      if (params?.courseId) {
-        query = query.where({ courseId: params.courseId });
-      }
-      
-      const { data } = await query.get();
-      
-      let result = data as Exam[];
-      if (params?.keyword) {
-        result = result.filter(e => e.title?.includes(params.keyword!));
-      }
-      
-      return { success: true, data: result };
     } catch (error) {
       console.error('获取考试列表失败:', error);
       return { success: false, message: '获取考试列表失败' };
     }
   },
 
-  // 获取考试详情（★ 云函数优先）
+  // 获取考试详情
   async getDetail(id: string): Promise<ApiResponse<Exam>> {
     try {
-      const { adminService } = await import('@/services/adminService');
       const result = await adminService.get('exams', id);
-      if (result.data) {
-        console.log('[examService] getDetail 通过云函数获取成功:', id);
-        return { success: true, data: result.data as Exam };
-      }
-    } catch (e) {
-      console.warn('[examService] getDetail 云函数失败，回退直接查询:', e);
-    }
-
-    try {
-      const { data } = await getDb().collection('exams').doc(id).get();
-      if (!data) {
+      const examData = extractSingle(result);
+      if (!examData) {
         return { success: false, message: '考试不存在' };
       }
-      return { success: true, data: data as Exam };
+      console.log('[examService] getDetail 通过云函数获取成功:', id);
+      return { success: true, data: examData as Exam };
     } catch (error) {
       console.error('获取考试详情失败:', error);
       return { success: false, message: '获取考试详情失败' };
     }
   },
 
-  // 获取考试题目（★ 云函数优先，从 questions 获取）
+  // 获取考试题目（从 questions 集合）
   async getQuestions(examId: string): Promise<ApiResponse<Question[]>> {
     try {
-      // 方式1：通过云函数查询题目
-      const { adminService } = await import('@/services/adminService');
-      
       // 先获取考试信息，了解关联的题库
       const examResult = await adminService.get('exams', examId);
-      const examData = examResult.data;
+      const examData = extractSingle(examResult);
       
       if (!examData) {
         return { success: false, message: '考试不存在' };
@@ -161,8 +136,6 @@ export const examService = {
       
       console.log('[examService] getQuestions examData:', examData);
       
-      // 从 questions 获取所有题目
-      let questionsResult: any;
       let questionsData: any[] = [];
       
       // 如果考试关联了 bankConfigs，按题库ID筛选
@@ -170,15 +143,10 @@ export const examService = {
         const bankIds = examData.bankConfigs.map((b: any) => b.bankId).filter(Boolean);
         if (bankIds.length > 0) {
           try {
-            questionsResult = await adminService.list('questions',
-              // @ts-ignore
-              { bankId: adminService.command?.in ? undefined : undefined },
-              { limit: 500 });
-            questionsData = Array.isArray(questionsResult.data) ? questionsResult.data : (questionsResult.data?.list || []);
+            const qr = await adminService.list('questions', {}, { limit: 500 });
+            questionsData = extractList(qr);
             // 客户端过滤 bankId
-            if (bankIds.length > 0) {
-              questionsData = questionsData.filter((q: any) => !q.bankId || bankIds.includes(q.bankId));
-            }
+            questionsData = questionsData.filter((q: any) => !q.bankId || bankIds.includes(q.bankId));
           } catch (e) {
             console.warn('[examService] 按题库筛选失败，获取全部题目');
           }
@@ -187,8 +155,8 @@ export const examService = {
       
       // 如果没拿到数据，获取全部题目
       if (questionsData.length === 0) {
-        questionsResult = await adminService.list('questions', {}, { limit: 1000 });
-        questionsData = Array.isArray(questionsResult.data) ? questionsResult.data : (questionsResult.data?.list || []);
+        const qr = await adminService.list('questions', {}, { limit: 1000 });
+        questionsData = extractList(qr);
       }
       
       console.log('[examService] getQuestions 获取到题目:', questionsData.length);
@@ -211,52 +179,23 @@ export const examService = {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }))
-        .filter(q => q.question); // 过滤掉无问题的记录
+        .filter(q => q.question);
       
       // @ts-ignore
       return { success: true, data: questions };
     } catch (error: any) {
-      console.error('获取考试题目失败(云函数):', error);
-      
-      // 回退到直接数据库查询
-      try {
-        const { data } = await getDb().collection('questions').get();
-        // @ts-ignore
-        const questions: QuestionType[] = (data as RawQuestion[]).map((q, index) => ({
-          _id: q._id,
-          id: q._id,
-          questionBankId: q.bankId,
-          type: normalizeQuestionType(q.type),
-          question: q.question || '',
-          content: q.question || '',
-          options: (q.options || []).map((opt: any) => typeof opt === 'string' ? opt : (opt.content || opt.key || '')).filter(Boolean),
-          answer: q.answer,
-          score: q.score || 1,
-          difficulty: (q.difficulty as QuestionType['difficulty']) || 'medium',
-          order: index,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })).filter(q => q.question);
-        
-        // @ts-ignore
-        return { success: true, data: questions };
-      } catch (err) {
-        console.error('获取考试题目失败(直接):', err);
-        return { success: false, message: '获取考试题目失败' };
-      }
+      console.error('获取考试题目失败:', error);
+      return { success: false, message: '获取考试题目失败' };
     }
   },
 
-  // 开始考试（★ 云函数优先，获取考试详情 + 题目列表）
-  async startExam(examId: string, userId: string): Promise<ApiResponse<{ attemptId: string; questions: Question[] }>> {
-    // 方式1：通过 adminService 云函数查询
+  // 开始考试
+  async startExam(examId: string, _userId: string): Promise<ApiResponse<{ attemptId: string; questions: Question[] }>> {
     try {
-      const { adminService } = await import('@/services/adminService');
-      
       console.log('[examService] startExam 通过云函数查询, examId:', examId);
       
       const examResult = await adminService.get('exams', examId);
-      const examData = examResult.data;
+      const examData = extractSingle(examResult);
       
       if (!examData) {
         return { success: false, message: '考试不存在' };
@@ -272,7 +211,7 @@ export const examService = {
         if (bankIds.length > 0) {
           try {
             const qr = await adminService.list('questions', {}, { limit: 1000 });
-            questionsData = Array.isArray(qr.data) ? qr.data : (qr.data?.list || []);
+            questionsData = extractList(qr);
             questionsData = questionsData.filter((q: any) => !q.bankId || bankIds.includes(q.bankId));
           } catch (e) { console.warn('[examService] 按题库筛选失败'); }
         }
@@ -280,7 +219,7 @@ export const examService = {
       
       if (questionsData.length === 0) {
         const qr = await adminService.list('questions', {}, { limit: 1000 });
-        questionsData = Array.isArray(qr.data) ? qr.data : (qr.data?.list || []);
+        questionsData = extractList(qr);
       }
       
       console.log('[examService] startExam 获取题目数:', questionsData.length);
@@ -312,62 +251,27 @@ export const examService = {
           questions
         }
       };
-    } catch (cloudErr: any) {
-      console.warn('[examService] startExam 云函数失败，回退直接数据库:', cloudErr.message);
-    }
-
-    // 方式2：直接数据库查询
-    try {
-      const { data: examData } = await getDb().collection('exams').doc(examId).get();
-      if (!examData) {
-        return { success: false, message: '考试不存在' };
-      }
-      
-      const { data: questionsData } = await getDb().collection('questions').get();
-      
-      // @ts-ignore
-      const questions: QuestionType[] = (questionsData as RawQuestion[]).map((q, index) => ({
-        _id: q._id,
-        id: q._id,
-        questionBankId: q.bankId,
-        type: normalizeQuestionType(q.type),
-        question: q.question || '',
-        content: q.question || '',
-        options: (q.options || []).map((opt: any) => typeof opt === 'string' ? opt : (opt.content || opt.key || '')).filter(Boolean),
-        answer: q.answer,
-        score: q.score || 1,
-        difficulty: (q.difficulty as QuestionType['difficulty']) || 'medium',
-        order: index,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      })).filter(q => q.question);
-      
-      return {
-        success: true,
-        // @ts-ignore
-        data: { attemptId: `attempt_${Date.now()}`, questions }
-      };
-    } catch (error) {
+    } catch (error: any) {
       console.error('开始考试失败:', error);
       return { success: false, message: '开始考试失败' };
     }
   },
 
-  // 提交考试 - 使用真实数据库查询题目评分
+  // 提交考试 - 使用云函数查询题目并评分
   async submitExam(attemptId: string, answers: { questionId: string; answer: string | string[] }[], userId?: string): Promise<ApiResponse<ExamAttempt>> {
     try {
-      // 获取当前用户
+      // 获取当前用户（认证操作保留 SDK）
       const currentUser = await (await import('./cloudBaseService')).authService.getCurrentUser();
       const finalUserId = userId || currentUser?.uid || 'anonymous';
-      const openid = (currentUser as any)?._openid;
       
-      console.log('[examService] 提交考试, userId:', finalUserId, 'openid:', openid);
+      console.log('[examService] 提交考试, userId:', finalUserId);
 
-      const questionIds = answers.map(a => a.questionId);
-      
-      // 从 questions 获取题目
-      const { data: questionsData } = await getDb().collection('questions').get();
-      const questionsMap = new Map((questionsData as RawQuestion[]).map((q) => [q._id, q]));
+      // 使用 $in 查询相关题目（优化：只查询回答涉及的题目）
+      const qResult = await adminService.listWithOps('questions', {
+        _id: { '$in': answers.map(a => a.questionId) }
+      }, { limit: 2000 });
+      const questionsData = extractList(qResult) as RawQuestion[];
+      const questionsMap = new Map(questionsData.map((q) => [q._id, q]));
 
       let totalScore = 0;
       let correctCount = 0;
@@ -389,7 +293,6 @@ export const examService = {
         
         // 判断题格式
         if (question.type === 'boolean' || question.type === 'judgment') {
-          // 数据库中可能是 "true"/"false" 或 "A"/"B"
           const userVal = String(userAnswer).toLowerCase();
           const correctVal = String(correctAnswer).toLowerCase();
           isCorrect = userVal === correctVal || 
@@ -425,9 +328,10 @@ export const examService = {
       // 尝试从题库关联考试
       if (relatedBankId) {
         try {
-          const { data: exams } = await getDb().collection('exams').where({
-            bankIds: getDb().command.in([relatedBankId])
-          }).get();
+          const eResult = await adminService.listWithOps('exams', {
+            bankIds: { '$in': [relatedBankId] }
+          });
+          const exams = extractList(eResult);
           
           if (exams && exams.length > 0) {
             exam = exams[0];
@@ -443,7 +347,7 @@ export const examService = {
         exam = {
           _id: examId,
           bankId: relatedBankId,
-          passScore: 60, // 默认及格分数
+          passScore: 60,
           timeLimit: 60,
         };
       }
@@ -451,7 +355,7 @@ export const examService = {
       const startTime = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const submitTime = new Date().toISOString();
       
-      // 创建考试记录对象 - 不要手动设置 _id，让 CloudBase 自动生成
+      // 创建考试记录对象
       const attemptData = {
         examId,
         userId: finalUserId,
@@ -463,33 +367,19 @@ export const examService = {
         startTime,
         submitTime,
         duration: exam?.timeLimit || 60,
-        // 保存原始的临时 ID 用于调试
         originalAttemptId: attemptId,
       };
       
-      // 注意：CloudBase 会自动设置 _openid 字段，不要手动设置
-      // 使用 userId 字段存储用户身份，配合自定义安全规则使用
-
-      // 添加到数据库
       console.log('[examService] 提交考试，准备添加到数据库...');
-      console.log('[examService] 考试记录数据:', JSON.stringify(attemptData, null, 2));
       
-      const addResult = await getDb().collection('examAttempts').add(attemptData);
+      const addResult = await adminService.add('examAttempts', attemptData);
       console.log('[examService] addResult:', JSON.stringify(addResult));
       
       // CloudBase 返回的才是真正的记录 ID
-      let realRecordId = '';
-      if (addResult && typeof addResult === 'object') {
-        if ((addResult as any).id) {
-          realRecordId = (addResult as any).id;
-        } else if ((addResult as any)._id) {
-          realRecordId = (addResult as any)._id;
-        }
-      }
+      const realRecordId = addResult?.data?.id || '';
       
       console.log('[examService] CloudBase 生成的记录 ID:', realRecordId);
       
-      // 返回给前端的 attemptId 可以是 CloudBase 生成的真正 ID
       const finalAttemptId = realRecordId || attemptId;
       console.log('[examService] 最终 attemptId:', finalAttemptId);
       
@@ -520,17 +410,17 @@ export const examService = {
   // 获取考试记录
   async getAttempts(userId: string, examId?: string): Promise<ApiResponse<ExamAttempt[]>> {
     try {
-      let query = getDb().collection('examAttempts').where({ userId });
-      
+      const query: any = { userId };
       if (examId) {
-        query = query.where({ examId });
+        query.examId = examId;
       }
       
-      const { data } = await query.get();
+      const result = await adminService.list('examAttempts', query, { limit: 200, orderBy: 'submitTime', order: 'desc' });
+      const data = extractList(result) as ExamAttempt[];
       
       return { 
         success: true, 
-        data: (data || [] as ExamAttempt[]).sort((a, b) => 
+        data: data.sort((a, b) => 
           new Date(b.submitTime).getTime() - new Date(a.submitTime).getTime()
         ) 
       };
@@ -545,47 +435,44 @@ export const examService = {
     try {
       console.log('[examService] getAttemptDetail 开始, attemptId:', attemptId);
       
-      // 尝试多种方式查找考试记录
       let matchedRecord: any = null;
       
-      // 方式1: 直接使用 ID 查询（CloudBase 生成的真正 ID）
+      // 方式1: 直接使用 ID 查询
       try {
         console.log('[examService] 方式1: 直接使用 ID 查询 examAttempts');
-        const db = getDb();
-        const docRef = db.collection('examAttempts').doc(attemptId);
-        console.log('[examService] 方式1: 查询文档:', attemptId);
-        const result = await docRef.get();
-        console.log('[examService] 方式1 查询结果:', JSON.stringify(result));
-        if (result && result.data) {
+        const result = await adminService.get('examAttempts', attemptId);
+        const data = extractSingle(result);
+        if (data) {
           console.log('[examService] 方式1 找到记录');
-          matchedRecord = result.data;
+          matchedRecord = data;
         }
       } catch (e: any) {
-        console.error('[examService] 方式1 查询异常:', e?.message || e, 'code:', e?.code, 'errCode:', e?.errCode);
+        console.error('[examService] 方式1 查询异常:', e?.message || e);
       }
       
       // 方式2: 获取最新记录（不依赖用户身份）
       if (!matchedRecord) {
         try {
           console.log('[examService] 方式2: 获取最新考试记录');
-          const result = await getDb()
-            .collection('examAttempts')
-            .orderBy('submitTime', 'desc')
-            .limit(10)
-            .get();
+          const result = await adminService.list('examAttempts', {}, { 
+            orderBy: 'submitTime', 
+            order: 'desc', 
+            limit: 10 
+          });
+          const records = extractList(result);
           
-          console.log('[examService] 方式2 查询结果, 记录数:', result.data?.length);
+          console.log('[examService] 方式2 查询结果, 记录数:', records.length);
           
-          if (result.data && result.data.length > 0) {
+          if (records.length > 0) {
             // 首先尝试精确匹配 _id
-            matchedRecord = result.data.find((a: any) => {
+            matchedRecord = records.find((a: any) => {
               const recordId = String(a._id || '');
               return recordId === attemptId || recordId.includes(attemptId);
             });
             
             // 如果没找到精确匹配，尝试 originalAttemptId 匹配
             if (!matchedRecord) {
-              matchedRecord = result.data.find((a: any) => 
+              matchedRecord = records.find((a: any) => 
                 a.originalAttemptId === attemptId || 
                 String(a.originalAttemptId || '').includes(attemptId)
               );
@@ -594,13 +481,13 @@ export const examService = {
             // 如果还没找到，使用最新的一条记录
             if (!matchedRecord) {
               console.log('[examService] 未找到匹配记录，使用最新记录');
-              matchedRecord = result.data[0];
+              matchedRecord = records[0];
             }
             
             console.log('[examService] 找到匹配记录:', matchedRecord);
           }
         } catch (e: any) {
-          console.error('[examService] 方式2 查询异常:', e?.message || e, 'code:', e?.code, 'errCode:', e?.errCode);
+          console.error('[examService] 方式2 查询异常:', e?.message || e);
         }
       }
       
@@ -608,30 +495,25 @@ export const examService = {
       if (!matchedRecord) {
         console.log('[examService] 尝试无过滤查询所有记录...');
         try {
-          const { data: allAttempts } = await getDb()
-            .collection('examAttempts')
-            .orderBy('submitTime', 'desc')
-            .limit(20)
-            .get();
+          const result = await adminService.list('examAttempts', {}, { 
+            orderBy: 'submitTime', 
+            order: 'desc', 
+            limit: 20 
+          });
+          const allAttempts = extractList(result);
           
-          console.log('[examService] 所有考试记录数量:', allAttempts?.length);
+          console.log('[examService] 所有考试记录数量:', allAttempts.length);
           
-          if (allAttempts && allAttempts.length > 0) {
+          if (allAttempts.length > 0) {
             // 尝试多种匹配方式
             matchedRecord = allAttempts.find((a: any) => {
               const recordId = a._id || '';
               const recordIdStr = String(recordId);
               
-              // 1. 完全匹配 _id
               if (recordIdStr === attemptId) return true;
-              
-              // 2. 包含关系匹配
               if (recordIdStr.includes(attemptId) || attemptId.includes(recordIdStr)) return true;
-              
-              // 3. originalAttemptId 匹配
               if (a.originalAttemptId === attemptId) return true;
               
-              // 4. 模糊匹配
               const cleanRecordId = recordIdStr.replace(/^attempt_/, '').replace(/^exam_/, '');
               const cleanAttemptId = attemptId.replace(/^attempt_/, '').replace(/^exam_/, '');
               if (cleanRecordId === cleanAttemptId || cleanRecordId.includes(cleanAttemptId)) return true;
@@ -652,7 +534,6 @@ export const examService = {
       }
       
       if (matchedRecord) {
-        // 确保返回的数据格式正确
         const normalizedRecord: ExamAttempt = {
           _id: matchedRecord._id || matchedRecord.id || attemptId,
           examId: matchedRecord.examId || '',
@@ -686,10 +567,10 @@ export const examService = {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      const result = await getDb().collection('exams').add(newExam);
+      const result = await adminService.add('exams', newExam);
       return { 
         success: true, 
-        data: { ...newExam, _id: result.id } as Exam,
+        data: { ...newExam, _id: result.data?.id || '' } as Exam,
         message: '考试创建成功'
       };
     } catch (error) {
@@ -705,7 +586,7 @@ export const examService = {
         ...examData,
         updatedAt: new Date().toISOString()
       };
-      await getDb().collection('exams').doc(examId).update(updateData);
+      await adminService.update('exams', examId, updateData);
       return { 
         success: true, 
         data: { ...examData, _id: examId } as Exam,
@@ -720,7 +601,7 @@ export const examService = {
   // 删除考试
   async delete(examId: string): Promise<ApiResponse<void>> {
     try {
-      await getDb().collection('exams').doc(examId).remove();
+      await adminService.delete('exams', examId);
       return { success: true, message: '考试删除成功' };
     } catch (error) {
       console.error('删除考试失败:', error);
@@ -734,22 +615,19 @@ export const examService = {
 // ============================================================================
 
 export const questionBankService = {
-  // 获取题库列表（支持分页参数，兼容 database.ts 的返回格式）
+  // 获取题库列表
   async getList(params?: { page?: number; pageSize?: number }): Promise<{ list: QuestionBank[]; total: number; page: number; pageSize: number }> {
     try {
       const page = params?.page || 1;
       const pageSize = params?.pageSize || 10;
-      const skip = (page - 1) * pageSize;
       
-      const { data, pager } = await getDb().collection('questionBanks')
-        .skip(skip)
-        .limit(pageSize)
-        .get();
+      const result = await adminService.list('questionBanks', {}, { page, pageSize });
+      const data = extractList(result) as RawBank[];
+      const total = extractTotal(result);
       
-      console.log('[questionBankService] 获取题库列表:', data?.length || 0, '条');
+      console.log('[questionBankService] 获取题库列表:', data.length, '条');
       
-      // 转换字段以匹配代码期望的格式
-      const banks: QuestionBank[] = (data as RawBank[]).map(bank => ({
+      const banks: QuestionBank[] = data.map(bank => ({
         _id: bank._id,
         name: bank.name || bank.title || '未命名题库',
         description: bank.description || '',
@@ -767,7 +645,7 @@ export const questionBankService = {
       return { 
         success: true, 
         list: banks, 
-        total: pager?.Total || data.length,
+        total,
         page,
         pageSize
       } as any;
@@ -780,25 +658,25 @@ export const questionBankService = {
   // 获取题库详情
   async getDetail(bankId: string): Promise<ApiResponse<QuestionBank>> {
     try {
-      const { data } = await getDb().collection('questionBanks').doc(bankId).get();
+      const result = await adminService.get('questionBanks', bankId);
+      const data = extractSingle(result) as RawBank;
       if (!data) {
         return { success: false, message: '题库不存在' };
       }
       
-      const bank = data as RawBank;
       const questionBank: QuestionBank = {
-        _id: bank._id,
-        name: bank.name || bank.title || '未命名题库',
-        description: bank.description || '',
-        category: bank.category || '综合',
-        level: bank.level || bank.difficulty || '中级',
-        courseIds: bank.courseIds || [],
-        questionCount: bank.questionCount || 0,
-        passingScore: bank.passingScore || 60,
-        timeLimit: bank.timeLimit || 60,
-        status: bank.status === 'active' ? 'active' : 'inactive',
-        createdAt: bank.createdAt || new Date().toISOString(),
-        updatedAt: bank.updatedAt || new Date().toISOString()
+        _id: data._id,
+        name: data.name || data.title || '未命名题库',
+        description: data.description || '',
+        category: data.category || '综合',
+        level: data.level || data.difficulty || '中级',
+        courseIds: data.courseIds || [],
+        questionCount: data.questionCount || 0,
+        passingScore: data.passingScore || 60,
+        timeLimit: data.timeLimit || 60,
+        status: data.status === 'active' ? 'active' : 'inactive',
+        createdAt: data.createdAt || new Date().toISOString(),
+        updatedAt: data.updatedAt || new Date().toISOString()
       };
       
       return { success: true, data: questionBank };
@@ -811,23 +689,22 @@ export const questionBankService = {
   // 获取题库题目
   async getQuestions(bankId: string, params?: { difficulty?: string; type?: string; limit?: number }): Promise<ApiResponse<BankQuestion[]>> {
     try {
-      let query = getDb().collection('questions');
-      
+      const query: any = {};
       if (bankId && bankId !== 'all') {
-        query = query.where({ bankId });
+        query.bankId = bankId;
       }
-      
       if (params?.difficulty) {
-        query = query.where({ difficulty: params.difficulty });
+        query.difficulty = params.difficulty;
       }
       if (params?.type) {
-        query = query.where({ type: params.type });
+        query.type = params.type;
       }
       
-      const { data } = await query.get();
+      const result = await adminService.list('questions', query, { limit: 500 });
+      const data = extractList(result) as RawQuestion[];
       
       // @ts-ignore
-      let questions: BankQuestion[] = (data as RawQuestion[]).map((q, index) => ({
+      let questions: BankQuestion[] = data.map((q, index) => ({
         _id: q._id,
         bankId: q.bankId || bankId,
         type: q.type === 'single' ? 'single' : q.type === 'multiple' ? 'multiple' : q.type === 'judgment' ? 'judge' : q.type === 'judge' ? 'judge' : 'essay',
@@ -868,10 +745,10 @@ export const questionBankService = {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      const result = await getDb().collection('questionBanks').add(newBank);
+      const result = await adminService.add('questionBanks', newBank);
       return { 
         success: true, 
-        data: { ...newBank, _id: result.id } as QuestionBank,
+        data: { ...newBank, _id: result.data?.id || '' } as QuestionBank,
         message: '题库创建成功'
       };
     } catch (error) {
@@ -883,7 +760,7 @@ export const questionBankService = {
   // 更新题库
   async update(bankId: string, bankData: Partial<QuestionBank>): Promise<ApiResponse<QuestionBank>> {
     try {
-      const updateData = {
+      const updateData: any = {
         name: bankData.name,
         description: bankData.description,
         category: bankData.category,
@@ -892,7 +769,7 @@ export const questionBankService = {
         status: bankData.status,
         updatedAt: new Date().toISOString()
       };
-      await getDb().collection('questionBanks').doc(bankId).update(updateData);
+      await adminService.update('questionBanks', bankId, updateData);
       return { 
         success: true, 
         data: { ...bankData, _id: bankId } as QuestionBank,
@@ -908,12 +785,13 @@ export const questionBankService = {
   async delete(bankId: string): Promise<ApiResponse<void>> {
     try {
       // 删除题库下的所有题目
-      const { data: questions } = await getDb().collection('questions').where({ bankId }).get();
+      const qResult = await adminService.list('questions', { bankId }, { limit: 500 });
+      const questions = extractList(qResult);
       for (const q of questions) {
-        await getDb().collection('questions').doc(q._id).remove();
+        await adminService.delete('questions', q._id);
       }
       // 删除题库
-      await getDb().collection('questionBanks').doc(bankId).remove();
+      await adminService.delete('questionBanks', bankId);
       return { success: true, message: '删除成功' };
     } catch (error) {
       console.error('删除题库失败:', error);
@@ -929,14 +807,15 @@ export const questionBankService = {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      const result = await getDb().collection('questions').add(newQuestion);
+      const result = await adminService.add('questions', newQuestion);
       
       // 更新题库的题目数量
       if (questionData.bankId) {
         try {
-          const { data: bank } = await getDb().collection('questionBanks').doc(questionData.bankId).get();
+          const bankResult = await adminService.get('questionBanks', questionData.bankId);
+          const bank = extractSingle(bankResult);
           if (bank) {
-            await getDb().collection('questionBanks').doc(questionData.bankId).update({
+            await adminService.update('questionBanks', questionData.bankId, {
               questionCount: (bank.questionCount || 0) + 1,
               updatedAt: new Date().toISOString()
             });
@@ -948,7 +827,7 @@ export const questionBankService = {
       
       return {
         success: true,
-        data: { ...newQuestion, _id: result.id } as BankQuestion,
+        data: { ...newQuestion, _id: result.data?.id || '' } as BankQuestion,
         message: '题目创建成功'
       };
     } catch (error) {
@@ -960,7 +839,7 @@ export const questionBankService = {
   // 更新题目
   async updateQuestion(questionId: string, questionData: Partial<BankQuestion>): Promise<ApiResponse<BankQuestion>> {
     try {
-      await getDb().collection('questions').doc(questionId).update({
+      await adminService.update('questions', questionId, {
         ...questionData,
         updatedAt: new Date().toISOString()
       });
@@ -978,13 +857,14 @@ export const questionBankService = {
   // 删除题目
   async deleteQuestion(questionId: string, bankId: string): Promise<ApiResponse<void>> {
     try {
-      await getDb().collection('questions').doc(questionId).remove();
+      await adminService.delete('questions', questionId);
       
       // 更新题库题目数量
       try {
-        const { data: bank } = await getDb().collection('questionBanks').doc(bankId).get();
+        const bankResult = await adminService.get('questionBanks', bankId);
+        const bank = extractSingle(bankResult);
         if (bank && bank.questionCount > 0) {
-          await getDb().collection('questionBanks').doc(bankId).update({
+          await adminService.update('questionBanks', bankId, {
             questionCount: bank.questionCount - 1,
             updatedAt: new Date().toISOString()
           });
@@ -1003,10 +883,8 @@ export const questionBankService = {
   // 开始练习
   async startPractice(bankId: string, mode: 'sequential' | 'random' | 'wrong' | 'favorites', questionCount: number): Promise<ApiResponse<{ practiceId: string; questions: BankQuestion[] }>> {
     try {
-      const query = getDb().collection('questions').where({ bankId });
-      
-      const { data } = await query.get();
-      let questions = data as BankQuestion[];
+      const result = await adminService.list('questions', { bankId }, { limit: 500 });
+      let questions = extractList(result) as BankQuestion[];
       
       if (mode === 'random') {
         questions = questions.sort(() => Math.random() - 0.5);
@@ -1028,9 +906,9 @@ export const questionBankService = {
   },
 
   // 提交练习
-  async submitPractice(practiceId: string, answers: { questionId: string; answer: string | string[]; isFavorite: boolean }[], userId?: string): Promise<ApiResponse<PracticeRecord>> {
+  async submitPractice(_practiceId: string, answers: { questionId: string; answer: string | string[]; isFavorite: boolean }[], userId?: string): Promise<ApiResponse<PracticeRecord>> {
     try {
-      // 获取当前用户
+      // 获取当前用户（认证操作保留 SDK）
       let currentUser: any = null;
       try {
         const authModule = await import('./authService');
@@ -1041,9 +919,12 @@ export const questionBankService = {
       const finalUserId = userId || currentUser?.uid || currentUser?._openid || 'anonymous';
       
       const questionIds = answers.map(a => a.questionId);
-      const { data: questionsData } = await getDb().collection('questions').where({
-        _id: getDb().command.in(questionIds)
-      }).get();
+      
+      // 使用 $in 查询题目
+      const qResult = await adminService.listWithOps('questions', {
+        _id: { '$in': questionIds }
+      }, { limit: 500 });
+      const questionsData = extractList(qResult);
       
       const questionsMap = new Map(questionsData.map((q: any) => [q._id, q]));
       
@@ -1085,7 +966,8 @@ export const questionBankService = {
       const bankId = questionsData[0]?.bankId || '';
       let bankName = '';
       if (bankId) {
-        const { data: bankData } = await getDb().collection('questionBanks').doc(bankId).get();
+        const bankResult = await adminService.get('questionBanks', bankId);
+        const bankData = extractSingle(bankResult);
         bankName = bankData?.title || '';
       }
       
@@ -1104,11 +986,12 @@ export const questionBankService = {
         createdAt: new Date().toISOString()
       };
       
-      const result = await getDb().collection('practiceRecords').add(record);
+      const result = await adminService.add('practiceRecords', record);
       
+      // 保存错题
       const wrongAnswers = scoredAnswers.filter(a => !a.isCorrect);
       for (const wrong of wrongAnswers) {
-        await getDb().collection('wrongQuestions').add({
+        await adminService.add('wrongQuestions', {
           userId: finalUserId,
           questionId: wrong.questionId,
           question: wrong.question,
@@ -1121,7 +1004,7 @@ export const questionBankService = {
         });
       }
       
-      return { success: true, data: { _id: result.id, ...record } as PracticeRecord };
+      return { success: true, data: { _id: result.data?.id || '', ...record } as PracticeRecord };
     } catch (error) {
       console.error('提交练习失败:', error);
       return { success: false, message: '提交练习失败' };
@@ -1131,10 +1014,11 @@ export const questionBankService = {
   // 获取练习记录
   async getPracticeRecords(userId: string): Promise<ApiResponse<PracticeRecord[]>> {
     try {
-      const { data } = await getDb().collection('practiceRecords').where({ userId }).get();
+      const result = await adminService.list('practiceRecords', { userId }, { orderBy: 'endTime', order: 'desc', limit: 200 });
+      const data = extractList(result) as PracticeRecord[];
       return { 
         success: true, 
-        data: (data as PracticeRecord[]).sort((a, b) => 
+        data: data.sort((a, b) => 
           new Date(b.endTime).getTime() - new Date(a.endTime).getTime()
         ) 
       };
@@ -1147,10 +1031,11 @@ export const questionBankService = {
   // 获取错题本
   async getWrongQuestions(userId: string): Promise<ApiResponse<WrongQuestion[]>> {
     try {
-      const { data } = await getDb().collection('wrongQuestions').where({ userId }).get();
+      const result = await adminService.list('wrongQuestions', { userId }, { orderBy: 'lastWrongTime', order: 'desc', limit: 500 });
+      const data = extractList(result) as WrongQuestion[];
       return {
         success: true,
-        data: (data as WrongQuestion[]).sort((a, b) =>
+        data: data.sort((a, b) =>
           new Date(b.lastWrongTime).getTime() - new Date(a.lastWrongTime).getTime()
         )
       };
@@ -1163,7 +1048,7 @@ export const questionBankService = {
   // 删除错题
   async deleteWrongQuestion(wrongId: string): Promise<ApiResponse<void>> {
     try {
-      await getDb().collection('wrongQuestions').doc(wrongId).remove();
+      await adminService.delete('wrongQuestions', wrongId);
       return { success: true };
     } catch (error) {
       console.error('删除错题失败:', error);
@@ -1174,7 +1059,7 @@ export const questionBankService = {
   // 收藏/取消收藏题目
   async toggleFavorite(questionId: string, isFavorite: boolean, userId?: string): Promise<ApiResponse<void>> {
     try {
-      // 获取当前用户
+      // 获取当前用户（认证操作保留 SDK）
       let currentUser: any = null;
       try {
         const authModule = await import('./authService');
@@ -1185,15 +1070,16 @@ export const questionBankService = {
       const finalUserId = userId || currentUser?.uid || currentUser?._openid || 'anonymous';
       
       if (isFavorite) {
-        await getDb().collection('favoriteQuestions').add({
+        await adminService.add('favoriteQuestions', {
           userId: finalUserId,
           questionId,
           createdAt: new Date().toISOString()
         });
       } else {
-        const { data } = await getDb().collection('favoriteQuestions').where({ userId: finalUserId, questionId }).get();
+        const result = await adminService.list('favoriteQuestions', { userId: finalUserId, questionId });
+        const data = extractList(result);
         if (data && data.length > 0) {
-          await getDb().collection('favoriteQuestions').doc(data[0]._id).remove();
+          await adminService.delete('favoriteQuestions', data[0]._id);
         }
       }
       return { success: true };
@@ -1206,7 +1092,8 @@ export const questionBankService = {
   // 获取收藏列表
   async getFavorites(userId: string): Promise<ApiResponse<FavoriteQuestion[]>> {
     try {
-      const { data } = await getDb().collection('favoriteQuestions').where({ userId }).get();
+      const result = await adminService.list('favoriteQuestions', { userId }, { limit: 500 });
+      const data = extractList(result);
       return { success: true, data: data as FavoriteQuestion[] };
     } catch (error) {
       console.error('获取收藏列表失败:', error);
