@@ -10,15 +10,15 @@
  * - TENCENT_SMS_SIGN_NAME: 短信签名
  */
 
-const cloud = require('tcb-admin-node');
+const cloudbase = require('@cloudbase/node-sdk');
 const tencentcloud = require('tencentcloud-sdk-nodejs');
 
 // 初始化云开发
-cloud.init({
-  env: cloud.SYMBOL_CURRENT_ENV,
+const app = cloudbase.init({
+  env: 'rcwljy-5ghmq2ex26764978',
 });
 
-const db = cloud.database();
+const db = app.database();
 const _ = db.command;
 const $ = db.command.aggregate;
 

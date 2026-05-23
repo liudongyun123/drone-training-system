@@ -10,21 +10,13 @@
  * - 所有数据都包含 sourceId 和 categoryId 字段
  */
 
-let cloud
-let isWxEnv = false
+const cloudbase = require('@cloudbase/node-sdk')
 
-try {
-  cloud = require('wx-server-sdk')
-  isWxEnv = true
-} catch (e) {
-  cloud = require('tcb-admin-node')
-}
-
-cloud.init({
-  env: isWxEnv ? cloud.DYNAMIC_CURRENT_ENV : cloud.SYMBOL_CURRENT_ENV
+const app = cloudbase.init({
+  env: 'rcwljy-5ghmq2ex26764978'
 })
 
-const db = cloud.database()
+const db = app.database()
 const _ = db.command
 
 // ============================================

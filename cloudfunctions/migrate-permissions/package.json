@@ -4,6 +4,9 @@
   "description": "迁移已支付订单到 course_permissions",
   "main": "index.js",
   "dependencies": {
-    "tcb-admin-node": "^1.23.0"
+    "@cloudbase/node-sdk": "latest"
+  },
+  "engines": {
+    "node": "18"
   }
 }

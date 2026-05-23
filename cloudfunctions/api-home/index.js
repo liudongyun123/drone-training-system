@@ -11,22 +11,9 @@
  * - 无配置时降级到默认排序
  */
 
-// 动态选择 SDK
-let cloud
-let isWxEnv = false
-
-try {
-  cloud = require('wx-server-sdk')
-  isWxEnv = true
-} catch (e) {
-  cloud = require('tcb-admin-node')
-}
-
-cloud.init({
-  env: isWxEnv ? cloud.DYNAMIC_CURRENT_ENV : cloud.SYMBOL_CURRENT_ENV
-})
-
-const db = cloud.database()
+const cloudbase = require('@cloudbase/node-sdk')
+const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const db = app.database()
 const _ = db.command
 
 // ========== CORS ==========

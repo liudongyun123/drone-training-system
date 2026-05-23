@@ -3,14 +3,14 @@
  * 支持：课程列表、详情、章节、搜索、收藏等
  */
 
-const cloud = require('tcb-admin-node');
+const cloudbase = require('@cloudbase/node-sdk');
 
 // 初始化云开发
-cloud.init({
-  env: cloud.SYMBOL_CURRENT_ENV,
+const app = cloudbase.init({
+  env: 'rcwljy-5ghmq2ex26764978',
 });
 
-const db = cloud.database();
+const db = app.database();
 const _ = db.command;
 const $ = db.command.aggregate;
 

@@ -5,18 +5,10 @@
  */
 
 const crypto = require('crypto')
-let cloud
-let db
-
-try {
-  cloud = require('wx-server-sdk')
-  cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
-  db = cloud.database()
-} catch (e) {
-  cloud = require('tcb-admin-node')
-  cloud.init({ env: cloud.SYMBOL_CURRENT_ENV })
-  db = cloud.database()
-}
+const cloudbase = require('@cloudbase/node-sdk')
+const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const db = app.database()
+const _ = db.command
 
 // CORS 响应头
 const corsHeaders = {

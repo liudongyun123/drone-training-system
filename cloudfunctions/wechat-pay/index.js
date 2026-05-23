@@ -6,9 +6,9 @@
  */
 
 const crypto = require('crypto')
-const tcb = require('tcb-admin-node')
+const cloudbase = require('@cloudbase/node-sdk')
 
-const app = tcb.init()
+const app = cloudbase.init()
 const db = app.database()
 
 // ========== 支付配置（★ 需要在云函数环境变量中配置） ==========

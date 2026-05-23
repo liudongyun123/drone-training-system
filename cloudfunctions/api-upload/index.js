@@ -3,9 +3,9 @@
  * 处理文件上传到 CloudBase 云存储
  */
 
-const tcb = require('tcb-admin-node');
+const cloudbase = require('@cloudbase/node-sdk');
 
-const app = tcb.init({
+const app = cloudbase.init({
   env: 'rcwljy-5ghmq2ex26764978'
 });
 

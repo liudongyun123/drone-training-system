@@ -3,13 +3,9 @@
  * 绕过客户端权限限制，以管理员权限保存考试记录
  */
 
-const cloud = require('wx-server-sdk');
-
-cloud.init({
-  env: cloud.DYNAMIC_CURRENT_ENV
-});
-
-const db = cloud.database();
+const cloudbase = require('@cloudbase/node-sdk')
+const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const db = app.database()
 const _ = db.command;
 
 /**

@@ -4,6 +4,9 @@
   "description": "数据库操作云函数（支持 getTempFileURL）",
   "main": "index.js",
   "dependencies": {
-    "tcb-admin-node": "latest"
+    "@cloudbase/node-sdk": "latest"
+  },
+  "engines": {
+    "node": "18"
   }
 }

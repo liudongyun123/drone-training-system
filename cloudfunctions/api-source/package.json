@@ -8,7 +8,9 @@
     "upload": "tcb fn deploy api-source --force"
   },
   "dependencies": {
-    "wx-server-sdk": "^2.6.3",
-    "tcb-admin-node": "^1.3.4"
+    "@cloudbase/node-sdk": "latest"
+  },
+  "engines": {
+    "node": "18"
   }
 }

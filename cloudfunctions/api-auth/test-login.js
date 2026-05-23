@@ -1,6 +1,6 @@
-const cloud = require('tcb-admin-node')
-cloud.init({ env: 'rcwljy-5ghmq2ex26764978' })
-const db = cloud.database()
+const cloudbase = require('@cloudbase/node-sdk')
+const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const db = app.database()
 
 exports.main = async (event) => {
   const results = []

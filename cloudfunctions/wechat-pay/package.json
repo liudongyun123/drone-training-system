@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "微信支付云函数 - Native Pay + H5",
   "main": "index.js",
-  "dependencies": {},
+  "dependencies": {
+    "@cloudbase/node-sdk": "latest"
+  },
   "engines": {
-    "node": ">=18"
+    "node": "18"
   }
 }

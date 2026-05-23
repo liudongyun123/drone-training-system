@@ -4,6 +4,9 @@
   "description": "数据重新初始化 - 使用统一ID格式",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "~2.6.3"
+    "@cloudbase/node-sdk": "latest"
+  },
+  "engines": {
+    "node": "18"
   }
 }

@@ -3,8 +3,14 @@
   "version": "1.0.0",
   "description": "数据库优化脚本",
   "main": "index.js",
-  "keywords": ["cloudbase", "database"],
+  "keywords": [
+    "cloudbase",
+    "database"
+  ],
   "dependencies": {
-    "wx-server-sdk": "~2.6.3"
+    "@cloudbase/node-sdk": "latest"
+  },
+  "engines": {
+    "node": "18"
   }
 }

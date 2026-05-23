@@ -7,8 +7,8 @@
  * 云函数名：migrate-permissions
  */
 
-const tcb = require('tcb-admin-node')
-const app = tcb.init()
+const cloudbase = require('@cloudbase/node-sdk')
+const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
 const db = app.database()
 const _ = db.command
 

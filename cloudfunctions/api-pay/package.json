@@ -4,7 +4,9 @@
   "description": "微信支付服务 - 统一下单、回调处理、状态查询",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "latest",
-    "tcb-admin-node": "latest"
+    "@cloudbase/node-sdk": "latest"
+  },
+  "engines": {
+    "node": "18"
   }
 }

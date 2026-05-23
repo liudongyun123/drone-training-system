@@ -5,7 +5,9 @@
   "main": "index.js",
   "dependencies": {
     "@cloudbase/framework-plugin-function": "^1.9.7",
-    "tcb-admin-node": "latest",
-    "wx-server-sdk": "latest"
+    "@cloudbase/node-sdk": "latest"
+  },
+  "engines": {
+    "node": "18"
   }
 }

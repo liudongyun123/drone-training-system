@@ -7,13 +7,13 @@
  * 3. 创建索引优化查询性能
  */
 
-const cloud = require('wx-server-sdk')
+const cloudbase = require('@cloudbase/node-sdk')
 
-cloud.init({
-  env: cloud.DYNAMIC_CURRENT_ENV
+const app = cloudbase.init({
+  env: 'rcwljy-5ghmq2ex26764978'
 })
 
-const db = cloud.database()
+const db = app.database()
 
 // ============================================
 // 配置：集合定义

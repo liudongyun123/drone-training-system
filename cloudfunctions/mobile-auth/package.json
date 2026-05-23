@@ -7,7 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "tcb-admin-node": "^1.3.5",
-    "wx-server-sdk": "latest"
+    "@cloudbase/node-sdk": "latest",
+    "tencentcloud-sdk-nodejs": "latest"
+  },
+  "engines": {
+    "node": "18"
   }
 }

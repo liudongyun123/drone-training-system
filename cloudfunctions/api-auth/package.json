@@ -4,7 +4,9 @@
   "description": "统一认证服务 - 支持小程序/Web/H5",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "latest",
-    "tcb-admin-node": "latest"
+    "@cloudbase/node-sdk": "latest"
+  },
+  "engines": {
+    "node": "18"
   }
 }

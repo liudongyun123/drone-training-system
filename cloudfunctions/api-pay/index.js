@@ -10,17 +10,10 @@
  *   WX_MCH_ID / WX_API_KEY / WX_NOTIFY_URL  — 商户配置
  */
 
-// 动态选择 SDK（兼容小程序 & Web/H5）
-let cloud
-let isWxEnv = false
-try {
-  cloud = require('wx-server-sdk')
-  isWxEnv = true
-} catch (_) {
-  cloud = require('tcb-admin-node')
-}
-cloud.init({
-  env: isWxEnv ? cloud.DYNAMIC_CURRENT_ENV : cloud.SYMBOL_CURRENT_ENV
+const cloudbase = require('@cloudbase/node-sdk')
+
+const app = cloudbase.init({
+  env: 'rcwljy-5ghmq2ex26764978'
 })
 
 const db = cloud.database()

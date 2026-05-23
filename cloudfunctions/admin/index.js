@@ -12,14 +12,8 @@
  * 8. 正确的 CORS 跨域处理
  */
 
-const tcb = require('tcb-admin-node')
-const Router = require('./router')
-const AuditLogger = require('./lib/audit')
-const ApiResponse = require('./lib/response')
-const { Permission, ROLES } = require('./lib/permission')
-
-// 初始化 CloudBase
-const app = tcb.init()
+const cloudbase = require('@cloudbase/node-sdk')
+const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
 const db = app.database()
 const _ = db.command
 

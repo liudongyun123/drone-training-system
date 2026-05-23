@@ -1,7 +1,6 @@
-const cloud = require('wx-server-sdk')
+const cloudbase = require('@cloudbase/node-sdk')
+const cloud = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
 const https = require('https')
-
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const APPID = 'wx25aaf895ab86181a'
 const SECRET = '4836700e9a4212516aed373393a38248'

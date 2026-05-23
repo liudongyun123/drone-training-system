@@ -4,7 +4,9 @@
   "description": "培训服务 - 班级/报名/排课/考勤",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "latest",
-    "tcb-admin-node": "latest"
+    "@cloudbase/node-sdk": "latest"
+  },
+  "engines": {
+    "node": "18"
   }
 }

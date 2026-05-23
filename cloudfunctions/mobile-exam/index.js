@@ -3,13 +3,9 @@
  * 使用 tcb-admin-node SDK
  */
 
-const tcb = require('tcb-admin-node');
-
-tcb.init({
-  env: tcb.DYNAMIC_CURRENT_ENV,
-});
-
-const db = tcb.database();
+const cloudbase = require('@cloudbase/node-sdk')
+const app = cloudbase.init({ env: 'rcwljy-5ghmq2ex26764978' })
+const db = app.database()
 const _ = db.command;
 
 // ========================================
