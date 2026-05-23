@@ -1067,18 +1067,29 @@ export default function PageConfigManagement() {
         data: { sourceId, items: courseConfigs }
       };
 
+      console.log('[Save] 课程保存开始, sourceId:', sourceId, 'items数量:', courseConfigs.length);
+      
       // 查询所有 courses 配置，客户端按 sourceId 过滤
       const result = await adminService.list('page_configs', { section: 'courses' }, { limit: 50 });
+      console.log('[Save] 课程list结果:', JSON.stringify({ code: result.code, dataListLen: result.data?.list?.length, total: result.data?.total }));
+      result.data?.list?.forEach((item: any, i: number) => {
+        console.log(`[Save] 已有课程配置[${i}]: _id=${item._id}, data.sourceId=${item.data?.sourceId}`);
+      });
+      
       const existingConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
       if (existingConfig) {
-        await adminService.update('page_configs', existingConfig._id, saveData);
+        console.log('[Save] 找到已有课程配置, _id:', existingConfig._id, ', 执行update');
+        const updateResult = await adminService.update('page_configs', existingConfig._id, saveData);
+        console.log('[Save] 课程update结果:', JSON.stringify(updateResult));
       } else {
-        await adminService.add('page_configs', saveData);
+        console.log('[Save] 未找到已有课程配置, 执行add');
+        const addResult = await adminService.add('page_configs', saveData);
+        console.log('[Save] 课程add结果:', JSON.stringify(addResult));
       }
       alert('保存成功');
     } catch (error) {
-      console.error('保存课程配置失败:', error);
-      alert('保存失败');
+      console.error('[Save] 保存课程配置失败:', error);
+      alert('保存失败: ' + (error as Error).message);
     }
   };
 
@@ -1161,18 +1172,29 @@ export default function PageConfigManagement() {
         data: { sourceId, items: classConfigs }
       };
 
+      console.log('[Save] 培训班保存开始, sourceId:', sourceId, 'items数量:', classConfigs.length);
+      
       // 查询所有 classes 配置，客户端按 sourceId 过滤
       const result = await adminService.list('page_configs', { section: 'classes' }, { limit: 50 });
+      console.log('[Save] 培训班list结果:', JSON.stringify({ code: result.code, dataListLen: result.data?.list?.length, total: result.data?.total }));
+      result.data?.list?.forEach((item: any, i: number) => {
+        console.log(`[Save] 已有培训班配置[${i}]: _id=${item._id}, data.sourceId=${item.data?.sourceId}`);
+      });
+      
       const existingConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
       if (existingConfig) {
-        await adminService.update('page_configs', existingConfig._id, saveData);
+        console.log('[Save] 找到已有培训班配置, _id:', existingConfig._id, ', 执行update');
+        const updateResult = await adminService.update('page_configs', existingConfig._id, saveData);
+        console.log('[Save] 培训班update结果:', JSON.stringify(updateResult));
       } else {
-        await adminService.add('page_configs', saveData);
+        console.log('[Save] 未找到已有培训班配置, 执行add');
+        const addResult = await adminService.add('page_configs', saveData);
+        console.log('[Save] 培训班add结果:', JSON.stringify(addResult));
       }
       alert('保存成功');
     } catch (error) {
-      console.error('保存培训班配置失败:', error);
-      alert('保存失败');
+      console.error('[Save] 保存培训班配置失败:', error);
+      alert('保存失败: ' + (error as Error).message);
     }
   };
 
@@ -1248,19 +1270,30 @@ export default function PageConfigManagement() {
         order: 2,
         data: { sourceId, items: learningPathConfigs }
       };
+      console.log('[Save] 学习路径保存开始, sourceId:', sourceId, 'items数量:', learningPathConfigs.length);
+      console.log('[Save] 第一个item:', JSON.stringify(learningPathConfigs[0]));
 
       // 查询所有 learningPaths 配置，客户端按 sourceId 过滤
       const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 50 });
+      console.log('[Save] list结果:', JSON.stringify({ code: result.code, dataListLen: result.data?.list?.length, total: result.data?.total }));
+      result.data?.list?.forEach((item: any, i: number) => {
+        console.log(`[Save] 已有配置[${i}]: _id=${item._id}, data.sourceId=${item.data?.sourceId}`);
+      });
+      
       const existingConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceId);
       if (existingConfig) {
-        await adminService.update('page_configs', existingConfig._id, saveData);
+        console.log('[Save] 找到已有配置, _id:', existingConfig._id, ', 执行update');
+        const updateResult = await adminService.update('page_configs', existingConfig._id, saveData);
+        console.log('[Save] update结果:', JSON.stringify(updateResult));
       } else {
-        await adminService.add('page_configs', saveData);
+        console.log('[Save] 未找到已有配置, 执行add');
+        const addResult = await adminService.add('page_configs', saveData);
+        console.log('[Save] add结果:', JSON.stringify(addResult));
       }
       alert('保存成功');
     } catch (error) {
-      console.error('保存学习路径配置失败:', error);
-      alert('保存失败');
+      console.error('[Save] 保存学习路径配置失败:', error);
+      alert('保存失败: ' + (error as Error).message);
     }
   };
 
