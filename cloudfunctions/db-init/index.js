@@ -137,8 +137,11 @@ exports.main = async (event, context) => {
         delete insertData._id;
         delete insertData._openid;
         
-        const addResult = await db.collection(collection).add({ data: insertData });
-        result = { code: 0, data: { id: addResult._id }, message: '添加成功' };
+        // 服务端 SDK (tcb-admin-node) 直接传入文档对象，不需要 { data: ... } 包装
+        const addResult = await db.collection(collection).add(insertData);
+        // 服务端 add 返回的 id 字段名可能是 id 或 _id
+        const newId = addResult.id || addResult._id || '';
+        result = { code: 0, data: { id: newId }, message: '添加成功' };
         break;
       }
         

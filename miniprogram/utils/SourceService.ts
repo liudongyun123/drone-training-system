@@ -621,8 +621,8 @@ export const SourceService = {
     const cacheKey = cacheKeys.pageConfig(sourceId, section)
     const cached = sourceCache.get<PageConfig>(cacheKey)
     if (cached) {
-      // 验证缓存数据的 sourceId 是否匹配
-      if (cached.data?.sourceId === sourceId) {
+      // 验证缓存数据的 sourceId 是否匹配（兼容 code 和 _id）
+      if (cached.data?.sourceId === sourceId || cached.data?.sourceId === this.getCurrentSource()) {
         return cached
       }
       // 缓存不匹配，清除
@@ -640,19 +640,18 @@ export const SourceService = {
         return null
       }
       
-      // 在代码层面精确过滤 sourceId
-      // 支持两种数据格式：
-      // 1. 每个体系独立文档：config.data.sourceId === sourceId
-      // 2. 所有体系在一个文档：config.data.items 中包含 sourceId/sourceCode
+      // 在代码层面精确过滤 sourceId（兼容 code 和 _id 两种格式）
+      // sourceId 字段实际存储的是 code（如 "CAAC"/"RENSHE"），但旧数据可能存储 _id
+      const currentSource = this.getCurrentSource()
       const matchedConfig = (result.data as PageConfig[]).find((config: any) => {
-        // 检查顶层 sourceId（格式1）
-        if (config.data && config.data.sourceId === sourceId) {
+        // 检查顶层 sourceId（格式1：每个体系独立文档）
+        if (config.data && (config.data.sourceId === currentSource || config.data.sourceId === sourceId)) {
           return true
         }
-        // 检查 items 中的 sourceId（格式2）
+        // 检查 items 中的 sourceId（格式2：所有体系在一个文档）
         if (config.data && config.data.items) {
           return config.data.items.some((item: any) => 
-            item.sourceId === sourceId || item.sourceCode === sourceId
+            item.sourceId === sourceId || item.sourceCode === sourceId || item.sourceId === currentSource
           )
         }
         return false
@@ -901,9 +900,10 @@ export const SourceService = {
         limit: 100
       })
       
-      // 2. 在代码层面过滤 sourceId
+      // 2. 在代码层面过滤 sourceId（兼容 code 和 _id）
+      const currentSource = this.getCurrentSource()
       const existing = allConfigs.data?.find((config: any) => {
-        return config.data && config.data.sourceId === sourceId
+        return config.data && (config.data.sourceId === currentSource || config.data.sourceId === sourceId)
       })
       
       const now = new Date().toISOString()

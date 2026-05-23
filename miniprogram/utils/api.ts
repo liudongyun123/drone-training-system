@@ -283,6 +283,7 @@ export const systemConfigApi = {
 
   // 从统一的 page_configs 集合获取指定体系配置（先按 section 查询，再在代码层面过滤 sourceId）
   // 注意：CloudBase SDK 不支持点号嵌套字段查询，改为先查询所有该 section 配置，然后在代码层面过滤
+  // sourceId 字段实际存储的是 code（如 "CAAC"/"RENSHE"），兼容旧数据中的 _id 值
   async getPageConfigBySourceId(section: string, sourceId: string) {
     try {
       const result = await dbGetList('page_configs', { 
@@ -290,10 +291,12 @@ export const systemConfigApi = {
         limit: 100
       })
       
-      // 在代码层面过滤 sourceId
+      // 在代码层面过滤 sourceId，兼容 code 和 _id 两种格式
       if (result.data && result.data.length > 0) {
+        // 获取当前体系的 code（从 storage 中读取）
+        const currentSource = wx.getStorageSync('currentSource') || ''
         const matchedConfig = result.data.find((config: any) => {
-          return config.data && config.data.sourceId === sourceId
+          return config.data && (config.data.sourceId === currentSource || config.data.sourceId === sourceId)
         })
         return matchedConfig || null
       }
