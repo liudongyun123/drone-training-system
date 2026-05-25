@@ -239,7 +239,7 @@ const adminRoutes = [
   { path: '/admin/users', element: <Navigate to="/admin/members" replace /> }, // 旧用户管理 → 新成员管理
   { path: '/admin/attendance', element: adminRoute(() => <Navigate to="/admin/class-schedules" replace />) }, // 旧出勤管理 → 新排课管理
   { path: '/admin/schedules', element: adminRoute(() => <Navigate to="/admin/class-schedules" replace />) }, // 旧排课管理 → 新排课管理
-  { path: '/admin/finance', element: adminRoute(() => <Navigate to="/admin/orders" replace />) }, // 旧财务管理 → 新订单财务
+  { path: '/admin/finance', element: adminRoute(AdminFinance) }, // 财务统计
   { path: '/admin/question-banks', element: adminRoute(() => <Navigate to="/admin/exams" replace />) }, // 旧题库管理 → 新考试题库
   { path: '/admin/offline-enrollment', element: adminRoute(() => <Navigate to="/admin/class-orders" replace />) }, // 线下报名 → 培训班订单
   { path: '/admin/banners', element: adminRoute(() => <Navigate to="/admin/page-config" replace />) }, // 旧轮播图 → 新内容配置

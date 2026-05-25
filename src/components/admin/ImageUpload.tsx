@@ -30,10 +30,7 @@ export default function ImageUpload({
       const { app, ensureInit } = await import('../../utils/cloudbase')
       const cloudPath = `course-covers/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
       
-      // ★ 关键修复：必须先确保 SDK 初始化完成
       await ensureInit()
-      
-      // 确保用户已登录
       await app.auth().getLoginState()
       
       const uploadResult = await app.uploadFile({
@@ -45,7 +42,6 @@ export default function ImageUpload({
         }
       })
       
-      // 获取永久链接
       const getUrlResult = await app.getTempFileURL({
         fileList: [uploadResult.fileID]
       })
@@ -54,9 +50,50 @@ export default function ImageUpload({
         return getUrlResult.fileList[0].tempFileURL || getUrlResult.fileList[0].download_url
       }
       return null
-    } catch (err: any) {
-      console.error('上传失败:', err)
-      throw new Error(err?.message || '上传失败，请重试')
+    } catch (sdkError: any) {
+      console.warn('[ImageUpload] SDK 直传失败，回退到云函数中转:', sdkError?.message)
+      
+      // 回退：通过 api-upload 云函数 base64 中转上传
+      try {
+        const { API_BASE_URL } = await import('../../config/api')
+        const axios = (await import('axios')).default
+        
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => {
+            const result = reader.result as string
+            resolve(result.split(',')[1])
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+        
+        const uploadPath = `course-covers/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
+        setUploadProgress(50)
+        
+        const response = await axios.post(`${API_BASE_URL}/api-upload`, {
+          action: 'uploadImage',
+          fileContent: base64,
+          cloudPath: uploadPath,
+          fileName: file.name,
+          contentType: file.type,
+        }, {
+          timeout: 60000,
+          headers: { 'Content-Type': 'application/json' },
+        })
+        
+        setUploadProgress(90)
+        
+        const data = response.data
+        if (data?.code === 0 && data?.data?.fileID) {
+          setUploadProgress(100)
+          return data.data.fileUrl || data.data.fileID
+        }
+        throw new Error(data?.error || '云函数上传失败')
+      } catch (cfError: any) {
+        console.error('[ImageUpload] 云函数中转也失败:', cfError)
+        throw new Error(cfError?.message || '上传失败，请重试')
+      }
     }
   }
 

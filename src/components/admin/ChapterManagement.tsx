@@ -92,6 +92,8 @@ export default function ChapterManagement() {
   const [uploadingVideo, setUploadingVideo] = useState(false)
   const [videoProgress, setVideoProgress] = useState(0)
   const [videoDragActive, setVideoDragActive] = useState(false)
+  const [videoInputMode, setVideoInputMode] = useState<'upload' | 'url'>('upload')
+  const [videoUrlInput, setVideoUrlInput] = useState('')
 
   // 批量选择
   const [selectedChapters, setSelectedChapters] = useState<string[]>([])
@@ -232,11 +234,36 @@ export default function ChapterManagement() {
     }
 
     try {
+      // 构建保存数据，确保所有字段正确传递
+      const saveData: Record<string, any> = {
+        courseId: chapterForm.courseId || selectedCourse,
+        title: chapterForm.title,
+        description: chapterForm.description,
+        content: chapterForm.content,
+        order: chapterForm.order,
+        isPreview: chapterForm.isPreview,
+        questionBankId: chapterForm.questionBankId || '',
+      }
+
+      // 视频 URL
+      if (chapterForm.videoUrl) {
+        saveData.videoUrl = chapterForm.videoUrl
+      } else {
+        saveData.videoUrl = ''
+      }
+
+      // PDF 文件信息
+      if (chapterForm.pdfFile?.fileID) {
+        saveData.pdfFile = chapterForm.pdfFile
+      } else {
+        saveData.pdfFile = null
+      }
+
       if (selectedChapter) {
-        await CloudChapterAdminService.update(selectedChapter.id, chapterForm)
+        await CloudChapterAdminService.update(selectedChapter.id, saveData)
         setSnackbar({ open: true, message: '章节更新成功', severity: 'success' })
       } else {
-        await CloudChapterAdminService.add(chapterForm)
+        await CloudChapterAdminService.add(saveData)
         setSnackbar({ open: true, message: '章节创建成功', severity: 'success' })
       }
 
@@ -848,9 +875,27 @@ export default function ChapterManagement() {
 
             {/* 视频上传 */}
             <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                视频文件
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="subtitle2">
+                  视频文件
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Chip
+                    label="本地上传"
+                    size="small"
+                    color={videoInputMode === 'upload' ? 'primary' : 'default'}
+                    onClick={() => setVideoInputMode('upload')}
+                    variant={videoInputMode === 'upload' ? 'filled' : 'outlined'}
+                  />
+                  <Chip
+                    label="外部链接"
+                    size="small"
+                    color={videoInputMode === 'url' ? 'primary' : 'default'}
+                    onClick={() => setVideoInputMode('url')}
+                    variant={videoInputMode === 'url' ? 'filled' : 'outlined'}
+                  />
+                </Box>
+              </Box>
               {chapterForm.videoUrl ? (
                 <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -874,6 +919,32 @@ export default function ChapterManagement() {
                     </Button>
                   </Box>
                 </Paper>
+              ) : videoInputMode === 'url' ? (
+                <TextField
+                  fullWidth
+                  label="视频链接地址"
+                  placeholder="输入外部视频URL，如 https://example.com/video.mp4"
+                  value={videoUrlInput}
+                  onChange={(e) => setVideoUrlInput(e.target.value)}
+                  helperText="支持 mp4、webm 等格式的直链地址"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Button
+                          size="small"
+                          variant="contained"
+                          disabled={!videoUrlInput.trim()}
+                          onClick={() => {
+                            setChapterForm({ ...chapterForm, videoUrl: videoUrlInput.trim() })
+                            setVideoUrlInput('')
+                          }}
+                        >
+                          确认
+                        </Button>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
               ) : (
                 <Paper
                   onDragEnter={handleVideoDragEnter}

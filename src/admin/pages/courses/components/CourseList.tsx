@@ -137,7 +137,7 @@ export default function CourseList({
         >
           <option value="">全部体系</option>
           {sources.map((source) => (
-            <option key={source._id} value={source._id}>
+            <option key={source.code} value={source.code}>
               {source.name}
             </option>
           ))}

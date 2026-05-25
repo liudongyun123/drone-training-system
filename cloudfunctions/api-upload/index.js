@@ -42,19 +42,36 @@ exports.main = async (event, context) => {
 
     const { action, filePath, cloudPath, fileContent, contentType } = params;
 
-    if (action === 'uploadAvatar') {
-      // 上传头像 - 接收 base64 数据
+    // 通用文件上传处理函数
+    const handleFileUpload = async () => {
       if (!fileContent) {
         return createResponse({ code: 400, error: '缺少文件内容' });
       }
 
       // 生成云存储路径
-      const userId = params.userId || 'user';
       const timestamp = Date.now();
-      const path = cloudPath || `avatars/${userId}_${timestamp}.jpg`;
+      const safeName = (params.fileName || 'file').replace(/[^a-zA-Z0-9\u4e00-\u9fa5.-]/g, '_');
+      let path;
+      
+      if (cloudPath) {
+        path = cloudPath;
+      } else if (action === 'uploadAvatar') {
+        const userId = params.userId || 'user';
+        path = `avatars/${userId}_${timestamp}.jpg`;
+      } else if (action === 'uploadVideo') {
+        path = `chapters/video/${timestamp}_${safeName}`;
+      } else if (action === 'uploadPdf') {
+        path = `chapters/pdf/${timestamp}_${safeName}`;
+      } else if (action === 'uploadImage') {
+        path = `images/${timestamp}_${safeName}`;
+      } else {
+        path = `uploads/${timestamp}_${safeName}`;
+      }
 
       // 将 base64 转换为 Buffer
       const buffer = Buffer.from(fileContent, 'base64');
+
+      console.log(`[api-upload] ${action} 上传: ${path}, 大小: ${(buffer.length / 1024 / 1024).toFixed(2)}MB`);
 
       // 上传到云存储
       const result = await app.uploadFile({
@@ -84,9 +101,14 @@ exports.main = async (event, context) => {
         },
         message: '上传成功'
       });
+    };
+
+    // 支持多种上传 action
+    if (['uploadAvatar', 'uploadVideo', 'uploadPdf', 'uploadImage', 'uploadFile'].includes(action)) {
+      return await handleFileUpload();
     }
 
-    return createResponse({ code: 400, error: '未知操作' });
+    return createResponse({ code: 400, error: `未知操作: ${action}` });
 
   } catch (error) {
     console.error('[api-upload] 上传失败:', error);

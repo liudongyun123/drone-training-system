@@ -1,0 +1,11 @@
+[
+  {
+    "id": "msg-1779552508409-q3q2ea",
+    "from": "team-lead",
+    "to": "bugfixer",
+    "type": "message",
+    "content": "请汇报你的 @ts-ignore 清理进度。清除了多少个？还剩多少个？",
+    "timestamp": "2026-05-23T16:08:28.409Z",
+    "read": true
+  }
+]

@@ -147,12 +147,11 @@ export async function testConnection() {
  */
 export async function getMyEnrollments(phoneOrUserId: string, userId?: string) {
   // 优先使用 phone 查询，因为报名时使用 phone 作为标识
-  const where: any = phoneOrUserId.includes('@') || /^\d{11}$/.test(phoneOrUserId) 
-    ? { phone: phoneOrUserId } 
-    : { userId: phoneOrUserId }
-  
-  // 同时查询两个集合并合并
-  const [classMembers, enrollments] = await Promise.all([
+  const isPhone = phoneOrUserId.includes('@') || /^\d{11}$/.test(phoneOrUserId)
+  const where: any = isPhone ? { phone: phoneOrUserId } : { userId: phoneOrUserId }
+
+  // 同时查询三个集合并合并（orders 兼容 enrollClass 失败的历史数据）
+  const [classMembers, enrollments, ordersResult] = await Promise.all([
     dbGetList('class_members', {
       where,
       orderBy: 'enrollmentTime desc'
@@ -160,29 +159,54 @@ export async function getMyEnrollments(phoneOrUserId: string, userId?: string) {
     dbGetList('enrollments', {
       where,
       orderBy: 'createdAt desc'
+    }),
+    // ★ 补充查询 orders 集合中的培训班订单（兼容 enrollClass 调用失败的情况）
+    dbGetList('orders', {
+      where: {
+        ...where,
+        orderType: 'class',
+        status: { $in: ['pending', 'paid', 'completed'] }
+      },
+      orderBy: 'createdAt desc'
     })
   ])
-  
-  // 合并两个集合的数据，标记来源
+
+  // 合并三个集合的数据，标记来源和数据优先级
+  // 优先级：class_members > enrollments > orders（class_members 数据最完整）
   const members = (classMembers.data || []).map((item: any) => ({
     ...item,
-    _source: 'class_members'
+    _source: 'class_members',
+    _priority: 1
   }))
   const enrolls = (enrollments.data || []).map((item: any) => ({
     ...item,
-    _source: 'enrollments'
+    _source: 'enrollments',
+    _priority: 2
   }))
-  
-  // 合并并去重
-  const all = [...members, ...enrolls]
-  const seen = new Set()
-  const unique = all.filter((item: any) => {
-    const key = item._id || item.classId || item._source
-    if (seen.has(key + (item.classId || ''))) return false
-    seen.add(key + (item.classId || ''))
-    return true
-  })
-  
+  // orders 数据映射为报名记录格式
+  const orders = (ordersResult.data || []).map((item: any) => ({
+    ...item,
+    classId: item.classId || '',
+    className: item.className || item.items?.[0]?.className || '',
+    status: item.status === 'completed' ? 'confirmed' : (item.status || 'pending'),
+    enrollmentTime: item.createdAt,
+    _source: 'orders',
+    _priority: 3
+  }))
+
+  // 合并并去重（以 classId 为键，优先使用高优先级来源的数据）
+  const all = [...members, ...enrolls, ...orders]
+  const bestByClass = new Map<string, any>()
+  for (const item of all) {
+    const classId = item.classId || ''
+    if (!classId) continue
+    const existing = bestByClass.get(classId)
+    if (!existing || (item._priority || 99) < (existing._priority || 99)) {
+      bestByClass.set(classId, item)
+    }
+  }
+  const unique = Array.from(bestByClass.values())
+
   return { data: unique }
 }
 

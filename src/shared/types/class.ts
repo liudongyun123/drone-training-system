@@ -12,7 +12,9 @@ export interface TrainingClass {
   coverImage?: string
   
   // 关联课程（核心：报名即获得）
-  includedCourses: string[] // 报名自动授权的课程ID列表
+  courseId?: string           // 主关联课程ID（单课程关联，旧格式）
+  includedCourseIds: string[] // 关联课程ID数组（新格式，支持多课程）
+  includedCourses: string[]  // 课程名称数组（兼容小程序旧格式，仅用于展示）
   
   // 培训信息
   teacherId: string         // 授课教师ID

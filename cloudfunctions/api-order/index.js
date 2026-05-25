@@ -686,15 +686,20 @@ async function enrollClass(data) {
       .where({
         classId: classId,
         phone: phone,
-        status: db.command.in(['enrolled', 'learning', 'pending'])
+        status: db.command.in(['enrolled', 'learning', 'pending', 'confirmed'])
       })
       .get()
 
     if (existing.data && existing.data.length > 0) {
       return createResponse({
-        code: 400,
-        success: false,
-        error: '您已报名此班级（class_members）'
+        code: 0,
+        success: true,
+        data: {
+          enrollmentId: existing.data[0]._id,
+          classId,
+          className: cls.name
+        },
+        message: '您已报名此班级'
       })
     }
 
@@ -707,13 +712,8 @@ async function enrollClass(data) {
       })
       .get()
 
-    if (existingOrder.data && existingOrder.data.length > 0) {
-      return createResponse({
-        code: 400,
-        success: false,
-        error: '您已有该班级的订单，请到订单页面处理'
-      })
-    }
+    // ★ 如果 orders 存在但 class_members 不存在，说明之前 enrollClass 失败
+    // 此时不应报错，而应补写 class_members（幂等处理）
 
     // 创建报名记录
     const now = new Date().toISOString()
@@ -743,6 +743,58 @@ async function enrollClass(data) {
     const result = await db.collection('class_members').add(memberData)
 
     console.log('[api-order] 班级报名成功:', result.id)
+
+    // ★ 报名成功后，自动授权关联课程
+    try {
+      // 获取班级关联的所有课程ID
+      const courseIds = []
+      // 单个 courseId（主关联课程）
+      if (cls.courseId) {
+        courseIds.push(cls.courseId)
+      }
+      // includedCourseIds 数组（新格式，ID 数组）
+      if (cls.includedCourseIds && Array.isArray(cls.includedCourseIds)) {
+        for (const id of cls.includedCourseIds) {
+          if (id && !courseIds.includes(id)) courseIds.push(id)
+        }
+      }
+      // includedCourses 数组（旧格式兼容，可能是ID数组或名称数组）
+      if (cls.includedCourses && Array.isArray(cls.includedCourses)) {
+        for (const item of cls.includedCourses) {
+          if (typeof item === 'string' && /^[a-f0-9]{24}$/i.test(item)) {
+            if (!courseIds.includes(item)) courseIds.push(item)
+          }
+        }
+      }
+
+      if (phone && courseIds.length > 0) {
+        for (const courseId of courseIds) {
+          // 检查是否已有权限
+          const existingPerm = await db.collection('course_permissions')
+            .where({ phone, courseId })
+            .get()
+
+          if (!existingPerm.data || existingPerm.data.length === 0) {
+            const now2 = new Date().toISOString()
+            await db.collection('course_permissions').add({
+              phone,
+              courseId,
+              source: 'class_enrollment',
+              classId,
+              status: 'active',
+              createdAt: now2,
+              updatedAt: now2
+            })
+            console.log('[api-order] 课程权限已授予:', { phone, courseId, classId })
+          } else {
+            console.log('[api-order] 课程权限已存在，跳过:', { phone, courseId })
+          }
+        }
+      }
+    } catch (permErr) {
+      // 授权失败不影响报名结果
+      console.error('[api-order] 授予课程权限失败:', permErr)
+    }
 
     return createResponse({
       code: 0,

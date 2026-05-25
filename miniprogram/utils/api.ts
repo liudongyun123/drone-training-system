@@ -417,7 +417,7 @@ export const courseApi = {
   async getLessons(courseId: string) {
     console.log('[courseApi.getLessons] 查询课时, courseId:', courseId)
     // 尝试多种字段名
-    const result = await dbGetList('lessons', {
+    let result = await dbGetList('lessons', {
       where: { courseId },  // 尝试 courseId
       orderBy: 'order asc',
       limit: 100
@@ -425,13 +425,39 @@ export const courseApi = {
     
     // 如果没有结果，尝试 parentId
     if (!result.data || result.data.length === 0) {
-      const result2 = await dbGetList('lessons', {
+      result = await dbGetList('lessons', {
         where: { parentId: courseId },  // 尝试 parentId
         orderBy: 'order asc',
         limit: 100
       })
-      console.log('[courseApi.getLessons] parentId 查询结果:', result2.data?.length)
-      return result2.data || []
+      console.log('[courseApi.getLessons] parentId 查询结果:', result.data?.length)
+    }
+    
+    // 如果 lessons 集合没有数据，尝试从 chapters 集合读取（管理后台章节管理保存的位置）
+    if (!result.data || result.data.length === 0) {
+      const chaptersResult = await dbGetList('chapters', {
+        where: { courseId },
+        orderBy: 'order asc',
+        limit: 100
+      })
+      if (chaptersResult.data && chaptersResult.data.length > 0) {
+        console.log('[courseApi.getLessons] chapters 查询结果:', chaptersResult.data.length)
+        // 映射 chapters 字段到 lessons 格式，保留 pdfFile 等字段
+        return chaptersResult.data.map((ch: any) => ({
+          _id: ch._id,
+          courseId: ch.courseId,
+          title: ch.title,
+          description: ch.description || '',
+          content: ch.content || '',
+          videoUrl: ch.videoUrl || '',
+          duration: ch.videoDuration || ch.duration || 0,
+          order: ch.order ?? ch.sortOrder ?? 0,
+          isPreview: ch.isPreview || false,
+          questionBankId: ch.questionBankId || '',
+          pdfFile: ch.pdfFile || null,
+          createdAt: ch.createdAt
+        }))
+      }
     }
     
     console.log('[courseApi.getLessons] courseId 查询结果:', result.data?.length)

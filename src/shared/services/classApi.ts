@@ -70,9 +70,23 @@ export const classApi = {
     
     // 获取包含的课程
     let includedCourses: Course[] = []
-    if (classData.includedCourses && classData.includedCourses.length > 0) {
+    // 优先使用 includedCourseIds（ID数组，新格式）
+    let courseIds = classData.includedCourseIds || []
+    // 兼容：如果 includedCourseIds 为空但 courseId 存在，使用 courseId
+    if (courseIds.length === 0 && classData.courseId) {
+      courseIds = [classData.courseId]
+    }
+    // 兼容旧格式：includedCourses 可能是ID数组（某些旧数据的实际情况）
+    if (courseIds.length === 0 && classData.includedCourses && classData.includedCourses.length > 0) {
+      // 判断 includedCourses 是ID还是名称：ID通常是24位hex字符串
+      const firstItem = classData.includedCourses[0]
+      if (typeof firstItem === 'string' && /^[a-f0-9]{24}$/i.test(firstItem)) {
+        courseIds = classData.includedCourses
+      }
+    }
+    if (courseIds.length > 0) {
       const coursesResult = await adminService.listWithOps('courses', {
-        _id: { '$in': classData.includedCourses }
+        _id: { '$in': courseIds }
       }, { limit: 100 })
       includedCourses = extractList(coursesResult) as Course[]
     }

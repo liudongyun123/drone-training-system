@@ -10,7 +10,6 @@
     <scroll-view class="content" scroll-y enhanced>
       <!-- 课程视频/封面 -->
       <view class="cover-section">
-        <!-- 有预览视频时显示视频播放器 -->
         <video
           wx:if="{{course.videoUrl}}"
           class="preview-video"
@@ -19,9 +18,9 @@
           object-fit="cover"
           show-center-play-btn
           enable-progress-gesture
+          show-download-btn="{{false}}"
           binderror="onVideoError"
         ></video>
-        <!-- 无视频时显示封面图片 -->
         <image 
           wx:else
           class="cover" 
@@ -29,7 +28,6 @@
           mode="aspectFill"
           binderror="onCoverError"
         />
-        <!-- 视频播放指示器 -->
         <view wx:if="{{course.videoUrl}}" class="video-badge">
           <text class="video-badge-text">🎬 预览视频</text>
         </view>
@@ -37,86 +35,152 @@
 
       <!-- 课程信息 -->
       <view class="info-section">
-        <!-- 等级标签 + 标题 -->
         <view class="title-row">
           <text class="level-tag" wx:if="{{course.levelText}}">{{course.levelText}}</text>
           <text class="course-title">{{course.title}}</text>
         </view>
-
-        <!-- 评分 + 学习人数 -->
         <view class="meta-row">
           <text class="rating">⭐ {{course.rating || 4.9}}</text>
           <text class="divider">|</text>
           <text class="students">{{course.salesCount || 0}}人已学</text>
         </view>
-
-        <!-- 价格 -->
         <view class="price-row">
           <text class="price-symbol">¥</text>
           <text class="price-num">{{course.price}}</text>
           <text class="original-price" wx:if="{{course.originalPrice}}">¥{{course.originalPrice}}</text>
         </view>
-
-        <!-- 分享按钮 -->
         <button class="share-btn" open-type="share">
           <text class="share-icon">↗️</text>
           <text class="share-text">分享</text>
         </button>
       </view>
 
-      <!-- 课程亮点 -->
-      <view class="section" wx:if="{{course.features && course.features.length > 0}}">
-        <text class="section-title">📋 课程亮点</text>
-        <view class="features-list">
-          <view class="feature-item" wx:for="{{course.features}}" wx:key="*this">
-            <text class="feature-icon">✓</text>
-            <text class="feature-text">{{item}}</text>
+      <!-- Tab 切换栏 -->
+      <view class="tab-bar">
+        <view class="tab-item {{activeTab === 'intro' ? 'active' : ''}}" data-tab="intro" bindtap="switchTab">
+          <text class="tab-text">课程介绍</text>
+          <view wx:if="{{activeTab === 'intro'}}" class="tab-indicator"></view>
+        </view>
+        <view class="tab-item {{activeTab === 'lessons' ? 'active' : ''}}" data-tab="lessons" bindtap="switchTab">
+          <text class="tab-text">课时目录</text>
+          <text class="tab-count">{{lessons.length}}</text>
+          <view wx:if="{{activeTab === 'lessons'}}" class="tab-indicator"></view>
+        </view>
+        <view class="tab-item {{activeTab === 'courseware' ? 'active' : ''}}" data-tab="courseware" bindtap="switchTab">
+          <text class="tab-text">课件资料</text>
+          <text wx:if="{{coursewareList.length > 0}}" class="tab-badge">{{coursewareList.length}}</text>
+          <view wx:if="{{activeTab === 'courseware'}}" class="tab-indicator"></view>
+        </view>
+      </view>
+
+      <!-- ===== 课程介绍 Tab ===== -->
+      <view wx:if="{{activeTab === 'intro'}}" class="tab-content">
+        <!-- 课程亮点 -->
+        <view class="section" wx:if="{{course.features && course.features.length > 0}}">
+          <text class="section-title">📋 课程亮点</text>
+          <view class="features-list">
+            <view class="feature-item" wx:for="{{course.features}}" wx:key="*this">
+              <text class="feature-icon">✓</text>
+              <text class="feature-text">{{item}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 课程简介 -->
+        <view class="section">
+          <text class="section-title">课程简介</text>
+          <text class="description">{{course.description}}</text>
+        </view>
+
+        <!-- 讲师信息 -->
+        <view class="section" wx:if="{{course.instructor}}">
+          <text class="section-title">👨‍🏫 授课讲师</text>
+          <view class="teacher-card">
+            <image class="teacher-avatar" src="{{course.instructorAvatar || defaultCover}}" mode="aspectFill" />
+            <view class="teacher-info">
+              <text class="teacher-name">{{course.instructor}}</text>
+              <text class="teacher-title">{{course.instructorTitle || '资深教官'}}</text>
+            </view>
           </view>
         </view>
       </view>
 
-      <!-- 课程简介 -->
-      <view class="section">
-        <text class="section-title">课程简介</text>
-        <text class="description">{{course.description}}</text>
-      </view>
-
-      <!-- 讲师信息 -->
-      <view class="section" wx:if="{{course.instructor}}">
-        <text class="section-title">👨‍🏫 授课讲师</text>
-        <view class="teacher-card">
-          <image class="teacher-avatar" src="{{course.instructorAvatar || defaultCover}}" mode="aspectFill" />
-          <view class="teacher-info">
-            <text class="teacher-name">{{course.instructor}}</text>
-            <text class="teacher-title">{{course.instructorTitle || '资深教官'}}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 课程目录 -->
-      <view class="section">
-        <text class="section-title">📚 课程目录 ({{lessons.length}}节)</text>
-        <view class="lesson-list">
-          <view 
-            class="lesson-item"
-            wx:for="{{lessons}}" 
-            wx:key="_id"
-            bindtap="startLearning"
-            data-id="{{item._id}}"
-            data-index="{{index}}"
-          >
-            <view class="lesson-left">
-              <text class="lesson-index">{{index + 1}}</text>
-              <view class="lesson-info">
-                <text class="lesson-title">{{item.title}}</text>
-                <text class="lesson-duration">{{item.duration || 10}}分钟</text>
+      <!-- ===== 课时目录 Tab ===== -->
+      <view wx:if="{{activeTab === 'lessons'}}" class="tab-content">
+        <view class="section">
+          <view class="lesson-list">
+            <view 
+              class="lesson-item"
+              wx:for="{{lessons}}" 
+              wx:key="_id"
+              bindtap="startLearning"
+              data-id="{{item._id}}"
+              data-index="{{index}}"
+            >
+              <view class="lesson-left">
+                <text class="lesson-index">{{index + 1}}</text>
+                <view class="lesson-info">
+                  <text class="lesson-title">{{item.title}}</text>
+                  <view class="lesson-tags">
+                    <text wx:if="{{item.isFree}}" class="tag-preview">👁 试看{{item.previewDuration ? item.previewDuration + '秒' : ''}}</text>
+                    <text wx:if="{{item.videoUrl}}" class="tag-video">📹 视频</text>
+                    <text wx:if="{{item.pdfFile && item.pdfFile.fileID}}" class="tag-pdf">📄 课件</text>
+                    <text class="lesson-duration">{{item.duration || 10}}分钟</text>
+                  </view>
+                </view>
+              </view>
+              <view class="lesson-play" wx:if="{{hasPermission || item.isFree}}">
+                <text class="play-icon">▶</text>
+              </view>
+              <view class="lesson-lock" wx:else>
+                <text class="lock-icon">🔒</text>
               </view>
             </view>
-            <view class="lesson-play" wx:if="{{hasPermission}}">
-              <text class="play-icon">▶</text>
-            </view>
-            <view class="lesson-lock" wx:else>
-              <text class="lock-icon">🔒</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- ===== 课件资料 Tab ===== -->
+      <view wx:if="{{activeTab === 'courseware'}}" class="tab-content">
+        <view class="section">
+          <!-- 无课件提示 -->
+          <view wx:if="{{coursewareList.length === 0}}" class="empty-courseware">
+            <text class="empty-icon">📚</text>
+            <text class="empty-text">暂无课件资料</text>
+            <text class="empty-sub">课件将在上传后显示在这里</text>
+          </view>
+
+          <!-- 课件列表 -->
+          <view wx:else class="courseware-list">
+            <view
+              wx:for="{{coursewareList}}"
+              wx:key="lessonId"
+              class="courseware-card"
+              data-fileid="{{item.pdfFile.fileID}}"
+              data-name="{{item.pdfFile.name}}"
+              data-isfree="{{item.isFree}}"
+              bindtap="openPdf"
+            >
+              <view class="courseware-icon-wrap">
+                <text class="courseware-icon">📄</text>
+              </view>
+              <view class="courseware-info">
+                <text class="courseware-name">{{item.pdfFile.name || '课程课件'}}</text>
+                <view class="courseware-meta">
+                  <text wx:if="{{item.isFree}}" class="courseware-free-tag">免费</text>
+                  <text class="courseware-source">来自：{{item.lessonTitle}}</text>
+                  <text wx:if="{{item.pdfFile.size}}" class="courseware-size">{{formatFileSize(item.pdfFile.size)}}</text>
+                </view>
+              </view>
+              <view class="courseware-action">
+                <text wx:if="{{pdfLoading}}" class="courseware-loading">加载中...</text>
+                <view wx:elif="{{hasPermission || item.isFree}}" class="courseware-btn">
+                  <text class="courseware-btn-text">查看</text>
+                </view>
+                <view wx:else class="courseware-locked">
+                  <text class="courseware-locked-text">🔒 购买后查看</text>
+                </view>
+              </view>
             </view>
           </view>
         </view>
@@ -138,9 +202,9 @@
         <view wx:if="{{hasPermission}}" class="btn-start" bindtap="startLearning" data-id="{{lessons[0]._id}}">
           <text>开始学习</text>
         </view>
-    <view wx:else class="btn-buy" bindtap="buyCourse">
-      <text>立即购买 ¥{{course.price}}</text>
-    </view>
+        <view wx:else class="btn-buy" bindtap="buyCourse">
+          <text>立即购买 ¥{{course.price}}</text>
+        </view>
       </view>
     </view>
   </block>

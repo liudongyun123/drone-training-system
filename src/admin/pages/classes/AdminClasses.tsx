@@ -97,6 +97,7 @@ interface ClassFormData {
   description: string;
   level: string;
   courseId: string;
+  includedCourseIds: string[];
   maxStudents: number;
   startDate: string;
   endDate: string;
@@ -113,6 +114,7 @@ const initialFormData: ClassFormData = {
   description: '',
   level: '',
   courseId: '',
+  includedCourseIds: [],
   maxStudents: 20,
   startDate: '',
   endDate: '',
@@ -325,6 +327,7 @@ export default function AdminClasses() {
       description: cls.description || '',
       level: clsAny.level || '',
       courseId: cls.courseId,
+      includedCourseIds: clsAny.includedCourseIds || (cls.courseId ? [cls.courseId] : []),
       maxStudents: cls.maxStudents,
       startDate: cls.startDate,
       endDate: cls.endDate,
@@ -350,10 +353,16 @@ export default function AdminClasses() {
       const course = courses.find(c => c._id === formData.courseId);
       const teacher = teachers.find(t => t._id === formData.teacherId);
 
+      // 生成 includedCourses（课程名称数组，兼容小程序旧格式）
+      const includedCourseNames = formData.includedCourseIds
+        .map(id => courses.find(c => c._id === id)?.title)
+        .filter(Boolean) as string[];
+
       const submitData: any = {
         ...formData,
         courseName: course?.title,
-        teacherName: teacher?.name
+        teacherName: teacher?.name,
+        includedCourses: includedCourseNames
       };
 
       if (editingClass) {
@@ -657,8 +666,11 @@ export default function AdminClasses() {
             className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
           >
             <option value="">全部体系</option>
-            <option value="e35392d069fc521f0152e2c14dbb4a18">人社培训</option>
-            <option value="e35392d069fc521f0152e2c2537e32ad">CAAC培训</option>
+            {sourceOptions.map(opt => (
+              <option key={opt.code} value={opt.code}>
+                {opt.icon} {opt.label}
+              </option>
+            ))}
           </select>
 
           <div className="flex gap-2">
@@ -840,11 +852,21 @@ export default function AdminClasses() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      关联课程 <span className="text-red-500">*</span>
+                      主关联课程 <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={formData.courseId}
-                      onChange={(e) => setFormData(prev => ({ ...prev, courseId: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          courseId: val,
+                          // 自动加入 includedCourseIds
+                          includedCourseIds: val && !prev.includedCourseIds.includes(val)
+                            ? [...prev.includedCourseIds, val]
+                            : prev.includedCourseIds
+                        }));
+                      }}
                       disabled={!formData.sourceId}
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     >
@@ -859,6 +881,50 @@ export default function AdminClasses() {
                         <option value="">该体系下暂无课程</option>
                       )}
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      关联课程（多选）
+                    </label>
+                    <p className="text-xs text-gray-400 mb-2">学员报名后将获得所有关联课程的学习权限</p>
+                    {filteredCourses.length > 0 ? (
+                      <div className="border rounded-lg max-h-48 overflow-y-auto bg-white">
+                        {filteredCourses.map(course => {
+                          const isSelected = formData.includedCourseIds.includes(course._id!);
+                          return (
+                            <label
+                              key={course._id}
+                              className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-blue-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    includedCourseIds: checked
+                                      ? [...prev.includedCourseIds, course._id!]
+                                      : prev.includedCourseIds.filter(id => id !== course._id),
+                                    // 如果取消的是主课程，也清除 courseId
+                                    courseId: !checked && prev.courseId === course._id ? '' : prev.courseId
+                                  }));
+                                }}
+                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-700">{course.title}</span>
+                              {isSelected && <Check className="w-4 h-4 text-blue-600 ml-auto" />}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 py-4 text-center">请先选择体系</p>
+                    )}
+                    {formData.includedCourseIds.length > 0 && (
+                      <p className="text-xs text-blue-600 mt-1">已选择 {formData.includedCourseIds.length} 门课程</p>
+                    )}
                   </div>
 
                   <div>

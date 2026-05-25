@@ -336,8 +336,26 @@ exports.main = async (event, context) => {
           updateData.updatedAt = new Date().toISOString();
         }
         
-        const updateResult = await db.collection(collection).doc(id).update(updateData);
-        result = { code: 0, updated: updateResult.updated, message: '更新成功' };
+        if (useOperators) {
+          // 使用操作符时，继续使用 update 方法
+          const updateResult = await db.collection(collection).doc(id).update(updateData);
+          result = { code: 0, updated: updateResult.updated, message: '更新成功' };
+        } else {
+          // 普通更新：使用 set 代替 update，避免嵌套对象导致 multiple write errors
+          const docResult = await db.collection(collection).doc(id).get();
+          if (!docResult.data || docResult.data.length === 0) {
+            result = { code: 404, message: '记录不存在' };
+            break;
+          }
+          
+          const existingData = docResult.data[0];
+          const mergedData = { ...existingData, ...updateData };
+          delete mergedData._id;
+          delete mergedData._openid;
+          
+          const updateResult = await db.collection(collection).doc(id).set(mergedData);
+          result = { code: 0, updated: updateResult.updated || 1, message: '更新成功' };
+        }
         break;
       }
         
@@ -388,6 +406,86 @@ exports.main = async (event, context) => {
         } catch (err) {
           console.error('[db-init] getTempFileURL 错误:', err);
           result = { code: 500, message: err.message || '获取文件链接失败' };
+        }
+        break;
+      }
+        
+      case 'proxyDownload': {
+        // ★ 代理下载：后端下载云存储文件并返回 base64，绕过小程序 downloadFile 域名限制
+        if (!fileList || !Array.isArray(fileList) || fileList.length === 0) {
+          result = { code: 400, message: 'fileList 参数无效' };
+          break;
+        }
+        
+        const https = require('https');
+        const fileId = fileList[0];
+        
+        try {
+          // 1. 获取临时下载链接
+          const urlResult = await app.getTempFileURL({
+            fileList: [{ fileID: fileId, maxAge: 600 }] // 10分钟有效期
+          });
+          
+          if (!urlResult.fileList || !urlResult.fileList[0]) {
+            result = { code: 404, message: '文件不存在或已被删除' };
+            break;
+          }
+          
+          const fileInfo = urlResult.fileList[0];
+          if (fileInfo.code !== 'SUCCESS') {
+            result = { code: 500, message: fileInfo.message || '获取临时链接失败' };
+            break;
+          }
+          
+          const downloadUrl = fileInfo.tempFileURL || fileInfo.download_url;
+          console.log('[db-init] proxyDownload URL:', downloadUrl.substring(0, 100));
+          
+          // 2. 后端代理下载文件内容
+          const fileBuffer = await new Promise((resolve, reject) => {
+            const urlObj = new URL(downloadUrl);
+            https.get({
+              hostname: urlObj.hostname,
+              path: urlObj.pathname + urlObj.search,
+              headers: { 'User-Agent': 'CloudBase-Proxy/1.0' },
+              timeout: 30000
+            }, (res) => {
+              if (res.statusCode !== 200) {
+                reject(new Error(`下载失败，状态码: ${res.statusCode}`));
+                return;
+              }
+              const chunks = [];
+              res.on('data', chunk => chunks.push(chunk));
+              res.on('end', () => resolve(Buffer.concat(chunks)));
+              res.on('error', reject);
+            }).on('error', reject).on('timeout', () => reject(new Error('下载超时')));
+          });
+          
+          const sizeMB = fileBuffer.length / (1024 * 1024);
+          console.log('[db-init] proxyDownload 文件大小:', sizeMB.toFixed(2), 'MB');
+          
+          // ★ 文件过大时拒绝代理下载（避免超时和内存溢出）
+          if (sizeMB > 10) {
+            result = {
+              code: 413,
+              message: `文件过大(${sizeMB.toFixed(1)}MB)，请在浏览器中打开`,
+              data: { url: downloadUrl, size: sizeMB }
+            };
+            break;
+          }
+          
+          // 3. 返回 base64 编码的文件内容
+          const base64 = fileBuffer.toString('base64');
+          result = {
+            code: 0,
+            data: {
+              base64: base64,
+              fileName: fileId.split('/').pop() || 'file.pdf',
+              size: fileBuffer.length
+            }
+          };
+        } catch (err) {
+          console.error('[db-init] proxyDownload 错误:', err);
+          result = { code: 500, message: err.message || '代理下载失败' };
         }
         break;
       }

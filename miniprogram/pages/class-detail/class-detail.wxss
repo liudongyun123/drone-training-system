@@ -32,7 +32,8 @@
 
 /* ==================== 内容区域 ==================== */
 .content {
-  height: calc(100vh - 120rpx);
+  height: calc(100vh - 120rpx - env(safe-area-inset-bottom));
+  height: calc(100vh - 120rpx - constant(safe-area-inset-bottom));
 }
 
 /* ==================== 封面 ==================== */
@@ -164,6 +165,60 @@
 .status-tag.ended {
   background: rgba(148, 163, 184, 0.1);
   color: #94a3b8;
+}
+
+/* ==================== Tab 切换栏 ==================== */
+.tab-bar {
+  display: flex;
+  background: #fff;
+  border-bottom: 1rpx solid #e2e8f0;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 0;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.tab-item.active {
+  background: #f8faff;
+}
+
+.tab-text {
+  font-size: 28rpx;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.tab-item.active .tab-text {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.tab-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48rpx;
+  height: 6rpx;
+  background: #2563eb;
+  border-radius: 3rpx;
+}
+
+.tab-count {
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-left: 6rpx;
+}
+
+/* ==================== Tab 内容区 ==================== */
+.tab-content {
+  min-height: 400rpx;
 }
 
 /* ==================== 分区 ==================== */
@@ -316,19 +371,221 @@
   margin-top: 4rpx;
 }
 
-/* ==================== 赠送课程 ==================== */
+/* ==================== 空状态 ==================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #94a3b8;
+  margin-bottom: 8rpx;
+}
+
+.empty-sub {
+  font-size: 24rpx;
+  color: #cbd5e1;
+}
+
+/* ==================== 关联课程 ==================== */
 .courses-list {
   display: flex;
   flex-direction: column;
+  gap: 16rpx;
+}
+
+.course-card {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border-radius: 16rpx;
+  padding: 16rpx;
+  border: 1rpx solid #e2e8f0;
+  transition: all 0.2s;
+}
+
+.course-card:active {
+  background: #eff6ff;
+  transform: scale(0.98);
+}
+
+.course-cover {
+  width: 120rpx;
+  height: 80rpx;
+  border-radius: 8rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+  background: #e2e8f0;
+}
+
+.course-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.course-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1e293b;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-desc {
+  font-size: 22rpx;
+  color: #94a3b8;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 4rpx;
+}
+
+.course-meta {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 8rpx;
+}
+
+.course-lessons {
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.course-price {
+  font-size: 22rpx;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.course-free {
+  font-size: 22rpx;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.course-arrow {
+  font-size: 36rpx;
+  color: #cbd5e1;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+}
+
+/* ==================== 课件资料 ==================== */
+.courseware-section {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #e2e8f0;
+}
+
+.courseware-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.courseware-card {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background: #f8faff;
+  border-radius: 16rpx;
+  border: 1rpx solid #e0e7f1;
+  transition: all 0.2s;
+}
+
+.courseware-card:active {
+  background: #eef3ff;
+  transform: scale(0.98);
+}
+
+.courseware-icon-wrap {
+  width: 72rpx;
+  height: 72rpx;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  border-radius: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.courseware-icon {
+  font-size: 36rpx;
+}
+
+.courseware-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.courseware-name {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.courseware-meta {
+  display: flex;
+  align-items: center;
+  margin-top: 6rpx;
   gap: 12rpx;
 }
 
-.course-tag {
-  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
-  color: #2563eb;
-  padding: 12rpx 20rpx;
-  border-radius: 12rpx;
-  font-size: 24rpx;
+.courseware-source {
+  font-size: 20rpx;
+  color: #999;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240rpx;
+}
+
+.courseware-size {
+  font-size: 20rpx;
+  color: #bbb;
+}
+
+.courseware-action {
+  margin-left: 12rpx;
+  flex-shrink: 0;
+}
+
+.courseware-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 24rpx;
+  background: #2563eb;
+  border-radius: 24rpx;
+}
+
+.courseware-btn-text {
+  font-size: 22rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+.courseware-loading {
+  font-size: 22rpx;
+  color: #999;
 }
 
 /* ==================== 底部操作栏 ==================== */
@@ -341,6 +598,8 @@
   align-items: center;
   background: #fff;
   padding: 16rpx 24rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(16rpx + constant(safe-area-inset-bottom));
   border-top: 1rpx solid #e2e8f0;
   z-index: 100;
 }
@@ -388,7 +647,7 @@
 
 /* ==================== 底部间距 ==================== */
 .footer-space {
-  height: 32rpx;
+  height: 140rpx;
 }
 
 /* ==================== 安全区域 ==================== */

@@ -1,0 +1,11 @@
+[
+  {
+    "id": "msg-1779552508303-cclqn8",
+    "from": "team-lead",
+    "to": "scanner",
+    "type": "message",
+    "content": "请汇报你的扫描进度。管理后台功能缺陷检测完成了吗？我需要看到完整的缺陷报告。",
+    "timestamp": "2026-05-23T16:08:28.303Z",
+    "read": true
+  }
+]

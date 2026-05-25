@@ -354,6 +354,16 @@ export const transferService = {
 
     const now = new Date().toISOString()
 
+    // 先读取请求内容，再更新状态
+    const request = await CloudDBService.get<TransferRequest>(COLLECTION, requestId)
+    if (!request) {
+      throw new Error('申请不存在')
+    }
+    if (request.status !== 'pending') {
+      throw new Error('只能审核待审核的申请')
+    }
+
+    // 更新调课申请状态
     await CloudDBService.update(COLLECTION, requestId, {
       status: 'approved',
       adminId: adminInfo.adminId,
@@ -363,16 +373,28 @@ export const transferService = {
       updatedAt: now,
     })
 
-    // 如果有目标排课，更新出勤记录
-    const request = await CloudDBService.get<TransferRequest>(COLLECTION, requestId)
-    if (request?.targetScheduleId) {
-      // 更新出勤记录
+    // 如果有目标排课，执行排课变更
+    if (request.targetScheduleId) {
+      // 1. 更新出勤记录：将原排课的出勤迁移到目标排课
       await CloudDBService.updateWhere('attendance', {
         studentId: request.studentId,
         scheduleId: request.originalScheduleId,
       }, {
         scheduleId: request.targetScheduleId,
         updatedAt: now,
+      })
+
+      // 2. 创建排课变更记录（schedule_changes）
+      await CloudDBService.add('schedule_changes', {
+        scheduleId: request.originalScheduleId,
+        targetScheduleId: request.targetScheduleId,
+        studentId: request.studentId,
+        studentName: request.studentName,
+        classId: request.originalScheduleId,
+        type: 'transfer',
+        reason: request.reason,
+        status: 'completed',
+        changedAt: now,
       })
     }
 
@@ -421,19 +443,55 @@ export const transferService = {
     }
 
     const now = new Date().toISOString()
+    let approvedCount = 0
 
     for (const requestId of requestIds) {
-      await CloudDBService.update(COLLECTION, requestId, {
-        status: 'approved',
-        adminId: adminInfo.adminId,
-        adminName: adminInfo.adminName || '管理员',
-        adminReply: adminInfo.adminReply,
-        reviewedAt: now,
-        updatedAt: now,
-      })
+      try {
+        // 读取请求内容
+        const request = await CloudDBService.get<TransferRequest>(COLLECTION, requestId)
+        if (!request || request.status !== 'pending') continue
+
+        // 更新调课申请状态
+        await CloudDBService.update(COLLECTION, requestId, {
+          status: 'approved',
+          adminId: adminInfo.adminId,
+          adminName: adminInfo.adminName || '管理员',
+          adminReply: adminInfo.adminReply,
+          reviewedAt: now,
+          updatedAt: now,
+        })
+
+        // 如果有目标排课，更新出勤记录
+        if (request.targetScheduleId) {
+          await CloudDBService.updateWhere('attendance', {
+            studentId: request.studentId,
+            scheduleId: request.originalScheduleId,
+          }, {
+            scheduleId: request.targetScheduleId,
+            updatedAt: now,
+          })
+
+          // 创建排课变更记录
+          await CloudDBService.add('schedule_changes', {
+            scheduleId: request.originalScheduleId,
+            targetScheduleId: request.targetScheduleId,
+            studentId: request.studentId,
+            studentName: request.studentName,
+            classId: request.originalScheduleId,
+            type: 'transfer',
+            reason: request.reason,
+            status: 'completed',
+            changedAt: now,
+          })
+        }
+
+        approvedCount++
+      } catch (error) {
+        console.error(`[transferService] 批量审批 ${requestId} 失败:`, error)
+      }
     }
 
-    return { code: 0, message: `已通过 ${requestIds.length} 个申请` }
+    return { code: 0, message: `已通过 ${approvedCount} 个申请` }
   },
 
   /**

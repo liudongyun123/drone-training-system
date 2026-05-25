@@ -600,12 +600,18 @@ export const CloudChapterAdminService = {
           id: c._id,
           title: c.title,
           courseId: c.courseId,
+          description: c.description,
+          content: c.content || '',
           videoUrl: c.videoUrl,
-          duration: c.duration,
-          sortOrder: c.sortOrder,
+          videoDuration: c.videoDuration,
+          order: c.order ?? c.sortOrder ?? 0,
+          isPreview: c.isPreview || false,
+          questionBankId: c.questionBankId || '',
+          pdfFile: c.pdfFile || undefined,
           status: c.status || 'draft',
           createdAt: c.createdAt,
-        }))
+        })),
+        total: result.data?.total || dataList.length,
       }
     } catch (error) {
       console.error('获取章节列表失败:', error)
@@ -616,7 +622,22 @@ export const CloudChapterAdminService = {
   async getByCourseId(courseId: string) {
     try {
       const result = await adminService.list(this.collection, { courseId })
-      return result.data
+      // adminService.list 返回 { code, data: { list, total, ... } }
+      const listData = result?.data?.list || (Array.isArray(result?.data) ? result.data : [])
+      return listData.map((c: any) => ({
+        id: c._id,
+        courseId: c.courseId,
+        title: c.title,
+        description: c.description,
+        content: c.content || '',
+        videoUrl: c.videoUrl,
+        videoDuration: c.videoDuration,
+        order: c.order ?? c.sortOrder ?? 0,
+        isPreview: c.isPreview || false,
+        questionBankId: c.questionBankId || '',
+        pdfFile: c.pdfFile || undefined,
+        createdAt: c.createdAt,
+      }))
     } catch (error) {
       console.error('获取课程章节失败:', error)
       return []

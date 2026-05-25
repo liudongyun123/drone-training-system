@@ -153,7 +153,7 @@ export default function AdminLevels() {
   const handleAdd = () => {
     setEditingId('new');
     const defaultSource = sources[0];
-    const defaultSourceCode = sourceFilter ? sources.find(s => s._id === sourceFilter)?.code : defaultSource?.code;
+    const defaultSourceCode = sourceFilter || defaultSource?.code;
     setEditForm({
       sourceCode: defaultSourceCode || '',
       sourceId: sourceFilter || defaultSource?._id || '',
@@ -212,7 +212,7 @@ export default function AdminLevels() {
         >
           <option value="">全部体系</option>
           {sources.map(source => (
-            <option key={source._id} value={source._id}>
+            <option key={source.code} value={source.code}>
               {source.icon} {source.name}
             </option>
           ))}

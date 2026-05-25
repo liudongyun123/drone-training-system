@@ -230,9 +230,10 @@ export function useSourceConfig() {
   }, [levels]);
 
   // 体系选项（用于下拉框）
+  // ★ value 使用 code（而非 _id），因为数据库 sourceId 字段存的是 code
   const sourceOptions = useMemo(() => {
     return sources.map(s => ({
-      value: s._id,
+      value: s.code,
       label: s.name,
       code: s.code,
       icon: s.icon

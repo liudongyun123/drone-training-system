@@ -1,0 +1,33 @@
+{
+  "name": "cleanup-and-test",
+  "leadAgentId": "561400dfa18342a699269e66cb3b57e6",
+  "workspacePath": "/Users/liudongyun/Desktop/drone-training-system-new",
+  "createdAt": "2026-05-23T15:54:37.013Z",
+  "options": {
+    "workspacePath": "/Users/liudongyun/Desktop/drone-training-system-new",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@cleanup-and-test",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    },
+    {
+      "memberId": "bugfixer@cleanup-and-test",
+      "name": "bugfixer",
+      "role": "Clean remaining @ts-ignore"
+    },
+    {
+      "memberId": "tester@cleanup-and-test",
+      "name": "tester",
+      "role": "Write unit tests for services"
+    },
+    {
+      "memberId": "scanner@cleanup-and-test",
+      "name": "scanner",
+      "role": "Scan admin panel for defects"
+    }
+  ],
+  "isAutoTeam": false
+}

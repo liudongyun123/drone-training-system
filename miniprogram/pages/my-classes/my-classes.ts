@@ -77,17 +77,7 @@ Page({
       const result = await getMyEnrollments(phone)
       let classes = result.data || []
 
-      // ★ 过滤掉待审核的记录（线下报名需要管理员通过后才显示）
-      classes = classes.filter((c: any) => c.status !== 'pending')
-
-      // 去重（按 classId + source 去重）
-      const seen = new Set()
-      classes = classes.filter((c: any) => {
-        const key = `${c._source || 'unknown'}-${c.classId || c._id}`
-        if (seen.has(key)) return false
-        seen.add(key)
-        return true
-      })
+      // ★ 去重已在 getMyEnrollments 中按 classId 完成，这里不再重复去重
 
       // 获取完整的培训班信息
       const classIds = classes.map((c: any) => c.classId).filter(Boolean)

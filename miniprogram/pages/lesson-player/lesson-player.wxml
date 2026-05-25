@@ -12,6 +12,7 @@
         show-progress
         show-fullscreen-btn
         enable-progress-gesture
+        show-download-btn="{{false}}"
         bindplay="onVideoPlay"
         bindpause="onVideoPause"
         bindended="onVideoEnded"
@@ -28,15 +29,21 @@
     </block>
   </view>
 
-  <!-- 课程信息 -->
+  <!-- 试看提示横幅 -->
+  <view wx:if="{{isPreviewMode}}" class="preview-banner">
+    <text class="preview-banner-text">👁 试看模式 · 仅可观看{{previewDuration}}秒</text>
+    <view class="preview-banner-btn" bindtap="goBuyCourse">
+      <text class="preview-banner-btn-text">购买完整课程</text>
+    </view>
+  </view>
+
+  <!-- 当前课时信息 -->
   <view class="lesson-info">
     <view class="lesson-title">{{lesson ? lesson.title : '加载中...'}}</view>
     <view class="lesson-meta">
       <text class="meta-item">进度: {{progress}}%</text>
       <text class="meta-item">时长: {{lesson.duration ? formatTime(lesson.duration) : '--:--'}}</text>
     </view>
-
-    <!-- 进度条 -->
     <view class="progress-bar">
       <view class="progress-fill" style="width: {{progress}}%"></view>
     </view>
@@ -56,10 +63,14 @@
         <view class="lesson-item-order">{{item.order || index + 1}}</view>
         <view class="lesson-item-content">
           <text class="lesson-item-title">{{item.title}}</text>
-          <text class="lesson-item-duration">{{item.duration ? formatTime(item.duration) : ''}}</text>
+          <view class="lesson-item-tags">
+            <text wx:if="{{item.videoUrl}}" class="tag-video">视频</text>
+            <text wx:if="{{item.pdfFile && item.pdfFile.fileID}}" class="tag-pdf">课件</text>
+            <text class="lesson-item-duration">{{item.duration ? formatTime(item.duration) : ''}}</text>
+          </view>
         </view>
         <view class="lesson-item-status">
-          <text wx:if="{{item.completed}}" class="status-completed">✓</text>
+          <text wx:if="{{item._id === lessonId}}" class="status-playing">▶</text>
         </view>
       </view>
     </scroll-view>

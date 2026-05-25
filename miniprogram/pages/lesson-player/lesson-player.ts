@@ -1,5 +1,5 @@
 // pages/lesson-player/lesson-player.ts
-// 课程视频播放页面 - 支持进度同步、断点续播、完成记录
+// 课程视频播放页 - 沉浸式学习体验
 
 import { showToast } from '../../utils/util'
 import { dbGetList, dbAdd, dbUpdate, request } from '../../utils/http'
@@ -14,6 +14,13 @@ interface Lesson {
   videoUrl: string
   duration: number
   order: number
+  pdfFile?: {
+    fileID: string
+    name: string
+    size: number
+  }
+  questionBankId?: string
+  isPreview?: boolean
 }
 
 interface Course {
@@ -36,12 +43,12 @@ Page({
     isPlaying: false,
     loading: true,
     videoContext: null as any,
-    // 进度保存定时器
     _progressTimer: null as any,
-    // 是否已记录完成
     _completed: false,
-    // 下一课时ID
-    nextLessonId: ''
+    nextLessonId: '',
+    // 试看控制
+    isPreviewMode: false,
+    previewDuration: 0
   },
 
   onLoad(options: any) {
@@ -58,43 +65,36 @@ Page({
   },
 
   onReady() {
-    // 创建视频上下文
     this.setData({ videoContext: wx.createVideoContext('lessonVideo') })
   },
 
   onUnload() {
-    // 页面卸载时保存进度
     this.saveProgress()
-    // 清除定时器
     if (this.data._progressTimer) {
       clearInterval(this.data._progressTimer)
     }
   },
 
   onHide() {
-    // 页面隐藏时保存进度
     this.saveProgress()
   },
 
   // 获取云存储视频的临时链接
   getCloudVideoUrl(fileId: string): Promise<string> {
-    // 如果已经有缓存的直接返回
     if (tempUrlCache.has(fileId)) {
       return Promise.resolve(tempUrlCache.get(fileId)!)
     }
 
     return new Promise((resolve) => {
-      // 通过 db-init 云函数获取临时链接
       request('/db-init', 'POST', {
         action: 'getTempFileURL',
         fileList: [fileId]
       }).then((res: any) => {
-        logger.debug('lesson-player', '获取视频URL结果:', res)
         if (res.fileList && res.fileList[0]) {
           const file = res.fileList[0]
           if (file.code === 'SUCCESS') {
             const url = file.tempFileURL || file.download_url
-            tempUrlCache.set(fileId, url) // 缓存结果
+            tempUrlCache.set(fileId, url)
             resolve(url)
           } else {
             resolve(fileId)
@@ -103,7 +103,7 @@ Page({
           resolve(fileId)
         }
       }).catch((err: any) => {
-        logger.error('lesson-player', '获取视频URL失败:', err)
+        logger.error('播放', '获取视频URL失败:', err)
         resolve(fileId)
       })
     })
@@ -114,15 +114,36 @@ Page({
     this.setData({ loading: true })
 
     try {
-      // 并行加载课程信息、课时列表、学习进度
-      const [courseRes, lessonsRes, progressRes] = await Promise.all([
+      let [courseRes, lessonsRes, progressRes] = await Promise.all([
         dbGetList('courses', { where: { _id: courseId }, limit: 1 }),
         dbGetList('lessons', { where: { courseId }, orderBy: 'order asc' }),
         this.loadProgress(courseId, lessonId)
       ])
 
       const course = courseRes?.data?.[0] || null
-      const lessons = lessonsRes?.data || []
+      let lessons = lessonsRes?.data || []
+
+      // 回退查询 chapters 集合
+      if (lessons.length === 0) {
+        const chaptersRes = await dbGetList('chapters', { where: { courseId }, orderBy: 'order asc' })
+        if (chaptersRes?.data && chaptersRes.data.length > 0) {
+          lessons = chaptersRes.data.map((ch: any) => ({
+            _id: ch._id,
+            courseId: ch.courseId,
+            title: ch.title,
+            description: ch.description || '',
+            content: ch.content || '',
+            videoUrl: ch.videoUrl || '',
+            duration: ch.videoDuration || ch.duration || 0,
+            order: ch.order ?? ch.sortOrder ?? 0,
+            isPreview: ch.isPreview || false,
+            questionBankId: ch.questionBankId || '',
+            pdfFile: ch.pdfFile || null,
+            createdAt: ch.createdAt
+          }))
+        }
+      }
+
       const lesson = lessons.find((l: Lesson) => l._id === lessonId) || lessons[0]
 
       if (!lesson) {
@@ -131,16 +152,40 @@ Page({
         return
       }
 
-      // 处理视频URL（cloud://格式需要转换为临时链接）
+      // 检查试看权限：未购买用户只能看 isFree 课时
+      const phone = wx.getStorageSync('phone') || ''
+      let hasPermission = false
+      if (phone) {
+        try {
+          const permResult = await dbGetList('course_permissions', {
+            where: { phone, courseId }
+          })
+          hasPermission = (permResult.data || []).length > 0
+        } catch (e) {
+          // 忽略
+        }
+      }
+
+      const isFree = (lesson as any).isFree || false
+      if (!hasPermission && !isFree) {
+        showToast('请先购买课程')
+        setTimeout(() => wx.navigateBack(), 1500)
+        return
+      }
+
+      // 试看模式：未购买 + 免费 + 设置了试看时长
+      const previewDuration = (lesson as any).previewDuration || 0
+      const isPreviewMode = !hasPermission && isFree && previewDuration > 0
+
+      // 处理视频URL
       let videoUrl = lesson.videoUrl || ''
       if (videoUrl.startsWith('cloud://')) {
         videoUrl = await this.getCloudVideoUrl(videoUrl)
       }
 
-      // 如果视频URL为空，显示占位提示但不阻止页面加载
       const hasVideo = !!(videoUrl && videoUrl.trim())
 
-      // 计算进度百分比
+      // 计算进度
       const watchedDuration = progressRes?.watchedDuration || 0
       const progress = lesson.duration > 0 ? Math.min(100, Math.round((watchedDuration / lesson.duration) * 100)) : 0
 
@@ -150,14 +195,15 @@ Page({
         lessons,
         currentVideoUrl: videoUrl,
         hasVideo,
+        isPreviewMode,
+        previewDuration,
         watchedDuration,
         progress,
         loading: false,
-        // 计算下一课时ID
         nextLessonId: ''
       })
 
-      // 计算下一课时ID
+      // 计算下一课时
       setTimeout(() => {
         const currentIndex = lessons.findIndex((l: Lesson) => l._id === lessonId)
         const nextLesson = lessons[currentIndex + 1]
@@ -166,10 +212,10 @@ Page({
         }
       }, 0)
 
-      // 启动进度保存定时器（每10秒保存一次）
+      // 启动进度保存定时器
       this.startProgressTimer()
 
-      // 如果有观看记录，提示是否续播
+      // 续播提示
       if (watchedDuration > 10) {
         wx.showModal({
           title: '续播提示',
@@ -178,7 +224,6 @@ Page({
           cancelText: '从头播放',
           success: (res) => {
             if (res.confirm) {
-              // 使用 requestAnimationFrame 等待视频准备好后再 seek
               const trySeek = () => {
                 if (this.data.videoContext) {
                   this.data.videoContext.seek(watchedDuration)
@@ -219,27 +264,25 @@ Page({
   startProgressTimer() {
     const timer = setInterval(() => {
       this.saveProgress()
-    }, 10000) // 每10秒保存一次
+    }, 10000)
 
     this.setData({ _progressTimer: timer })
   },
 
-  // 保存学习进度
+  // 保存学习进度（试看模式不保存）
   async saveProgress() {
+    if (this.data.isPreviewMode) return
+
     const { courseId, lessonId, currentTime, duration, watchedDuration, _completed } = this.data
     const phone = wx.getStorageSync('phone')
 
     if (!phone || !courseId || !lessonId) return
-    // 允许保存 0 秒进度（用户打开后立即退出的情况也需要记录）
     if (currentTime === 0 && watchedDuration === 0) return
 
-    // 更新本地观看时长（取较大值）
     const newWatchedDuration = Math.max(watchedDuration, currentTime)
     this.setData({ watchedDuration: newWatchedDuration })
 
     try {
-      
-      // 查找已有记录
       const existing = await dbGetList('user_progress', {
         where: { phone, courseId, lessonId }
       })
@@ -285,7 +328,29 @@ Page({
     const { currentTime, duration } = e.detail
     this.setData({ currentTime, duration })
 
-    // 更新进度百分比
+    // 试看时长限制：到达后暂停并提示购买
+    if (this.data.isPreviewMode && this.data.previewDuration > 0 && currentTime >= this.data.previewDuration) {
+      if (this.data.videoContext) {
+        this.data.videoContext.pause()
+        this.data.videoContext.seek(this.data.previewDuration)
+      }
+      this.setData({ isPlaying: false })
+      wx.showModal({
+        title: '试看结束',
+        content: `本课时仅可试看${this.data.previewDuration}秒，购买课程后可观看完整内容`,
+        confirmText: '购买课程',
+        cancelText: '返回',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({ url: `/pages/checkout/checkout?type=course&id=${this.data.courseId}` })
+          } else {
+            wx.navigateBack()
+          }
+        }
+      })
+      return
+    }
+
     const { watchedDuration } = this.data
     const newWatched = Math.max(watchedDuration, currentTime)
     const progress = duration > 0 ? Math.min(100, Math.round((newWatched / duration) * 100)) : 0
@@ -305,7 +370,6 @@ Page({
     if (!phone) return
 
     try {
-      // 记录完成
       const existing = await dbGetList('user_progress', {
         where: { phone, courseId, lessonId }
       })
@@ -324,7 +388,6 @@ Page({
       // 检查是否全部完成
       const completedCount = await this.getCompletedCount(courseId, phone)
       if (completedCount >= lessons.length) {
-        // 课程全部完成，检查是否需要颁发证书
         this.checkCertificate(courseId, phone)
       }
 
@@ -348,13 +411,9 @@ Page({
   // 检查是否需要颁发证书
   async checkCertificate(courseId: string, phone: string) {
     try {
-      // 检查课程是否配置了证书
       const course = this.data.course
       if (!course || !course.certificateTemplate) return
 
-      // 颁发证书
-      
-      // 检查是否已颁发
       const existing = await dbGetList('certificates', {
         where: { phone, courseId }
       })
@@ -386,8 +445,8 @@ Page({
     }
   },
 
-    // 切换课时
-    async switchLesson(e: any) {
+  // 切换课时
+  async switchLesson(e: any) {
     const lessonId = e.currentTarget.dataset.id
     const lesson = this.data.lessons.find((l: Lesson) => l._id === lessonId)
 
@@ -396,21 +455,20 @@ Page({
       return
     }
 
-    // 保存当前课时进度
+    // 保存当前进度
     this.saveProgress()
 
-    // 计算下一课时ID
+    // 计算下一课时
     const currentIndex = this.data.lessons.findIndex((l: Lesson) => l._id === lessonId)
     const nextLesson = this.data.lessons[currentIndex + 1]
     const nextLessonId = nextLesson ? nextLesson._id : ''
 
-    // 处理视频URL（cloud://格式需要转换为临时链接）
+    // 处理视频URL
     let videoUrl = lesson.videoUrl || ''
     if (videoUrl.startsWith('cloud://')) {
       videoUrl = await this.getCloudVideoUrl(videoUrl)
     }
 
-    // 切换到新课时
     this.setData({
       lessonId,
       lesson,
@@ -446,5 +504,10 @@ Page({
   goBack() {
     this.saveProgress()
     wx.navigateBack()
+  },
+
+  // 跳转购买课程
+  goBuyCourse() {
+    wx.navigateTo({ url: `/pages/checkout/checkout?type=course&id=${this.data.courseId}` })
   }
 })

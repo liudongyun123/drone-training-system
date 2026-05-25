@@ -1,7 +1,7 @@
 // pages/transfer-request/transfer-request.ts
 // 调课申请页面
 
-import { callFunction, dbQuery, dbGetList } from '../../utils/http'
+import { dbGetList, dbAdd, dbUpdate, dbQuery } from '../../utils/http'
 import { formatDate, checkLogin, getPhone, getUserInfo } from '../../utils/util'
 import logger from '../../utils/logger'
 
@@ -142,13 +142,26 @@ Page({
   // 加载统计数据
   async loadStats() {
     try {
-      const result = await callFunction('transfer-request', {
-        action: 'getStats'
+      const phone = getPhone() || ''
+      const userInfo = getUserInfo()
+      const studentId = userInfo?.id || userInfo?._openid || phone
+
+      const [totalRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
+        dbGetList('transferRequests', { where: { studentId }, limit: 0 }),
+        dbGetList('transferRequests', { where: { studentId, status: 'pending' }, limit: 0 }),
+        dbGetList('transferRequests', { where: { studentId, status: 'approved' }, limit: 0 }),
+        dbGetList('transferRequests', { where: { studentId, status: 'rejected' }, limit: 0 }),
+      ])
+
+      const total = (totalRes as any).total || (totalRes as any).data?.length || 0
+      const pending = (pendingRes as any).total || (pendingRes as any).data?.length || 0
+      const approved = (approvedRes as any).total || (approvedRes as any).data?.length || 0
+      const rejected = (rejectedRes as any).total || (rejectedRes as any).data?.length || 0
+      const approvalRate = total > 0 ? Math.round((approved / total) * 100) : 0
+
+      this.setData({
+        stats: { total, pending, approved, rejected, approvalRate }
       })
-      
-      if (result.code === 0) {
-        this.setData({ stats: result.data })
-      }
     } catch (err) {
       logger.error('调课', '加载统计失败', err)
     }
@@ -162,30 +175,37 @@ Page({
       const phone = getPhone() || ''
       const userInfo = getUserInfo()
       const studentId = userInfo?.id || userInfo?._openid || ''
-      
-      const result = await callFunction('transfer-request', {
-        action: 'listMyRequests',
-        phone,
-        studentId
-      })
-      
-      if (result.code === 0) {
-        const data = result.data as any
-        const requests = data?.list || data || []
-        
-        // 处理数据，补充状态文本
-        const processedRequests = requests.map((r: TransferRequest) => ({
-          ...r,
-          statusConfig: STATUS_CONFIG[r.status] || STATUS_CONFIG.pending,
-          typeConfig: TRANSFER_TYPES[r.transferType as keyof typeof TRANSFER_TYPES] || TRANSFER_TYPES.time
-        }))
-        
-        this.setData({
-          requests: processedRequests,
-          total: data?.total || requests.length,
-          loading: false
+
+      // 优先 studentId，备用 phone 查询
+      let result: any
+      if (studentId) {
+        result = await dbGetList('transferRequests', {
+          where: { studentId },
+          orderBy: 'createdAt desc',
+          limit: 50
+        })
+      } else {
+        result = await dbGetList('transferRequests', {
+          where: { studentPhone: phone },
+          orderBy: 'createdAt desc',
+          limit: 50
         })
       }
+      
+      const requests = (result as any).data || []
+      
+      // 处理数据，补充状态文本
+      const processedRequests = requests.map((r: TransferRequest) => ({
+        ...r,
+        statusConfig: STATUS_CONFIG[r.status] || STATUS_CONFIG.pending,
+        typeConfig: TRANSFER_TYPES[r.transferType as keyof typeof TRANSFER_TYPES] || TRANSFER_TYPES.time
+      }))
+      
+      this.setData({
+        requests: processedRequests,
+        total: (result as any).total || requests.length,
+        loading: false
+      })
     } catch (err) {
       logger.error('调课', '加载调课申请失败', err)
       this.setData({ loading: false })
@@ -264,14 +284,17 @@ Page({
     this.setData({ loadingTargets: true })
     
     try {
-      const result = await callFunction('transfer-request', {
-        action: 'getAvailableSchedules',
-        excludeScheduleId: schedule._id || schedule.id
+      const today = new Date().toISOString().split('T')[0]
+      const result = await dbGetList('class_schedules', {
+        where: {
+          date: { $gte: today },
+          _id: { $ne: schedule._id || schedule.id }
+        },
+        orderBy: 'date asc',
+        limit: 30
       })
       
-      if (result.code === 0) {
-        this.setData({ targetSchedules: result.data || [], loadingTargets: false })
-      }
+      this.setData({ targetSchedules: (result as any).data || [], loadingTargets: false })
     } catch (err) {
       logger.error('调课', '加载可选排课失败', err)
       this.setData({ targetSchedules: [], loadingTargets: false })
@@ -337,9 +360,9 @@ Page({
     try {
       const phone = getPhone() || ''
       const userInfo = getUserInfo()
+      const now = new Date().toISOString()
       
-      const result = await callFunction('transfer-request', {
-        action: 'createRequest',
+      const result = await dbAdd('transferRequests', {
         studentId: userInfo?.id || userInfo?._openid || phone,
         studentName: userInfo?.name || userInfo?.nickName || '',
         studentPhone: phone,
@@ -361,10 +384,13 @@ Page({
         targetLocation: selectedTarget?.location,
         transferType,
         reason: reason.trim(),
-        remark: remark.trim()
+        remark: remark.trim(),
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now
       })
       
-      if (result.code === 0) {
+      if (result && (result as any).id) {
         wx.showToast({ title: '调课申请提交成功', icon: 'success' })
         
         // 重置表单
@@ -382,7 +408,7 @@ Page({
         this.loadStats()
         this.loadRequests()
       } else {
-        wx.showToast({ title: result.message || '提交失败', icon: 'none' })
+        wx.showToast({ title: '提交失败', icon: 'none' })
       }
     } catch (err: any) {
       wx.showToast({ title: err.message || '提交失败', icon: 'none' })
@@ -421,20 +447,14 @@ Page({
       success: async (res) => {
         if (res.confirm) {
           try {
-            const userInfo = getUserInfo()
-            const result = await callFunction('transfer-request', {
-              action: 'cancelRequest',
-              requestId: request._id || request.id,
-              studentId: userInfo?.id || userInfo?._openid || ''
+            await dbUpdate('transferRequests', request._id || request.id, {
+              status: 'cancelled',
+              updatedAt: new Date().toISOString()
             })
             
-            if (result.code === 0) {
-              wx.showToast({ title: '申请已取消', icon: 'success' })
-              this.loadStats()
-              this.loadRequests()
-            } else {
-              wx.showToast({ title: result.message || '取消失败', icon: 'none' })
-            }
+            wx.showToast({ title: '申请已取消', icon: 'success' })
+            this.loadStats()
+            this.loadRequests()
           } catch (err: any) {
             wx.showToast({ title: err.message || '取消失败', icon: 'none' })
           }

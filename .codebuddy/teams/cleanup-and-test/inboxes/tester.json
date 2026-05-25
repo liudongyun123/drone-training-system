@@ -1,0 +1,11 @@
+[
+  {
+    "id": "msg-1779552508509-2ew7oc",
+    "from": "team-lead",
+    "to": "tester",
+    "type": "message",
+    "content": "请汇报你的单元测试编写进度。写了哪些测试文件？覆盖了哪些模块？",
+    "timestamp": "2026-05-23T16:08:28.509Z",
+    "read": true
+  }
+]

@@ -38,6 +38,7 @@ export interface LessonFormData {
   videoUrl: string;
   videoDuration: number;
   isFree: boolean;
+  previewDuration: number;  // 试看时长（秒），0表示完整试看
   order: number;
   pdfFile?: { fileID: string; name: string; size: number } | null;
 }
@@ -73,6 +74,7 @@ export const initialLessonFormData: LessonFormData = {
   videoUrl: '',
   videoDuration: 0,
   isFree: false,
+  previewDuration: 0,
   order: 0,
 };
 
@@ -100,8 +102,8 @@ export function useCourses() {
   const [sourcesLoading, setSourcesLoading] = useState(false);
 
   // 筛选状态
-  const [selectedSource, setSelectedSource] = useState<string>('');  // 体系的 _id（用于查询）
-  const [selectedSourceId, setSelectedSourceId] = useState<string>('');  // 体系的 _id（别名，统一使用 _id）
+  const [selectedSource, setSelectedSource] = useState<string>('');  // 体系的 code（用于查询）
+  const [selectedSourceId, setSelectedSourceId] = useState<string>('');  // 体系的 code（统一使用 code）
 
   // 字典数据
   const { options: levelOptions, loading: levelsLoading } = useDictionary({ groupKey: 'courseLevels' });
@@ -148,7 +150,7 @@ export function useCourses() {
     try {
       // 构建查询条件
       const query: Record<string, any> = {};
-      // 使用 selectedSourceId（体系 _id）
+      // 使用 selectedSourceId（体系 code）
       if (selectedSourceId) {
         query.sourceId = selectedSourceId;
       }
@@ -181,8 +183,8 @@ export function useCourses() {
       // 如果没有选择体系，自动选择第一个
       if (!selectedSourceId && sourcesList.length > 0) {
         const firstSource = sourcesList[0];
-        setSelectedSource(firstSource._id);
-        setSelectedSourceId(firstSource._id);
+        setSelectedSource(firstSource.code);
+        setSelectedSourceId(firstSource.code);
       }
     } catch (error) {
       console.error('加载体系列表失败:', error);
@@ -430,6 +432,7 @@ export function useCourses() {
       videoUrl: lesson.videoUrl || '',
       videoDuration: lesson.videoDuration || 0,
       isFree: lesson.isFree || false,
+      previewDuration: (lesson as any).previewDuration || 0,
       order: lesson.order || 0,
       pdfFile: (lesson as any).pdfFile || null,
     });

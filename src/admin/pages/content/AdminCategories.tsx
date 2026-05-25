@@ -333,7 +333,7 @@ export default function AdminCategories() {
           >
             <option value="">全部体系</option>
             {sources.map(opt => (
-              <option key={opt._id} value={opt._id}>{opt.name}</option>
+              <option key={opt.code} value={opt.code}>{opt.icon} {opt.name}</option>
             ))}
           </select>
           <div className="flex gap-1.5 bg-gray-100 rounded-lg p-1">

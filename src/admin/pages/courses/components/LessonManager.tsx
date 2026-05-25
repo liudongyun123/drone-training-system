@@ -166,7 +166,7 @@ export default function LessonManager({
                         )}
                         {lesson.isFree && (
                           <span className="badge badge-sm badge-success">
-                            试看
+                            试看{(lesson as any).previewDuration ? ` ${(lesson as any).previewDuration}秒` : ''}
                           </span>
                         )}
                       </div>
@@ -458,11 +458,33 @@ export default function LessonManager({
                         setLessonFormData({
                           ...lessonFormData,
                           isFree: e.target.checked,
+                          previewDuration: e.target.checked ? lessonFormData.previewDuration : 0,
                         })
                       }
                     />
                     <span className="label-text">允许试看（免费预览）</span>
                   </label>
+                  {lessonFormData.isFree && (
+                    <div className="mt-2 flex items-center gap-3 pl-8">
+                      <label className="text-sm text-gray-500 whitespace-nowrap">试看时长</label>
+                      <input
+                        type="number"
+                        className="input input-bordered input-sm w-28"
+                        value={lessonFormData.previewDuration}
+                        onChange={(e) =>
+                          setLessonFormData({
+                            ...lessonFormData,
+                            previewDuration: Number(e.target.value),
+                          })
+                        }
+                        min={0}
+                        placeholder="秒"
+                      />
+                      <span className="text-xs text-gray-400">
+                        秒（0 = 完整试看）
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
