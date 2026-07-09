@@ -1,8 +1,8 @@
 // ============================================================================
-// 认证上下文
+// 认证上下文（通过 HTTP API 实现，不再依赖 CloudBase SDK）
 // ============================================================================
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { app, ensureInit } from '@/utils/cloudbase';
+import { adminService } from '@/services/adminService';
 
 interface User {
   uid: string;
@@ -31,25 +31,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      // 确保 SDK 初始化
-      await ensureInit();
-      
-      // 获取登录状态和用户信息
-      const auth = app.auth();
-      const loginState = await auth.getLoginState();
-      
-      if (loginState) {
-        const { data } = await auth.getUser();
-        if (data?.user) {
-          const cloudUser = data.user;
-          setUser({
-            uid: cloudUser.uid || cloudUser.id || '',
-            isAnonymous: cloudUser.isAnonymous || false,
-            email: cloudUser.email,
-            phone: cloudUser.phone,
-            user_metadata: cloudUser.user_metadata
-          });
-        }
+      // 通过 api-auth 云函数验证 Token
+      const result = await adminService.callFunction('api-auth', {
+        action: 'verifyToken',
+        data: {}
+      });
+
+      if (result?.success && result?.data) {
+        const userData = result.data.user || result.data;
+        setUser({
+          uid: userData.uid || userData.openid || '',
+          isAnonymous: userData.isAnonymous || false,
+          email: userData.email,
+          phone: userData.phone,
+          user_metadata: userData.user_metadata
+        });
       } else {
         setUser(null);
       }
@@ -67,25 +63,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async () => {
     try {
-      await ensureInit();
-      const auth = app.auth();
-      const loginState = await auth.getLoginState();
-      
-      if (!loginState) {
-        // 执行匿名登录
-        await auth.anonymousAuthProvider().signIn();
-      }
-      
-      // 获取用户信息
-      const { data } = await auth.getUser();
-      if (data?.user) {
-        const cloudUser = data.user;
+      // 匿名登录
+      const result = await adminService.callFunction('api-auth', {
+        action: 'wxMiniappLogin',
+        data: { type: 'anonymous' }
+      });
+
+      if (result?.data) {
+        const userData = result.data.user || result.data;
         setUser({
-          uid: cloudUser.uid || cloudUser.id || '',
-          isAnonymous: cloudUser.isAnonymous || false,
-          email: cloudUser.email,
-          phone: cloudUser.phone,
-          user_metadata: cloudUser.user_metadata
+          uid: userData.uid || userData.openid || '',
+          isAnonymous: true,
+          email: userData.email,
+          phone: userData.phone,
+          user_metadata: userData.user_metadata
         });
       }
     } catch (error) {
@@ -96,8 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      const auth = app.auth();
-      await auth.signOut();
+      await adminService.callFunction('api-auth', {
+        action: 'logout',
+        data: {}
+      });
       setUser(null);
     } catch (error) {
       console.error('退出登录失败:', error);
@@ -120,10 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
+export function useAuthContext() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuthContext must be used within an AuthProvider');
   }
   return context;
 }

@@ -22,7 +22,8 @@ Page({
     sourceList: [
       { key: 'RENSHE', name: '人社培训', icon: '🏛️', id: '' },
       { key: 'CAAC', name: 'CAAC培训', icon: '✈️', id: '' }
-    ]
+    ],
+    defaultCover: DEFAULT_COVER
   },
 
   onLoad(options: any) {

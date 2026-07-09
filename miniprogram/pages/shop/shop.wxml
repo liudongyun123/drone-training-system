@@ -23,7 +23,7 @@
       wx:key="_id"
     >
       <view class="product-card-inner" bindtap="goToDetail" data-id="{{item._id}}">
-        <image class="product-cover" src="{{item.coverImage || item.cover || defaultCover}}" mode="aspectFill" />
+        <image class="product-cover" src="{{item.coverImage || item.cover || defaultCover}}" mode="aspectFill" binderror="onImageError" data-index="{{index}}" />
         <view class="product-info">
           <text class="product-name">{{item.name}}</text>
           <view class="product-bottom">

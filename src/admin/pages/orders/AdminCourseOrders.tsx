@@ -9,6 +9,7 @@ import { useConfirm } from '@/admin/hooks/useConfirm';
 import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { adminService } from '@/services/adminService';
+import { orderService } from '@/services/database';
 import { messageService } from '@/services/messageService';
 import { toast } from '@/components/Toast';
 import {
@@ -54,18 +55,17 @@ export default function AdminCourseOrders() {
   const loadOrders = async () => {
     setLoading(true);
     try {
-      // 课程订单：获取所有订单
-      const query: Record<string, any> = {};
+      // 课程订单：查询 type='course' 的订单
+      const query: Record<string, any> = { type: 'course' };
       if (filterStatus) query.status = filterStatus;
+      // 体系筛选：订单的 sourceId 字段存储的是体系 code
       if (filterSource) query.sourceId = filterSource;
       
-      const result = await adminService.list('orders', query, { page, pageSize, orderBy: 'createdAt', order: 'desc' }) as unknown as { code: number; data: { list: any[] } };
+      const result = await adminService.listWithOps('orders', query, { skip: (page - 1) * pageSize, limit: pageSize, orderBy: 'createdAt', order: 'desc' });
       if (result.code === 0) {
-        // 过滤出课程订单（有 courseId 或 items）
-        let list = result.data?.list || [];
-        list = list.filter((o: any) => o.courseId || o.items);
+        let list: any[] = result.data?.list || [];
         
-        // 搜索筛选
+        // 搜索筛选（客户端二次过滤）
         if (searchKeyword) {
           const kw = searchKeyword.toLowerCase();
           list = list.filter((o: any) => 
@@ -78,14 +78,13 @@ export default function AdminCourseOrders() {
           );
         }
         
-        const safeTotal = list.length;
-        setOrders(list.slice(0, pageSize));
-        setTotal(safeTotal);
+        setOrders(list);
+        setTotal(result.data?.total || list.length);
 
-        // 计算统计数据（所有订单中筛选课程订单）
+        // 计算统计数据
         const paidList = list.filter((o: any) => o.status === 'paid' || o.status === 'completed');
         setStats({
-          total: safeTotal,
+          total: result.data?.total || list.length,
           paid: paidList.length,
           pending: list.filter((o: any) => o.status === 'pending').length,
           totalAmount: list.reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || o.total || 0), 0),

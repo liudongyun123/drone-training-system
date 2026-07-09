@@ -17,6 +17,9 @@ const app = cloudbase.init({ env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex2676
 const db = app.database()
 const _ = db.command
 
+// 云函数以 HTTP 触发器运行，CloudBase Node 运行时不存在全局 WX 环境（isWxEnv/cloud 非注入变量）
+const isWxEnv = false
+
 // ========== 工具函数 ==========
 
 const { getCorsHeaders } = require('./lib/cors')

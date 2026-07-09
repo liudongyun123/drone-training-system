@@ -341,8 +341,8 @@ export class BaseService {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
-    const result = await this.db.collection(collectionName).add(doc)
-    return { _id: (result as any).id || (result as any)._id, ...doc } as T
+    const result = await adminService.add(collectionName, doc)
+    return { _id: result?.data?.id || '', ...doc } as T
   }
 
   /**
@@ -357,8 +357,8 @@ export class BaseService {
       ...data,
       updatedAt: new Date().toISOString()
     }
-    const result = await this.db.collection(collectionName).doc(id).update(doc)
-    return (result as any)?.data?.updated > 0 || true
+    await adminService.update(collectionName, id, doc)
+    return true
   }
 
   /**

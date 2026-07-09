@@ -107,28 +107,44 @@ export const adminService = {
   /**
    * 添加记录
    */
-  async add(collection: string, data: Record<string, unknown>): Promise<{ code: number; data: { id: string } }> {
-    const result = await httpRequest<{ data?: { id?: string }; id?: string }>('add', { collection, data })
+  async add(collection: string, data: Record<string, unknown>): Promise<{ code: number; data: { id: string }; message?: string }> {
+    const result = await httpRequest<{ code?: number; data?: { id?: string }; id?: string; message?: string }>('add', { collection, data })
+    const code = result?.code ?? -1
     const id = result?.data?.id || result?.id || ''
+    const message = result?.message || ''
+    if (code !== 0) {
+      console.error('[adminService] add 失败:', JSON.stringify(result))
+      return { code, data: { id }, message: message || '添加失败' }
+    }
     if (!id) {
       console.warn('[adminService] add 返回的 id 为空, result:', JSON.stringify(result))
     }
-    return { code: 0, data: { id } }
+    return { code: 0, data: { id }, message }
   },
 
   /**
    * 更新记录
    */
-  async update(collection: string, id: string, data: Record<string, unknown>): Promise<{ code: number }> {
-    await httpRequest('update', { collection, id, data })
+  async update(collection: string, id: string, data: Record<string, unknown>): Promise<{ code: number; message?: string }> {
+    const result = await httpRequest<{ code?: number; message?: string }>('update', { collection, id, data })
+    const code = result?.code ?? -1
+    if (code !== 0) {
+      console.error('[adminService] update 失败:', JSON.stringify(result))
+      return { code, message: result?.message || '更新失败' }
+    }
     return { code: 0 }
   },
 
   /**
    * 删除记录
    */
-  async delete(collection: string, id: string): Promise<{ code: number }> {
-    await httpRequest('delete', { collection, id })
+  async delete(collection: string, id: string): Promise<{ code: number; message?: string }> {
+    const result = await httpRequest<{ code?: number; message?: string }>('delete', { collection, id })
+    const code = result?.code ?? -1
+    if (code !== 0) {
+      console.error('[adminService] delete 失败:', JSON.stringify(result))
+      return { code, message: result?.message || '删除失败' }
+    }
     return { code: 0 }
   },
 
@@ -233,11 +249,11 @@ export const adminService = {
   createMember: (data: Record<string, any>) => adminService.add('members', data),
   updateMember: (id: string, data: Record<string, any>) => adminService.update('members', id, data),
 
-  // 用户
-  listUsers: (query: Record<string, any> = {}, options: Record<string, any> = {}) => adminService.list('users', query, options),
-  getUser: (id: string) => adminService.get('users', id),
-  createUser: (data: Record<string, any>) => adminService.add('users', data),
-  updateUser: (id: string, data: Record<string, any>) => adminService.update('users', id, data),
+  // 用户（统一使用 members 集合）
+  listUsers: (query: Record<string, any> = {}, options: Record<string, any> = {}) => adminService.list('members', query, options),
+  getUser: (id: string) => adminService.get('members', id),
+  createUser: (data: Record<string, any>) => adminService.add('members', data),
+  updateUser: (id: string, data: Record<string, any>) => adminService.update('members', id, data),
 
   // 排课
   listSchedules: (query: Record<string, any> = {}, options: Record<string, any> = {}) => adminService.list('class_schedules', query, options),
@@ -305,10 +321,10 @@ export const adminService = {
     try {
       const response = await axios.post(`${API_BASE_URL}/${functionName}`, data)
       return response.data
-    } catch (error: any) {
-      console.error(`[callFunction] ${functionName} 调用失败:`, error.message)
-      return { code: -1, message: error.message }
-    }
+  } catch (error: any) {
+    console.error(`[callFunction] ${functionName} 调用失败:`, error.message)
+    return { code: -1, success: false, message: error.message }
+  }
   },
 }
 

@@ -95,6 +95,18 @@ function validatePhone(phone) {
   return /^1[3-9]\d{9}$/.test(phone)
 }
 
+// ========== 密码哈希（与 api-user 保持一致的 sha256，生产环境建议 bcrypt）==========
+function hashPassword(password) {
+  return crypto.createHash('sha256').update('drone_auth_salt_' + password).digest('hex')
+}
+
+// 校验密码：兼容历史明文存储 + 新哈希存储
+function verifyPassword(input, stored) {
+  if (!stored) return false
+  if (stored === input) return true // 兼容历史明文
+  return stored === hashPassword(input)
+}
+
 // ========== HTTPS 请求工具 ==========
 
 function httpsGet(url) {
@@ -179,11 +191,10 @@ async function getPhoneNumberByCode(code) {
   return result.phone_info
 }
 
-function getCorsHeaders(origin = '') {
+// CORS 由 CloudBase HTTP 网关自动处理，云函数代码中不再重复添加
+// 避免 Access-Control-Allow-Origin 头重复导致浏览器 CORS 错误
+function getHeaders() {
   return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Content-Type': 'application/json; charset=utf-8'
   }
 }
@@ -207,23 +218,73 @@ async function adminLogin(username, password) {
     try { await db.collection('sessions').add({ _init: true }) } catch (e2) { console.log('[adminLogin] sessions创建失败:', e2.message) }
   }
   
-  // 查询管理员账号
-  const users = await db.collection('users')
+  // 查询管理员账号（优先 members，兼容旧 users）
+  let users = await db.collection('members')
     .where({
       $or: [
-        { username: username },
+        { name: username },
         { phone: username }
       ]
     })
     .limit(1)
     .get()
   
+  let user = null
+  let fromUsers = false
+  
+  // 如果在 members 中找不到，尝试从旧 users 集合查找
   if (!users.data || users.data.length === 0) {
+    console.log('[adminLogin] members 中未找到，尝试旧 users 集合')
+    const oldUsers = await db.collection('users')
+      .where({
+        $or: [
+          { username: username },
+          { phone: username }
+        ]
+      })
+      .limit(1)
+      .get()
+    
+    if (oldUsers.data && oldUsers.data.length > 0) {
+      user = oldUsers.data[0]
+      fromUsers = true
+      console.log('[adminLogin] 从旧 users 集合找到管理员:', user.username)
+      
+      // 自动迁移到 members 集合
+      try {
+        const existingMember = await db.collection('members').where({ phone: user.phone || '' }).limit(1).get()
+        if (!existingMember.data || existingMember.data.length === 0) {
+          const now = new Date().toISOString()
+          await db.collection('members').add({
+            name: user.username,
+            phone: user.phone || '',
+            password: user.password,
+            role: 'admin',
+            status: 'active',
+            source: 'system',
+            type: 'user',
+            profile: {},
+            stats: { totalHours: 0, completedCourses: 0, examAttempts: 0, totalOrders: 0, totalSpent: 0 },
+            enrolledCourses: [],
+            completedCourses: [],
+            createdAt: user.createdAt || now,
+            updatedAt: now,
+            lastLoginAt: now
+          })
+          console.log('[adminLogin] 管理员账号已自动迁移到 members')
+        }
+      } catch (migrateErr) {
+        console.error('[adminLogin] 迁移管理员到 members 失败:', migrateErr.message)
+      }
+    }
+  } else {
+    user = users.data[0]
+  }
+  
+  if (!user) {
     console.log('[adminLogin] 用户不存在:', username)
     return { success: false, error: '用户名或密码错误' }
   }
-  
-  const user = users.data[0]
   
   // 验证密码
   if (user.password !== password) {
@@ -266,10 +327,15 @@ async function adminLogin(username, password) {
       createdAt: new Date().toISOString()
     })
   
-  // 更新登录时间
-  await db.collection('users').doc(user._id).update({ lastLoginAt: new Date().toISOString() })
+  // 更新登录时间（根据来源使用对应集合）
+  const displayName = fromUsers ? user.username : user.name
+  if (fromUsers) {
+    await db.collection('users').doc(user._id).update({ lastLoginAt: new Date().toISOString() })
+  } else {
+    await db.collection('members').doc(user._id).update({ lastLoginAt: new Date().toISOString() })
+  }
   
-  console.log('[adminLogin] 登录成功:', user.username)
+  console.log('[adminLogin] 登录成功:', displayName)
   
   return {
     success: true,
@@ -279,8 +345,8 @@ async function adminLogin(username, password) {
       expireAt,
       user: {
         _id: user._id,
-        username: user.username,
-        phone: user.phone,
+        username: displayName,
+        phone: user.phone || '',
         avatar: user.avatar || '',
         role: user.role,
         permissions: user.permissions || []
@@ -306,9 +372,7 @@ async function sendSmsCode(phone) {
   
   return {
     success: true,
-    message: '验证码已发送',
-    // 开发模式返回验证码
-    _debugCode: code
+    message: '验证码已发送'
   }
 }
 
@@ -334,24 +398,31 @@ async function loginBySms(phone, code) {
   await db.collection('sms_codes').doc(records.data[0]._id).update({ used: true })
   
   // 查找或创建用户
-  let users = await db.collection('users').where({ phone }).limit(1).get()
+  let users = await db.collection('members').where({ phone }).limit(1).get()
   let user
   
   if (!users.data || users.data.length === 0) {
     const now = new Date().toISOString()
     user = {
       phone,
-      username: `用户${phone.slice(-4)}`,
+      name: `用户${phone.slice(-4)}`,
       role: 'student',
       status: 'active',
+      loginType: 'phone',
+      source: 'online_purchase',
+      type: 'user',
+      profile: {},
+      stats: { totalHours: 0, completedCourses: 0, examAttempts: 0, totalOrders: 0, totalSpent: 0 },
+      enrolledCourses: [],
+      completedCourses: [],
       createdAt: now,
       updatedAt: now
     }
-    const result = await db.collection('users').add(user)
+    const result = await db.collection('members').add(user)
     user._id = result.id
   } else {
     user = users.data[0]
-    await db.collection('users').doc(user._id).update({ lastLoginAt: new Date().toISOString() })
+    await db.collection('members').doc(user._id).update({ lastLoginAt: new Date().toISOString() })
   }
   
   const token = generateToken()
@@ -364,7 +435,7 @@ async function loginBySms(phone, code) {
     data: {
       token,
       expireAt,
-      user: { _id: user._id, phone: user.phone, username: user.username, role: user.role }
+      user: { _id: user._id, phone: user.phone, username: user.name, role: user.role }
     }
   }
 }
@@ -399,7 +470,7 @@ async function register(phone, code, username, password) {
   await db.collection('sms_codes').doc(records.data[0]._id).update({ used: true })
 
   // 检查手机号是否已注册
-  const existingUsers = await db.collection('users').where({ phone }).limit(1).get()
+  const existingUsers = await db.collection('members').where({ phone }).limit(1).get()
   if (existingUsers.data && existingUsers.data.length > 0) {
     return { success: false, error: '该手机号已注册，请直接登录' }
   }
@@ -408,16 +479,22 @@ async function register(phone, code, username, password) {
   const now = new Date().toISOString()
   const user = {
     phone,
-    username,
-    password, // 存储密码（实际应加密，简化处理）
+    name: username,
+    password: hashPassword(password), // 密码哈希存储，避免明文泄露
     role: 'student',
     status: 'active',
     loginType: 'phone',
+    source: 'online_purchase',
+    type: 'user',
+    profile: {},
+    stats: { totalHours: 0, completedCourses: 0, examAttempts: 0, totalOrders: 0, totalSpent: 0 },
+    enrolledCourses: [],
+    completedCourses: [],
     createdAt: now,
     updatedAt: now,
     lastLoginAt: now
   }
-  const result = await db.collection('users').add(user)
+  const result = await db.collection('members').add(user)
   user._id = result.id
 
   // 创建用户角色记录
@@ -475,7 +552,7 @@ async function wxMiniappLogin(event, context) {
     console.log('[wxMiniappLogin] openid:', openid)
 
     // 查找或创建用户
-    let users = await db.collection('users').where({ openid }).limit(1).get()
+    let users = await db.collection('members').where({ openid }).limit(1).get()
     let user
 
     if (!users.data || users.data.length === 0) {
@@ -484,19 +561,25 @@ async function wxMiniappLogin(event, context) {
       const newUser = {
         openid,
         appid,
-        username: `微信用户${openid.slice(-6)}`,
+        name: `微信用户${openid.slice(-6)}`,
         role: 'student',
         status: 'active',
         loginType: 'wechat',
+        source: 'online_purchase',
+        type: 'user',
+        profile: {},
+        stats: { totalHours: 0, completedCourses: 0, examAttempts: 0, totalOrders: 0, totalSpent: 0 },
+        enrolledCourses: [],
+        completedCourses: [],
         createdAt: now,
         lastLoginAt: now
       }
-      const result = await db.collection('users').add(newUser)
+      const result = await db.collection('members').add(newUser)
       user = { ...newUser, _id: result.id }
       console.log('[wxMiniappLogin] 创建新用户:', user._id)
     } else {
       user = users.data[0]
-      await db.collection('users').doc(user._id).update({ lastLoginAt: new Date().toISOString(), loginType: 'wechat' })
+      await db.collection('members').doc(user._id).update({ lastLoginAt: new Date().toISOString(), loginType: 'wechat' })
       console.log('[wxMiniappLogin] 用户已存在:', user._id)
     }
 
@@ -513,7 +596,7 @@ async function wxMiniappLogin(event, context) {
         expireAt,
         userId: user._id,
         openid,
-        user: { _id: user._id, username: user.username, phone: user.phone || '', role: user.role }
+        user: { _id: user._id, username: user.name, phone: user.phone || '', role: user.role }
       }
     }
   } catch (e) {
@@ -542,7 +625,7 @@ async function wxPhoneLogin(data, event, context) {
     console.log('[wxPhoneLogin] 手机号:', phoneNumber)
 
     // 查找或创建用户
-    let users = await db.collection('users').where({ phone: purePhoneNumber }).limit(1).get()
+    let users = await db.collection('members').where({ phone: purePhoneNumber }).limit(1).get()
     let user
 
     if (!users.data || users.data.length === 0) {
@@ -551,14 +634,20 @@ async function wxPhoneLogin(data, event, context) {
       const newUser = {
         phone: purePhoneNumber,
         openid: providedOpenid || '',
-        username: `用户${purePhoneNumber.slice(-4)}`,
+        name: `用户${purePhoneNumber.slice(-4)}`,
         role: 'student',
         status: 'active',
         loginType: 'phone',
+        source: 'online_purchase',
+        type: 'user',
+        profile: {},
+        stats: { totalHours: 0, completedCourses: 0, examAttempts: 0, totalOrders: 0, totalSpent: 0 },
+        enrolledCourses: [],
+        completedCourses: [],
         createdAt: now,
         lastLoginAt: now
       }
-      const result = await db.collection('users').add(newUser)
+      const result = await db.collection('members').add(newUser)
       user = { ...newUser, _id: result.id }
       console.log('[wxPhoneLogin] 创建新用户:', user._id)
     } else {
@@ -568,7 +657,7 @@ async function wxPhoneLogin(data, event, context) {
       if (!user.openid && providedOpenid) {
         updateData.openid = providedOpenid
       }
-      await db.collection('users').doc(user._id).update(updateData)
+      await db.collection('members').doc(user._id).update(updateData)
       console.log('[wxPhoneLogin] 用户已存在:', user._id)
     }
 
@@ -585,7 +674,7 @@ async function wxPhoneLogin(data, event, context) {
         expireAt,
         userId: user._id,
         phone: purePhoneNumber,
-        user: { _id: user._id, username: user.username, phone: purePhoneNumber, role: user.role }
+        user: { _id: user._id, username: user.name, phone: purePhoneNumber, role: user.role }
       }
     }
   } catch (e) {
@@ -612,7 +701,7 @@ async function verifyToken(token) {
     return { success: false, error: 'Token已过期' }
   }
   
-  const user = await db.collection('users').doc(session.userId).get()
+  const user = await db.collection('members').doc(session.userId).get()
   if (!user.data) return { success: false, error: '用户不存在' }
   
   return {
@@ -621,7 +710,7 @@ async function verifyToken(token) {
       userId: session.userId,
       user: {
         _id: user.data._id,
-        username: user.data.username,
+        username: user.data.name,
         phone: user.data.phone,
         role: user.data.role
       }
@@ -629,28 +718,105 @@ async function verifyToken(token) {
   }
 }
 
+/**
+ * 校验短信验证码（不创建会话，供绑定/换绑手机号使用）
+ */
+async function verifySmsCode(phone, code) {
+  if (!validatePhone(phone)) {
+    return { success: false, error: '手机号格式不正确' }
+  }
+  if (!code) {
+    return { success: false, error: '请输入验证码' }
+  }
+  try {
+    const records = await db.collection('sms_codes')
+      .where({ phone, code, used: false, expireAt: _.gt(Date.now()) })
+      .limit(1)
+      .get()
+    if (!records.data || records.data.length === 0) {
+      return { success: false, error: '验证码错误或已过期' }
+    }
+    // 标记已使用，防止重放
+    await db.collection('sms_codes').doc(records.data[0]._id).update({ used: true })
+    return { success: true, message: '验证通过' }
+  } catch (e) {
+    console.error('[verifySmsCode] 失败:', e.message)
+    return { success: false, error: '验证码校验失败: ' + e.message }
+  }
+}
+
+/**
+ * 修改密码（兼容 members / users 集合）
+ */
+async function changePassword(params) {
+  const { phone, userId, oldPassword, newPassword } = params || {}
+  if (!newPassword || newPassword.length < 6) {
+    return { success: false, error: '新密码至少6位' }
+  }
+  if (!phone && !userId) {
+    return { success: false, error: '缺少用户标识（phone 或 userId）' }
+  }
+
+  const query = phone ? { phone } : { _id: userId }
+  // 优先查 members，再查 users
+  let coll = 'members'
+  let rec = await db.collection(coll).where(query).limit(1).get()
+  if (!rec.data || rec.data.length === 0) {
+    coll = 'users'
+    rec = await db.collection(coll).where(query).limit(1).get()
+  }
+  if (!rec.data || rec.data.length === 0) {
+    return { success: false, error: '用户不存在' }
+  }
+  const user = rec.data[0]
+  if (oldPassword && !verifyPassword(oldPassword, user.password)) {
+    return { success: false, error: '原密码错误' }
+  }
+  const newHash = hashPassword(newPassword)
+  await db.collection(coll).doc(user._id).update({ password: newHash, updatedAt: new Date().toISOString() })
+  console.log('[changePassword] 密码已更新:', user._id)
+  return { success: true, message: '密码修改成功' }
+}
+
 // ========== 主入口 ==========
 
 exports.main = async (event, context) => {
-  console.log('[api-auth] action:', event.action || 'default')
-  
-  // CORS预检
+  console.log('[api-auth] 收到请求:', JSON.stringify({
+    httpMethod: event.httpMethod,
+    path: event.path,
+    queryString: event.queryString,
+    headers: event.headers ? Object.keys(event.headers) : null,
+    hasBody: !!event.body,
+    isBase64Encoded: event.isBase64Encoded,
+    action: event.action
+  }))
+
+  // CORS预检（CloudBase 网关自动处理 CORS，这里只做快速响应）
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: getCorsHeaders(), body: '{}' }
+    return { statusCode: 200, headers: getHeaders(), body: '{}' }
   }
-  
-  // 解析参数
+
+  // 解析参数（兼容 HTTP 触发器直接调用 / 小程序 callFunction / 事件调用）
   let action = event.action || ''
   let data = event.data || event
-  
+
   if (event.body) {
     try {
-      const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body
+      let bodyStr = event.body
+      // CloudBase HTTP 触发器可能将 body 做 Base64 编码
+      if (event.isBase64Encoded && typeof bodyStr === 'string') {
+        bodyStr = Buffer.from(bodyStr, 'base64').toString('utf8')
+        console.log('[api-auth] Base64 body 已解码')
+      }
+      const body = typeof bodyStr === 'string' ? JSON.parse(bodyStr) : bodyStr
       action = body.action || action
       data = body.data || body
-    } catch (e) {}
+      console.log('[api-auth] 从 body 解析 action:', action)
+    } catch (e) {
+      console.error('[api-auth] 解析 body 失败:', e.message, 'body前100字符:', String(event.body).slice(0, 100))
+    }
   }
-  
+
   const token = event.headers?.authorization?.replace('Bearer ', '') || data.token
   
   try {
@@ -689,16 +855,24 @@ exports.main = async (event, context) => {
         await db.collection('sessions').where({ token }).remove()
         result = { success: true }
         break
-        
+
+      case 'verifySmsCode':
+        result = await verifySmsCode(data.phone, data.code)
+        break
+
+      case 'changePassword':
+        result = await changePassword(data)
+        break
+
       default:
         result = { success: false, error: '未知操作: ' + action }
     }
     
-    // HTTP返回格式（始终返回200，避免CloudBase网关丢弃非200的body）
+    // HTTP返回格式（始终返回200，CORS由CloudBase网关自动处理）
     if (event.httpMethod || event.headers) {
       return {
         statusCode: 200,
-        headers: getCorsHeaders(),
+        headers: getHeaders(),
         body: JSON.stringify(result)
       }
     }
@@ -710,7 +884,7 @@ exports.main = async (event, context) => {
     const errorResult = { success: false, error: error.message }
     
     if (event.httpMethod || event.headers) {
-      return { statusCode: 200, headers: getCorsHeaders(), body: JSON.stringify(errorResult) }
+      return { statusCode: 200, headers: getHeaders(), body: JSON.stringify(errorResult) }
     }
     
     return errorResult

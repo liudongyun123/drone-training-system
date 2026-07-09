@@ -2,10 +2,8 @@
 // 课程权限服务 - 统一处理课程访问权限
 // 业务逻辑：用户注册 -> 购买课程 -> 订单支付 -> 获得课程权限
 // ★ phone 为主键（最稳定），userId/openid 为补充
-// ★ Stage 3 迁移：数据库操作统一走 HTTP → adminService → db-init 云函数
-// ★ Auth 操作保留 CloudBase SDK
+// ★ 统一通过 adminService HTTP 访问
 // ============================================================================
-import { app } from '@/utils/cloudbase';
 import { adminService } from './adminService';
 import { useAuthStore } from '@/store/authStore';
 
@@ -20,18 +18,18 @@ export interface CoursePermission {
 const extractList = <T>(result: any): T[] => result?.data?.list || result?.data || [];
 
 /**
- * 获取当前用户的认证信息
+ * 获取当前用户的认证信息（从 authStore 获取，不再依赖 SDK）
  */
 async function getAuthInfo() {
-  const user = await app.auth().getCurrentUser();
-  if (!user) return null;
-
+  // 优先从 authStore 获取用户信息
   const authStoreUser = useAuthStore.getState()?.user;
-  const phone = authStoreUser?.phone || localStorage.getItem('user_phone') || (user as any)?.phone;
-  const userId = user.uid;
-  const openid = (user as any)._openid || user.uid;
+  if (!authStoreUser) return null;
 
-  return { phone, userId, openid, user };
+  const phone = authStoreUser.phone || localStorage.getItem('user_phone') || '';
+  const userId = authStoreUser.id || authStoreUser.uid || '';
+  const openid = authStoreUser._openid || authStoreUser.wxOpenId || authStoreUser.id || '';
+
+  return { phone, userId, openid, user: authStoreUser };
 }
 
 // ============================================================================

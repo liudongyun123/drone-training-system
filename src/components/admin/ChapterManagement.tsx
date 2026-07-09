@@ -242,6 +242,8 @@ export default function ChapterManagement() {
         content: chapterForm.content,
         order: chapterForm.order,
         isPreview: chapterForm.isPreview,
+        // ★ 小程序端 WXML 检查 isFree（而非 isPreview），两套系统兼容
+        isFree: chapterForm.isPreview,
         questionBankId: chapterForm.questionBankId || '',
       }
 

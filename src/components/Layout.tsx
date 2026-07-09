@@ -111,6 +111,7 @@ const adminMenuGroups: MenuGroup[] = [
       },
       { path: '/admin/registrations', icon: ClipboardList, label: '报名审核', description: '报名申请审核' },
       { path: '/admin/transfers', icon: ScrollText, label: '调课申请', description: '调课/请假' },
+      { path: '/admin/contracts', icon: FileText, label: '培训合同', description: '学员签署协议' },
       { path: '/admin/certificates', icon: Award, label: '证书登记', description: '学员证书登记（非发证）' },
     ]
   },
@@ -158,8 +159,7 @@ const adminMenuGroups: MenuGroup[] = [
     icon: UsersRound,
     items: [
       { path: '/admin/members', icon: UsersRound, label: '成员管理', description: '用户/学员', relatedPaths: ['/admin/students'] },
-      { path: '/admin/roles', icon: Shield, label: '角色管理', description: '角色权限配置' },
-      { path: '/admin/user-roles', icon: Users, label: '管理员账号', description: '后台账号管理' },
+      { path: '/admin/user-roles', icon: Shield, label: '管理员角色', description: '后台账号/权限配置' },
       { path: '/admin/permissions', icon: Shield, label: '权限管理', description: '视频权限/班级成员' },
     ]
   },

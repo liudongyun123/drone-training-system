@@ -81,7 +81,7 @@ const MODULE_CATEGORIES = {
     icon: <AnalyticsIcon />,
     color: '#9c27b0',
     modules: [
-      { name: '角色权限', path: '/admin/roles', icon: <AnalyticsIcon /> },
+      { name: '管理员角色', path: '/admin/user-roles', icon: <AnalyticsIcon /> },
       { name: '系统日志', path: '/admin/logs', icon: <AnalyticsIcon /> },
     ]
   },

@@ -103,9 +103,15 @@ export interface Lesson {
   title: string
   description?: string
   videoUrl?: string
-  duration: number
+  videoDuration?: number
   order: number
   isFree: boolean
+  previewDuration?: number
+  pdfFile?: {
+    fileID: string
+    name: string
+    size: number
+  } | null
   status: 'published' | 'draft'
   createdAt: Date | string
   updatedAt: Date | string

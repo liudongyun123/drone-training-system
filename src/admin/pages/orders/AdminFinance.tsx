@@ -256,6 +256,7 @@ export default function AdminFinance() {
   const [orderPageSize] = useState(10);
   const [orderKeyword, setOrderKeyword] = useState('');
   const [orderStatus, setOrderStatus] = useState<'all' | 'pending' | 'paid' | 'cancelled' | 'refunded'>('all');
+  const [orderType, setOrderType] = useState<'all' | 'class' | 'course'>('all');
   
   // 课程销售数据
   const [courseSales, setCourseSales] = useState<CourseSales[]>([]);
@@ -356,6 +357,9 @@ export default function AdminFinance() {
       if (orderStatus !== 'all') {
         query.status = orderStatus;
       }
+      if (orderType !== 'all') {
+        query.type = orderType;
+      }
       
       const result = await financeService.getOrders(query, {
         page: orderPage,
@@ -408,7 +412,7 @@ export default function AdminFinance() {
       loadPaymentStats();
       loadRefundList();
     }
-  }, [activeTab, orderPage, orderStatus]);
+  }, [activeTab, orderPage, orderStatus, orderType]);
 
   const handleOrderSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -814,6 +818,15 @@ export default function AdminFinance() {
                     <option value="cancelled">已取消</option>
                     <option value="refunded">已退款</option>
                   </select>
+                  <select
+                    value={orderType}
+                    onChange={e => { setOrderType(e.target.value as any); setOrderPage(1); }}
+                    className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="all">全部类型</option>
+                    <option value="class">线下班</option>
+                    <option value="course">线上课程</option>
+                  </select>
                 </div>
 
                 {/* 用户订单统计卡片 - 当搜索手机号时显示 */}
@@ -969,6 +982,7 @@ export default function AdminFinance() {
                           <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">订单号</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">商品</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">金额</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">类型</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">状态</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">时间</th>
                           <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">操作</th>
@@ -985,6 +999,17 @@ export default function AdminFinance() {
                               )}
                             </td>
                             <td className="px-4 py-3 text-sm font-medium text-gray-800">¥{order.finalAmount}</td>
+                            <td className="px-4 py-3">
+                              {order.type === 'class' ? (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">线下班</span>
+                              ) : order.type === 'course' ? (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">线上课程</span>
+                              ) : order.type === 'product' ? (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">商城</span>
+                              ) : (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{order.type || '未知'}</span>
+                              )}
+                            </td>
                             <td className="px-4 py-3">{getStatusBadge(order.status)}</td>
                             <td className="px-4 py-3 text-sm text-gray-500">
                               {formatDateStr(order.createdAt)}

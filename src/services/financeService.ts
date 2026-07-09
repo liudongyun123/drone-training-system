@@ -91,8 +91,8 @@ export const financeService = {
       })
 
       const allOrders = result.data || []
-      const classOrders = allOrders.filter(o => o.type === 'class' || o.source === 'offline_enroll' || o.source === 'online_enroll')
-      const courseOrders = allOrders.filter(o => o.type === 'course' || o.source === 'online_purchase')
+      const classOrders = allOrders.filter(o => o.type === 'class')
+      const courseOrders = allOrders.filter(o => o.type === 'course')
 
       return {
         code: 0,

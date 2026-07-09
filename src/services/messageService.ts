@@ -18,7 +18,9 @@ export interface AppMessage {
 }
 
 export const messageService = {
-  collection: 'app_messages',
+  // ⚠️ 统一写入 messages 集合：Web 客户端(CloudMessageService) 与 小程序(notifications.ts/api-message)
+  // 都读取 messages。原先的 app_messages 没有任何客户端读取，导致后台发的订单/报名/调课通知无人可见。
+  collection: 'messages',
 
   /**
    * 发送订单状态变更通知
@@ -232,6 +234,9 @@ export const messageService = {
         announcementId: announcement._id,
         type: announcement.type
       },
+      // 公告为群发消息：isSystem=true 使其对所有用户可见（CloudMessageService 按 isSystem 广播）
+      isSystem: true,
+      priority: 'high',
       status: 'unread',
       createdAt: new Date().toISOString()
     }

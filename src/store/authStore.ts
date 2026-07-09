@@ -6,8 +6,6 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import app from '../config/tcb'
-import { ensureInit } from '@/utils/cloudbase'
 import { adminService } from '@/services/adminService'
 
 export type UserRole = 'anonymous' | 'visitor' | 'student' | 'teacher' | 'admin'
@@ -182,10 +180,15 @@ export const useAuthStore = create<AuthState>()(
       loginWithAnonymous: async () => {
         set({ isLoading: true, loginError: null })
         try {
-          const result = await app.auth().signInAnonymously()
+          const result = await adminService.callFunction('api-auth', {
+            action: 'wxMiniappLogin',
+            data: { type: 'anonymous' }
+          })
+          const userData = result?.data?.user || result?.data
+          const uid = userData?.uid || userData?.openid || 'anonymous'
           const user: User = {
-            id: result.user.uid,
-            uid: result.user.uid,
+            id: uid,
+            uid: uid,
             nickname: '游客',
             role: 'anonymous',
             loginType: 'anonymous',
@@ -205,7 +208,7 @@ export const useAuthStore = create<AuthState>()(
       loginWithPhone: async (phone: string, code: string) => {
         set({ isLoading: true, loginError: null })
         try {
-          const result = await adminService.callFunction('auth-api', {
+          const result = await adminService.callFunction('api-auth', {
             action: 'loginBySms',
             data: { phone, code }
           })
@@ -308,13 +311,13 @@ export const useAuthStore = create<AuthState>()(
         if (!user) return { success: false, error: '请先登录' }
         
         try {
-          // 1. 验证验证码
-          const verifyResult = await app.auth().verifyOtp({
-            phone,
-            code
+          // 1. 验证验证码（通过 api-auth 云函数）
+          const verifyResult = await adminService.callFunction('api-auth', {
+            action: 'verifySmsCode',
+            data: { phone, code }
           })
           
-          if (!verifyResult.success) {
+          if (!verifyResult?.success) {
             return { success: false, error: '验证码错误或已过期' }
           }
           
@@ -381,19 +384,23 @@ export const useAuthStore = create<AuthState>()(
       loginWithWechat: async () => {
         set({ isLoading: true, loginError: null })
         try {
-          const result = await app.auth().signInWithWechat()
-          const openid = result.user.wxOpenId || (result.user as any)._openid
+          const result = await adminService.callFunction('api-auth', {
+            action: 'wxMiniappLogin',
+            data: {}
+          })
+          const userData = result?.data?.user || result?.data
+          const openid = userData?.openid || userData?.wxOpenId || userData?._openid || ''
 
           // 尝试获取本地存储的手机号
           const cachedPhone = localStorage.getItem('user_phone')
 
           const user: User = {
-            id: result.user.uid,
-            uid: result.user.uid,
+            id: userData?.uid || openid,
+            uid: userData?.uid || openid,
             wxOpenId: openid,
             _openid: openid,
-            nickname: result.user.nickname || '微信用户',
-            avatar: result.user.avatar,
+            nickname: userData?.nickname || '微信用户',
+            avatar: userData?.avatar,
             phone: cachedPhone || undefined, // 可能有缓存的手机号
             role: cachedPhone ? 'student' : 'visitor',
             loginType: 'wechat',
@@ -415,19 +422,22 @@ export const useAuthStore = create<AuthState>()(
       loginWithPassword: async (username: string, password: string) => {
         set({ isLoading: true, loginError: null })
         try {
-          // 使用邮箱+密码方式（CloudBase用户名登录）
-          const result = await app.auth().signInWithEmailAndPassword(username, password)
+          // 通过 api-auth 云函数验证（不再依赖 SDK）
+          const result = await adminService.callFunction('api-auth', {
+            action: 'adminLogin',
+            data: { username, password }
+          })
 
-          // 从用户自定义数据中获取角色
-          const userData = result.user.customData || {}
+          // 从云函数返回中获取用户数据
+          const userData = result?.data?.user || result?.data || {}
           const role: UserRole = userData.role || 'student'
 
           const user: User = {
-            id: result.user.uid,
-            uid: result.user.uid,
-            email: result.user.email,
-            name: userData.name || result.user.nickname || username,
-            avatar: result.user.avatar,
+            id: userData.uid || userData.id || username,
+            uid: userData.uid || userData.id || username,
+            email: userData.email,
+            name: userData.name || userData.nickname || username,
+            avatar: userData.avatar,
             role: role,
             loginType: 'password',
             isAnonymous: false,
@@ -456,10 +466,9 @@ export const useAuthStore = create<AuthState>()(
           }
           
           // ✅ 通过 api-auth HTTP 云函数验证（支持数据库用户 + 环境变量测试凭证）
-          const result = await adminService.callFunction('auth-api', {
+          const result = await adminService.callFunction('api-auth', {
             action: 'adminLogin',
-            username,
-            password
+            data: { username, password }
           })
           
           if (result?.success) {
@@ -514,7 +523,10 @@ export const useAuthStore = create<AuthState>()(
       // 登出
       logout: async () => {
         try {
-          await app.auth().signOut()
+          await adminService.callFunction('api-auth', {
+            action: 'logout',
+            data: {}
+          })
         } catch (e) {
           console.error('登出错误:', e)
         }
@@ -640,36 +652,20 @@ export const useAuthStore = create<AuthState>()(
 // 初始化函数 - 检查登录状态
 export const initAuth = async () => {
   try {
-    // ★ 关键修复：必须先确保 SDK 初始化完成
-    console.log('[Auth] 等待 SDK 初始化...')
-    await ensureInit()
-    console.log('[Auth] SDK 初始化完成，开始检查登录状态')
+    // 通过 api-auth 云函数验证 Token，不再依赖 SDK 初始化
+    console.log('[Auth] 通过 HTTP 检查登录状态...')
     
-    // 添加超时机制，防止 CloudBase SDK 初始化卡住
-    const timeout = new Promise<null>((_, reject) => 
-      setTimeout(() => {
-        console.warn('[Auth] 登录状态检查超时，继续初始化...')
-        reject(new Error('Auth initialization timeout'))
-      }, 15000)
-    )
+    const result = await adminService.callFunction('api-auth', {
+      action: 'verifyToken',
+      data: {}
+    })
     
-    // 检查 SDK 是否已初始化
-    if (!app || !app.auth) {
-      console.warn('[Auth] SDK 未初始化，跳过认证检查')
-      return
-    }
-    
-    const loginState = await Promise.race([
-      app.auth().getLoginState(),
-      timeout
-    ]) as any
-    
-    if (loginState) {
-      // 用户已登录，恢复状态 - ★关键：必须设置isAuthenticated为true
+    if (result?.success && result?.data) {
+      // 用户已登录，恢复状态
       useAuthStore.setState({ isAuthenticated: true })
-      const currentUser = await app.auth().getCurrentUser()
-      if (currentUser) {
-        const openid = (currentUser as any)._openid || currentUser.uid
+      const userData = result.data.user || result.data
+      if (userData) {
+        const openid = userData.openid || userData.uid || userData._openid
         const cachedPhone = localStorage.getItem('user_phone')
 
         // 如果有缓存手机号，直接使用
@@ -686,12 +682,10 @@ export const initAuth = async () => {
             })
             console.log('[Auth] 初始化同步手机号:', cachedPhone)
           }
-        } else {
-          // ★ 如果没有缓存手机号，通过 openid 从 members 集合查询
+        } else if (openid) {
+          // 如果没有缓存手机号，通过 openid 从 members 集合查询
           try {
             console.log('[Auth] 未找到缓存手机号，尝试通过 openid 查询:', openid)
-            const { adminService } = await import('@/services/adminService')
-            // 先尝试 openid 字段
             let membersRes = await adminService.list('members', { openid: openid }, { limit: 1 })
             let membersData = membersRes?.data?.list || []
             
@@ -705,7 +699,6 @@ export const initAuth = async () => {
               const member = membersData[0]
               const phoneFromDb = member.phone
               if (phoneFromDb) {
-                // 保存到 localStorage
                 localStorage.setItem('user_phone', phoneFromDb)
                 
                 const { user } = useAuthStore.getState()
@@ -723,8 +716,10 @@ export const initAuth = async () => {
             console.error('[Auth] 查询手机号失败:', err)
           }
         }
-        console.log('✅ 用户已登录:', currentUser.uid, ', phone:', localStorage.getItem('user_phone') || '未绑定')
+        console.log('✅ 用户已登录, phone:', localStorage.getItem('user_phone') || '未绑定')
       }
+    } else {
+      console.log('[Auth] 用户未登录或 Token 已过期')
     }
   } catch (e) {
     console.error('初始化认证状态失败:', e)

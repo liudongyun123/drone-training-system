@@ -104,6 +104,10 @@ interface ClassFormData {
   location: string;
   teacherId: string;
   sourceId: string;
+  // ★ 小程序兼容字段
+  category: string;       // 分类名称（用于筛选）
+  categoryId: string;     // 分类ID（用于筛选）
+  coverImage: string;     // 封面图
   intro: ClassIntro;
   enrollmentConfig: ClassEnrollmentConfig;
 }
@@ -121,6 +125,10 @@ const initialFormData: ClassFormData = {
   location: '',
   teacherId: '',
   sourceId: '',
+  // ★ 小程序兼容字段
+  category: '',
+  categoryId: '',
+  coverImage: '',
   // 班级介绍
   intro: {
     videoUrl: '',
@@ -358,11 +366,18 @@ export default function AdminClasses() {
         .map(id => courses.find(c => c._id === id)?.title)
         .filter(Boolean) as string[];
 
+      // ★ 小程序兼容：扁平化 title/price/coverImage
+      const flatPrice = formData.enrollmentConfig.price ?? 0
+      const flatTitle = formData.name
+
       const submitData: any = {
         ...formData,
         courseName: course?.title,
         teacherName: teacher?.name,
-        includedCourses: includedCourseNames
+        includedCourses: includedCourseNames,
+        // ★ 小程序端 WXML 直接读取这些扁平字段
+        title: flatTitle,
+        price: flatPrice,
       };
 
       if (editingClass) {

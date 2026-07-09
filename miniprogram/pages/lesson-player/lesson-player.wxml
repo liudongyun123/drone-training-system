@@ -2,7 +2,19 @@
 <view class="lesson-player">
   <!-- 视频播放器 -->
   <view class="video-container">
-    <block wx:if="{{hasVideo}}">
+    <!-- 视频加载中 -->
+    <view wx:if="{{videoLoading}}" class="video-loading-overlay">
+      <view class="video-loading-box">
+        <text class="video-loading-icon">📥</text>
+        <text class="video-loading-text">{{videoLoadTip}}</text>
+        <view class="video-loading-bar">
+          <view class="video-loading-fill" style="width: {{videoLoadProgress}}%"></view>
+        </view>
+        <text class="video-loading-percent">{{videoLoadProgress}}%</text>
+      </view>
+    </view>
+    
+    <block wx:elif="{{hasVideo}}">
       <video
         id="lessonVideo"
         class="video-player"
@@ -29,13 +41,15 @@
     </block>
   </view>
 
-  <!-- 试看提示横幅 -->
+  <!-- 试看提示横幅（临时隐藏，资质齐全后恢复） -->
+  <!--
   <view wx:if="{{isPreviewMode}}" class="preview-banner">
     <text class="preview-banner-text">👁 试看模式 · 仅可观看{{previewDuration}}秒</text>
     <view class="preview-banner-btn" bindtap="goBuyCourse">
       <text class="preview-banner-btn-text">购买完整课程</text>
     </view>
   </view>
+  -->
 
   <!-- 当前课时信息 -->
   <view class="lesson-info">

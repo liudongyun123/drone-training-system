@@ -77,10 +77,10 @@
         bindtap="goToDetail"
         data-id="{{item._id}}"
       >
-        <image 
+          <image 
           class="class-cover" 
-          src="{{item.coverImage || item.cover}}" 
-          mode="aspectFill" 
+          src="{{item.coverImage || item.cover || defaultCover}}" 
+          mode="aspectFill"
           binderror="onImageError" 
           data-index="{{index}}"
         />

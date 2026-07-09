@@ -25,6 +25,7 @@ export default function AdminCourses() {
           hook.setSelectedSource(sourceId);
           hook.setSelectedSourceId(sourceId);
         }}
+        coverUrlMap={hook.coverUrlMap}
         onSearch={hook.loadCourses}
         onPageChange={hook.setPage}
         onAdd={hook.handleAdd}
@@ -82,6 +83,8 @@ export default function AdminCourses() {
         pdfProgress={hook.pdfProgress}
         onPdfUpload={hook.handlePdfUpload}
         onDeletePdf={hook.handleDeletePdf}
+        onPreviewPdf={hook.handlePreviewPdf}
+        onPreviewVideo={hook.handlePreviewVideo}
         onAddLesson={hook.handleAddLesson}
         onEditLesson={hook.handleEditLesson}
         onDeleteLesson={hook.handleDeleteLesson}

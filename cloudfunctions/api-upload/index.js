@@ -108,14 +108,79 @@ exports.main = async (event, context) => {
       return await handleFileUpload();
     }
 
+    // ========== 获取文件临时访问链接（单个） ==========
+    if (action === 'getTempFileURL') {
+      const { fileID, maxAge } = params;
+      if (!fileID) {
+        return createResponse({ code: 400, error: '缺少 fileID 参数' });
+      }
+      try {
+        const urlResult = await app.getTempFileURL({
+          fileList: [{ fileID, maxAge: maxAge || 7200 }]
+        });
+        const fileInfo = urlResult.fileList[0] || {};
+        const tempFileURL = fileInfo.tempFileURL || '';
+        return createResponse({
+          code: 0,
+          success: true,
+          data: { fileID, tempFileURL, code: fileInfo.code }
+        });
+      } catch (err) {
+        console.error('[api-upload] getTempFileURL 失败:', err);
+        return createResponse({ code: 500, error: err.message || '获取链接失败' });
+      }
+    }
+
+    // ========== 批量获取文件临时访问链接 ==========
+    if (action === 'getTempFileURLs') {
+      const { fileIDs, maxAge } = params;
+      if (!fileIDs || !Array.isArray(fileIDs) || fileIDs.length === 0) {
+        return createResponse({ code: 400, error: '缺少 fileIDs 参数' });
+      }
+      try {
+        const urlResult = await app.getTempFileURL({
+          fileList: fileIDs.map((id) => ({ fileID: id, maxAge: maxAge || 7200 }))
+        });
+        return createResponse({
+          code: 0,
+          success: true,
+          data: { fileList: urlResult.fileList || [] }
+        });
+      } catch (err) {
+        console.error('[api-upload] getTempFileURLs 失败:', err);
+        return createResponse({ code: 500, error: err.message || '获取链接失败' });
+      }
+    }
+
+    // ========== 删除云存储文件 ==========
+    if (action === 'deleteFile') {
+      const { fileID } = params;
+      if (!fileID) {
+        return createResponse({ code: 400, error: '缺少 fileID 参数' });
+      }
+      try {
+        const result = await app.deleteFile({ fileList: [fileID] });
+        const fileResult = result.fileList[0] || {};
+        return createResponse({
+          code: fileResult.code === 'SUCCESS' ? 0 : 500,
+          success: fileResult.code === 'SUCCESS',
+          data: { fileID, code: fileResult.code },
+          error: fileResult.code !== 'SUCCESS' ? fileResult.code : undefined
+        });
+      } catch (err) {
+        console.error('[api-upload] deleteFile 失败:', err);
+        return createResponse({ code: 500, error: err.message || '删除失败' });
+      }
+    }
+
     return createResponse({ code: 400, error: `未知操作: ${action}` });
 
   } catch (error) {
-    console.error('[api-upload] 上传失败:', error);
+    console.error('[api-upload] 处理失败:', error);
     return createResponse({
       code: 500,
       success: false,
-      error: error.message || '上传失败'
+      error: error.message || '处理失败'
     });
   }
 };

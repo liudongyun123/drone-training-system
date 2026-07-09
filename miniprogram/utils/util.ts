@@ -145,6 +145,64 @@ export function switchTab(url: string) {
 }
 
 /**
+ * 统一手机号绑定检查（所有需要手机号的页面调用）
+ * 
+ * 设计理念：渐进式绑定 — 用户可以先用微信登录浏览内容，
+ * 但在涉及交易、支付、报名、合同等操作时，必须绑定手机号。
+ * 
+ * @param reason - 需要绑定的原因，如"购买课程"、"支付订单"
+ * @param fromPage - 当前页面路径（绑定成功后返回），可选
+ * @returns true=已绑定可继续，false=未绑定已弹出引导
+ * 
+ * @example
+ * if (!await requirePhoneBinding('支付订单')) return  // 未绑定，已弹窗引导
+ * // 继续支付流程...
+ */
+export async function requirePhoneBinding(reason: string, fromPage?: string): Promise<boolean> {
+  // 1. 先检查本地是否已有手机号
+  const phone = getPhone()
+  if (phone) return true
+  
+  // 2. 尝试从服务器获取（用户可能在其他端绑定过）
+  try {
+    const { callFunction } = require('./http')
+    const openid = wx.getStorageSync('openid') || ''
+    const result = await callFunction('api-user', { action: 'getProfile', openid })
+    if (result?.success && result?.data?.user?.phone) {
+      const serverPhone = result.data.user.phone
+      wx.setStorageSync('phone', serverPhone)
+      // 更新 loginInfo
+      const loginInfo = wx.getStorageSync('loginInfo') || {}
+      loginInfo.phone = serverPhone
+      wx.setStorageSync('loginInfo', loginInfo)
+      return true
+    }
+  } catch (err) {
+    // 服务器获取失败，继续弹窗引导
+  }
+  
+  // 3. 未绑定，弹出统一引导弹窗
+  return new Promise((resolve) => {
+    wx.showModal({
+      title: '绑定手机号',
+      content: `${reason}需要绑定手机号，是否前往绑定？`,
+      confirmText: '去绑定',
+      cancelText: '稍后再说',
+      success: (res) => {
+        if (res.confirm) {
+          // 保存返回路径，绑定成功后跳回
+          if (fromPage) {
+            wx.setStorageSync('bindPhoneReturnPath', fromPage)
+          }
+          wx.navigateTo({ url: '/pages/login/login?redirect=bindPhone' })
+        }
+        resolve(false)
+      }
+    })
+  })
+}
+
+/**
  * 获取用户 OpenID
  * 使用 HTTP API 调用云函数，与项目架构一致
  */
@@ -171,7 +229,7 @@ export async function getOpenId(): Promise<{ openid: string } | null> {
     
     // 使用 HTTP API 调用 api-auth 云函数获取 openid
     const { callFunction } = require('./http')
-    const res = await callFunction('auth-api', { 
+    const res = await callFunction('api-auth', { 
       action: 'wxMiniappLogin',
       code: loginResult.code
     })

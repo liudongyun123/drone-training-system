@@ -520,6 +520,35 @@ export default function PageConfigManagement() {
 
       if (matchedConfig && matchedConfig.data?.items) {
         console.log('[Load] 加载已有配置, items:', JSON.stringify(matchedConfig.data.items.map((i: any) => ({ id: i._id, visible: i.visible, order: i.order }))));
+        // ★ 关键修复：补齐 pathGroups 中有但 page_configs items 中没有的分类
+        // 场景：管理后台新增了分类，但 page_configs 里只配了部分 items
+        // 双匹配：_id 和 name 都用来判断（兼容 _id 格式不一致的情况）
+        const existingIds = new Set(
+          matchedConfig.data.items.map((i: any) => i._id || i.id).filter(Boolean)
+        )
+        const existingNames = new Set(
+          matchedConfig.data.items.map((i: any) => i.name).filter(Boolean)
+        )
+        const missingGroups = pathGroups.filter(g => 
+          !existingIds.has(g._id) && !existingNames.has(g.name)
+        )
+        console.log('[Load] existingIds:', Array.from(existingIds), 'existingNames:', Array.from(existingNames));
+        console.log('[Load] missingGroups:', missingGroups.map(g => ({ _id: g._id, name: g.name })));
+        if (missingGroups.length > 0) {
+          console.log('[Load] 检测到缺失分类，自动补充:', missingGroups.map(g => g.name).join(', '))
+          const maxOrder = matchedConfig.data.items.reduce(
+            (max: number, i: any) => Math.max(max, i.order || 0), 0
+          )
+          const newItems = missingGroups.map((g, idx) => ({
+            ...g,
+            order: maxOrder + idx + 1,
+            visible: true
+          }))
+          setLearningPathConfigs([...matchedConfig.data.items, ...newItems])
+          // ★ 自动保存到数据库，避免每次加载都补齐
+          saveLearningPathConfigsDirect([...matchedConfig.data.items, ...newItems])
+          return
+        }
         setLearningPathConfigs(matchedConfig.data.items);
         return;
       }
@@ -1221,21 +1250,39 @@ export default function PageConfigManagement() {
     }
   };
 
-  // 加载学习路径配置（使用精确查询）
+  // 加载学习路径配置（"重置"按钮 / 手动刷新）
+  // ★ 修复：补齐 categories 中有但 page_configs 中缺失的分类，确保一致性
   const loadLearningPathConfigs = async () => {
     try {
       const sourceCode = currentSourceCodeRef.current || selectedSource;
-      // 查询所有 learningPaths 配置，客户端按 sourceId 过滤（兼容 code 和 _id）
       const result = await adminService.list('page_configs', { section: 'learningPaths' }, { limit: 50 });
       
       const matchedConfig = result.data?.list?.find((item: any) => item.data?.sourceId === sourceCode || item.data?.sourceId === selectedSourceId);
       
       if (matchedConfig && matchedConfig.data?.items) {
+        // ★ 补齐缺失分类（categories 有但 page_configs 没有的）
+        // 双匹配：_id 或 name 任一匹配即视为已存在
+        const existingIds = new Set(matchedConfig.data.items.map((i: any) => i._id || i.id).filter(Boolean));
+        const existingNames = new Set(matchedConfig.data.items.map((i: any) => i.name).filter(Boolean));
+        const missingGroups = learningPaths.filter(g => 
+          !existingIds.has(g._id) && !existingNames.has(g.name)
+        );
+        if (missingGroups.length > 0) {
+          console.log('[Reset] 检测到缺失分类，自动补齐:', missingGroups.map(g => g.name).join(', '));
+          const maxOrder = matchedConfig.data.items.reduce((max: number, i: any) => Math.max(max, i.order || 0), 0);
+          const newItems = missingGroups.map((g, idx) => ({
+            ...g,
+            order: maxOrder + idx + 1,
+            visible: true
+          }));
+          setLearningPathConfigs([...matchedConfig.data.items, ...newItems]);
+          return;
+        }
         setLearningPathConfigs(matchedConfig.data.items);
         return;
       }
       
-      // 无配置时自动从学习路径生成默认配置
+      // 无配置时从 learningPaths（来自 categories）生成默认配置
       const defaultItems = learningPaths.map((g, index) => ({
         ...g,
         order: index + 1,
@@ -1289,12 +1336,22 @@ export default function PageConfigManagement() {
     try {
       const sourceId = currentSourceIdRef.current || selectedSourceId;
       const sourceCode = currentSourceCodeRef.current || selectedSource;
+
+      // ★ 保存前清理僵尸项：categories 中已删除的分类，从 page_configs 中移除
+      const existingIds = new Set(learningPaths.map(g => g._id).filter(Boolean));
+      const cleanedItems = learningPathConfigs.filter(item => existingIds.has(item._id));
+      const staleCount = learningPathConfigs.length - cleanedItems.length;
+      if (staleCount > 0) {
+        console.log(`[Save] 清理了 ${staleCount} 个僵尸分类：`, 
+          learningPathConfigs.filter(item => !existingIds.has(item._id)).map(i => i.name));
+      }
+
       const saveData = {
         section: 'learningPaths',
         title: `学习路径配置 - ${selectedSource}`,
         enabled: true,
         order: 2,
-        data: { sourceId: sourceCode, items: learningPathConfigs }
+        data: { sourceId: sourceCode, items: cleanedItems }
       };
       console.log('[Save] 学习路径保存开始, sourceId:', sourceId, 'sourceCode:', sourceCode, 'items数量:', learningPathConfigs.length);
       console.log('[Save] 第一个item:', JSON.stringify(learningPathConfigs[0]));

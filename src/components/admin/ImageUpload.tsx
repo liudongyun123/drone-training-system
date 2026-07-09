@@ -25,75 +25,27 @@ export default function ImageUpload({
   const [uploadProgress, setUploadProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const uploadToCloudBase = async (file: File): Promise<string | null> => {
+  const uploadToCloudBase = async (file: File): Promise<string> => {
     try {
-      const { app, ensureInit } = await import('../../utils/cloudbase')
-      const cloudPath = `course-covers/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
-      
-      await ensureInit()
-      await app.auth().getLoginState()
-      
-      const uploadResult = await app.uploadFile({
-        cloudPath,
-        filePath: file,
-        onUploadProgress: (progress: any) => {
-          const percent = Math.round((progress.loaded / progress.total) * 100)
-          setUploadProgress(percent)
-        }
+      // 通过 storageService 上传图片
+      const { uploadFile } = await import('../../services/storageService')
+
+      setUploadProgress(20)
+
+      const result = await uploadFile(file, 'course-covers', (progress) => {
+        setUploadProgress(20 + Math.round(progress * 0.7)) // 20%→90%
       })
-      
-      const getUrlResult = await app.getTempFileURL({
-        fileList: [uploadResult.fileID]
-      })
-      
-      if (getUrlResult.fileList && getUrlResult.fileList[0]) {
-        return getUrlResult.fileList[0].tempFileURL || getUrlResult.fileList[0].download_url
+
+      if (!result.success || !result.fileID) {
+        throw new Error(result.message || '上传失败')
       }
-      return null
-    } catch (sdkError: any) {
-      console.warn('[ImageUpload] SDK 直传失败，回退到云函数中转:', sdkError?.message)
-      
-      // 回退：通过 api-upload 云函数 base64 中转上传
-      try {
-        const { API_BASE_URL } = await import('../../config/api')
-        const axios = (await import('axios')).default
-        
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => {
-            const result = reader.result as string
-            resolve(result.split(',')[1])
-          }
-          reader.onerror = reject
-          reader.readAsDataURL(file)
-        })
-        
-        const uploadPath = `course-covers/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
-        setUploadProgress(50)
-        
-        const response = await axios.post(`${API_BASE_URL}/api-upload`, {
-          action: 'uploadImage',
-          fileContent: base64,
-          cloudPath: uploadPath,
-          fileName: file.name,
-          contentType: file.type,
-        }, {
-          timeout: 60000,
-          headers: { 'Content-Type': 'application/json' },
-        })
-        
-        setUploadProgress(90)
-        
-        const data = response.data
-        if (data?.code === 0 && data?.data?.fileID) {
-          setUploadProgress(100)
-          return data.data.fileUrl || data.data.fileID
-        }
-        throw new Error(data?.error || '云函数上传失败')
-      } catch (cfError: any) {
-        console.error('[ImageUpload] 云函数中转也失败:', cfError)
-        throw new Error(cfError?.message || '上传失败，请重试')
-      }
+
+      setUploadProgress(100)
+      // 优先返回上传响应中的临时 URL，否则返回 fileID
+      return result.fileUrl || result.fileID
+    } catch (err: any) {
+      console.error('[ImageUpload] 上传失败:', err)
+      throw new Error(err?.message || '上传失败，请重试')
     }
   }
 

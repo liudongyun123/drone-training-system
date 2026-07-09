@@ -1,25 +1,21 @@
 // ============================================================================
-// 云服务层 (v2.0 - 统一通过 adminService HTTP 访问数据库)
+// 云服务层 (v3.0 - 统一通过 adminService HTTP 访问)
 // - dbService: 数据库操作 → HTTP adminService（绕过安全规则）
-// - authService: 认证操作 → CloudBase SDK（保留匿名登录等能力）
+// - authService: 认证操作 → HTTP adminService.callFunction('api-auth')
+// - 不再依赖 @cloudbase/js-sdk
 // ============================================================================
 
-import { app, ensureInit, getAuth } from '@/utils/cloudbase'
 import { adminService } from './adminService'
 
 // ============================================================================
-// 认证服务（保留 CloudBase SDK）
+// 认证服务（通过 api-auth 云函数 HTTP 调用）
 // ============================================================================
 
+// getAuthInstance 已弃用，认证统一走 adminService.callFunction('api-auth')
 export async function getAuthInstance() {
-  await ensureInit();
-  return app.auth();
+  console.warn('[cloudBaseService] getAuthInstance() 已弃用，请使用 authService')
+  return null
 }
-
-// getAuthSync 已弃用，使用 getAuthInstance()
-// function getAuthSync() {
-//   return app.auth();
-// }
 
 // 用户缓存
 let cachedUser: any = null;
@@ -39,9 +35,13 @@ const handleRateLimitError = (error: any): string => {
 export const authService = {
   async anonymousLogin() {
     try {
-      const authInstance = await getAuth();
-      await authInstance.anonymousAuthProvider().signIn();
-      const user = await this.getCurrentUser();
+      const result = await adminService.callFunction('api-auth', {
+        action: 'wxMiniappLogin',
+        data: { type: 'anonymous' }
+      });
+      const user = result?.data?.user || result?.data;
+      cachedUser = user;
+      cachedUserTime = Date.now();
       return user;
     } catch (error: any) {
       console.error('匿名登录失败:', error);
@@ -55,9 +55,11 @@ export const authService = {
     }
     
     try {
-      const authInstance = await getAuth();
-      const { data } = await authInstance.getUser();
-      cachedUser = data?.user;
+      const result = await adminService.callFunction('api-auth', {
+        action: 'verifyToken',
+        data: {}
+      });
+      cachedUser = result?.data?.user || result?.data;
       cachedUserTime = Date.now();
       return cachedUser;
     } catch (error: any) {
@@ -96,8 +98,10 @@ export const authService = {
 
   async logout() {
     try {
-      const authInstance = await getAuth();
-      await authInstance.signOut();
+      await adminService.callFunction('api-auth', {
+        action: 'logout',
+        data: {}
+      });
       this.clearCache();
     } catch (error: any) {
       console.error('退出登录失败:', error);
@@ -238,23 +242,21 @@ export const dbService = {
 // 兼容旧代码的导出
 // ============================================================================
 
-// 简易 auth 对象（兼容旧导入）
+// 简易 auth 对象（兼容旧导入 - 通过 api-auth 云函数实现）
 export const auth = {
   async getCurrentUser() {
-    const authInstance = await getAuth();
-    return authInstance.getCurrentUser();
+    return authService.getCurrentUser();
   },
   async signOut() {
-    const authInstance = await getAuth();
-    return authInstance.signOut();
+    return authService.logout();
   },
   async anonymousAuthProvider() {
-    const authInstance = await getAuth();
-    return authInstance.anonymousAuthProvider();
+    // 兼容旧代码：直接触发匿名登录
+    return { signIn: () => authService.anonymousLogin() };
   },
   async getLoginState() {
-    const authInstance = await getAuth();
-    return authInstance.getLoginState();
+    const session = await authService.checkSession();
+    return session.isAuthenticated ? { isLoggedIn: true } : null;
   }
 };
 

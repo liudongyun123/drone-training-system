@@ -1,11 +1,11 @@
 /**
  * Service Worker - 支持离线访问
+ * v2: 修复 HTML 被缓存导致部署后显示旧版本的问题
  */
 
-const CACHE_NAME = 'drone-training-v1'
+const CACHE_NAME = 'drone-training-v2'
+// 不缓存 HTML 文件，避免 Service Worker 缓存导致版本更新后显示旧页面
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/offline.html',
 ]
 
@@ -67,7 +67,27 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // 静态资源使用缓存优先策略
+  // HTML 导航请求使用网络优先策略（确保始终加载最新版本）
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const clone = response.clone()
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, clone)
+          })
+          return response
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            return cached || caches.match('/offline.html')
+          })
+        })
+    )
+    return
+  }
+
+  // 其他静态资源使用缓存优先策略（JS/CSS 带 hash 版本号，更新会自动失效）
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) {
@@ -96,9 +116,6 @@ self.addEventListener('fetch', (event) => {
           return response
         })
         .catch(() => {
-          if (request.mode === 'navigate') {
-            return caches.match('/offline.html')
-          }
           throw new Error('Network error')
         })
     })

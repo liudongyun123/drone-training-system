@@ -2,13 +2,16 @@
 // 学习路径详情页 - 按无人机类型展示课程和培训班
 
 import { SourceService } from '../../utils/SourceService'
-import { loadLevels, getLevelName } from '../../utils/api'
+import { loadLevels, getLevelName, systemConfigApi } from '../../utils/api'
 import { dbGetList } from '../../utils/http'
+import { DEFAULT_COVER } from '../../utils/constants'
 import logger from '../../utils/logger'
 
-// 等级 fallback（数据库加载失败时使用）
-const DEFAULT_RENSHE_LEVELS = ['初级工', '中级工', '高级工', '技师', '高级技师']
-const DEFAULT_CAAC_LEVELS = ['视距内驾驶员', '超视距驾驶员', '教员']
+// 等级 fallback（仅在数据库加载失败时使用）
+const FALLBACK_LEVELS: Record<string, string[]> = {
+  'RENSHE': ['初级工', '中级工', '高级工'],
+  'CAAC': ['视距内驾驶员', '超视距驾驶员', '教员']
+}
 
 // 从 SourceService 获取 codeToName
 const codeToNameMap = SourceService.codeToName
@@ -25,6 +28,7 @@ interface PageData {
   categoryName: string
   source: string
   sourceId: string
+  categoryIcon: string
   stages: LearningPathStage[]
   isAllEmpty: boolean
   loading: boolean
@@ -39,6 +43,7 @@ Page<PageData>({
   data: {
     categoryId: '',
     categoryName: '',
+    categoryIcon: '',
     source: 'RENSHE',
     sourceId: '',
     stages: [],
@@ -51,40 +56,77 @@ Page<PageData>({
   },
 
   onLoad(options: any) {
-    const { id, name, source } = options || {}
+    const { id, name, source, icon } = options || {}
     
-    logger.info('[学习路径] onLoad', { id, name, source })
+    logger.info('[学习路径] onLoad', { id, name, source, icon })
     
     // 获取用户手机号用于查询进度
     const phone = wx.getStorageSync('phone') || ''
     this.setData({ phone })
     
     if (id || name) {
-      // id 格式是 "SOURCE:CODE"（如 "RENSHE:PLANT_PROTECTION"）
       // name 是分类中文名称（如 "植保无人机"）
-      const sourceFromId = id ? id.split(':')[0] : source || 'RENSHE'
+      // id 可能是 "SOURCE:CODE" 格式或纯 UUID
       const decodedName = name ? decodeURIComponent(name) : (id.includes(':') ? this.codeToName(id.split(':')[1]) : id)
+      const decodedIcon = icon ? decodeURIComponent(icon) : ''
       
       wx.setNavigationBarTitle({ title: decodedName + '学习路径' })
       
       this.setData({ 
         categoryId: id || '',
         categoryName: decodedName,
-        source: sourceFromId
+        categoryIcon: decodedIcon
       }, () => {
         this.loadData()
       })
     } else {
-      // 没有参数时，显示默认等级进度（人社体系）
-      const levelOrder = DEFAULT_RENSHE_LEVELS
-      const stages = levelOrder.map((level, index) => ({ level, levelIndex: index, courses: [], classes: [] }))
-      this.setData({ loading: false, isAllEmpty: true, stages, categoryName: '未选择分类' })
+      // 没有参数时，尝试从数据库加载当前体系的等级
+      this.getLevelOrder('RENSHE').then(levelOrder => {
+        const stages = levelOrder.map((level, index) => ({ level, levelIndex: index, courses: [], classes: [] }))
+        this.setData({ loading: false, isAllEmpty: true, stages, categoryName: '未选择分类' })
+      }).catch(() => {
+        const stages = FALLBACK_LEVELS['RENSHE'].map((level, index) => ({ level, levelIndex: index, courses: [], classes: [] }))
+        this.setData({ loading: false, isAllEmpty: true, stages, categoryName: '未选择分类' })
+      })
     }
   },
 
   // 将分类代码转换为中文名称
   codeToName(code: string): string {
     return codeToNameMap(code) || code || ''
+  },
+
+  // 根据 categoryId 解析实际的体系代码（优先从 _id 前缀提取，否则查数据库）
+  async resolveSourceCode(categoryId: string, fallbackSource: string): Promise<string> {
+    if (categoryId.includes(':')) {
+      return categoryId.split(':')[0]
+    }
+    try {
+      const result = await dbGetList('categories', { where: { _id: categoryId }, limit: 1 })
+      const cat = result.data?.[0]
+      if (cat?.sourceId) {
+        // sourceId 已统一为体系 code（如 "RENSHE"/"CAAC"），直接返回
+        return cat.sourceId
+      }
+    } catch (err) {
+      logger.warn('[学习路径] 查询分类 sourceId 失败', err)
+    }
+    return fallbackSource || 'RENSHE'
+  },
+
+  // 根据体系代码动态获取等级顺序（从数据库 levels 集合读取）
+  async getLevelOrder(sourceCode: string): Promise<string[]> {
+    try {
+      await loadLevels()
+      const levels = await systemConfigApi.getLevels(sourceCode)
+      if (levels && levels.length > 0) {
+        return levels.map((l: any) => l.name)
+      }
+    } catch (err) {
+      logger.warn('[学习路径] 从数据库获取等级失败，使用 fallback', err)
+    }
+    // fallback
+    return FALLBACK_LEVELS[sourceCode] || FALLBACK_LEVELS['RENSHE']
   },
 
   async loadData() {
@@ -97,29 +139,26 @@ Page<PageData>({
     this.setData({ loading: true })
 
     try {
-      // 从 categoryId 中提取 source（如 "RENSHE:PLANT_PROTECTION" -> "RENSHE"）
-      const sourceFromId = categoryId.includes(':') ? categoryId.split(':')[0] : source
+      // 解析实际的体系代码（优先从 _id 前缀提取，否则查数据库获取 sourceId）
+      const sourceFromId = await this.resolveSourceCode(categoryId, source)
       
+      // 更新 data.source 以便后续使用
+      this.setData({ source: sourceFromId })
+
       // 使用 categoryId 过滤课程和培训班
-      // categoryId 格式: "RENSHE:PLANT_PROTECTION"
       const [courses, classes] = await Promise.all([
         SourceService.getCourses(sourceFromId, { 
-          categoryId,  // 使用 categoryId 过滤
+          categoryId,
           forceRefresh: true 
         }),
         SourceService.getClasses(sourceFromId, { 
-          categoryId,  // 使用 categoryId 过滤
+          categoryId,
           forceRefresh: true 
         })
       ])
 
-      // 加载等级数据
-      await loadLevels()
-
-      // 根据体系确定等级顺序
-      const levelOrder = source === 'CAAC' 
-        ? DEFAULT_CAAC_LEVELS
-        : DEFAULT_RENSHE_LEVELS
+      // 从数据库动态获取该体系的等级顺序
+      const levelOrder = await this.getLevelOrder(sourceFromId)
 
       // 处理课程和培训班，添加 levelText
       const processedCourses = (courses || []).map((course: any) => ({
@@ -153,9 +192,8 @@ Page<PageData>({
     } catch (err) {
       logger.error('[学习路径] 加载失败', err)
       // 确保即使加载失败也显示页面内容和分类名称
-      const levelOrder = source === 'CAAC' 
-        ? DEFAULT_CAAC_LEVELS
-        : DEFAULT_RENSHE_LEVELS
+      const sourceCode = categoryId.includes(':') ? categoryId.split(':')[0] : source
+      const levelOrder = FALLBACK_LEVELS[sourceCode] || FALLBACK_LEVELS['RENSHE']
       const stages = levelOrder.map((level, index) => ({ level, levelIndex: index, courses: [], classes: [] }))
       this.setData({ stages, isAllEmpty: true, loading: false })
     }
@@ -234,6 +272,16 @@ Page<PageData>({
     wx.navigateTo({
       url: `/pages/class-detail/class-detail?id=${classId}`
     })
+  },
+
+  // 图片加载失败处理（嵌套 stages[].courses[] 结构）
+  onImageError(e: any) {
+    const { stageIndex, courseIndex } = e.currentTarget.dataset
+    const stages = this.data.stages
+    if (stages && stages[stageIndex] && stages[stageIndex].courses) {
+      stages[stageIndex].courses[courseIndex].coverImage = DEFAULT_COVER
+      this.setData({ stages })
+    }
   },
 
 })

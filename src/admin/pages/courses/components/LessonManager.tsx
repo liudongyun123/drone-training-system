@@ -13,6 +13,7 @@ import {
   FileText,
   Video,
   XCircle,
+  Eye,
 } from 'lucide-react';
 import type { LessonFormData } from '../hooks/useCourses';
 import type { Lesson } from '@/types';
@@ -41,6 +42,9 @@ interface LessonManagerProps {
   pdfProgress: number;
   onPdfUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeletePdf: () => void;
+  // 课件预览
+  onPreviewPdf: () => void;
+  onPreviewVideo: () => void;
   // 回调
   onAddLesson: () => void;
   onEditLesson: (lesson: Lesson) => void;
@@ -80,6 +84,8 @@ export default function LessonManager({
   pdfProgress,
   onPdfUpload,
   onDeletePdf,
+  onPreviewPdf,
+  onPreviewVideo,
   onAddLesson,
   onEditLesson,
   onDeleteLesson,
@@ -158,7 +164,7 @@ export default function LessonManager({
                               .padStart(2, '0')}
                           </span>
                         )}
-                        {(lesson as any).pdfFile?.fileID && (
+                        {lesson.pdfFile?.fileID && (
                           <span className="flex items-center gap-1 text-error">
                             <FileText size={12} />
                             PDF
@@ -166,7 +172,7 @@ export default function LessonManager({
                         )}
                         {lesson.isFree && (
                           <span className="badge badge-sm badge-success">
-                            试看{(lesson as any).previewDuration ? ` ${(lesson as any).previewDuration}秒` : ''}
+                            试看{lesson.previewDuration ? ` ${lesson.previewDuration}秒` : ''}
                           </span>
                         )}
                       </div>
@@ -269,13 +275,23 @@ export default function LessonManager({
                           {lessonFormData.videoUrl}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-ghost text-error"
-                        onClick={onDeleteVideo}
-                      >
-                        <XCircle size={18} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost text-info"
+                          onClick={onPreviewVideo}
+                          title="预览视频"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost text-error"
+                          onClick={onDeleteVideo}
+                        >
+                          <XCircle size={18} />
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div
@@ -396,13 +412,23 @@ export default function LessonManager({
                           {formatFileSize(lessonFormData.pdfFile.size)}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-ghost text-error"
-                        onClick={onDeletePdf}
-                      >
-                        <XCircle size={18} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost text-info"
+                          onClick={onPreviewPdf}
+                          title="预览PDF"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost text-error"
+                          onClick={onDeletePdf}
+                        >
+                          <XCircle size={18} />
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary hover:bg-base-200 transition-colors">
@@ -493,16 +519,7 @@ export default function LessonManager({
                   type="button"
                   className="btn flex-1"
                   onClick={() => {
-                    setLessonFormData({
-                      title: '',
-                      description: '',
-                      videoUrl: '',
-                      videoDuration: 0,
-                      isFree: false,
-                      order: 0,
-                    });
-                    // Reset editingLesson through parent
-                    onClose;
+                    onClose();
                   }}
                 >
                   取消

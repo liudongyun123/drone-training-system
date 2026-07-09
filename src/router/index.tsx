@@ -62,7 +62,6 @@ import {
   AdminComments,
   AdminLogs,
   AdminPracticeRecords,
-  AdminRoles,
   AdminUserRoles,
   AdminNoticeManagement,
   AdminMessageManagement,
@@ -84,6 +83,7 @@ import {
   AdminAuthConfig,
   AdminProducts,
   AdminShopOrders,
+  AdminContracts,
   MyClassesPage,
   MyTrainingPage,
   OpenClassesPage,
@@ -190,6 +190,7 @@ const adminRoutes = [
   // 热门课程管理已整合到内容配置中
   { path: '/admin/featured-courses', element: adminRoute(() => <Navigate to="/admin/page-config" replace />) },
   { path: '/admin/certificates', element: adminRoute(AdminCertificates) },
+  { path: '/admin/contracts', element: adminRoute(AdminContracts) },  // 培训合同管理
   { path: '/admin/marketing', element: adminRoute(AdminMarketing) },
   { path: '/admin/categories', element: adminRoute(AdminCategories) },
 
@@ -197,8 +198,8 @@ const adminRoutes = [
   { path: '/admin/comments', element: adminRoute(AdminComments) },
   { path: '/admin/logs', element: adminRoute(AdminLogs) },
   { path: '/admin/practice-records', element: adminRoute(AdminPracticeRecords) },
-  { path: '/admin/roles', element: adminRoute(AdminRoles) },
-  { path: '/admin/user-roles', element: adminRoute(AdminUserRoles) }, // 管理员账号管理
+  { path: '/admin/user-roles', element: adminRoute(AdminUserRoles) }, // 管理员角色管理
+  { path: '/admin/roles', element: <Navigate to="/admin/user-roles" replace /> }, // 旧路径重定向
 
   // 数据修复
   { path: '/admin/data-fix', element: adminRoute(AdminDataFix) },

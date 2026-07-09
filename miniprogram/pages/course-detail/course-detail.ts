@@ -3,7 +3,7 @@
 
 import { courseApi } from '../../utils/api'
 import { checkLogin, getUserId, showToast } from '../../utils/util'
-import { dbGetList, request } from '../../utils/http'
+import { dbGetList, dbQuery, request } from '../../utils/http'
 import logger from '../../utils/logger'
 import { DEFAULT_COVER, SERVICE_PHONE } from '../../utils/constants'
 
@@ -67,21 +67,10 @@ Page({
       
       logger.debug('课程详情', '课程数据:', course)
       logger.debug('课程详情', '课时数据:', lessons)
-      
-      // 处理课程预览视频URL（cloud://格式需要转换为临时链接）
-      if (course && course.videoUrl) {
-        if (course.videoUrl.startsWith('cloud://')) {
-          course.videoUrl = await this.getCloudVideoUrl(course.videoUrl)
-        }
-      }
-      
-      // 处理课时视频URL
-      if (lessons && lessons.length > 0) {
-        for (let i = 0; i < lessons.length; i++) {
-          if (lessons[i].videoUrl && lessons[i].videoUrl.startsWith('cloud://')) {
-            lessons[i].videoUrl = await this.getCloudVideoUrl(lessons[i].videoUrl)
-          }
-        }
+
+      // 课程视频URL：cloud:// 且扩展名不是 .mp4 时，需要先获取临时链接（小程序 video 组件对 .m4v/.mov 扩展名支持不佳）
+      if (course && course.videoUrl && course.videoUrl.startsWith('cloud://') && !course.videoUrl.toLowerCase().endsWith('.mp4')) {
+        course.videoUrl = await this.getCloudVideoUrl(course.videoUrl)
       }
 
       // 汇总课件列表
@@ -97,7 +86,7 @@ Page({
       // 检查是否已购买
       let hasPermission = false
       const phone = wx.getStorageSync('phone') || ''
-      
+
       if (phone) {
         const permResult = await dbGetList('course_permissions', {
           where: { phone, courseId }
@@ -105,11 +94,66 @@ Page({
         hasPermission = (permResult.data || []).length > 0
       }
       
+      // 确保课程有封面兜底
+      if (course) {
+        course.coverImage = course.coverImage || course.cover || DEFAULT_COVER
+        course.cover = course.cover || course.coverImage || DEFAULT_COVER
+      }
+
+      // ★ 加载/补齐教师信息：课程可能只有 teacherId，需要从 teachers 集合查询头像
+      if (course && (course.teacherId || course.instructorId)) {
+        await this.enrichInstructor(course)
+      }
+
       this.setData({ course, lessons, hasPermission, coursewareList, loading: false })
     } catch (err) {
       logger.error('课程', '加载课程失败', err)
       this.setData({ loading: false })
       showToast('加载课程失败')
+    }
+  },
+
+  // 补齐/丰富教师信息（头像、职称等）
+  async enrichInstructor(course: any) {
+    try {
+      const teacherId = course.teacherId || course.instructorId
+      if (!teacherId) return
+
+      // 已有头像且不是 cloud:// 空地址时，无需查询
+      const existingAvatar = course.instructorAvatar || course.teacher?.avatar
+      if (existingAvatar && !existingAvatar.startsWith('cloud://') && existingAvatar.length > 10) {
+        return
+      }
+
+      // 查询 teachers 集合
+      const result = await dbQuery('teachers', { _id: teacherId })
+      const teacher = result.data?.[0]
+      if (!teacher) return
+
+      // 写入头像（支持 cloud:// URL）
+      const avatarUrl = teacher.avatar || teacher.avatarUrl || teacher.coverImage || ''
+      if (avatarUrl) {
+        course.instructorAvatar = avatarUrl
+        if (course.teacher) course.teacher.avatar = avatarUrl
+      }
+
+      // 写入姓名/职称（如果课程中没有）
+      if (teacher.name && !course.instructor) course.instructor = teacher.name
+      if (teacher.title && !course.instructorTitle) course.instructorTitle = teacher.title
+
+      // 解析 cloud:// 头像 URL
+      if (course.instructorAvatar && course.instructorAvatar.startsWith('cloud://')) {
+        const res: any = await request('/db-init', 'POST', {
+          action: 'getTempFileURL',
+          fileList: [course.instructorAvatar]
+        })
+        if (res.fileList && res.fileList[0] && res.fileList[0].code === 'SUCCESS') {
+          course.instructorAvatar = res.fileList[0].tempFileURL || res.fileList[0].download_url
+          if (course.teacher) course.teacher.avatar = course.instructorAvatar
+        }
+      }
+    } catch (err) {
+      logger.warn('课程详情', '补齐教师信息失败', err)
     }
   },
 
@@ -128,9 +172,14 @@ Page({
         if (res.fileList && res.fileList[0]) {
           const file = res.fileList[0]
           if (file.code === 'SUCCESS') {
-            const url = file.tempFileURL || file.download_url
-            tempUrlCache.set(fileId, url)
-            resolve(url)
+            // 小程序视频播放要求 HTTPS，优先使用 tempFileURL；download_url 通常是 HTTP，不直接使用
+            const url = file.tempFileURL || (file.download_url && file.download_url.startsWith('https://') ? file.download_url : '')
+            if (url) {
+              tempUrlCache.set(fileId, url)
+              resolve(url)
+            } else {
+              resolve(fileId)
+            }
           } else {
             resolve(fileId)
           }
@@ -150,7 +199,7 @@ Page({
     this.setData({ activeTab: tab })
   },
 
-  // 解析PDF文件的URL
+  // 解析PDF文件的URL（HTTP/外部链接兼容）
   async resolvePdfUrl(fileid: string): Promise<string> {
     if (fileid.startsWith('http://') || fileid.startsWith('https://')) {
       return fileid
@@ -186,6 +235,32 @@ Page({
     throw new Error('无法识别文件格式，请重新上传课件')
   },
 
+  // 标准化云文件 ID
+  normalizeCloudFileID(fileID: string): string {
+    if (fileID.startsWith('cloud://')) return fileID
+    return `cloud://rcwljy-5ghmq2ex26764978.rcwljy-5ghmq2ex26764978/${fileID}`
+  },
+
+  // 使用 wx.cloud 直接下载云文件（绕过小程序域名白名单）
+  async downloadCloudFile(fileID: string): Promise<string> {
+    const normalizedFileID = this.normalizeCloudFileID(fileID)
+    return new Promise((resolve, reject) => {
+      wx.cloud.downloadFile({
+        fileID: normalizedFileID,
+        success: (res) => {
+          if (res.tempFilePath) {
+            resolve(res.tempFilePath)
+          } else {
+            reject(new Error('下载文件无临时路径'))
+          }
+        },
+        fail: (err) => {
+          reject(new Error(err.errMsg || '云文件下载失败'))
+        }
+      })
+    })
+  },
+
   // 打开PDF课件
   async openPdf(e: any) {
     const { fileid, isfree } = e.currentTarget.dataset
@@ -203,102 +278,71 @@ Page({
     this.setData({ pdfLoading: true })
 
     try {
-      const pdfUrl = await this.resolvePdfUrl(fileid)
-      logger.info('课件', '开始下载PDF:', pdfUrl.substring(0, 80) + '...')
+      wx.showLoading({ title: '加载课件...' })
 
-      const downloadResult = await new Promise<string>((resolve, reject) => {
-        wx.downloadFile({
-          url: pdfUrl,
-          success: (res) => {
-            if (res.statusCode === 200) {
-              resolve(res.tempFilePath)
-            } else {
-              reject(new Error(`下载失败，状态码: ${res.statusCode}`))
-            }
-          },
-          fail: (err) => {
-            const errMsg = err.errMsg || ''
-            if (errMsg.includes('not in domain list') || errMsg.includes('url not in')) {
-              reject(new DomainError(pdfUrl))
-            } else {
-              reject(new Error(`下载请求失败: ${errMsg}`))
-            }
-          }
-        })
-      })
+      // 优先使用 wx.cloud 直接下载，绕过域名白名单和 6MB 响应限制
+      let tempFilePath = ''
+      try {
+        tempFilePath = await this.downloadCloudFile(fileid)
+      } catch (cloudErr: any) {
+        logger.warn('课件', 'wx.cloud 下载失败，尝试代理下载:', cloudErr)
+        tempFilePath = await this.proxyDownloadFile(fileid)
+      }
 
-      wx.openDocument({
-        filePath: downloadResult,
+      await wx.openDocument({
+        filePath: tempFilePath,
         fileType: 'pdf',
-        showMenu: false,  // 禁止转发和保存，仅允许查看
+        showMenu: true,
         success: () => {
           logger.info('课件', 'PDF打开成功')
         },
         fail: (err) => {
           logger.error('课件', 'PDF打开失败', err)
-          showToast('无法打开课件')
+          throw err
         }
       })
+
+      wx.hideLoading()
     } catch (err: any) {
+      wx.hideLoading()
       logger.error('课件', 'PDF加载失败:', err)
-      if (err instanceof DomainError) {
-        // 使用代理下载绕过域名限制
-        this.proxyDownloadPdf(fileid)
-      } else {
-        const msg = err.message || '课件加载失败'
-        showToast(msg.length > 20 ? msg.substring(0, 20) + '...' : msg)
-      }
+      const msg = err.message || err.errMsg || '课件加载失败'
+      showToast(msg.length > 20 ? msg.substring(0, 20) + '...' : msg)
     } finally {
       this.setData({ pdfLoading: false })
     }
   },
 
-  // 通过云函数代理下载PDF（绕过小程序域名白名单限制）
+  // 通过云函数代理下载并写入本地临时文件
+  async proxyDownloadFile(fileId: string): Promise<string> {
+    const res: any = await request('/db-init', 'POST', {
+      action: 'proxyDownload',
+      fileList: [this.normalizeCloudFileID(fileId)]
+    })
+
+    if (res.code === 413) {
+      throw new Error('课件超过10MB，无法直接打开')
+    }
+    if (res.code !== 0 || !res.data?.base64) {
+      throw new Error(res.message || '代理下载失败')
+    }
+
+    const fs = wx.getFileSystemManager()
+    const fileName = res.data.fileName || 'courseware.pdf'
+    const tempPath = `${wx.env.USER_DATA_PATH}/${Date.now()}_${fileName}`
+    fs.writeFileSync(tempPath, res.data.base64, 'base64')
+    return tempPath
+  },
+
+  // 通过云函数代理下载PDF（保留兼容，实际优先使用 wx.cloud.downloadFile）
   async proxyDownloadPdf(fileId: string) {
     wx.showLoading({ title: '正在加载课件...' })
     try {
-      // 如果不是 cloud:// 格式，先获取 cloud:// fileID
-      let cloudFileId = fileId
-      if (!cloudFileId.startsWith('cloud://')) {
-        // 尝试拼接完整 fileID
-        cloudFileId = `cloud://rcwljy-5ghmq2ex26764978.rcwljy-5ghmq2ex26764978/${fileId}`
-      }
-
-      const res: any = await request('/db-init', 'POST', {
-        action: 'proxyDownload',
-        fileList: [cloudFileId]
-      })
-
-      wx.hideLoading()
-
-      if (res.code === 413) {
-        wx.showModal({
-          title: '文件过大',
-          content: '课件文件超过10MB，无法在小程序中直接打开。链接已复制，请在浏览器中查看。',
-          showCancel: false
-        })
-        if (res.data?.url) {
-          wx.setClipboardData({ data: res.data.url })
-        }
-        return
-      }
-
-      if (res.code !== 0 || !res.data?.base64) {
-        showToast(res.message || '课件下载失败')
-        return
-      }
-
-      // base64 写入本地临时文件
-      const fs = wx.getFileSystemManager()
-      const fileName = res.data.fileName || 'courseware.pdf'
-      const tempPath = `${wx.env.USER_DATA_PATH}/${Date.now()}_${fileName}`
-
-      fs.writeFileSync(tempPath, res.data.base64, 'base64')
-
+      const tempFilePath = await this.proxyDownloadFile(fileId)
       wx.openDocument({
-        filePath: tempPath,
+        filePath: tempFilePath,
         fileType: 'pdf',
-        showMenu: false,  // 禁止转发和保存，仅允许查看
+        showMenu: true,
         success: () => logger.info('课件', 'PDF代理下载打开成功'),
         fail: (err: any) => {
           logger.error('课件', 'PDF代理下载打开失败', err)
@@ -308,7 +352,10 @@ Page({
     } catch (err: any) {
       wx.hideLoading()
       logger.error('课件', '代理下载PDF失败:', err)
-      showToast('课件加载失败，请稍后重试')
+      const msg = err.message || err.errMsg || '课件加载失败，请稍后重试'
+      showToast(msg.length > 20 ? msg.substring(0, 20) + '...' : msg)
+    } finally {
+      this.setData({ pdfLoading: false })
     }
   },
 
@@ -325,14 +372,6 @@ Page({
     logger.debug('课程详情', 'startLearning 被调用', e.currentTarget.dataset)
     
     const lessonId = e.currentTarget.dataset.id
-    const lesson = this.data.lessons.find((l: any) => l._id === lessonId)
-    const isFree = lesson?.isFree || false
-    
-    if (!this.data.hasPermission && !isFree) {
-      showToast('请先购买课程')
-      return
-    }
-    
     const targetLessonId = lessonId || (this.data.lessons[0]?._id)
     
     logger.debug('课程详情', 'targetLessonId:', targetLessonId, 'lessons:', this.data.lessons)
@@ -406,8 +445,55 @@ Page({
     }
   },
 
+  // 教师头像加载失败兜底
+  onTeacherAvatarError() {
+    const course = this.data.course
+    if (course) {
+      course.instructorAvatar = DEFAULT_COVER
+      if (course.teacher) course.teacher.avatar = DEFAULT_COVER
+      this.setData({ course })
+    }
+  },
+
   onVideoError(e: any) {
+    const { course } = this.data
+    const videoUrl = course?.videoUrl || ''
     logger.error('课程详情', '视频加载失败:', e.detail)
+
+    const errorMsg = e.detail?.errMsg || ''
+
+    // 格式/编码不支持：提示使用 MP4（H.264 + AAC）重新上传
+    if (errorMsg.includes('MEDIA_ERR_SRC_NOT_SUPPORTED') || errorMsg.includes('DEMUXER_ERROR')) {
+      if (videoUrl.startsWith('cloud://')) {
+        logger.info('课程详情', '格式不支持，尝试临时链接:', videoUrl)
+        this.getCloudVideoUrl(videoUrl).then((url) => {
+          if (url && url !== videoUrl) {
+            course.videoUrl = url
+            this.setData({ course })
+          } else {
+            showToast('视频格式不支持，请重新上传 MP4 格式')
+          }
+        })
+      } else {
+        showToast('视频格式不支持，请重新上传 MP4 格式')
+      }
+      return
+    }
+
+    // 如果当前是 cloud:// 地址，尝试使用临时链接重播
+    if (videoUrl.startsWith('cloud://')) {
+      logger.info('课程详情', 'cloud:// 播放失败，尝试临时链接:', videoUrl)
+      this.getCloudVideoUrl(videoUrl).then((url) => {
+        if (url && url !== videoUrl) {
+          course.videoUrl = url
+          this.setData({ course })
+        } else {
+          showToast('视频加载失败，请稍后重试')
+        }
+      })
+      return
+    }
+
     showToast('视频加载失败，请稍后重试')
   }
 })

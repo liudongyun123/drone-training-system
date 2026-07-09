@@ -124,30 +124,36 @@ export default function AdminClassOrders() {
       // 同时查询 enrollments 和 orders 集合（线下报名的订单存储在 orders 中）
       const query: Record<string, any> = {};
       if (filterStatus) query.status = filterStatus;
-      if (filterPaymentMethod) query.paymentMethod = filterPaymentMethod;
+      if (filterPaymentMethod) {
+        // 支付方式映射：'online' → 查询 wechat/alipay，'offline' → 查询 offline/cash
+        if (filterPaymentMethod === 'online') {
+          query.paymentMethod = { $in: ['wechat', 'alipay', 'balance'] };
+        } else if (filterPaymentMethod === 'offline') {
+          query.paymentMethod = { $in: ['offline', 'cash'] };
+        } else {
+          query.paymentMethod = filterPaymentMethod;
+        }
+      }
+      // 体系筛选：订单的 sourceId 字段存储的是体系 code
+      if (filterSource) query.sourceId = filterSource;
 
       // 查询 enrollments 集合（线上报名）
-      const enrollmentsResult = await adminService.list('enrollments', query, { page, limit: pageSize });
+      const enrollmentsQuery = { ...query };
+      const enrollmentsResult = await adminService.listWithOps('enrollments', enrollmentsQuery, { skip: (page - 1) * pageSize, limit: pageSize });
       // 查询 orders 集合中的培训班订单（线下报名，type='class'）
       const ordersQuery = { ...query, type: 'class' };
-      const ordersResult = await adminService.list('orders', ordersQuery, { page, limit: pageSize });
+      const ordersResult = await adminService.listWithOps('orders', ordersQuery, { skip: (page - 1) * pageSize, limit: pageSize });
       
       let list: any[] = [];
       
       // 合并两个集合的数据
       if (enrollmentsResult.code === 0) {
-        const enrollmentsData = enrollmentsResult.data as { data?: unknown[]; list?: unknown[] } | undefined;
-        const enrollmentsList = Array.isArray(enrollmentsResult.data) 
-          ? enrollmentsResult.data 
-          : ((enrollmentsData?.data as unknown[]) || (enrollmentsData?.list as unknown[]) || []);
+        const enrollmentsList = enrollmentsResult.data?.list || [];
         list = [...list, ...enrollmentsList];
       }
       
       if (ordersResult.code === 0) {
-        const ordersData = ordersResult.data as { data?: unknown[]; list?: unknown[] } | undefined;
-        const ordersList = Array.isArray(ordersResult.data) 
-          ? ordersResult.data 
-          : ((ordersData?.data as unknown[]) || (ordersData?.list as unknown[]) || []);
+        const ordersList = ordersResult.data?.list || [];
         // 标记为线下报名订单
         const markedOrders = ordersList.map((o: unknown) => ({ ...(o as object), _fromOffline: true }));
         list = [...list, ...markedOrders];
@@ -232,7 +238,7 @@ export default function AdminClassOrders() {
     if (Object.keys(membersCache).length > 0) {
       loadOrders();
     }
-  }, [page, filterStatus, filterPaymentMethod, searchKeyword, membersCache]);
+  }, [page, filterStatus, filterPaymentMethod, filterSource, searchKeyword, membersCache]);
 
   // 开放权限
   const handleGrantPermission = async () => {
@@ -262,10 +268,9 @@ export default function AdminClassOrders() {
     setClassesLoading(true);
     try {
       // 查询所有班级，不限制状态，确保能加载到数据
-      const result = await adminService.list('classes', {}, { limit: 200 });
+      const result = await adminService.listWithOps('classes', {}, { limit: 200 });
       if (result.code === 0) {
-        const resultData = result.data as { data?: unknown[]; list?: unknown[] } | undefined;
-        const list = Array.isArray(result.data) ? result.data : ((resultData?.data as unknown[]) || (resultData?.list as unknown[]) || []);
+        const list = result.data?.list || [];
         setAvailableClasses(list as ClassItem[]);
       } else {
         console.error('[AdminClassOrders] 加载班级失败:', (result as { message?: string }).message || '未知错误');
@@ -331,11 +336,11 @@ export default function AdminClassOrders() {
     setOfflineEnrollLoading(true);
     try {
       // ★ 重复报名检测：查询该手机号是否已有此班级的有效订单
-      const existingResult = await adminService.list('orders', {
+      const existingResult = await adminService.listWithOps('orders', {
         phone: memberPhone,
         classId: classId,
         status: { $in: ['pending', 'paid', 'paid_offline', 'completed'] }
-      }, { limit: 1 }) as unknown as { code: number; data: { list: any[] } };
+      }, { limit: 1 });
       
       if (existingResult?.code === 0 && existingResult.data?.list?.length > 0) {
         await confirm({ title: '重复报名', message: `该手机号（${memberPhone}）已报名此班级，无需重复报名`, variant: 'info' });
@@ -345,11 +350,11 @@ export default function AdminClassOrders() {
 
       // 也检查 enrollments 集合
       try {
-        const enrollCheck = await adminService.list('enrollments', {
+        const enrollCheck = await adminService.listWithOps('enrollments', {
           phone: memberPhone,
           classId: classId,
           status: { $ne: 'cancelled' }
-        }, { limit: 1 }) as unknown as { code: number; data: { list: any[] } };
+        }, { limit: 1 });
         if (enrollCheck?.code === 0 && enrollCheck.data?.list?.length > 0) {
           await confirm({ title: '重复报名', message: `该手机号（${memberPhone}）已有此班级的报名记录，无需重复报名`, variant: 'info' });
           setOfflineEnrollLoading(false);
@@ -634,9 +639,31 @@ export default function AdminClassOrders() {
             className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
           >
             <option value="">全部支付方式</option>
-            <option value="online">线上支付</option>
+            <option value="wechat">微信支付</option>
+            <option value="alipay">支付宝</option>
             <option value="offline">线下支付</option>
+            <option value="cash">现金</option>
           </select>
+
+          {/* ★ 体系筛选 */}
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-gray-400" />
+            <select
+              value={filterSource}
+              onChange={(e) => {
+                setFilterSource(e.target.value);
+                setPage(1);
+              }}
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="">全部体系</option>
+              {sourceOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.icon} {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <button
             onClick={openOfflineEnrollModal}

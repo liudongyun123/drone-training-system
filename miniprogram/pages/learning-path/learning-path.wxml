@@ -12,7 +12,7 @@
     <!-- 学习路径头部 -->
     <view class="path-header">
       <view class="path-icon-large">
-        <text class="icon-text">🗺️</text>
+        <text class="icon-text">{{categoryIcon || '🗺️'}}</text>
       </view>
       <view class="path-info">
         <text class="path-title">{{categoryName}}</text>
@@ -61,24 +61,33 @@
             <view
               class="course-item"
               wx:for="{{item.courses}}"
+              wx:for-item="course"
+              wx:for-index="ci"
               wx:key="_id"
               bindtap="goToCourse"
-              data-id="{{item._id}}"
+              data-id="{{course._id}}"
             >
-              <image class="course-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill"/>
+              <image 
+                class="course-cover" 
+                src="{{course.coverImage || course.cover}}" 
+                mode="aspectFill"
+                binderror="onImageError"
+                data-stage-index="{{index}}"
+                data-course-index="{{ci}}"
+              />
               <view class="course-info">
-                <text class="course-title">{{item.title}}</text>
+                <text class="course-title">{{course.title}}</text>
                 <view class="course-meta">
-                  <text class="course-price">{{item.price}}</text>
-                  <text class="course-sales">{{item.salesCount || 0}}人已学</text>
+                  <text class="course-price">{{course.price}}</text>
+                  <text class="course-sales">{{course.salesCount || 0}}人已学</text>
                 </view>
                 <!-- 学习进度条 -->
-                <view class="course-progress-mini" wx:if="{{item.progressData && item.progressData.totalLessons > 0}}">
+                <view class="course-progress-mini" wx:if="{{course.progressData && course.progressData.totalLessons > 0}}">
                   <view class="progress-bar-mini">
-                    <view class="progress-fill-mini {{item.progressData.progress >= 100 ? 'completed' : ''}}" 
-                          style="width: {{item.progressData.progress}}%"></view>
+                    <view class="progress-fill-mini {{course.progressData.progress >= 100 ? 'completed' : ''}}" 
+                          style="width: {{course.progressData.progress}}%"></view>
                   </view>
-                  <text class="progress-text-mini">{{item.progressData.progress}}% ({{item.progressData.learnedLessons}}/{{item.progressData.totalLessons}}节)</text>
+                  <text class="progress-text-mini">{{course.progressData.progress}}% ({{course.progressData.learnedLessons}}/{{course.progressData.totalLessons}}节)</text>
                 </view>
               </view>
             </view>

@@ -1,10 +1,10 @@
 /**
  * 统一认证 Hook
- * 处理 CloudBase 匿名登录
+ * 处理 CloudBase 登录（通过 HTTP API）
  */
 
 import { useState, useEffect } from 'react'
-import { checkLogin } from '@/utils/cloudbase'
+import { adminService } from '@/services/adminService'
 
 export function useAuth() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -16,13 +16,17 @@ export function useAuth() {
       try {
         setIsLoading(true)
         
-        // 使用 checkLogin 防止并发请求
-        const session = await checkLogin()
-        console.log('[useAuth] 登录状态:', session)
+        // 通过 api-auth 云函数验证 Token
+        const result = await adminService.callFunction('api-auth', {
+          action: 'verifyToken',
+          data: {}
+        })
         
-        setIsLoggedIn(true)
+        if (result?.success || result?.data) {
+          setIsLoggedIn(true)
+        }
       } catch (err: any) {
-        console.error('[useAuth] 登录失败:', err)
+        console.error('[useAuth] 登录验证失败:', err)
         setError(err.message || '登录失败')
       } finally {
         setIsLoading(false)

@@ -50,7 +50,15 @@ export interface Lesson {
   videoDuration?: number;
   order: number;
   isFree: boolean;
+  previewDuration?: number;  // 试看时长（秒）
+  pdfFile?: {                // PDF课件
+    fileID: string;
+    name: string;
+    size: number;
+  } | null;
+  status?: 'draft' | 'published';
   createdAt: string;
+  updatedAt?: string;
 }
 
 // 学习进度
@@ -533,3 +541,17 @@ export type {
   PermissionStats,
   ClassMemberStats
 } from './permission'
+
+// ============ 培训合同（新增）============
+export type {
+  Contract,
+  ContractType,
+  ContractStatus,
+  CreateContractRequest,
+  SignContractRequest,
+} from './contract'
+export {
+  CONTRACT_TYPE_LABELS,
+  CONTRACT_STATUS_LABELS,
+  CONTRACT_STATUS_COLORS,
+} from './contract'

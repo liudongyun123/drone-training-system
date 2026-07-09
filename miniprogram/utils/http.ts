@@ -81,16 +81,19 @@ export async function dbGetList(
   options: {
     where?: any
     orderBy?: string
+    order?: string
     limit?: number
     skip?: number
+    useOperators?: boolean
   } = {}
 ) {
   // 将 where 重命名为 query，因为 db-init 云函数期望 query 参数
-  const { where, ...rest } = options
+  const { where, useOperators, ...rest } = options
   return request<{ data: any[] }>('/db-init', 'POST', {
     action: 'getList',
     collection,
     query: where,
+    useOperators,
     ...rest
   })
 }
@@ -135,6 +138,29 @@ export async function dbDelete(collection: string, id: string) {
 export async function testConnection() {
   return request<{ success: boolean; message: string }>('/db-init', 'POST', {
     action: 'ping'
+  })
+}
+
+/**
+ * 数据迁移：将 sourceId 从 UUID 统一为体系 code
+ * 在部署新版本后运行一次即可
+ */
+export async function migrateSourceId() {
+  return request<{
+    code: number
+    message: string
+    data: {
+      stats: {
+        sources: number
+        categories: number
+        courses: number
+        classes: number
+        page_configs: number
+        errors: string[]
+      }
+    }
+  }>('/db-init', 'POST', {
+    action: 'migrateSourceId'
   })
 }
 
@@ -453,6 +479,123 @@ export async function getCertificates(userId: string) {
   })
 }
 
+// ============== 云存储文件URL解析 ==============
+
+// 内存缓存：避免重复请求相同的 fileID
+const fileUrlCache = new Map<string, string>()
+
+/**
+ * 批量解析云存储文件ID（cloud:// 格式）为 HTTPS 临时链接
+ * 调用 db-init 云函数的 getTempFileURL action
+ * 
+ * @param fileIDs cloud:// 格式的文件ID数组
+ * @returns Map<fileID, httpsURL> — 解析成功返回临时链接，失败保留原始值
+ */
+export async function resolveCloudFileURLs(fileIDs: string[]): Promise<Map<string, string>> {
+  const urlMap = new Map<string, string>()
+  
+  if (!fileIDs || fileIDs.length === 0) return urlMap
+  
+  // 过滤掉非 cloud:// 格式的 URL 和非空字符串
+  const cloudIDs = fileIDs.filter(id => id && typeof id === 'string' && id.startsWith('cloud://'))
+  
+  // 检查缓存
+  const uncachedIDs: string[] = []
+  for (const id of cloudIDs) {
+    if (fileUrlCache.has(id)) {
+      urlMap.set(id, fileUrlCache.get(id)!)
+    } else {
+      uncachedIDs.push(id)
+    }
+  }
+  
+  if (uncachedIDs.length === 0) return urlMap
+  
+  try {
+    const res: any = await request('/db-init', 'POST', {
+      action: 'getTempFileURL',
+      fileList: uncachedIDs
+    })
+    
+    if (res.fileList && Array.isArray(res.fileList)) {
+      for (const file of res.fileList) {
+        const fileID = file.fileID
+        if (!fileID) continue
+        
+        if (file.code === 'SUCCESS' && file.tempFileURL) {
+          const url = file.tempFileURL as string
+          urlMap.set(fileID, url)
+          fileUrlCache.set(fileID, url)  // 缓存7天内有效
+        } else if (file.download_url) {
+          // 备选：download_url（可能为 HTTP）
+          let url = file.download_url as string
+          if (url.startsWith('http://')) {
+            url = url.replace(/^http:\/\//, 'https://')
+          }
+          urlMap.set(fileID, url)
+          fileUrlCache.set(fileID, url)
+        } else {
+          // 解析失败，保留原始值
+          urlMap.set(fileID, fileID)
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[resolveCloudFileURLs] 解析失败:', err)
+    // 失败时保留原始值
+    for (const id of uncachedIDs) {
+      urlMap.set(id, id)
+    }
+  }
+  
+  return urlMap
+}
+
+/**
+ * 批量解析对象数组中封面/图片字段里的 cloud:// URL 为 HTTPS 临时链接
+ * 直接在原数组中原地替换，并返回该数组
+ * 
+ * @param items 任意对象数组
+ * @param fields 需要解析的字段名，默认 ['coverImage', 'cover']
+ */
+export async function resolveCoverUrls<T extends Record<string, any>>(
+  items: T[],
+  fields: string[] = ['coverImage', 'cover']
+): Promise<T[]> {
+  if (!items || items.length === 0) return items
+
+  // 收集所有 cloud:// 格式的 URL
+  const cloudIDs = new Set<string>()
+  for (const item of items) {
+    for (const field of fields) {
+      const val = item[field]
+      if (val && typeof val === 'string' && val.startsWith('cloud://')) {
+        cloudIDs.add(val)
+      }
+    }
+  }
+
+  if (cloudIDs.size === 0) return items
+
+  // 批量解析
+  const urlMap = await resolveCloudFileURLs(Array.from(cloudIDs))
+
+  // 原地替换
+  for (const item of items) {
+    for (const field of fields) {
+      const val = item[field]
+      if (val && typeof val === 'string' && val.startsWith('cloud://')) {
+        const resolved = urlMap.get(val)
+        if (resolved && resolved !== val) {
+          item[field] = resolved
+        }
+      }
+    }
+  }
+
+  return items
+}
+
 // ============== API 云函数封装 ==============
 
 /**
@@ -474,4 +617,57 @@ export async function callApiOrder(action: string, data?: any) {
  */
 export async function callApiCourse(action: string, data?: any) {
   return request<any>('/api-course', 'POST', { action, data })
+}
+
+// ============== 培训合同 API ==============
+
+/**
+ * 创建合同
+ */
+export async function createContract(data: {
+  userId: string
+  userName: string
+  phone: string
+  idCard?: string
+  orderId?: string
+  registrationId?: string
+  courseId?: string
+  courseName?: string
+}) {
+  return callApiOrder('createContract', data)
+}
+
+/**
+ * 签署合同
+ */
+export async function signContract(data: {
+  contractId: string
+  signatureImage: string
+  verifyMethod?: 'sms' | 'none'
+}) {
+  return callApiOrder('signContract', data)
+}
+
+/**
+ * 获取合同详情
+ */
+export async function getContract(params: {
+  contractId?: string
+  orderId?: string
+  registrationId?: string
+}) {
+  return callApiOrder('getContract', params)
+}
+
+/**
+ * 获取合同列表
+ */
+export async function getContractList(params: {
+  phone?: string
+  userId?: string
+  status?: string
+  page?: number
+  pageSize?: number
+}) {
+  return callApiOrder('getContractList', params)
 }

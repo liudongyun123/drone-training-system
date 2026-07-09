@@ -252,7 +252,23 @@ exports.main = async (event, context) => {
       case 'ping':
         result = { code: 0, message: 'pong', timestamp: new Date().toISOString() };
         break;
-        
+
+      case 'createCollection': {
+        // 显式创建集合（CloudBase 不会自动建集合）
+        if (!collection) {
+          result = { code: 400, message: '缺少 collection 参数' };
+          break;
+        }
+        try {
+          await db.createCollection(collection);
+          result = { code: 0, message: `集合 ${collection} 创建成功` };
+        } catch (e) {
+          // 已存在时也会报错，视为成功
+          result = { code: 0, message: `集合 ${collection} 已存在或创建完成`, detail: e.message };
+        }
+        break;
+      }
+
       case 'query':
       case 'getList': {
         const rawConditions = query || where || {};
@@ -309,14 +325,23 @@ exports.main = async (event, context) => {
           createdAt: data.createdAt || now,
           updatedAt: now
         };
+        
+        // 所有集合统一由 CloudBase 自动生成 _id，避免冒号等特殊字符导致 doc().set() 失败
         delete insertData._id;
         delete insertData._openid;
         
-        // @cloudbase/node-sdk 直接传入文档对象，不需要 { data: ... } 包装
-        const addResult = await db.collection(collection).add(insertData);
-        // 服务端 add 返回的 id 字段名可能是 id 或 _id
-        const newId = addResult.id || addResult._id || '';
-        result = { code: 0, data: { id: newId }, message: '添加成功' };
+        if (insertData._id) {
+          // 有自定义 _id 时使用 doc().set() 创建
+          await db.collection(collection).doc(insertData._id).set(insertData);
+          console.log('[db-init] 使用自定义 _id 创建文档:', insertData._id);
+          result = { code: 0, data: { id: insertData._id }, message: '添加成功' };
+        } else {
+          // @cloudbase/node-sdk 直接传入文档对象，不需要 { data: ... } 包装
+          const addResult = await db.collection(collection).add(insertData);
+          // 服务端 add 返回的 id 字段名可能是 id 或 _id
+          const newId = addResult.id || addResult._id || '';
+          result = { code: 0, data: { id: newId }, message: '添加成功' };
+        }
         break;
       }
         
@@ -361,6 +386,63 @@ exports.main = async (event, context) => {
         
       case 'delete':
       case 'remove': {
+        // ★ 删除分类时，同步清理 page_configs 中 learningPaths 的关联条目
+        if (collection === 'categories') {
+          try {
+            // 1. 先获取分类信息（需要 name 用于匹配 page_configs）
+            const catResult = await db.collection('categories').doc(id).get();
+            const categoryDoc = catResult.data?.[0];
+            
+            if (categoryDoc) {
+              const categoryName = categoryDoc.name;
+              const categoryId = id;
+              
+              // 2. 查找所有 page_configs 中 section=learningPaths 的配置
+              const pageConfigResult = await db.collection('page_configs')
+                .where({ section: 'learningPaths' })
+                .limit(50)
+                .get();
+              
+              const configs = pageConfigResult.data || [];
+              
+              // 3. 遍历每个配置，移除匹配该分类的条目
+              for (const config of configs) {
+                if (!config.data?.items || !Array.isArray(config.data.items)) continue;
+                
+                const originalCount = config.data.items.length;
+                const cleanedItems = config.data.items.filter((item) => {
+                  // 同时按 _id 和 name 匹配，确保能命中所有可能的关联
+                  const matchById = item._id === categoryId || item.id === categoryId;
+                  const matchByName = item.name === categoryName;
+                  return !(matchById || matchByName);
+                });
+                
+                const removedCount = originalCount - cleanedItems.length;
+                
+                if (removedCount > 0) {
+                  console.log(`[db-init] 删除分类 "${categoryName}"，同步清理 page_configs "${config._id}" 中的 ${removedCount} 个关联条目`);
+                  
+                  if (cleanedItems.length === 0) {
+                    // 没有剩余条目了，删除整个 page_config 文档
+                    await db.collection('page_configs').doc(config._id).remove();
+                    console.log(`[db-init] page_configs "${config._id}" 已无条目，已删除`);
+                  } else {
+                    // 更新 items 数组
+                    await db.collection('page_configs').doc(config._id).update({
+                      'data.items': cleanedItems,
+                      updatedAt: new Date().toISOString()
+                    });
+                  }
+                }
+              }
+            }
+          } catch (syncErr) {
+            // page_configs 同步失败不阻塞主删除操作
+            console.error('[db-init] 同步清理 page_configs 失败:', syncErr);
+          }
+        }
+        
+        // 执行真正的删除
         const removeResult = await db.collection(collection).doc(id).remove();
         result = { code: 0, deleted: removeResult.deleted || 0, message: '删除成功' };
         break;
@@ -486,6 +568,94 @@ exports.main = async (event, context) => {
         } catch (err) {
           console.error('[db-init] proxyDownload 错误:', err);
           result = { code: 500, message: err.message || '代理下载失败' };
+        }
+        break;
+      }
+        
+      case 'migrateSourceId': {
+        // ★ 统一迁移：将所有集合中的 sourceId 从 UUID 格式转为体系 code
+        // 背景：管理后台创建分类时下拉框存了 source._id（UUID），但种子数据存的是 code
+        // 统一为 code（如 "CAAC"/"RENSHE"），确保所有查询都能用 code 匹配
+        const stats = { sources: 0, categories: 0, courses: 0, classes: 0, page_configs: 0, errors: [] };
+        
+        try {
+          // 1. 查询所有体系，构建 UUID → code 映射表
+          const sourcesResult = await db.collection('sources').get();
+          const sources = sourcesResult.data || [];
+          const uuidToCode = new Map();
+          const knownCodes = new Set();
+          
+          for (const s of sources) {
+            knownCodes.add(s.code);
+            if (s._id && s.code && s._id !== s.code) {
+              uuidToCode.set(s._id, s.code); // UUID → code
+            }
+            if (s.code) {
+              uuidToCode.set(s.code, s.code); // code → code（幂等）
+            }
+          }
+          stats.sources = sources.length;
+          console.log('[migrateSourceId] 体系映射表:', JSON.stringify([...uuidToCode.entries()]));
+          
+          // 如果没有任何 UUID 需要迁移（所有 source._id === code），直接返回
+          if (uuidToCode.size === knownCodes.size) {
+            result = { code: 0, message: '无需迁移，所有体系的 _id 与 code 一致', data: { stats, note: '种子数据格式已统一' } };
+            break;
+          }
+          
+          // 2. 迁移各集合
+          const collections = ['categories', 'courses', 'classes', 'page_configs'];
+          
+          for (const collName of collections) {
+            try {
+              const collResult = await db.collection(collName).limit(500).get();
+              const docs = collResult.data || [];
+              let migratedCount = 0;
+              
+              for (const doc of docs) {
+                const currentSourceId = doc.sourceId || (doc.data && doc.data.sourceId);
+                
+                // 跳过已经是 code 格式的记录
+                if (!currentSourceId || knownCodes.has(currentSourceId)) continue;
+                
+                // 查找对应的 code
+                const targetCode = uuidToCode.get(currentSourceId);
+                if (!targetCode) {
+                  console.warn(`[migrateSourceId] ${collName}:${doc._id} 无法解析 sourceId=${currentSourceId}`);
+                  stats.errors.push(`${collName}:${doc._id} - sourceId=${currentSourceId} 无匹配体系`);
+                  continue;
+                }
+                
+                // 更新 sourceId 为 code
+                if (collName === 'page_configs') {
+                  // page_configs 的结构不同：sourceId 在 config.data 中
+                  await db.collection(collName).doc(doc._id).update({
+                    'data.sourceId': targetCode
+                  });
+                } else {
+                  await db.collection(collName).doc(doc._id).update({
+                    sourceId: targetCode
+                  });
+                }
+                migratedCount++;
+              }
+              
+              stats[collName] = migratedCount;
+              console.log(`[migrateSourceId] ${collName}: 迁移 ${migratedCount} 条`);
+            } catch (collErr) {
+              console.error(`[migrateSourceId] ${collName} 迁移失败:`, collErr);
+              stats.errors.push(`${collName}: ${collErr.message}`);
+            }
+          }
+          
+          result = {
+            code: 0,
+            message: `迁移完成：categories=${stats.categories}, courses=${stats.courses}, classes=${stats.classes}, page_configs=${stats.page_configs}`,
+            data: { stats }
+          };
+        } catch (err) {
+          console.error('[migrateSourceId] 迁移失败:', err);
+          result = { code: 500, message: err.message, data: { stats } };
         }
         break;
       }

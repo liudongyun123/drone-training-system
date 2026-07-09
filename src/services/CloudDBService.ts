@@ -101,7 +101,8 @@ export const CloudDBService = {
     try {
       const { where = {}, orderBy = 'createdAt', order = 'desc', skip = 0, limit = 20 } = options
       
-      const result = await adminService.list(collection, where, {
+      // 使用 listWithOps 以支持 $or/$regex/$gt 等操作符
+      const result = await adminService.listWithOps(collection, where, {
         skip,
         limit,
         orderBy,

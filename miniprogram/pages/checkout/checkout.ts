@@ -2,7 +2,7 @@
 // 结算页 - 支持微信支付
 
 import { orderApi, courseApi, coursePermissionApi } from '../../utils/api'
-import { checkLogin, getUserId, showToast, getOpenId, getPhone } from '../../utils/util'
+import { checkLogin, getUserId, showToast, getOpenId, getPhone, requirePhoneBinding } from '../../utils/util'
 import { callFunction, dbGetList } from '../../utils/http'
 import { validatePhone, validateName, validateAddress } from '../../utils/validation'
 import { parseError } from '../../utils/error'
@@ -273,22 +273,9 @@ Page({
   },
 
   // 校验表单
-  validateForm(): boolean {
-    // 检查手机号绑定状态
-    const boundPhone = this.checkPhoneBound()
-    if (!boundPhone) {
-      // 未绑定手机号，跳转到绑定页面
-      wx.showModal({
-        title: '请先绑定手机号',
-        content: '购买课程需要绑定手机号，是否前往绑定？',
-        confirmText: '去绑定',
-        cancelText: '取消',
-        success: (res) => {
-          if (res.confirm) {
-            wx.navigateTo({ url: '/pages/login/login?redirect=bindPhone' })
-          }
-        }
-      })
+  async validateForm(): Promise<boolean> {
+    // ★ 统一手机号绑定检查
+    if (!await requirePhoneBinding('购买课程')) {
       return false
     }
 
@@ -324,7 +311,7 @@ Page({
     if (this.data.submitting) return
 
     // 校验表单
-    if (!this.validateForm()) return
+    if (!await this.validateForm()) return
 
     // 确保获取到手机号（从本地或服务器）
     const phone = await this.checkAndGetPhone()
@@ -577,9 +564,12 @@ Page({
       wx.showToast({ title: '支付成功', icon: 'success' })
       
       setTimeout(() => {
-        // 课程订单跳转到课程详情页（已购买状态）
+        // 课程订单 → 跳转合同签署页
         if (this.data.type === 'course' && this.courseId) {
-          wx.redirectTo({ url: `/pages/course-detail/course-detail?id=${this.courseId}` })
+          const courseName = encodeURIComponent(this.data.courseInfo?.title || '')
+          wx.redirectTo({
+            url: `/pages/contract-sign/contract-sign?orderId=${orderId}&courseId=${this.courseId}&courseName=${courseName}`
+          })
         } else {
           wx.redirectTo({ url: '/pages/my-orders/my-orders' })
         }

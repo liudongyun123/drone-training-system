@@ -20,7 +20,8 @@ Page({
     history: [] as string[],  // 搜索历史
     hotKeywords: [] as string[],  // 热门关键词（从后台获取）
     recommendations: [] as any[],  // 推荐内容
-    searchType: 'course'  // 搜索类型: course 或 class
+    searchType: 'course',  // 搜索类型: course 或 class
+    defaultCover: DEFAULT_COVER
   },
 
   onLoad(options: any) {

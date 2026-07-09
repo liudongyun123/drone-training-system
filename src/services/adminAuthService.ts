@@ -77,7 +77,7 @@ export const adminAuthService = {
         const authData = JSON.parse(stored)
         
         // 验证管理员权限
-        const result = await adminService.list('users', { 
+        const result = await adminService.list('members', { 
           _id: authData.userId,
           role: { $in: ['admin', 'super_admin'] }
         })
@@ -108,8 +108,8 @@ export const adminAuthService = {
 
     try {
       // 查询管理员用户
-      const result = await adminService.list('users', {
-        username,
+      const result = await adminService.list('members', {
+        name: username,
         role: { $in: ['admin', 'super_admin'] }
       })
 

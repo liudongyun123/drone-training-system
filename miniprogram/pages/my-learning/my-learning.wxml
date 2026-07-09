@@ -98,7 +98,7 @@
           bindtap="goToCourse"
           data-id="{{item._id}}"
         >
-          <image class="course-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
+          <image class="course-cover" src="{{item.coverImage || item.cover || defaultCover}}" mode="aspectFill" binderror="onImageError" data-index="{{index}}" data-list="notStartedCourses" />
           <view class="course-badge not-started">
             <text>未开始</text>
           </view>
@@ -140,7 +140,7 @@
           bindtap="goToCourse"
           data-id="{{item._id}}"
         >
-          <image class="course-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
+          <image class="course-cover" src="{{item.coverImage || item.cover || defaultCover}}" mode="aspectFill" binderror="onImageError" data-index="{{index}}" data-list="learningCourses" />
           <view class="course-badge learning">
             <text>{{item.progress}}%</text>
           </view>
@@ -191,7 +191,7 @@
           bindtap="goToCourse"
           data-id="{{item._id}}"
         >
-          <image class="course-cover" src="{{item.coverImage || item.cover}}" mode="aspectFill" />
+          <image class="course-cover" src="{{item.coverImage || item.cover || defaultCover}}" mode="aspectFill" binderror="onImageError" data-index="{{index}}" data-list="completedCourses" />
           <view class="course-badge completed">
             <text class="badge-icon">✓</text>
             <text>已完成</text>

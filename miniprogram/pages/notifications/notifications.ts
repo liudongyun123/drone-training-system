@@ -1,7 +1,7 @@
 // pages/notifications/notifications.ts
 // 消息通知页面
 
-import { dbQuery, callFunction } from '../../utils/http'
+import { dbQuery, dbUpdate } from '../../utils/http'
 import { checkLogin, getPhone, formatDate } from '../../utils/util'
 import logger from '../../utils/logger'
 
@@ -12,7 +12,10 @@ const MESSAGE_TYPES: Record<string, { label: string; icon: string; color: string
   audit: { label: '审核通知', icon: '✅', color: '#059669' },
   order: { label: '订单通知', icon: '🛒', color: '#d97706' },
   course: { label: '课程通知', icon: '📚', color: '#4f46e5' },
-  certificate: { label: '证书通知', icon: '🏆', color: '#dc2626' }
+  certificate: { label: '证书通知', icon: '🏆', color: '#dc2626' },
+  registration: { label: '报名通知', icon: '📝', color: '#0891b2' },
+  announcement: { label: '公告', icon: '📢', color: '#7c3aed' },
+  transfer: { label: '调课通知', icon: '🔄', color: '#7c3aed' }
 }
 
 interface Message {
@@ -169,13 +172,9 @@ Page({
   // 标记消息为已读
   async markAsRead(messageId: string) {
     try {
-      await callFunction('/db-update', {
-        collection: 'messages',
-        id: messageId,
-        data: {
-          status: 'read',
-          readAt: new Date().toISOString()
-        }
+      await dbUpdate('messages', messageId, {
+        status: 'read',
+        readAt: new Date().toISOString()
       })
       
       // 更新本地数据
@@ -214,13 +213,9 @@ Page({
             const unreadMessages = this.data.messages.filter((m: Message) => m.status === 'unread')
             
             for (const msg of unreadMessages) {
-              await callFunction('/db-update', {
-                collection: 'messages',
-                id: msg._id,
-                data: {
-                  status: 'read',
-                  readAt: new Date().toISOString()
-                }
+              await dbUpdate('messages', msg._id, {
+                status: 'read',
+                readAt: new Date().toISOString()
               })
             }
             

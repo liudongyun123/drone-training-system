@@ -2,9 +2,20 @@
 // 体系管理页面 - 管理人社、CAAC等培训体系
 // ============================================================================
 import { useState, useEffect } from 'react';
-import { Settings, Plus, Edit, Trash2, X, Check, AlertCircle } from 'lucide-react';
+import { Settings, Plus, Edit, Trash2, X, Check, AlertCircle, Sparkles } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
 import { adminService } from '@/services/adminService';
+import { IconPicker } from '@/components/admin/IconPicker';
+
+// 生成短唯一大写码
+function generateSourceCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 4; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `SYS_${result}`;
+}
 
 interface Source {
   _id?: string;
@@ -86,7 +97,7 @@ export default function AdminSources() {
         await adminService.createSource({
           code: editForm.code,
           name: editForm.name,
-          icon: editForm.icon || '📚',
+          icon: editForm.icon || '🚁',
           description: editForm.description || '',
           sortOrder: editForm.sortOrder || sources.length + 1,
           status: editForm.status || 'active',
@@ -97,7 +108,7 @@ export default function AdminSources() {
         await adminService.updateSource(editingId, {
           code: editForm.code,
           name: editForm.name,
-          icon: editForm.icon || '📚',
+          icon: editForm.icon || '🚁',
           description: editForm.description || '',
           sortOrder: editForm.sortOrder,
           status: editForm.status || 'active',
@@ -228,14 +239,12 @@ export default function AdminSources() {
               <>
                 {/* 新增行 */}
                 {editingId === 'new' && (
-                  <tr className="bg-blue-50">
-                    <td className="px-6 py-4">
-                      <input
-                        type="text"
+                  <tr className="bg-blue-50 relative z-20">
+                    <td className="px-6 py-4 relative z-30">
+                      <IconPicker
                         value={editForm.icon || ''}
-                        onChange={e => setEditForm({ ...editForm, icon: e.target.value })}
-                        className="w-16 px-2 py-1 text-center border rounded"
-                        placeholder="图标"
+                        onChange={(icon: string) => setEditForm({ ...editForm, icon })}
+                        size="sm"
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -248,13 +257,23 @@ export default function AdminSources() {
                       />
                     </td>
                     <td className="px-6 py-4">
-                      <input
-                        type="text"
-                        value={editForm.code || ''}
-                        onChange={e => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })}
-                        className="w-24 px-2 py-1 border rounded font-mono text-sm"
-                        placeholder="代码"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={editForm.code || ''}
+                          onChange={e => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })}
+                          className="w-24 px-2 py-1 border rounded font-mono text-sm"
+                          placeholder="代码"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, code: generateSourceCode() })}
+                          className="p-1 text-purple-500 hover:bg-purple-50 rounded"
+                          title="自动生成代码"
+                        >
+                          <Sparkles size={14} />
+                        </button>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <input
@@ -304,15 +323,13 @@ export default function AdminSources() {
                 )}
                 {/* 现有数据行 */}
                 {sources.map(source => (
-                  <tr key={source._id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4">
+                  <tr key={source._id} className={`hover:bg-slate-50 ${editingId === source._id ? 'relative z-20' : ''}`}>
+                    <td className={`px-6 py-4 ${editingId === source._id ? 'relative z-30' : ''}`}>
                       {editingId === source._id ? (
-                        <input
-                          type="text"
+                        <IconPicker
                           value={editForm.icon || ''}
-                          onChange={e => setEditForm({ ...editForm, icon: e.target.value })}
-                          className="w-16 px-2 py-1 text-center border rounded"
-                          placeholder="图标"
+                          onChange={(icon: string) => setEditForm({ ...editForm, icon })}
+                          size="sm"
                         />
                       ) : (
                         <span className="text-2xl">{source.icon}</span>
@@ -333,13 +350,23 @@ export default function AdminSources() {
                     </td>
                     <td className="px-6 py-4">
                       {editingId === source._id ? (
-                        <input
-                          type="text"
-                          value={editForm.code || ''}
-                          onChange={e => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })}
-                          className="w-24 px-2 py-1 border rounded font-mono text-sm"
-                          placeholder="代码"
-                        />
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={editForm.code || ''}
+                            onChange={e => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })}
+                            className="w-24 px-2 py-1 border rounded font-mono text-sm"
+                            placeholder="代码"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setEditForm({ ...editForm, code: generateSourceCode() })}
+                            className="p-1 text-purple-500 hover:bg-purple-50 rounded"
+                            title="自动生成代码"
+                          >
+                            <Sparkles size={14} />
+                          </button>
+                        </div>
                       ) : (
                         <code className="text-sm bg-slate-100 px-2 py-1 rounded">{source.code}</code>
                       )}

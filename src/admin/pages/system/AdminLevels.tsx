@@ -2,9 +2,19 @@
 // 等级管理页面 - 按体系管理等级（如：人社初级工、CAAC视距内驾驶员）
 // ============================================================================
 import { useState, useEffect } from 'react';
-import { Award, Plus, Edit, Trash2, X, Check, AlertCircle, Filter } from 'lucide-react';
+import { Award, Plus, Edit, Trash2, X, Check, AlertCircle, Filter, Sparkles } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
 import { adminService } from '@/services/adminService';
+
+// 生成短唯一等级码
+function generateLevelCode(prefix?: string): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return prefix ? `${prefix.toLowerCase().replace(/[^a-z0-9_]/g, '_')}_l_${result}` : `level_${result}`;
+}
 
 interface Source {
   _id?: string;
@@ -93,13 +103,12 @@ export default function AdminLevels() {
 
     setSaving(true);
     try {
-      // 确保同时存储 sourceCode 和 sourceId
+      // ★ 统一：sourceId 和 sourceCode 都存 code（与小程序端保持一致）
       const sourceCode = editForm.sourceCode || '';
-      const sourceId = editForm.sourceId || getSourceId(sourceCode);
       
       const levelData: Record<string, any> = {
         sourceCode: sourceCode,
-        sourceId: sourceId,
+        sourceId: sourceCode,  // ★ 统一存 code，不用 _id
         name: editForm.name,
         code: editForm.code,
         description: editForm.description || '',
@@ -153,10 +162,10 @@ export default function AdminLevels() {
   const handleAdd = () => {
     setEditingId('new');
     const defaultSource = sources[0];
-    const defaultSourceCode = sourceFilter || defaultSource?.code;
+    const defaultSourceCode = sourceFilter || defaultSource?.code || '';
     setEditForm({
-      sourceCode: defaultSourceCode || '',
-      sourceId: sourceFilter || defaultSource?._id || '',
+      sourceCode: defaultSourceCode,
+      sourceId: defaultSourceCode,  // ★ 统一存 code（与小程序端 sourceId = code 保持一致）
       name: '',
       code: '',
       description: '',
@@ -254,15 +263,14 @@ export default function AdminLevels() {
                   <tr className="bg-blue-50">
                     <td className="px-6 py-4">
                       <select
-                        value={editForm.sourceId || ''}
+                        value={editForm.sourceCode || ''}
                         onChange={e => {
-                          const source = sources.find(s => s._id === e.target.value);
-                          setEditForm({ ...editForm, sourceCode: source?.code || '', sourceId: e.target.value });
+                          setEditForm({ ...editForm, sourceCode: e.target.value, sourceId: e.target.value });
                         }}
                         className="px-2 py-1 border rounded text-sm"
                       >
                         {sources.map(source => (
-                          <option key={source._id} value={source._id}>
+                          <option key={source.code} value={source.code}>
                             {source.icon} {source.name}
                           </option>
                         ))}
@@ -278,13 +286,23 @@ export default function AdminLevels() {
                       />
                     </td>
                     <td className="px-6 py-4">
-                      <input
-                        type="text"
-                        value={editForm.code || ''}
-                        onChange={e => setEditForm({ ...editForm, code: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
-                        className="w-24 px-2 py-1 border rounded text-sm"
-                        placeholder="如: beginner"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={editForm.code || ''}
+                          onChange={e => setEditForm({ ...editForm, code: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+                          className="w-20 px-2 py-1 border rounded text-sm"
+                          placeholder="如: beginner"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, code: generateLevelCode(editForm.sourceCode || sourceFilter) })}
+                          className="p-1 text-purple-500 hover:bg-purple-50 rounded"
+                          title="根据所选体系自动生成代码"
+                        >
+                          <Sparkles size={14} />
+                        </button>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <input
@@ -339,15 +357,14 @@ export default function AdminLevels() {
                     <td className="px-6 py-4">
                       {editingId === level._id ? (
                         <select
-                          value={editForm.sourceId || ''}
+                          value={editForm.sourceCode || ''}
                           onChange={e => {
-                            const source = sources.find(s => s._id === e.target.value);
-                            setEditForm({ ...editForm, sourceCode: source?.code || '', sourceId: e.target.value });
+                            setEditForm({ ...editForm, sourceCode: e.target.value, sourceId: e.target.value });
                           }}
                           className="px-2 py-1 border rounded text-sm"
                         >
                           {sources.map(source => (
-                            <option key={source._id} value={source._id}>
+                            <option key={source.code} value={source.code}>
                               {source.icon} {source.name}
                             </option>
                           ))}
@@ -373,13 +390,23 @@ export default function AdminLevels() {
                     </td>
                     <td className="px-6 py-4">
                       {editingId === level._id ? (
+                      <div className="flex items-center gap-1">
                         <input
                           type="text"
                           value={editForm.code || ''}
                           onChange={e => setEditForm({ ...editForm, code: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
-                          className="w-24 px-2 py-1 border rounded text-sm"
+                          className="w-20 px-2 py-1 border rounded text-sm"
                           placeholder="如: beginner"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, code: generateLevelCode(editForm.sourceCode || sourceFilter) })}
+                          className="p-1 text-purple-500 hover:bg-purple-50 rounded"
+                          title="根据所选体系自动生成代码"
+                        >
+                          <Sparkles size={14} />
+                        </button>
+                      </div>
                       ) : (
                         <code className="text-xs bg-slate-100 px-2 py-1 rounded">{level.code}</code>
                       )}

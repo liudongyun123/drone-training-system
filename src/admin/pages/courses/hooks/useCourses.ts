@@ -8,7 +8,7 @@ import { courseService } from '@/services/database';
 import { useDictionary } from '@/admin/hooks/useDictionary';
 import { useConfirm } from '@/admin/hooks/useConfirm';
 import { toast } from '@/components/Toast';
-import { uploadFile, deleteFile } from '@/services/storageService';
+import { uploadFile, deleteFile, getFileUrl, getFileUrls } from '@/services/storageService';
 import type { Course, Lesson } from '@/types';
 
 // ============================================================================
@@ -54,10 +54,10 @@ export interface PermissionStats {
 export const initialCourseFormData: CourseFormData = {
   title: '',
   description: '',
-  category: '基础入门',
+  category: '',
   categoryId: '',
   sourceId: '',
-  level: '初级工',
+  level: '',
   price: 0,
   originalPrice: 0,
   duration: 0,
@@ -88,6 +88,7 @@ export function useCourses() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [coverUrlMap, setCoverUrlMap] = useState<Map<string, string>>(new Map());
 
   // 教师列表
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -162,8 +163,20 @@ export function useCourses() {
         orderBy: 'createdAt',
         order: 'desc',
       });
-      setCourses(result.data?.list || []);
+      const list = result.data?.list || [];
+      setCourses(list);
       setTotal(result.data?.total || 0);
+
+      // 批量获取封面图片的临时访问 URL
+      const coverFileIDs = list
+        .map((c: any) => c.coverImage)
+        .filter((url: string) => url && url.startsWith('cloud://'));
+      if (coverFileIDs.length > 0) {
+        const urls = await getFileUrls(coverFileIDs, 7200);
+        setCoverUrlMap(urls);
+      } else {
+        setCoverUrlMap(new Map());
+      }
     } catch (error) {
       console.error('加载课程失败:', error);
       setCourses([]);
@@ -173,25 +186,20 @@ export function useCourses() {
     }
   }, [page, selectedSourceId]);
 
-  // 加载体系列表（新增）
+  // 加载体系列表（不再自动选中第一个，默认显示全部课程）
   const loadSources = useCallback(async () => {
     setSourcesLoading(true);
     try {
       const result = await adminService.listSources({ status: 'active' }, { limit: 100 });
       const sourcesList = result.data?.list || [];
       setSources(sourcesList);
-      // 如果没有选择体系，自动选择第一个
-      if (!selectedSourceId && sourcesList.length > 0) {
-        const firstSource = sourcesList[0];
-        setSelectedSource(firstSource.code);
-        setSelectedSourceId(firstSource.code);
-      }
+      // ★ 不再自动选择第一个体系，默认显示全部课程
     } catch (error) {
       console.error('加载体系列表失败:', error);
     } finally {
       setSourcesLoading(false);
     }
-  }, [selectedSourceId]);
+  }, []);
 
   // 加载教师列表
   const loadTeachers = useCallback(async () => {
@@ -227,12 +235,10 @@ export function useCourses() {
     loadCategories();
   }, []);
 
-  // 当体系加载完成后，加载课程
+  // 当体系筛选或页码变化时，重新加载课程（selectedSourceId 为空时显示全部）
   useEffect(() => {
-    if (selectedSourceId) {
-      loadCourses();
-    }
-  }, [selectedSourceId, page]);
+    loadCourses();
+  }, [selectedSourceId, page, loadCourses]);
 
   // 当教师列表加载完成后，如果正在编辑课程且 teacherId 为空，自动匹配
   useEffect(() => {
@@ -344,15 +350,17 @@ export function useCourses() {
       setSubmitting(true);
 
       try {
-        const selectedCategory = categories.find((c) => c.name === formData.category);
-        const categoryId = selectedCategory?._id || '';
+        // 优先使用表单已设置好的 categoryId（表单中已根据 sourceId 过滤）
+        // 如果表单未设置，则从全量 categories 中按名称查找作为兜底
+        const categoryId = formData.categoryId ||
+          categories.find((c) => c.name === formData.category)?._id || '';
 
         const saveData: any = {
           title: formData.title,
           description: formData.description,
           category: formData.category,
           categoryId: categoryId,
-          sourceId: formData.sourceId || selectedSourceId,  // 新增：体系ID
+          sourceId: formData.sourceId || selectedSourceId,  // 体系ID
           level: formData.level,
           price: Number(formData.price) || 0,
           originalPrice: Number(formData.originalPrice) || 0,
@@ -383,8 +391,8 @@ export function useCourses() {
           }
         } else {
           const result = await CloudAdminService.add('courses', saveData);
-          if (!result) {
-            throw new Error('创建课程失败');
+          if (!result || !result.success) {
+            throw new Error((result as any)?.message || '创建课程失败');
           }
           toast.success('课程创建成功');
         }
@@ -432,9 +440,9 @@ export function useCourses() {
       videoUrl: lesson.videoUrl || '',
       videoDuration: lesson.videoDuration || 0,
       isFree: lesson.isFree || false,
-      previewDuration: (lesson as any).previewDuration || 0,
+      previewDuration: lesson.previewDuration || 0,
       order: lesson.order || 0,
-      pdfFile: (lesson as any).pdfFile || null,
+      pdfFile: lesson.pdfFile || null,
     });
   }, []);
 
@@ -532,16 +540,18 @@ export function useCourses() {
       setVideoProgress(0);
 
       try {
-        if (lessonFormData.videoUrl?.startsWith('cloud://')) {
-          await deleteFile(lessonFormData.videoUrl);
+        // 先获取当前视频URL用于删除（避免异步中状态变化）
+        const currentVideoUrl = lessonFormData.videoUrl;
+        if (currentVideoUrl?.startsWith('cloud://')) {
+          await deleteFile(currentVideoUrl);
         }
 
         const result = await uploadFile(file, 'lessons/video', (progress) => {
-          setVideoProgress(Math.round(progress)); // storageService 已返回 0-100 的值
+          setVideoProgress(Math.round(progress));
         });
 
         if (result.success && result.fileID) {
-          setLessonFormData({ ...lessonFormData, videoUrl: result.fileID });
+          setLessonFormData(prev => ({ ...prev, videoUrl: result.fileID! }));
           toast.success('视频上传成功');
         } else {
           toast.error(result.message || '上传失败');
@@ -553,7 +563,7 @@ export function useCourses() {
         setUploadingVideo(false);
       }
     },
-    [lessonFormData]
+    [lessonFormData.videoUrl]
   );
 
   const handleVideoInputChange = useCallback(
@@ -597,8 +607,9 @@ export function useCourses() {
   );
 
   const handleDeleteVideo = useCallback(async () => {
-    if (!lessonFormData.videoUrl?.startsWith('cloud://')) {
-      setLessonFormData({ ...lessonFormData, videoUrl: '' });
+    const currentVideoUrl = lessonFormData.videoUrl;
+    if (!currentVideoUrl?.startsWith('cloud://')) {
+      setLessonFormData(prev => ({ ...prev, videoUrl: '' }));
       return;
     }
     const ok = await confirm({
@@ -608,14 +619,14 @@ export function useCourses() {
     });
     if (!ok) return;
     try {
-      await deleteFile(lessonFormData.videoUrl);
-      setLessonFormData({ ...lessonFormData, videoUrl: '' });
+      await deleteFile(currentVideoUrl);
+      setLessonFormData(prev => ({ ...prev, videoUrl: '' }));
       toast.success('视频已删除');
     } catch (error) {
       console.error('删除视频失败:', error);
       toast.error('删除视频失败');
     }
-  }, [lessonFormData, confirm]);
+  }, [lessonFormData.videoUrl, confirm]);
 
   // ========== PDF 上传 ==========
 
@@ -637,19 +648,20 @@ export function useCourses() {
       setPdfProgress(0);
 
       try {
-        if (lessonFormData.pdfFile?.fileID) {
-          await deleteFile(lessonFormData.pdfFile.fileID);
+        const currentPdfId = lessonFormData.pdfFile?.fileID;
+        if (currentPdfId) {
+          await deleteFile(currentPdfId);
         }
 
         const result = await uploadFile(file, 'lessons/pdf', (progress) => {
-          setPdfProgress(Math.round(progress * 100));
+          setPdfProgress(Math.round(progress));
         });
 
         if (result.success && result.fileID) {
-          setLessonFormData({
-            ...lessonFormData,
-            pdfFile: { fileID: result.fileID, name: file.name, size: file.size },
-          });
+          setLessonFormData(prev => ({
+            ...prev,
+            pdfFile: { fileID: result.fileID!, name: file.name, size: file.size },
+          }));
           toast.success('PDF上传成功');
         } else {
           toast.error(result.message || '上传失败');
@@ -661,11 +673,12 @@ export function useCourses() {
         setUploadingPdf(false);
       }
     },
-    [lessonFormData]
+    [lessonFormData.pdfFile?.fileID]
   );
 
   const handleDeletePdf = useCallback(async () => {
-    if (!lessonFormData.pdfFile?.fileID) return;
+    const currentPdfFile = lessonFormData.pdfFile;
+    if (!currentPdfFile?.fileID) return;
     const ok = await confirm({
       title: '删除确认',
       message: '确定要删除该PDF文件吗？',
@@ -673,14 +686,56 @@ export function useCourses() {
     });
     if (!ok) return;
     try {
-      await deleteFile(lessonFormData.pdfFile.fileID);
-      setLessonFormData({ ...lessonFormData, pdfFile: null });
+      await deleteFile(currentPdfFile.fileID);
+      setLessonFormData(prev => ({ ...prev, pdfFile: null }));
       toast.success('PDF已删除');
     } catch (error) {
       console.error('删除PDF失败:', error);
       toast.error('删除PDF失败');
     }
-  }, [lessonFormData, confirm]);
+  }, [lessonFormData.pdfFile?.fileID, confirm]);
+
+  // ========== 课件预览 ==========
+
+  const handlePreviewPdf = useCallback(async () => {
+    if (!lessonFormData.pdfFile?.fileID) {
+      toast.error('没有可预览的PDF课件');
+      return;
+    }
+    try {
+      const url = await getFileUrl(lessonFormData.pdfFile.fileID, 3600);
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        toast.error('无法获取PDF预览链接');
+      }
+    } catch (error) {
+      console.error('预览PDF失败:', error);
+      toast.error('预览PDF失败');
+    }
+  }, [lessonFormData.pdfFile]);
+
+  const handlePreviewVideo = useCallback(async () => {
+    if (!lessonFormData.videoUrl?.startsWith('cloud://')) {
+      if (lessonFormData.videoUrl?.startsWith('http')) {
+        window.open(lessonFormData.videoUrl, '_blank');
+        return;
+      }
+      toast.error('没有可预览的视频文件');
+      return;
+    }
+    try {
+      const url = await getFileUrl(lessonFormData.videoUrl, 7200);
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        toast.error('无法获取视频预览链接');
+      }
+    } catch (error) {
+      console.error('预览视频失败:', error);
+      toast.error('预览视频失败');
+    }
+  }, [lessonFormData.videoUrl]);
 
   // ========== 封面图片上传 ==========
 
@@ -700,16 +755,17 @@ export function useCourses() {
       setCoverProgress(0);
 
       try {
-        if (formData.coverImage?.startsWith('cloud://')) {
-          await deleteFile(formData.coverImage);
+        const currentCoverImage = formData.coverImage;
+        if (currentCoverImage?.startsWith('cloud://')) {
+          await deleteFile(currentCoverImage);
         }
 
         const result = await uploadFile(file, 'courses/covers', (progress) => {
-          setCoverProgress(Math.round(progress * 100));
+          setCoverProgress(Math.round(progress));
         });
 
         if (result.success && result.fileID) {
-          setFormData({ ...formData, coverImage: result.fileID });
+          setFormData(prev => ({ ...prev, coverImage: result.fileID! }));
           toast.success('封面图片上传成功');
         } else {
           toast.error(result.message || '上传失败');
@@ -721,7 +777,7 @@ export function useCourses() {
         setUploadingCover(false);
       }
     },
-    [formData]
+    [formData.coverImage]
   );
 
   const handleCoverInputChange = useCallback(
@@ -847,6 +903,7 @@ export function useCourses() {
     page,
     setPage,
     loadCourses,
+    coverUrlMap,
     // 筛选
     selectedSource,
     setSelectedSource,
@@ -912,6 +969,9 @@ export function useCourses() {
     pdfDragActive,
     handlePdfUpload,
     handleDeletePdf,
+    // 课件预览
+    handlePreviewPdf,
+    handlePreviewVideo,
     // 封面上传
     uploadingCover,
     coverProgress,

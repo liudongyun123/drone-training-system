@@ -1,17 +1,13 @@
 /**
- * Feature API 服务 - 管理后台
+ * Feature API 服务
  * 
- * 调用新云函数 API：
+ * 调用云函数 API（统一通过 adminService HTTP 通道）：
  * - api-user: 用户管理、会员管理、设置、统计
  * - api-order: 订单管理、购物车、优惠券
  * - api-course: 学习路径、证书管理
  */
 
-import { app } from '@/utils/cloudbase'
-import type { ApiResponse } from '@/types'
-
-// 环境ID
-const ENV_ID = 'rcwljy-5ghmq2ex26764978'
+import { adminService } from './adminService'
 
 // API 响应格式
 interface FeatureApiResponse<T> {
@@ -21,11 +17,8 @@ interface FeatureApiResponse<T> {
   message?: string
 }
 
-// Publishable Key
-const PUBLISHABLE_KEY = import.meta.env.VITE_PUBLISHABLE_KEY || ''
-
 /**
- * 调用云函数（HTTP 方式）
+ * 调用云函数（通过 adminService HTTP 通道）
  */
 async function callFunction<T = any>(
   functionName: string,
@@ -35,28 +28,10 @@ async function callFunction<T = any>(
     openid?: string
   }
 ): Promise<FeatureApiResponse<T>> {
-  const url = `https://${ENV_ID}.ap-shanghai.tcb-api.tencentcloudapi.com/${functionName}`
-
-  console.log(`[FeatureAPI] 调用 ${functionName}.${data.action}`)
-
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CloudBase-Environment': ENV_ID,
-        'X-CloudBase-PublishableKey': PUBLISHABLE_KEY,
-      },
-      body: JSON.stringify(data),
-    })
+    const result = await adminService.callFunction(functionName, data)
 
-    if (!response.ok) {
-      throw new Error(`HTTP错误: ${response.status}`)
-    }
-
-    const result = await response.json()
-
-    if (result.success) {
+    if (result && (result.success !== false)) {
       return {
         success: true,
         data: result.data,

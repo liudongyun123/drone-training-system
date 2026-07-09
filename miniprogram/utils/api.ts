@@ -1,7 +1,7 @@
 // utils/api.ts
 // API 封装 - 通过 HTTP 请求连接腾讯云 CloudBase
 
-import { dbGetList, dbQuery, callFunction, callApiCourse, callApiUser, callApiOrder } from './http'
+import { dbGetList, dbQuery, callFunction, dbUpdate, callApiCourse, callApiUser, callApiOrder, resolveCoverUrls } from './http'
 import { DEFAULT_COVER, DEFAULT_STOCK } from './constants'
 
 // 等级缓存（从数据库动态加载）
@@ -105,7 +105,11 @@ function transformClass(classItem: any) {
   const levelText = getLevelName(level) || CLASS_LEVEL_MAP[level] || level || ''
   return {
     ...classItem,
-    levelText
+    levelText,
+    // ★ 小程序端字段兼容：确保 WXML 直接读取的字段存在
+    title: classItem.title || classItem.name || '',
+    price: classItem.price ?? classItem.enrollmentConfig?.price ?? 0,
+    coverImage: classItem.coverImage || classItem.intro?.videoCover || '',
   }
 }
 
@@ -137,6 +141,9 @@ export const bannerApi = {
           order: banner.order || 0,
           status: banner.status
         }))
+
+        // ★ 解析轮播图 cloud:// URL
+        await resolveCoverUrls(banners, ['image', 'cover', 'coverImage'])
         
         console.log('[bannerApi] 从 banners 集合读取:', banners.length, '条')
         return banners
@@ -356,6 +363,9 @@ export const courseApi = {
         cover: course.cover || course.coverImage || defaultCourseCover
       }))
       
+      // ★ 解析 cloud:// 封面 URL 为 HTTPS 临时链接
+      courses = await resolveCoverUrls(courses)
+      
       // 关键词搜索（CloudBase NoSQL 不支持全文搜索，在代码层面过滤）
       if (keyword && keyword.trim()) {
         const kw = keyword.trim().toLowerCase()
@@ -376,6 +386,9 @@ export const courseApi = {
           limit: pageSize
         })
         let fallbackCourses = (fallbackResult.data || []).map(transformCourse)
+        
+        // ★ 也解析 fallback 的 cloud:// 封面 URL
+        fallbackCourses = await resolveCoverUrls(fallbackCourses)
         
         // 同样处理关键词搜索
         if (keyword && keyword.trim()) {
@@ -404,12 +417,15 @@ export const courseApi = {
       await loadLevels()
       const course = result.data[0]  // 取数组第一个元素
       // 映射字段确保兼容性
+      const defaultCourseCover = DEFAULT_COVER
       const mapped = {
         ...course,
-        coverImage: course.coverImage || course.cover || '',
-        cover: course.cover || course.coverImage || ''
+        coverImage: course.coverImage || course.cover || defaultCourseCover,
+        cover: course.cover || course.coverImage || defaultCourseCover
       }
-      return transformCourse(mapped)
+      // ★ 解析 cloud:// 封面 URL
+      const [resolved] = await resolveCoverUrls([mapped])
+      return transformCourse(resolved)
     }
     return null
   },
@@ -443,7 +459,7 @@ export const courseApi = {
       if (chaptersResult.data && chaptersResult.data.length > 0) {
         console.log('[courseApi.getLessons] chapters 查询结果:', chaptersResult.data.length)
         // 映射 chapters 字段到 lessons 格式，保留 pdfFile 等字段
-        return chaptersResult.data.map((ch: any) => ({
+        const lessons = chaptersResult.data.map((ch: any) => ({
           _id: ch._id,
           courseId: ch.courseId,
           title: ch.title,
@@ -453,11 +469,21 @@ export const courseApi = {
           duration: ch.videoDuration || ch.duration || 0,
           order: ch.order ?? ch.sortOrder ?? 0,
           isPreview: ch.isPreview || false,
+          // ★ 小程序 WXML 检查 isFree（而非 isPreview），此处兼容两套系统
+          isFree: ch.isFree ?? (ch.isPreview || false),
           questionBankId: ch.questionBankId || '',
           pdfFile: ch.pdfFile || null,
           createdAt: ch.createdAt
         }))
+        // ★ 解析 videoUrl/pdfFile 中的 cloud:// 链接
+        await resolveCoverUrls(lessons, ['videoUrl', 'pdfFile'])
+        return lessons
       }
+    }
+    
+    // ★ 解析 videoUrl/pdfFile 中的 cloud:// 链接
+    if (result.data && result.data.length > 0) {
+      await resolveCoverUrls(result.data, ['videoUrl', 'pdfFile'])
     }
     
     console.log('[courseApi.getLessons] courseId 查询结果:', result.data?.length)
@@ -496,7 +522,18 @@ export const courseApi = {
       }
       
       await loadLevels()
-      return (result.data || []).map(transformCourse)
+      let courses = (result.data || []).map(transformCourse)
+      
+      // 确保封面有值
+      const defaultCourseCover = DEFAULT_COVER
+      courses = courses.map(course => ({
+        ...course,
+        coverImage: course.coverImage || course.cover || defaultCourseCover,
+        cover: course.cover || course.coverImage || defaultCourseCover
+      }))
+      
+      // ★ 解析 cloud:// 封面 URL
+      return resolveCoverUrls(courses)
     } catch (error) {
       console.error('courseApi.getHotCourses 失败:', error)
       return []
@@ -562,6 +599,9 @@ export const classApi = {
       console.log('[classApi.getList] 第一个封面 URL:', classes[0].coverImage || classes[0].cover)
     }
     
+    // ★ 解析 cloud:// 封面 URL 为 HTTPS 临时链接
+    classes = await resolveCoverUrls(classes)
+    
     // 关键词搜索
     if (keyword && keyword.trim()) {
       const kw = keyword.trim().toLowerCase()
@@ -590,6 +630,9 @@ export const classApi = {
         cover: cls.cover || cls.coverImage || defaultCover
       }))
       
+      // ★ 也解析 fallback 的 cloud:// 封面 URL
+      fallbackClasses = await resolveCoverUrls(fallbackClasses)
+      
       if (keyword && keyword.trim()) {
         const kw = keyword.trim().toLowerCase()
         fallbackClasses = fallbackClasses.filter(cls => {
@@ -617,7 +660,9 @@ export const classApi = {
         coverImage: classInfo.coverImage || classInfo.cover || '',
         cover: classInfo.cover || classInfo.coverImage || ''
       }
-      return transformClass(mapped)
+      // ★ 解析 cloud:// 封面 URL
+      const [resolved] = await resolveCoverUrls([mapped])
+      return transformClass(resolved)
     }
     return null
   }
@@ -664,7 +709,8 @@ export const productApi = {
       }
     })
 
-    return products
+    // ★ 解析 cloud:// 封面 URL 为 HTTPS 临时链接
+    return resolveCoverUrls(products)
   },
 
   async getDetail(productId: string) {
@@ -677,7 +723,7 @@ export const productApi = {
       if (!cover || cover.includes('unsplash.com') || cover.includes('via.placeholder.com')) {
         cover = defaultProductCover
       }
-      return {
+      const product = {
         _id: p._id,
         name: p.title || p.name,
         title: p.title || p.name,
@@ -691,6 +737,9 @@ export const productApi = {
         specs: p.specs || [],
         skus: p.skus || []
       }
+      // ★ 解析 cloud:// 封面 URL
+      const [resolved] = await resolveCoverUrls([product])
+      return resolved
     }
     return null
   },
@@ -795,7 +844,8 @@ export const orderApi = {
       updatedAt: new Date().toISOString()
     }
     
-    return await callFunction('createOrder', { action: 'createShopOrder', order })
+    // 修正：createOrder 云函数不存在，商城订单改走 api-shop 的 createShopOrder
+    return await callFunction('api-shop', { action: 'createShopOrder', data: { order } })
   }
 }
 
@@ -813,7 +863,9 @@ export const userApi = {
   },
 
   async updateUser(userId: string, data: any) {
-    return await callFunction('updateUser', { userId, ...data })
+    // 修正：updateUser 云函数不存在，改用 api-user 的 updateProfile（需 openid）
+    const openid = wx.getStorageSync('openid') || ''
+    return await callFunction('api-user', { action: 'updateProfile', openid, data: { ...data, userId } })
   }
 }
 
@@ -1296,7 +1348,7 @@ export const messageApi = {
     }
     
     try {
-      const result = await dbGetList('app_messages', {
+      const result = await dbGetList('messages', {
         where: { phone, ...(params.status ? { status: params.status } : {}) },
         orderBy: 'createdAt desc',
         limit: params.pageSize || 20
@@ -1317,7 +1369,7 @@ export const messageApi = {
     if (!phone) return 0
     
     try {
-      const result = await dbGetList('app_messages', {
+      const result = await dbGetList('messages', {
         where: { phone, status: 'unread' }
       })
       return result.data?.length || 0
@@ -1332,9 +1384,9 @@ export const messageApi = {
    */
   async markAsRead(messageId: string): Promise<boolean> {
     try {
-      await callFunction('api-message', {
-        action: 'markAsRead',
-        data: { messageId }
+      await dbUpdate('messages', messageId, {
+        status: 'read',
+        readAt: new Date().toISOString()
       })
       return true
     } catch (error) {

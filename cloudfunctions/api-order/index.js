@@ -124,6 +124,20 @@ async function httpRequest(url, method, data) {
   })
 }
 
+// ========== 站内消息通知（B5 修复）==========
+// 下单/报名/支付成功后调用同环境 api-message 云函数写入 messages 集合，
+// 保证「下单/报名 → 收到站内消息」的端到端闭环。
+// api-message 为 Event 类型云函数，使用 Node SDK app.callFunction 同环境调用（已验证可写入 messages）；
+// 全程 try/catch，通知失败不影响主流程返回。
+async function notifyMessage(action, params) {
+  try {
+    const res = await app.callFunction({ name: 'api-message', data: { action, ...params } })
+    console.log('[notifyMessage]', action, JSON.stringify(res).slice(0, 200))
+  } catch (e) {
+    console.error('[notifyMessage] 通知发送失败(忽略):', action, e && e.message)
+  }
+}
+
 // 主函数
 exports.main = async (event, context) => {
   
@@ -175,6 +189,30 @@ exports.main = async (event, context) => {
         return await queryPayOrder(data)
       case 'refund':
         return await createRefund(data)
+      case 'createContract':
+        return await createContract(data)
+      case 'signContract':
+        return await signContract(data)
+      case 'companyStamp':
+        return await companyStamp(data)
+      case 'getContract':
+        return await getContract(data)
+      case 'getContractList':
+        return await getContractList(data)
+      case 'getStats':
+        return await getOrderStats(data)
+      case 'normalizeOrders':
+        return await normalizeOrders()
+      case 'getCoupons':
+        return await getCoupons(data)
+      case 'validateCoupon':
+        return await validateCoupon(data)
+      case 'claimCoupon':
+        return await claimCoupon(data)
+      case 'getCart':
+        return await getCartApi(data)
+      case 'clearCart':
+        return await clearCartApi(data)
       default:
         return createResponse({ 
           code: 400, 
@@ -271,6 +309,8 @@ async function createOrder(data) {
       status,
       totalPrice: totalPrice || 0,
       finalAmount: finalAmount || totalPrice || 0,
+      totalAmount: finalAmount || totalPrice || 0,
+      amount: finalAmount || totalPrice || 0,
       remark,
       address,
       items,
@@ -287,7 +327,19 @@ async function createOrder(data) {
     const docId = result.id || result._id
     
     console.log('[api-order] 订单创建成功:', docId)
-    
+
+    // B5 修复：下单成功后发送站内消息通知
+    const goodsName = (items && items.length > 0)
+      ? items.map(i => i.title || i.name || i.courseName || '').filter(Boolean).join('、')
+      : (className || (courseInfo && courseInfo.title) || '课程')
+    await notifyMessage('notifyOrderStatus', {
+      phone,
+      orderId: docId,
+      status,
+      goodsName,
+      amount: finalAmount || totalPrice || 0
+    })
+
     return createResponse({
       code: 0,
       success: true,
@@ -332,7 +384,27 @@ async function updateOrderStatus(data) {
     
     // ★ Admin SDK: update() 直接传数据对象
     await db.collection('orders').doc(orderId).update(updateData)
-    
+
+    // B5 修复：关键状态变更后通知用户
+    if (['paid', 'shipped', 'completed', 'cancelled'].includes(status)) {
+      try {
+        const orderRes = await db.collection('orders').doc(orderId).get()
+        const od = orderRes.data || {}
+        const goodsName = (od.items && od.items.length > 0)
+          ? od.items.map(i => i.title || i.name || '').filter(Boolean).join('、')
+          : (od.className || '订单')
+        await notifyMessage('notifyOrderStatus', {
+          phone: od.phone,
+          orderId,
+          status,
+          goodsName,
+          amount: od.finalAmount || od.totalPrice || 0
+        })
+      } catch (e) {
+        console.error('[api-order] 状态变更通知失败:', e.message)
+      }
+    }
+
     return createResponse({
       code: 0,
       success: true,
@@ -448,6 +520,112 @@ async function getOrderList(data) {
       error: '获取订单列表失败: ' + error.message
     })
   }
+}
+
+// ========== 历史订单金额字段回填（一次性归一化 totalAmount/finalAmount/amount）==========
+async function normalizeOrders() {
+  const res = await db.collection('orders').where({}).limit(1000).get()
+  const list = res.data || []
+  let fixed = 0
+  for (const o of list) {
+    const amt = o.finalAmount ?? o.totalAmount ?? o.totalPrice ?? o.amount ?? 0
+    const patch = {}
+    if (o.totalAmount === undefined) patch.totalAmount = amt
+    if (o.finalAmount === undefined) patch.finalAmount = amt
+    if (o.amount === undefined) patch.amount = amt
+    if (Object.keys(patch).length) {
+      await db.collection('orders').doc(o._id).update(patch)
+      fixed++
+    }
+  }
+  return createResponse({ code: 0, success: true, data: { scanned: list.length, fixed } })
+}
+
+// ========== 订单统计 ==========
+async function getOrderStats(data) {
+  const { phone, status } = data || {}
+  const where = {}
+  if (phone) where.phone = phone
+  if (status) where.status = status
+  const all = await db.collection('orders').where(where).get()
+  const list = all.data || []
+  const amountOf = (o) => o.finalAmount || o.totalAmount || o.totalPrice || o.amount || 0
+  const total = list.length
+  const pending = list.filter(o => o.status === 'pending').length
+  const paid = list.filter(o => o.status === 'paid').length
+  const completed = list.filter(o => o.status === 'completed').length
+  const cancelled = list.filter(o => ['cancelled', 'refunded'].includes(o.status)).length
+  const totalAmount = list.reduce((s, o) => s + amountOf(o), 0)
+  const paidAmount = list.filter(o => o.status === 'paid' || o.status === 'completed').reduce((s, o) => s + amountOf(o), 0)
+  return createResponse({
+    code: 0,
+    success: true,
+    data: { total, pending, paid, completed, cancelled, totalAmount, paidAmount }
+  })
+}
+
+// ========== 优惠券 ==========
+async function getCoupons(data) {
+  const { status, page = 1, pageSize = 20 } = data || {}
+  const where = {}
+  if (status) where.status = status
+  const countRes = await db.collection('coupons').where(where).count()
+  const res = await db.collection('coupons').where(where)
+    .orderBy('createdAt', 'desc').skip((page - 1) * pageSize).limit(pageSize).get()
+  return createResponse({
+    code: 0,
+    success: true,
+    data: { list: res.data || [], total: countRes.total || 0, page, pageSize }
+  })
+}
+
+async function validateCoupon(data) {
+  const { code, amount } = data || {}
+  if (!code) return createResponse({ code: 400, success: false, error: '缺少优惠券码' })
+  const res = await db.collection('coupons').where({ code, status: 'active' }).limit(1).get()
+  if (!res.data || res.data.length === 0) {
+    return createResponse({ code: 404, success: false, error: '优惠券无效或已失效' })
+  }
+  const c = res.data[0]
+  const discount = c.discount || 0
+  const finalAmount = Math.max(0, (amount || 0) - discount)
+  return createResponse({ code: 0, success: true, data: { coupon: c, discount, finalAmount } })
+}
+
+async function claimCoupon(data) {
+  const { userId, phone, couponTemplateId } = data || {}
+  if (!couponTemplateId) return createResponse({ code: 400, success: false, error: '缺少优惠券模板ID' })
+  const tpl = await db.collection('coupon_templates').doc(couponTemplateId).get()
+  const t = tpl.data
+  if (!t) return createResponse({ code: 404, success: false, error: '优惠券模板不存在' })
+  const now = new Date().toISOString()
+  const doc = {
+    userId: userId || '',
+    phone: phone || '',
+    templateId: couponTemplateId,
+    code: 'C' + Date.now(),
+    discount: t.discount || 0,
+    status: 'active',
+    createdAt: now,
+    expireAt: t.expireAt || ''
+  }
+  const r = await db.collection('coupons').add(doc)
+  return createResponse({ code: 0, success: true, data: { id: r.id, ...doc } })
+}
+
+// ========== 购物车 ==========
+async function getCartApi(data) {
+  const { phone, userId } = data || {}
+  const where = phone ? { phone } : (userId ? { _openid: userId } : {})
+  const res = await db.collection('cart').where(where).orderBy('createdAt', 'desc').get()
+  return createResponse({ code: 0, success: true, data: { list: res.data || [] } })
+}
+
+async function clearCartApi(data) {
+  const { phone, userId } = data || {}
+  const where = phone ? { phone } : (userId ? { _openid: userId } : {})
+  await db.collection('cart').where(where).remove()
+  return createResponse({ code: 0, success: true, message: '购物车已清空' })
 }
 
 // 获取订单详情
@@ -791,10 +969,20 @@ async function enrollClass(data) {
           }
         }
       }
-    } catch (permErr) {
+      } catch (permErr) {
       // 授权失败不影响报名结果
       console.error('[api-order] 授予课程权限失败:', permErr)
     }
+
+    // B5 修复：报名成功后发送站内消息通知
+    await notifyMessage('notifyClassEnrollment', {
+      phone,
+      userName,
+      className: cls.name,
+      classId,
+      startDate: cls.startDate || cls.startTime || '',
+      location: cls.location || cls.address || ''
+    })
 
     return createResponse({
       code: 0,
@@ -1140,5 +1328,381 @@ async function createPayOrder(data) {
     return createResponse({ code: 500, success: false, error: '创建支付订单失败: ' + JSON.stringify(result) })
   } catch (err) {
     return createResponse({ code: 500, success: false, error: '请求微信支付失败: ' + err.message })
+  }
+}
+
+// ========== 培训合同签署 ==========
+
+// 培训协议模板（内置默认内容）
+const TRAINING_CONTRACT_TEMPLATE = `
+<h2>无人机驾驶培训协议</h2>
+<p><strong>甲方（培训机构）：</strong>_______________</p>
+<p><strong>乙方（学员）：</strong>{userName}</p>
+<p><strong>身份证号：</strong>{idCard}</p>
+<p><strong>联系电话：</strong>{phone}</p>
+<br/>
+<p>甲乙双方本着平等自愿、诚实信用的原则，就无人机驾驶培训事宜达成如下协议：</p>
+<br/>
+<p><strong>一、培训内容</strong></p>
+<p>1. 培训课程：{courseName}</p>
+<p>2. 培训方式：理论教学 + 实操训练</p>
+<p>3. 培训目标：使学员掌握无人机飞行操作技能，具备参加相关考试的能力</p>
+<br/>
+<p><strong>二、培训费用</strong></p>
+<p>培训费用以订单实际支付金额为准，乙方已通过平台完成支付。</p>
+<br/>
+<p><strong>三、双方权利与义务</strong></p>
+<p>1. 甲方应按教学计划提供培训服务，保证教学质量。</p>
+<p>2. 乙方应按时参加培训，遵守培训纪律，服从教学安排。</p>
+<p>3. 乙方应确保所提供个人信息真实有效。</p>
+<br/>
+<p><strong>四、安全责任</strong></p>
+<p>1. 实操训练期间，乙方应严格遵守安全操作规程。</p>
+<p>2. 因乙方违反操作规程造成的人身或财产损失，由乙方自行承担。</p>
+<br/>
+<p><strong>五、其他约定</strong></p>
+<p>1. 本协议自双方签署之日起生效。</p>
+<p>2. 本协议一式两份，甲乙双方各执一份，具有同等法律效力。</p>
+<p>3. 未尽事宜，双方协商解决。</p>
+<br/>
+<p style="margin-top: 40px;"><strong>乙方（学员）签名：</strong></p>
+`
+
+// 创建合同
+async function createContract(data) {
+  const {
+    userId, userName, phone, idCard = '',
+    orderId = '', registrationId = '',
+    courseId = '', courseName = '',
+    contractType = 'training_agreement',
+    title = '无人机驾驶培训协议',
+    contractContent = '',
+    openid = ''
+  } = data
+
+  if (!userId && !phone) {
+    return createResponse({ code: 400, success: false, error: '缺少用户标识' })
+  }
+
+  try {
+    // 检查是否已存在该订单的合同
+    if (orderId) {
+      const existing = await db.collection('contracts')
+        .where({ orderId })
+        .limit(1)
+        .get()
+      if (existing.data && existing.data.length > 0) {
+        return createResponse({
+          code: 0, success: true,
+          data: existing.data[0],
+          message: '合同已存在'
+        })
+      }
+    }
+
+    // 生成合同内容（优先使用数据库模板，否则使用内置模板）
+    let content = contractContent
+    if (!content) {
+      // 从 system_config 读取管理员配置的模板
+      let template = ''
+      try {
+        const configRes = await db.collection('system_config')
+          .where({ key: 'contract_template' })
+          .limit(1)
+          .get()
+        if (configRes.data && configRes.data.length > 0) {
+          template = configRes.data[0].value || configRes.data[0].content || ''
+        }
+      } catch (e) {
+        console.warn('[api-order] 读取合同模板失败，使用默认模板:', e.message)
+      }
+      
+      if (template) {
+        content = template
+      } else {
+        content = TRAINING_CONTRACT_TEMPLATE
+      }
+      
+      content = content
+        .replace(/{userName}/g, userName || '___________')
+        .replace(/{idCard}/g, idCard || '__________________')
+        .replace(/{phone}/g, phone || '________________')
+        .replace(/{courseName}/g, courseName || '无人机驾驶培训')
+    }
+
+    const now = new Date().toISOString()
+    const contractData = {
+      userId: userId || '',
+      userName: userName || '',
+      phone: phone || '',
+      idCard,
+      orderId,
+      registrationId,
+      courseId,
+      courseName,
+      contractType,
+      title,
+      contractContent: content,
+      signatureImage: '',
+      status: 'unsigned',
+      verifyMethod: 'sms',
+      createdAt: now,
+      updatedAt: now
+    }
+
+    if (openid) {
+      contractData._openid = openid
+    }
+
+    const result = await db.collection('contracts').add(contractData)
+
+    console.log('[api-order] 合同创建成功:', result.id)
+
+    return createResponse({
+      code: 0, success: true,
+      data: { _id: result.id, ...contractData },
+      message: '合同创建成功'
+    })
+  } catch (error) {
+    console.error('[api-order] 创建合同失败:', error)
+    return createResponse({ code: 500, success: false, error: '创建合同失败: ' + error.message })
+  }
+}
+
+// 签署合同（学员签署）
+async function signContract(data) {
+  const {
+    contractId,
+    signatureImage,
+    verifyMethod = 'sms',
+    signDevice = '',
+    signIP = ''
+  } = data
+
+  if (!contractId) {
+    return createResponse({ code: 400, success: false, error: '缺少合同ID' })
+  }
+  if (!signatureImage) {
+    return createResponse({ code: 400, success: false, error: '缺少签名图片' })
+  }
+
+  try {
+    const contractRes = await db.collection('contracts').doc(contractId).get()
+    const contract = getDocData(contractRes)
+
+    if (!contract) {
+      return createResponse({ code: 404, success: false, error: '合同不存在' })
+    }
+    // 向后兼容：'signed'（旧数据）和 'student_signed' 都算已签署
+    if (contract.status === 'signed' || contract.status === 'student_signed' || contract.status === 'completed') {
+      return createResponse({ code: 400, success: false, error: '合同已签署' })
+    }
+
+    const now = new Date().toISOString()
+    await db.collection('contracts').doc(contractId).update({
+      signatureImage,
+      status: 'student_signed',
+      verifyMethod,
+      signDevice,
+      signIP,
+      signedAt: now,
+      updatedAt: now
+    })
+
+    console.log('[api-order] 学员签署成功:', contractId)
+
+    return createResponse({
+      code: 0, success: true,
+      data: {
+        contractId,
+        status: 'student_signed',
+        signedAt: now
+      },
+      message: '合同签署成功，等待公司盖章'
+    })
+  } catch (error) {
+    console.error('[api-order] 签署合同失败:', error)
+    return createResponse({ code: 500, success: false, error: '签署合同失败: ' + error.message })
+  }
+}
+
+// 公司盖章（管理员操作）
+async function companyStamp(data) {
+  const { contractId } = data
+
+  if (!contractId) {
+    return createResponse({ code: 400, success: false, error: '缺少合同ID' })
+  }
+
+  try {
+    const contractRes = await db.collection('contracts').doc(contractId).get()
+    const contract = getDocData(contractRes)
+
+    if (!contract) {
+      return createResponse({ code: 404, success: false, error: '合同不存在' })
+    }
+    // 向后兼容：'signed' 和 'student_signed' 都可以盖章
+    if (contract.status !== 'student_signed' && contract.status !== 'signed') {
+      return createResponse({ code: 400, success: false, error: '合同尚未被学员签署，无法盖章' })
+    }
+
+    // 读取公司印章配置
+    let companySeal = ''
+    try {
+      const sealRes = await db.collection('system_config')
+        .where({ key: 'company_seal' })
+        .limit(1)
+        .get()
+      if (sealRes.data && sealRes.data.length > 0) {
+        companySeal = sealRes.data[0].value || ''
+      }
+    } catch (e) {
+      console.warn('[api-order] 读取公司印章失败:', e.message)
+    }
+
+    const now = new Date().toISOString()
+    await db.collection('contracts').doc(contractId).update({
+      status: 'completed',
+      companySeal: companySeal || '',
+      companySignedAt: now,
+      updatedAt: now
+    })
+
+    console.log('[api-order] 公司盖章成功:', contractId)
+
+    return createResponse({
+      code: 0, success: true,
+      data: {
+        contractId,
+        status: 'completed',
+        companySignedAt: now
+      },
+      message: '公司盖章成功，合同生效'
+    })
+  } catch (error) {
+    console.error('[api-order] 公司盖章失败:', error)
+    return createResponse({ code: 500, success: false, error: '公司盖章失败: ' + error.message })
+  }
+}
+
+// 获取合同详情
+async function getContract(data) {
+  const { contractId, orderId, registrationId } = data
+
+  try {
+    let contract = null
+
+    if (contractId) {
+      const res = await db.collection('contracts').doc(contractId).get()
+      contract = getDocData(res)
+    } else if (orderId) {
+      const res = await db.collection('contracts')
+        .where({ orderId })
+        .limit(1)
+        .get()
+      contract = (res.data && res.data.length > 0) ? res.data[0] : null
+    } else if (registrationId) {
+      const res = await db.collection('contracts')
+        .where({ registrationId })
+        .limit(1)
+        .get()
+      contract = (res.data && res.data.length > 0) ? res.data[0] : null
+    }
+
+    if (!contract) {
+      return createResponse({ code: 404, success: false, error: '合同不存在' })
+    }
+
+    // 生成签名图片临时链接
+    const isSigned = contract.status === 'signed' || contract.status === 'student_signed' || contract.status === 'completed'
+    if (contract.signatureImage && isSigned) {
+      try {
+        const fileRes = await app.getTempFileURL({
+          fileList: [contract.signatureImage]
+        })
+        if (fileRes.fileList && fileRes.fileList[0]) {
+          contract.signatureUrl = fileRes.fileList[0].tempFileURL || ''
+        }
+      } catch (e) {
+        console.warn('[api-order] 获取签名图片链接失败:', e.message)
+      }
+    }
+    
+    // 生成公司印章临时链接
+    if (contract.companySeal && contract.status === 'completed') {
+      try {
+        const sealRes = await app.getTempFileURL({
+          fileList: [contract.companySeal]
+        })
+        if (sealRes.fileList && sealRes.fileList[0]) {
+          contract.companySealUrl = sealRes.fileList[0].tempFileURL || ''
+        }
+      } catch (e) {
+        console.warn('[api-order] 获取印章图片链接失败:', e.message)
+      }
+    }
+
+    return createResponse({
+      code: 0, success: true, data: contract
+    })
+  } catch (error) {
+    console.error('[api-order] 获取合同失败:', error)
+    return createResponse({ code: 500, success: false, error: '获取合同失败: ' + error.message })
+  }
+}
+
+// 获取合同列表
+async function getContractList(data) {
+  const { phone, userId, status, page = 1, pageSize = 20, openid, keyword } = data
+
+  try {
+    const where = {}
+    if (phone) where.phone = phone
+    if (userId) where.userId = userId
+    if (openid) where._openid = openid
+    
+    // 状态筛选
+    if (status) {
+      if (status === 'student_signed') {
+        // 向后兼容：旧 'signed' 和新 'student_signed' 都表示学员已签署
+        where.status = db.command.in(['signed', 'student_signed'])
+      } else {
+        where.status = status
+      }
+    }
+    
+    // 关键词搜索
+    if (keyword) {
+      const trimmed = keyword.trim()
+      where.$or = [
+        { userName: db.RegExp({ regexp: trimmed, options: 'i' }) },
+        { phone: db.RegExp({ regexp: trimmed, options: 'i' }) },
+        { courseName: db.RegExp({ regexp: trimmed, options: 'i' }) }
+      ]
+    }
+
+    // 统计总数
+    const countRes = await db.collection('contracts').where(where).count()
+    const total = countRes.total || 0
+
+    const result = await db.collection('contracts')
+      .where(where)
+      .orderBy('createdAt', 'desc')
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .get()
+
+    return createResponse({
+      code: 0, success: true,
+      data: {
+        list: result.data || [],
+        total,
+        page,
+        pageSize
+      }
+    })
+  } catch (error) {
+    console.error('[api-order] 获取合同列表失败:', error)
+    return createResponse({ code: 500, success: false, error: '获取合同列表失败: ' + error.message })
   }
 }

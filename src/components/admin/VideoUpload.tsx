@@ -21,83 +21,26 @@ export default function VideoUpload({
   const [uploadProgress, setUploadProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const uploadToCloudBase = async (file: File): Promise<string | null> => {
+  const uploadToCloudBase = async (file: File): Promise<string> => {
     try {
-      const { app, ensureInit } = await import('../../utils/cloudbase')
-      const cloudPath = `course-videos/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
-      
-      // 确保 SDK 初始化完成
-      await ensureInit()
-      
-      // 确保用户已登录
-      await app.auth().getLoginState()
-      
-      const uploadResult = await app.uploadFile({
-        cloudPath,
-        filePath: file,
-        onUploadProgress: (progress: any) => {
-          const percent = Math.round((progress.loaded / progress.total) * 100)
-          setUploadProgress(percent)
-        }
+      // 通过 storageService 上传视频
+      const { uploadFile } = await import('../../services/storageService')
+
+      setUploadProgress(20)
+
+      const result = await uploadFile(file, 'course-videos', (progress) => {
+        setUploadProgress(20 + Math.round(progress * 0.7)) // 20%→90%
       })
-      
-      // 获取永久链接（设置较长有效期）
-      const getUrlResult = await app.getTempFileURL({
-        fileList: [{
-          fileID: uploadResult.fileID,
-          maxAge: 365 * 24 * 60 * 60 // 1年有效期
-        }]
-      })
-      
-      if (getUrlResult.fileList && getUrlResult.fileList[0]) {
-        return uploadResult.fileID
+
+      if (!result.success || !result.fileID) {
+        throw new Error(result.message || '上传失败')
       }
-      return null
-    } catch (sdkError: any) {
-      console.warn('[VideoUpload] SDK 直传失败，回退到云函数中转:', sdkError?.message)
-      
-      // 回退：通过 api-upload 云函数 base64 中转上传
-      try {
-        const { API_BASE_URL } = await import('../../config/api')
-        const axios = (await import('axios')).default
-        
-        // File 转 base64
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => {
-            const result = reader.result as string
-            resolve(result.split(',')[1])
-          }
-          reader.onerror = reject
-          reader.readAsDataURL(file)
-        })
-        
-        const uploadPath = `course-videos/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
-        setUploadProgress(50)
-        
-        const response = await axios.post(`${API_BASE_URL}/api-upload`, {
-          action: 'uploadVideo',
-          fileContent: base64,
-          cloudPath: uploadPath,
-          fileName: file.name,
-          contentType: file.type,
-        }, {
-          timeout: 120000,
-          headers: { 'Content-Type': 'application/json' },
-        })
-        
-        setUploadProgress(90)
-        
-        const data = response.data
-        if (data?.code === 0 && data?.data?.fileID) {
-          setUploadProgress(100)
-          return data.data.fileID
-        }
-        throw new Error(data?.error || '云函数上传失败')
-      } catch (cfError: any) {
-        console.error('[VideoUpload] 云函数中转也失败:', cfError)
-        throw new Error(cfError?.message || '上传失败，请重试')
-      }
+
+      setUploadProgress(100)
+      return result.fileID
+    } catch (err: any) {
+      console.error('[VideoUpload] 上传失败:', err)
+      throw new Error(err?.message || '上传失败，请重试')
     }
   }
 

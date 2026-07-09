@@ -40,6 +40,56 @@
 .video-container {
   width: 100%;
   background: #000;
+  position: relative;
+}
+
+/* 视频下载加载层 */
+.video-loading-overlay {
+  width: 100%;
+  height: 422rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a1a;
+}
+
+.video-loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.video-loading-icon {
+  font-size: 56rpx;
+  margin-bottom: 8rpx;
+}
+
+.video-loading-text {
+  font-size: 26rpx;
+  color: #aaa;
+  margin-bottom: 16rpx;
+}
+
+.video-loading-bar {
+  width: 400rpx;
+  height: 8rpx;
+  background: #333;
+  border-radius: 4rpx;
+  overflow: hidden;
+}
+
+.video-loading-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  border-radius: 4rpx;
+  transition: width 0.3s;
+}
+
+.video-loading-percent {
+  font-size: 22rpx;
+  color: #888;
+  margin-top: 4rpx;
 }
 
 .video-player {

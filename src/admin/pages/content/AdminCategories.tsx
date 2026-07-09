@@ -5,11 +5,23 @@
 import { useState, useEffect } from 'react';
 import {
   FolderTree, Plus, Edit, Trash2, Search, ToggleLeft, ToggleRight,
-  Check, X, AlertTriangle
+  Check, X, AlertTriangle, Sparkles
 } from 'lucide-react';
 import { adminService } from '@/services/adminService';
+import { IconPicker } from '@/components/admin/IconPicker';
 import { CourseCategory } from '@/services/categoryService';
+import { resolveSourceCodeMap } from '@/admin/hooks/useSourceConfig';
 import { toast } from '@/components/Toast';
+
+// 生成短唯一码
+function generateShortCode(prefix?: string): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return prefix ? `${prefix.toLowerCase().replace(/[^a-z0-9_]/g, '_')}_${result}` : result;
+}
 
 // 来源选项（从 sources 表动态加载）
 interface Source {
@@ -48,7 +60,7 @@ const DEFAULT_CATEGORY: {
   code: string;
   icon: string;
   description: string;
-  sort: number;
+  sortOrder: number;
   status: 'active' | 'disabled';
   sourceId: string;
 } = {
@@ -56,7 +68,7 @@ const DEFAULT_CATEGORY: {
   code: '',
   icon: '',
   description: '',
-  sort: 0,
+  sortOrder: 0,
   status: 'active',
   sourceId: '',
 };
@@ -101,6 +113,7 @@ export default function AdminCategories() {
       setLoading(true);
       const where: any = {};
       if (sourceFilter) {
+        // 统一使用 sourceFilter code 查询（与小程序的 sourceId = code 保持一致）
         where.sourceId = sourceFilter;
       }
       if (statusFilter && statusFilter !== 'all') {
@@ -130,12 +143,18 @@ export default function AdminCategories() {
     }
   };
 
+  const handleGenerateCategoryCode = () => {
+    // 如果已选体系，用体系 code 做前缀
+    const sourcePrefix = formData.sourceId ? formData.sourceId : 'cat';
+    setFormData({ ...formData, code: generateShortCode(sourcePrefix) });
+  };
+
   const handleOpenCreate = () => {
     setEditMode(false);
     setEditingId(null);
     // 默认排序值为当前最大值+1
-    const maxSort = categories.reduce((max, c) => Math.max(max, c.sort || 0), 0);
-    setFormData({ ...DEFAULT_CATEGORY, sort: maxSort + 1 });
+    const maxSort = categories.reduce((max, c) => Math.max(max, ((c as any).sortOrder ?? (c as any).sort) || 0), 0);
+    setFormData({ ...DEFAULT_CATEGORY, sortOrder: maxSort + 1 });
     setShowModal(true);
   };
 
@@ -147,7 +166,7 @@ export default function AdminCategories() {
       code: category.code,
       icon: category.icon || '',
       description: category.description || '',
-      sort: category.sort || 0,
+      sortOrder: ((category as any).sortOrder ?? (category as any).sort) || 0,
       status: category.status,
       sourceId: (category as { sourceId?: string }).sourceId || '',
     });
@@ -167,7 +186,8 @@ export default function AdminCategories() {
       toast.error('请输入分类编码');
       return;
     }
-    if (!/^[a-z][a-z0-9_]*$/.test(formData.code)) {
+    // 编辑时编码不可修改，跳过格式校验（兼容历史大写编码数据）
+    if (!editMode && !/^[a-z][a-z0-9_]*$/.test(formData.code)) {
       toast.error('编码只能包含小写字母、数字和下划线，且以字母开头');
       return;
     }
@@ -184,13 +204,17 @@ export default function AdminCategories() {
           return;
         }
       } else {
-        // 检查编码是否重复
-        const exists = categories.some(c => c.code === formData.code.trim());
+        // 检查编码是否重复（同一体系下）
+        const exists = categories.some(c =>
+          c.code === formData.code.trim() &&
+          (c as any).sourceId === formData.sourceId
+        );
         if (exists) {
-          toast.error('分类编码已存在');
+          toast.error('该体系下编码已存在');
           return;
         }
-        const result = await adminService.add('categories', formData) as AdminCRUDResult;
+        // 不手动生成 _id，让 CloudBase 自动生成安全 ID
+        const result = await adminService.add('categories', { ...formData }) as AdminCRUDResult;
         if (result.code === 0) {
           toast.success('分类创建成功');
         } else {
@@ -253,8 +277,8 @@ export default function AdminCategories() {
     if (!swapCategory._id) return;
     try {
       await Promise.all([
-        adminService.update('categories', category._id, { sort: swapCategory.sort || swapIdx }),
-        adminService.update('categories', swapCategory._id, { sort: category.sort || idx }),
+        adminService.update('categories', category._id, { sortOrder: ((swapCategory as any).sortOrder ?? (swapCategory as any).sort) || swapIdx }),
+        adminService.update('categories', swapCategory._id, { sortOrder: ((category as any).sortOrder ?? (category as any).sort) || idx }),
       ]);
       loadData();
     } catch (error) {
@@ -267,7 +291,11 @@ export default function AdminCategories() {
   const filteredCategories = categories.filter(c => {
     const matchSearch = !searchQuery || c.name.includes(searchQuery) || c.code.includes(searchQuery)
     const catSourceId = (c as { sourceId?: string }).sourceId
-    const matchSource = !sourceFilter || catSourceId === sourceFilter
+    // 兼容 sourceId 存 code 或 _id 的旧数据（与小程序的 sourceId = code 统一）
+    const resolvedCode = sourceFilter ? resolveSourceCodeMap(sourceFilter) : '';
+    const matchSource = !sourceFilter || 
+      catSourceId === resolvedCode ||                    // code 对 code
+      sources.some(s => s._id === catSourceId && s.code === resolvedCode)  // _id 对 code
     return matchSearch && matchSource
   })
 
@@ -333,7 +361,7 @@ export default function AdminCategories() {
           >
             <option value="">全部体系</option>
             {sources.map(opt => (
-              <option key={opt.code} value={opt.code}>{opt.icon} {opt.name}</option>
+              <option key={opt._id} value={opt.code}>{opt.icon} {opt.name}</option>
             ))}
           </select>
           <div className="flex gap-1.5 bg-gray-100 rounded-lg p-1">
@@ -442,7 +470,9 @@ export default function AdminCategories() {
                     <span className={`px-2 py-1 rounded text-xs ${
                       (category as any).sourceId ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-500'
                     }`}>
-                      {sources.find(s => s._id === (category as any).sourceId)?.name || '-'}
+                      {sources.find(s =>
+                        s._id === (category as any).sourceId || s.code === (category as any).sourceId
+                      )?.name || '-'}
                     </span>
                   </td>
                   <td className="px-5 py-4">
@@ -462,7 +492,7 @@ export default function AdminCategories() {
                     </button>
                   </td>
                   <td className="px-5 py-4">
-                    <span className="text-sm text-gray-500">{category.sort ?? idx}</span>
+                    <span className="text-sm text-gray-500">{(category as any).sortOrder ?? (category as any).sort ?? idx}</span>
                   </td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">
@@ -518,7 +548,7 @@ export default function AdminCategories() {
                 >
                   <option value="">请选择体系</option>
                   {sources.map(opt => (
-                    <option key={opt._id} value={opt._id}>{opt.name}</option>
+                    <option key={opt._id} value={opt.code}>{opt.name}</option>
                   ))}
                 </select>
               </div>
@@ -540,28 +570,49 @@ export default function AdminCategories() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   分类编码 <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="如：caac（小写字母开头，仅含小写字母/数字/下划线）"
-                  value={formData.code}
-                  onChange={e => setFormData({ ...formData, code: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
-                  disabled={editMode}
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="手动输入或点击右侧按钮自动生成"
+                    value={formData.code}
+                    onChange={e => setFormData({ ...formData, code: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+                    disabled={editMode}
+                    className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                  {!editMode && (
+                    <button
+                      type="button"
+                      onClick={handleGenerateCategoryCode}
+                      className="flex items-center gap-1.5 px-3 py-2.5 text-xs text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors whitespace-nowrap"
+                      title="根据所选体系自动生成唯一编码"
+                    >
+                      <Sparkles size={14} />
+                      自动生成
+                    </button>
+                  )}
+                </div>
                 {editMode && <p className="text-xs text-gray-400 mt-1">编码创建后不可修改</p>}
+                {!editMode && <p className="text-xs text-gray-400 mt-1">自动生成格式：<code>{formData.sourceId ? formData.sourceId.toLowerCase() : 'cat'}_xxxxxx</code>（6位随机字符）</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  图标 URL
+                  图标
                 </label>
-                <input
-                  type="text"
-                  placeholder="分类图标的图片链接（可选）"
-                  value={formData.icon}
-                  onChange={e => setFormData({ ...formData, icon: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
+                <div className="flex items-start gap-3">
+                  <IconPicker
+                    value={formData.icon && !formData.icon.startsWith('http') && !formData.icon.startsWith('/') ? formData.icon : ''}
+                    onChange={(icon: string) => setFormData({ ...formData, icon })}
+                  />
+                  <input
+                    type="text"
+                    placeholder="或输入图片链接（http/https）"
+                    value={formData.icon && (formData.icon.startsWith('http') || formData.icon.startsWith('/')) ? formData.icon : ''}
+                    onChange={e => setFormData({ ...formData, icon: e.target.value })}
+                    className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">可在图标库中选择 emoji，或填写图片链接</p>
               </div>
 
               <div>
@@ -582,8 +633,8 @@ export default function AdminCategories() {
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">排序值</label>
                   <input
                     type="number"
-                    value={formData.sort}
-                    onChange={e => setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })}
+                    value={formData.sortOrder}
+                    onChange={e => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
                     className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                   <p className="text-xs text-gray-400 mt-1">越小越靠前</p>

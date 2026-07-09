@@ -1,10 +1,9 @@
 /**
  * 统一数据加载 Hook
- * 自动处理登录和数据加载
+ * 自动处理登录和数据加载（通过 HTTP API）
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { checkLogin } from '@/utils/cloudbase'
 import { adminService } from '@/services/adminService'
 
 interface UseCloudDataOptions {
@@ -23,9 +22,6 @@ export function useCloudData<T>(options: UseCloudDataOptions) {
     setError(null)
     
     try {
-      // 确保已登录（使用 checkLogin 防止并发请求）
-      await checkLogin()
-
       const result = await adminService.list(options.collection, options.where || {}, {
         limit: options.limit || 100
       })

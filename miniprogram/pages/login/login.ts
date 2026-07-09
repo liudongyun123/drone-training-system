@@ -16,8 +16,15 @@ Page({
     hasAgreed: false
   },
 
-  onLoad() {
+  // 重定向标识：从其他页面跳来绑定手机号
+  bindPhoneRedirect: false,
+
+  onLoad(options: any) {
     wx.setNavigationBarTitle({ title: '登录' })
+    // 如果是"去绑定"的重定向，标记一下
+    if (options.redirect === 'bindPhone') {
+      this.bindPhoneRedirect = true
+    }
     this.checkLoginStatus()
   },
 
@@ -103,7 +110,7 @@ Page({
     wx.login({
       success: async (loginRes) => {
         try {
-          const result: any = await request('/auth-api', 'POST', {
+          const result: any = await request('/api-auth', 'POST', {
             action: 'wxMiniappLogin',
             code: loginRes.code,
             userInfo: null
@@ -198,7 +205,7 @@ Page({
     wx.login({
       success: async (loginRes) => {
         try {
-          const result: any = await request('/auth-api', 'POST', {
+          const result: any = await request('/api-auth', 'POST', {
             action: 'wxMiniappLogin',
             code: loginRes.code,
             userInfo: null
@@ -252,7 +259,7 @@ Page({
     wx.login({
       success: async (loginRes) => {
         try {
-          const result: any = await request('/auth-api', 'POST', {
+          const result: any = await request('/api-auth', 'POST', {
             action: 'wxMiniappLogin',
             code: loginRes.code,
             userInfo: null
@@ -306,7 +313,7 @@ Page({
   // 获取手机号并保存
   async getPhoneNumber(code: string, openid: string) {
     try {
-      const result: any = await request('/auth-api', 'POST', {
+      const result: any = await request('/api-auth', 'POST', {
         action: 'wxPhoneLogin',
         code: code,
         openid: openid
@@ -337,7 +344,11 @@ Page({
 
         showToast('登录并绑定成功', 'success')
         setTimeout(() => {
-          wx.reLaunch({ url: '/pages/index/index' })
+          if (this.bindPhoneRedirect) {
+            wx.navigateBack({ delta: 1 })
+          } else {
+            wx.reLaunch({ url: '/pages/index/index' })
+          }
         }, 1500)
       } else {
         logger.error('登录', '获取手机号失败:', result)
@@ -363,7 +374,7 @@ Page({
     const openid = wx.getStorageSync('openid')
 
     try {
-      const result: any = await request('/auth-api', 'POST', {
+      const result: any = await request('/api-auth', 'POST', {
         action: 'wxPhoneLogin',
         code: e.detail.code,
         openid: openid
@@ -388,10 +399,15 @@ Page({
           hasPhone: true
         })
 
-        showToast('手机号绑定成功', 'success')
-        setTimeout(() => {
-          wx.switchTab({ url: '/pages/index/index' })
-        }, 1500)
+    showToast('手机号绑定成功', 'success')
+    setTimeout(() => {
+      // ★ 如果是后置绑定（从其他页面跳来），返回上一页
+      if (this.bindPhoneRedirect) {
+        wx.navigateBack({ delta: 1 })
+      } else {
+        wx.switchTab({ url: '/pages/index/index' })
+      }
+    }, 1500)
       } else {
         logger.error('手机号登录', '获取手机号失败:', result)
         this.setData({ loading: false })
@@ -419,7 +435,7 @@ Page({
           // 通知服务器登出（非阻塞）
           const token = wx.getStorageSync('loginInfo')?.token
           if (token) {
-            request('/auth-api', 'POST', { action: 'logout', token }).catch(() => {})
+            request('/api-auth', 'POST', { action: 'logout', token }).catch(() => {})
           }
 
           wx.removeStorageSync('userInfo')

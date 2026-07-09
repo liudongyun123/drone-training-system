@@ -3,7 +3,7 @@
 
 import { userApi, newUserApi } from '../../utils/api'
 import { dbQuery } from '../../utils/http'
-import { checkLogin, getUserId, showToast } from '../../utils/util'
+import { checkLogin, getUserId, showToast, requirePhoneBinding } from '../../utils/util'
 import { SERVICE_PHONE, APP_VERSION, ABOUT_CONTENT, HELP_CONTENT } from '../../utils/constants'
 import logger from '../../utils/logger'
 
@@ -296,8 +296,8 @@ Page({
     try {
       // 使用统一的 HTTP API 调用云函数
       const { callFunction } = require('../../utils/http')
-      const res: any = await callFunction('auth-api', {
-        action: 'getPhoneNumber',
+      const res: any = await callFunction('api-auth', {
+        action: 'wxPhoneLogin',
         code: e.detail.code
       })
       
@@ -388,6 +388,14 @@ Page({
 
   goToMyCertificates() {
     wx.navigateTo({ url: '/pages/my-certificates/my-certificates' })
+  },
+
+  async goToMyContracts() {
+    // ★ 统一手机号绑定检查
+    const hasPhone = await requirePhoneBinding('查看合同')
+    if (!hasPhone) return
+    // 不需要传 orderId，页面会尝试通过 phone 查询最近合同
+    wx.navigateTo({ url: '/pages/contract-sign/contract-sign?source=profile' })
   },
 
   // 联系客服

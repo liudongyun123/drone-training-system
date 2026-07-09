@@ -16,6 +16,7 @@ interface CourseListProps {
   sources?: Array<{ _id: string; name: string; code: string }>;  // 新增：体系列表
   selectedSource?: string;  // 新增：选中的体系
   onSourceChange?: (sourceId: string) => void;  // 新增：体系变化回调
+  coverUrlMap?: Map<string, string>;
   onSearch: () => void;
   onPageChange: (page: number) => void;
   onAdd: () => void;
@@ -34,6 +35,7 @@ export default function CourseList({
   sources = [],
   selectedSource = '',
   onSourceChange,
+  coverUrlMap = new Map(),
   onSearch,
   onPageChange,
   onAdd,
@@ -46,17 +48,24 @@ export default function CourseList({
     {
       key: 'coverImage',
       title: '封面',
-      render: (value: unknown, _record: DataRecord, _index: number): React.ReactNode => {
-        const url = value as string;
+      render: (value: unknown, record: DataRecord, _index: number): React.ReactNode => {
+        const rawUrl = value as string;
+        const resolvedUrl = rawUrl?.startsWith('cloud://')
+          ? coverUrlMap.get(rawUrl) || ''
+          : rawUrl;
+        const displayUrl =
+          resolvedUrl ||
+          'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=64';
         return (
           <div className="w-16 h-9 rounded overflow-hidden">
             <img
-              src={
-                url ||
-                'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=64'
-              }
-              alt=""
+              src={displayUrl}
+              alt={(record as any).title || ''}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=64';
+              }}
             />
           </div>
         );

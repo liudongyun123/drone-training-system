@@ -34,19 +34,10 @@ const COLLECTIONS = {
 // ========== 工具函数 ==========
 
 /**
- * CORS 头
+ * 响应头（CORS 由 CloudBase HTTP 网关自动处理，避免重复导致浏览器报错）
  */
-function getCorsHeaders(origin = '') {
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'https://rcwljy-5ghmq2ex26764978.tcloudbaseapp.com'
-  ]
+function getHeaders() {
   return {
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Content-Type': 'application/json; charset=utf-8'
   }
 }
@@ -106,8 +97,7 @@ exports.main = async (event, context) => {
   }
 
   const headers = event.headers || {}
-  const origin = headers.origin || ''
-
+  
   try {
     let result
 
@@ -130,6 +120,10 @@ exports.main = async (event, context) => {
       result = await handleUpgradeMember(openid || data.openid, data)
     } else if (action === 'getMemberBenefits') {
       result = await handleGetMemberBenefits(data.level)
+    } else if (action === 'getList') {
+      result = await handleGetUserList(data)
+    } else if (action === 'getMemberList') {
+      result = await handleGetMemberList(data)
 
     // 设置相关
     } else if (action === 'getSettings') {
@@ -158,13 +152,13 @@ exports.main = async (event, context) => {
 
     return {
       ...result,
-      headers: getCorsHeaders(origin)
+      headers: getHeaders()
     }
   } catch (error) {
     console.error(`[api-user] Action ${action} error:`, error)
     return {
       ...fail(error.message || 'Internal error', error),
-      headers: getCorsHeaders(origin)
+      headers: getHeaders()
     }
   }
 }
@@ -467,6 +461,56 @@ async function handleGetMemberBenefits(level) {
   return success(benefits[level] || benefits.free)
 }
 
+// ========== 管理后台列表 ==========
+
+/**
+ * 用户列表（users 集合）
+ */
+async function handleGetUserList(params = {}) {
+  const { page = 1, pageSize = 20, keyword = '' } = params
+  const where = {}
+  if (keyword) {
+    where.name = db.RegExp({ regexp: keyword, options: 'i' })
+  }
+  const countRes = await db.collection(COLLECTIONS.USERS).where(where).count()
+  const res = await db.collection(COLLECTIONS.USERS)
+    .where(where)
+    .orderBy('createdAt', 'desc')
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .get()
+  return success({
+    list: res.data || [],
+    total: countRes.total || 0,
+    page,
+    pageSize
+  })
+}
+
+/**
+ * 会员列表（members 集合）
+ */
+async function handleGetMemberList(params = {}) {
+  const { page = 1, pageSize = 20, keyword = '' } = params
+  const where = {}
+  if (keyword) {
+    where.name = db.RegExp({ regexp: keyword, options: 'i' })
+  }
+  const countRes = await db.collection(COLLECTIONS.MEMBERS).where(where).count()
+  const res = await db.collection(COLLECTIONS.MEMBERS)
+    .where(where)
+    .orderBy('createdAt', 'desc')
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .get()
+  return success({
+    list: res.data || [],
+    total: countRes.total || 0,
+    page,
+    pageSize
+  })
+}
+
 // ========== 设置操作 ==========
 
 /**
@@ -616,24 +660,68 @@ async function handleGetStats(openid) {
     return fail('缺少 openid')
   }
 
-  const res = await db.collection(COLLECTIONS.USERS)
-    .where({ openid })
-    .field({
-      level: true,
-      points: true,
-      totalLearningTime: true,
-      totalCourses: true,
-      totalExams: true,
-      memberLevel: true
+  try {
+    // 1. 获取用户基本信息
+    const userRes = await db.collection(COLLECTIONS.USERS)
+      .where({ openid })
+      .field({
+        level: true,
+        points: true,
+        totalLearningTime: true,
+        totalExams: true,
+        memberLevel: true
+      })
+      .limit(1)
+      .get()
+
+    const user = userRes.data && userRes.data.length > 0 ? userRes.data[0] : {}
+    const totalLearningTime = user.totalLearningTime || 0
+
+    // 2. 统计在学课程数（从 course_permissions 表获取有效权限）
+    let courseCount = 0
+    try {
+      const courseRes = await db.collection('course_permissions')
+        .where({
+          $or: [
+            { openid },
+            { phone: user.phone || '' }
+          ],
+          status: 'active'
+        })
+        .count()
+      courseCount = courseRes.total || 0
+    } catch (e) {
+      console.warn('[api-user] 统计课程数失败:', e.message)
+    }
+
+    // 3. 统计证书数量
+    let certificateCount = 0
+    try {
+      const certRes = await db.collection(COLLECTIONS.CERTIFICATES)
+        .where({ openid })
+        .count()
+      certificateCount = certRes.total || 0
+    } catch (e) {
+      console.warn('[api-user] 统计证书数失败:', e.message)
+    }
+
+    // 4. 学习时长（小时），totalLearningTime 单位为分钟
+    const learningHours = Math.round((totalLearningTime / 60) * 10) / 10
+
+    return success({
+      courseCount,
+      learningHours,
+      certificateCount,
+      totalLearningTime,
+      totalExams: user.totalExams || 0,
+      level: user.level || 1,
+      points: user.points || 0,
+      memberLevel: user.memberLevel || 'free'
     })
-    .limit(1)
-    .get()
-
-  if (res.data.length === 0) {
-    return fail('用户不存在')
+  } catch (error) {
+    console.error('[api-user] getStats 失败:', error)
+    return fail('获取统计失败: ' + error.message)
   }
-
-  return success(res.data[0])
 }
 
 /**

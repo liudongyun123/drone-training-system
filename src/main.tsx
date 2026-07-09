@@ -5,19 +5,10 @@ import App from "./App";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { initAuth } from "./store/authStore";
 import { initSentry } from "./utils/sentry";
-import { ensureInit } from "./utils/cloudbase";
 
-// 初始化 CloudBase SDK（关键：必须等待初始化完成）
+// 初始化应用（已移除 CloudBase SDK 依赖，改用 HTTP API）
 const initApp = async () => {
   console.log('[Main] 开始初始化...');
-  
-  // 等待 SDK 初始化完成
-  try {
-    await ensureInit();
-    console.log('[Main] CloudBase SDK 初始化完成');
-  } catch (error) {
-    console.error('[Main] CloudBase SDK 初始化失败:', error);
-  }
   
   // 初始化认证状态
   try {

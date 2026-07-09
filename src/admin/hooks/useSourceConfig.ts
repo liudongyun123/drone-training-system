@@ -193,26 +193,26 @@ export function useSourceConfig() {
     return categories.filter(c => c.sourceCode === sourceCode);
   }, [categories]);
 
-  // 根据体系ID筛选等级
-  const getLevelsBySource = useCallback((sourceId: string): Level[] => {
-    console.log('[useSourceConfig] getLevelsBySource called with sourceId:', sourceId);
+  // 根据体系ID或code筛选等级
+  const getLevelsBySource = useCallback((sourceCodeOrId: string): Level[] => {
+    console.log('[useSourceConfig] getLevelsBySource called with sourceCodeOrId:', sourceCodeOrId);
     console.log('[useSourceConfig] current levels:', levels);
     console.log('[useSourceConfig] sourceIdToCodeMap:', sourceIdToCodeMap);
     
-    if (!sourceId) return levels;
+    if (!sourceCodeOrId) return levels;
     
-    // 获取对应的 sourceCode（如果映射存在）
-    const sourceCode = sourceIdToCodeMap[sourceId];
-    console.log('[useSourceConfig] sourceCode for', sourceId, ':', sourceCode);
+    // 输入可能是 source _id 或 code，尝试从 _id→code 映射解析
+    const resolvedCode = sourceIdToCodeMap[sourceCodeOrId] || sourceCodeOrId;
+    console.log('[useSourceConfig] resolvedCode for', sourceCodeOrId, ':', resolvedCode);
     
     const filtered = levels.filter(l => {
-      // 直接匹配 sourceId（最可靠的方式）
-      if (l.sourceId === sourceId) {
+      // 直接匹配 sourceId（可能是 _id 或 code）
+      if (l.sourceId === sourceCodeOrId) {
         console.log('[useSourceConfig] matched by sourceId:', l);
         return true;
       }
-      // 匹配 sourceCode（如果两者都存在）
-      if (l.sourceCode && sourceCode && l.sourceCode === sourceCode) {
+      // 匹配 sourceCode（code 对 code）
+      if (l.sourceCode === resolvedCode || l.sourceCode === sourceCodeOrId) {
         console.log('[useSourceConfig] matched by sourceCode:', l);
         return true;
       }
@@ -228,6 +228,19 @@ export function useSourceConfig() {
     if (!sourceCode) return levels;
     return levels.filter(l => l.sourceCode === sourceCode);
   }, [levels]);
+
+  // ★ 统一工具：将任意体系标识（code 或 _id）解析为标准 code
+  // 小程序端已统一假设 sourceId = code，admin 端也需要保持一致
+  const resolveSourceCode = useCallback((sourceCodeOrId: string): string => {
+    if (!sourceCodeOrId) return '';
+    // 如果是 _id（能在映射表中找到），返回 code
+    if (sourceIdToCodeMap[sourceCodeOrId]) return sourceIdToCodeMap[sourceCodeOrId];
+    // 如果是 code，返回 code；如果 code 和 _id 都找不到，返回输入值本身
+    if (sourceCodeToIdMap[sourceCodeOrId]) return sourceCodeOrId;
+    // 兜底：尝试按 _id 查找
+    const matchedSource = sources.find(s => s._id === sourceCodeOrId);
+    return matchedSource?.code || sourceCodeOrId;
+  }, [sources]);
 
   // 体系选项（用于下拉框）
   // ★ value 使用 code（而非 _id），因为数据库 sourceId 字段存的是 code
@@ -282,6 +295,8 @@ export function useSourceConfig() {
     getCategoriesBySourceCode,
     getLevelsBySource,
     getLevelsBySourceCode,
+    // ★ 统一工具：解析任意体系标识为 code（解决 code/_id 不一致问题）
+    resolveSourceCode,
     // 重新加载
     loadAll,
     loadSources,
@@ -297,4 +312,13 @@ export function useSourceConfig() {
 // 导出映射获取函数（用于非hook场景）
 export function getSourceMapping() {
   return { sourceIdToCodeMap, sourceCodeToIdMap };
+}
+
+// ★ 统一工具：将任意体系标识（code 或 _id）解析为标准 code
+// 可用于非hook场景（如 AdminCategories），解决 sourceId 存储值不一致问题
+export function resolveSourceCodeMap(sourceCodeOrId: string): string {
+  if (!sourceCodeOrId) return '';
+  if (sourceIdToCodeMap[sourceCodeOrId]) return sourceIdToCodeMap[sourceCodeOrId];
+  if (sourceCodeToIdMap[sourceCodeOrId]) return sourceCodeOrId;
+  return sourceCodeOrId;
 }

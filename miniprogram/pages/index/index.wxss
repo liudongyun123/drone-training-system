@@ -6,6 +6,43 @@
   background: #f1f5f9;
 }
 
+/* ==================== 手机号绑定提醒横幅 ==================== */
+.bind-phone-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 24rpx;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  animation: bannerSlideIn 0.3s ease-out;
+}
+
+.bind-phone-banner .banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.bind-phone-banner .banner-icon {
+  font-size: 32rpx;
+}
+
+.bind-phone-banner .banner-text {
+  font-size: 26rpx;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.bind-phone-banner .banner-arrow {
+  font-size: 24rpx;
+  color: #d97706;
+  font-weight: 500;
+}
+
+@keyframes bannerSlideIn {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 /* ==================== Hero 区域（三块布局） ==================== */
 .hero-section {
   background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
@@ -336,6 +373,32 @@
   gap: 11rpx;
   padding-left: 8rpx;
   padding-right: 8rpx;
+}
+
+/* 数量少时：铺满整行，均分宽度 */
+.paths-scroll-fill,
+.course-scroll-fill,
+.class-scroll-fill,
+.features-scroll-fill {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  gap: 16rpx;
+  padding-left: 0;
+  padding-right: 0;
+  box-sizing: border-box;
+}
+
+.paths-scroll-fill .path-card,
+.features-scroll-fill .feature-card {
+  flex: 1;
+  min-width: 0;
+}
+
+.course-scroll-fill .course-card,
+.class-scroll-fill .class-card {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ==================== 学习路径卡片 ==================== */

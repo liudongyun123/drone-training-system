@@ -1,0 +1,9 @@
+{
+  "name": "api-datacheck",
+  "version": "1.0.0",
+  "description": "引用完整性检查 / 修复（覆盖所有模块）",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "latest"
+  }
+}

@@ -1,14 +1,10 @@
 /**
- * 统一认证服务 - 生产级版本
- * 基于 CloudBase Web SDK 实现多种登录方式
- * 使用 app.auth() 自动处理 SDK 初始化
+ * 统一认证服务 - HTTP 版本
+ * 通过 adminService.callFunction('api-auth') 实现认证
+ * 不再依赖 @cloudbase/js-sdk
  */
 
-// 统一从 utils/cloudbase 导入 app 实例
-import { app, checkLogin } from '@/utils/cloudbase'
-
-// 获取 AuthWrapper 实例（延迟初始化）
-const getAuth = () => app.auth();
+import { adminService } from './adminService'
 
 // 用户类型定义
 export interface AuthUser {
@@ -58,9 +54,11 @@ export const authService = {
    */
   async signInAnonymously(): Promise<{ user: AuthUser | null; error: Error | null }> {
     try {
-      const { data, error } = await getAuth().signInAnonymously()
-      if (error) throw error
-      const user = transformUser(data.user)
+      const result = await adminService.callFunction('api-auth', {
+        action: 'wxMiniappLogin',
+        data: { type: 'anonymous' }
+      })
+      const user = transformUser(result?.data?.user || result?.data)
       cachedUser = user
       cachedUserTime = Date.now()
       return { user, error: null }
@@ -85,15 +83,22 @@ export const authService = {
     error: Error | null 
   }> {
     try {
-      const { data, error } = await getAuth().signInWithOtp({ phone })
-      if (error) throw error
-      
+      const result = await adminService.callFunction('api-auth', {
+        action: 'sendSmsCode',
+        data: { phone }
+      })
+      if (!result?.success && result?.code !== 0) {
+        throw new Error(result?.error || result?.message || '发送验证码失败')
+      }
+
       return {
         verify: async (code: string) => {
           try {
-            const { data: loginData, error: loginError } = await data.verifyOtp({ token: code })
-            if (loginError) throw loginError
-            const user = transformUser(loginData.user)
+            const loginResult = await adminService.callFunction('api-auth', {
+              action: 'loginBySms',
+              data: { phone, code }
+            })
+            const user = transformUser(loginResult?.data?.user || loginResult?.data)
             cachedUser = user
             cachedUserTime = Date.now()
             return { user, error: null }
@@ -120,15 +125,22 @@ export const authService = {
     error: Error | null
   }> {
     try {
-      const { data, error } = await getAuth().signInWithOtp({ email })
-      if (error) throw error
+      const result = await adminService.callFunction('api-auth', {
+        action: 'sendSmsCode',
+        data: { email }
+      })
+      if (!result?.success && result?.code !== 0) {
+        throw new Error(result?.error || result?.message || '发送验证码失败')
+      }
 
       return {
         verify: async (code: string) => {
           try {
-            const { data: loginData, error: loginError } = await data.verifyOtp({ token: code })
-            if (loginError) throw loginError
-            const user = transformUser(loginData.user)
+            const loginResult = await adminService.callFunction('api-auth', {
+              action: 'loginBySms',
+              data: { email, code }
+            })
+            const user = transformUser(loginResult?.data?.user || loginResult?.data)
             cachedUser = user
             cachedUserTime = Date.now()
             return { user, error: null }
@@ -157,9 +169,11 @@ export const authService = {
     password: string 
   }): Promise<{ user: AuthUser | null; error: Error | null }> {
     try {
-      const { data, error } = await getAuth().signInWithPassword(params)
-      if (error) throw error
-      const user = transformUser(data.user)
+      const result = await adminService.callFunction('api-auth', {
+        action: 'adminLogin',
+        data: params
+      })
+      const user = transformUser(result?.data?.user || result?.data)
       cachedUser = user
       cachedUserTime = Date.now()
       return { user, error: null }
@@ -182,15 +196,22 @@ export const authService = {
     error: Error | null
   }> {
     try {
-      const { data, error } = await getAuth().signUp(params)
-      if (error) throw error
+      const result = await adminService.callFunction('api-auth', {
+        action: 'register',
+        data: params
+      })
+      if (!result?.success && result?.code !== 0) {
+        throw new Error(result?.error || result?.message || '注册失败')
+      }
 
       return {
         verify: async (code: string) => {
           try {
-            const { data: loginData, error: loginError } = await data.verifyOtp({ token: code })
-            if (loginError) throw loginError
-            const user = transformUser(loginData.user)
+            const loginResult = await adminService.callFunction('api-auth', {
+              action: 'loginBySms',
+              data: { phone: params.phone, code }
+            })
+            const user = transformUser(loginResult?.data?.user || loginResult?.data)
             cachedUser = user
             cachedUserTime = Date.now()
             return { user, error: null }
@@ -218,12 +239,11 @@ export const authService = {
     }
     
     try {
-      const { data, error } = await getAuth().getUser()
-      if (error || !data.user) {
-        cachedUser = null
-        return null
-      }
-      const user = transformUser(data.user)
+      const result = await adminService.callFunction('api-auth', {
+        action: 'verifyToken',
+        data: {}
+      })
+      const user = transformUser(result?.data?.user || result?.data)
       cachedUser = user
       cachedUserTime = Date.now()
       return user
@@ -251,8 +271,11 @@ export const authService = {
     isCheckingSession = true
     sessionPromise = (async () => {
       try {
-        const { data, error } = await getAuth().getSession()
-        if (error || !data.session) {
+        const result = await adminService.callFunction('api-auth', {
+          action: 'verifyToken',
+          data: {}
+        })
+        if (!result?.success && !result?.data) {
           return { isAuthenticated: false, user: null }
         }
         const user = await this.getCurrentUser()
@@ -277,8 +300,10 @@ export const authService = {
    */
   async signOut(): Promise<{ error: Error | null }> {
     try {
-      const { error } = await getAuth().signOut()
-      if (error) throw error
+      await adminService.callFunction('api-auth', {
+        action: 'logout',
+        data: {}
+      })
       cachedUser = null
       cachedUserTime = 0
       return { error: null }
@@ -297,9 +322,11 @@ export const authService = {
     gender?: 'MALE' | 'FEMALE' | 'UNKNOWN'
   }): Promise<{ user: AuthUser | null; error: Error | null }> {
     try {
-      const { data, error } = await getAuth().updateUser(metadata)
-      if (error) throw error
-      const user = transformUser(data.user)
+      const result = await adminService.callFunction('api-user', {
+        action: 'updateProfile',
+        data: metadata
+      })
+      const user = transformUser(result?.data?.user || result?.data)
       cachedUser = user
       cachedUserTime = Date.now()
       return { user, error: null }
@@ -314,11 +341,13 @@ export const authService = {
    */
   async changePassword(oldPassword: string, newPassword: string): Promise<{ error: Error | null }> {
     try {
-      const { error } = await getAuth().resetPasswordForOld({
-        old_password: oldPassword,
-        new_password: newPassword
+      const result = await adminService.callFunction('api-auth', {
+        action: 'changePassword',
+        data: { phone: cachedUser?.phone, oldPassword, newPassword }
       })
-      if (error) throw error
+      if (!result?.success && result?.code !== 0) {
+        throw new Error(result?.error || result?.message || '修改密码失败')
+      }
       return { error: null }
     } catch (error: any) {
       console.error('修改密码失败:', error)
@@ -327,39 +356,27 @@ export const authService = {
   },
 
   /**
-   * 监听认证状态变化
+   * 监听认证状态变化（简化版，基于轮询）
    */
   onAuthStateChange(callback: (event: string, session: any, user: AuthUser | null) => void): () => void {
-    // 返回一个取消订阅函数
-    let unsubscribe: (() => void) | null = null;
+    let intervalId: NodeJS.Timeout | null = null;
+    let lastState: boolean | null = null;
     
-    // 立即初始化并设置监听
-    getAuth().getLoginState().then(() => {
-      // 重新获取 auth 实例来设置监听
-      app.auth().onAuthStateChange?.((event: any, session: any) => {
-        if (session) {
-          setTimeout(() => {
-            this.getCurrentUser().then(user => {
-              callback(event, session, user)
-            })
-          }, 100)
-        } else {
-          cachedUser = null
-          callback(event, session, null)
+    // 每30秒检查一次认证状态
+    intervalId = setInterval(async () => {
+      try {
+        const { isAuthenticated, user } = await this.checkSession();
+        if (lastState !== isAuthenticated) {
+          lastState = isAuthenticated;
+          callback(isAuthenticated ? 'SIGNED_IN' : 'SIGNED_OUT', null, user);
         }
-      }).then((result: any) => {
-        if (result?.subscription) {
-          unsubscribe = () => result.subscription.unsubscribe();
-        }
-      }).catch((err: any) => {
-        console.error('设置 auth 状态监听失败:', err);
-      });
-    });
+      } catch {
+        // 忽略检查错误
+      }
+    }, 30000);
     
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
+      if (intervalId) clearInterval(intervalId);
     };
   },
 
@@ -381,9 +398,11 @@ export const authService = {
    */
   async getAccessToken(): Promise<string | null> {
     try {
-      const { data, error } = await getAuth().getSession()
-      if (error || !data.session) return null
-      return data.session.access_token
+      const result = await adminService.callFunction('api-auth', {
+        action: 'verifyToken',
+        data: {}
+      })
+      return result?.data?.access_token || result?.data?.token || null
     } catch (error: any) {
       console.error('获取访问令牌失败:', error)
       return null
@@ -420,19 +439,17 @@ export const authService = {
 function transformUser(user: any): AuthUser | null {
   if (!user) return null
   return {
-    id: user.id,
+    id: user.id || user.uid || user._id || '',
     email: user.email,
     phone: user.phone,
-    nickname: user.user_metadata?.nickname || user.user_metadata?.nickName,
-    avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.avatarUrl,
-    gender: user.user_metadata?.gender,
-    is_anonymous: user.is_anonymous || false,
-    created_at: user.created_at,
-    updated_at: user.updated_at,
+    nickname: user.nickname || user.user_metadata?.nickname || user.user_metadata?.nickName,
+    avatar_url: user.avatar_url || user.avatar || user.user_metadata?.avatar_url || user.user_metadata?.avatarUrl,
+    gender: user.gender || user.user_metadata?.gender,
+    is_anonymous: user.is_anonymous || user.isAnonymous || false,
+    created_at: user.created_at || user.createdAt || '',
+    updated_at: user.updated_at || user.updatedAt || '',
     user_metadata: user.user_metadata
   }
 }
 
-// 导出 CloudBase 应用实例
-export { app }
 export default authService

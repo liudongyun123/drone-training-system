@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, Loading } from '@/components';
 import { CloudPracticeService } from '@/services/CloudPracticeService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { formatDateStr } from '@/utils/dateUtils';
 
 // 兼容性格式化函数
@@ -65,7 +65,7 @@ export default function MyPracticePage() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'records' | 'wrong' | 'ranking'>('records');
-  const { isAuthenticated } = useAuth() as any;
+  const { isAuthenticated } = useAuthContext() as any;
   const navigate = useNavigate();
 
   // 加载练习记录

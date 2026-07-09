@@ -4,6 +4,8 @@ import { X, Save, ImageIcon, XCircle } from 'lucide-react';
 import type { CourseFormData } from '../hooks/useCourses';
 import type { Teacher } from '@/types';
 import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
+import { useEffect, useState } from 'react';
+import { getFileUrl } from '@/services/storageService';
 
 interface CourseFormProps {
   isOpen: boolean;
@@ -56,6 +58,23 @@ export default function CourseForm({
 }: CourseFormProps) {
   // 使用统一配置hook
   const { sourceOptions, getLevelsBySource, levelsLoading } = useSourceConfig();
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string>('');
+
+  useEffect(() => {
+    const loadPreviewUrl = async () => {
+      if (!formData.coverImage) {
+        setCoverPreviewUrl('');
+        return;
+      }
+      if (formData.coverImage.startsWith('cloud://')) {
+        const url = await getFileUrl(formData.coverImage, 7200);
+        setCoverPreviewUrl(url || '');
+      } else {
+        setCoverPreviewUrl(formData.coverImage);
+      }
+    };
+    loadPreviewUrl();
+  }, [formData.coverImage]);
 
   if (!isOpen) return null;
 
@@ -161,11 +180,14 @@ export default function CourseForm({
                 ) : !formData.sourceId ? (
                   <option value="">请先选择体系</option>
                 ) : filteredCategories.length > 0 ? (
-                  filteredCategories.map((cat) => (
-                    <option key={cat._id} value={cat.name}>
-                      {cat.name}
-                    </option>
-                  ))
+                  <>
+                    <option value="">请选择分类</option>
+                    {filteredCategories.map((cat) => (
+                      <option key={cat._id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </>
                 ) : (
                   <option value="">该体系下暂无分类</option>
                 )}
@@ -281,12 +303,15 @@ export default function CourseForm({
                   <div className="w-20 h-14 rounded overflow-hidden flex-shrink-0">
                     <img
                       src={
-                        formData.coverImage.startsWith('cloud://')
-                          ? formData.coverImage.replace('cloud://', 'https://')
-                          : formData.coverImage
+                        coverPreviewUrl ||
+                        'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=64'
                       }
                       alt="封面预览"
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=64';
+                      }}
                     />
                   </div>
                   <div className="flex-1 min-w-0">

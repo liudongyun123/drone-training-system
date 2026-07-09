@@ -50,7 +50,7 @@ export { default as ProductDetailPage } from '../web/pages/shop/ProductDetailPag
 // 管理后台 - 从 src/admin/pages 导出
 export { default as AdminDashboard } from '../admin/pages/system/AdminDashboard';
 export { default as AdminCourses } from '../admin/pages/courses/AdminCourses';
-export { default as AdminStudents } from '../admin/pages/users/AdminRoles';
+export { default as AdminUserRoles } from '../admin/pages/users/AdminUserRoles';
 export { default as AdminTeachers } from '../admin/pages/content/AdminTeachers';
 export { default as AdminSchedules } from '../admin/pages/classes/AdminClassSchedules';
 export { default as AdminAttendance } from '../admin/pages/classes/AdminRegistrations';

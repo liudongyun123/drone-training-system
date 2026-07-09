@@ -18,7 +18,7 @@ import {
 import { Button, Loading } from '@/components';
 import { CloudLearningPathService } from '@/services/CloudLearningPathService';
 import { CloudCourseService } from '@/services/CloudCourseService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface PathItem {
   id: string;
@@ -73,7 +73,7 @@ export default function LearningPathsPage() {
   const [categoryGroups, setCategoryGroups] = useState<CategoryCourseGroup[]>([]);  // 按分类分组的课程
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [showAll, setShowAll] = useState(false);  // 是否显示全部路径
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn } = useAuthContext();
   const navigate = useNavigate();
 
   // 加载学习路径

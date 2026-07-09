@@ -2,8 +2,9 @@
 // SourceService - 体系数据统一服务 (生产级优化版)
 // 特性：缓存策略、错误处理、请求去重、类型安全、跨页面体系状态共享
 // ============================================================================
-import { dbGetList, dbQuery, dbAdd, dbUpdate } from './http'
+import { dbGetList, dbQuery, dbAdd, dbUpdate, resolveCoverUrls } from './http'
 import logger from './logger'
+import { DEFAULT_COVER } from './constants'
 
 // 全局 App 类型（避免循环依赖）
 interface IApp {
@@ -389,8 +390,8 @@ export const SourceService = {
       throw new SourceServiceError('sourceId 或 sourceCode 不能为空', ErrorCodes.INVALID_PARAMS)
     }
 
-    // 数据库中 sourceId 字段统一存储体系的 code（如 "CAAC"/"GUOFANG"）
-    // 优先使用 sourceCode 查询，兼容 _id === code 的旧体系
+    // sourceId 字段统一存储体系的 code（如 "RENSHE"/"CAAC"）
+    // 优先使用 sourceCode（始终是 code），回退到 sourceId
     const querySourceId = options?.sourceCode || sourceId
     const cacheKey = cacheKeys.categories(querySourceId)
     
@@ -400,13 +401,13 @@ export const SourceService = {
     }
 
     try {
-      const where: any = {}
+      const where: any = { sourceId: querySourceId }
       if (!options?.includeDisabled) {
         where.status = 'active'
       }
       
       const result = await dbGetList('categories', {
-        where: { ...where, sourceId: querySourceId },
+        where,
         orderBy: 'sortOrder asc'
       })
       
@@ -574,6 +575,13 @@ export const SourceService = {
             status,
             count: result.data.length 
           })
+          // ★ 解析封面 cloud:// URL
+          await resolveCoverUrls(result.data)
+          // ★ 确保封面有值
+          for (const course of result.data) {
+            course.coverImage = course.coverImage || course.cover || DEFAULT_COVER
+            course.cover = course.cover || course.coverImage || DEFAULT_COVER
+          }
           return result.data as Course[]
         }
       }
@@ -584,6 +592,14 @@ export const SourceService = {
         orderBy: 'createdAt desc',
         limit
       })
+
+      // ★ 解析封面 cloud:// URL
+      await resolveCoverUrls(fallbackResult.data || [])
+      // ★ 确保封面有值
+      for (const course of (fallbackResult.data || [])) {
+        course.coverImage = course.coverImage || course.cover || DEFAULT_COVER
+        course.cover = course.cover || course.coverImage || DEFAULT_COVER
+      }
       
       return (fallbackResult.data || []) as Course[]
     } catch (error) {
@@ -616,6 +632,8 @@ export const SourceService = {
         })
         
         if (result.data && result.data.length > 0) {
+          // ★ 解析封面 cloud:// URL
+          await resolveCoverUrls(result.data)
           return result.data as ClassItem[]
         }
       }
@@ -638,8 +656,9 @@ export const SourceService = {
     const cacheKey = cacheKeys.pageConfig(sourceId, section)
     const cached = sourceCache.get<PageConfig>(cacheKey)
     if (cached) {
-      // 验证缓存数据的 sourceId 是否匹配（兼容 code 和 _id）
-      if (cached.data?.sourceId === sourceId || cached.data?.sourceId === this.getCurrentSource()) {
+      // 验证缓存数据的 sourceId 是否匹配（统一按 code 匹配）
+      const currentSource = this.getCurrentSource()
+      if (cached.data?.sourceId === currentSource || cached.data?.sourceId === sourceId) {
         return cached
       }
       // 缓存不匹配，清除
@@ -657,18 +676,18 @@ export const SourceService = {
         return null
       }
       
-      // 在代码层面精确过滤 sourceId（兼容 code 和 _id 两种格式）
-      // sourceId 字段实际存储的是 code（如 "CAAC"/"RENSHE"），但旧数据可能存储 _id
+      // 在代码层面精确过滤 sourceId（统一按 code 匹配，sourceId 字段存 code 如 "CAAC"/"RENSHE"）
       const currentSource = this.getCurrentSource()
+      const matchSet = new Set([currentSource, sourceId].filter(Boolean))
       const matchedConfig = (result.data as PageConfig[]).find((config: any) => {
         // 检查顶层 sourceId（格式1：每个体系独立文档）
-        if (config.data && (config.data.sourceId === currentSource || config.data.sourceId === sourceId)) {
+        if (config.data && matchSet.has(config.data.sourceId)) {
           return true
         }
         // 检查 items 中的 sourceId（格式2：所有体系在一个文档）
         if (config.data && config.data.items) {
           return config.data.items.some((item: any) => 
-            item.sourceId === sourceId || item.sourceCode === sourceId || item.sourceId === currentSource
+            matchSet.has(item.sourceId) || matchSet.has(item.sourceCode)
           )
         }
         return false
@@ -690,9 +709,15 @@ export const SourceService = {
 
   /**
    * 获取首页学习路径配置
-   * 逻辑：
-   * 1. 有 page_config 配置时：按 sourceId 过滤，按 order 排序，过滤 visible: false
-   * 2. 无配置时：直接查询 categories 表，按 sortOrder 排序
+   * 
+   * ★ 架构改进：categories 是权威数据源（决定"有哪些分类"），
+   *    page_configs 只存元数据（排序、可见性、关联课程/班级等）。
+   * 
+   * 加载逻辑：
+   * 1. 始终先加载 categories（确保增删分类后小程序端实时反映）
+   * 2. 加载 page_configs.learningPaths 作为元数据补充
+   * 3. 合并：categories 中存在 = 会显示，page_configs 提供排序/可见性
+   * 4. categories 中有但 page_configs 中没有的 → 使用默认值（visible: true, 追加到末尾）
    */
   async getLearningPathConfig(sourceId: string, sourceCode?: string): Promise<Category[]> {
     if (!sourceId && !sourceCode) {
@@ -700,60 +725,67 @@ export const SourceService = {
     }
 
     try {
-      // 1. 尝试从 page_configs 读取配置
+      // 1. ★ 始终加载 categories（权威数据源）
+      const categories = await this.getCategories(sourceId, { includeDisabled: false, sourceCode })
+      if (categories.length === 0) {
+        logger.info('[SourceService] getLearningPathConfig 无分类', { sourceId })
+        return []
+      }
+
+      // 2. 加载 page_configs 元数据
       const pageConfig = await this.getPageConfig(sourceId, 'learningPaths')
-      
-      if (pageConfig && pageConfig.data?.items && pageConfig.data.items.length > 0) {
-        // 按 sourceId 过滤 items（数据库中可能包含多个体系的数据）
-        const filteredItems = pageConfig.data.items.filter((item: any) => {
-          return item.sourceId === sourceId || item.sourceCode === sourceId
-        })
+      const configItems: any[] = pageConfig?.data?.items || []
+
+      // 3. 构建配置映射（按 _id 或 name 匹配）
+      const configById = new Map<string, any>()
+      const configByName = new Map<string, any>()
+      for (const ci of configItems) {
+        configById.set(ci._id || ci.categoryId, ci)
+        configByName.set(ci.name, ci)
+      }
+      let maxConfigOrder = configItems.reduce((max: number, i: any) => Math.max(max, i.order || 0), 0)
+
+      // 4. ★ 核心合并：以 categories 为准，page_configs 补充元数据
+      const enrichedItems = categories.map((cat: any) => {
+        // 匹配 page_configs 中的元数据（优先 _id 匹配，回退 name 匹配）
+        const configMeta = configById.get(cat._id) || configByName.get(cat.name)
         
-        if (filteredItems.length === 0) {
-          logger.warn('[SourceService] page_config 中无当前体系数据，回退到 categories', { sourceId })
-          const categories = await this.getCategories(sourceId, { includeDisabled: false, sourceCode })
-          return categories
+        if (configMeta) {
+          // 已有配置：使用 page_configs 中的顺序和可见性，但 categories 的 _id 为准
+          return {
+            ...cat,
+            order: configMeta.order ?? cat.sortOrder ?? 0,
+            visible: configMeta.visible ?? true,
+            courses: configMeta.courses || [],
+            classes: configMeta.classes || [],
+          }
         }
         
-        // 按配置的 order 排序，并过滤掉 visible: false 的项
-        const items = filteredItems
-          .filter((item: ConfigItem) => item.visible !== false)
-          .sort((a: ConfigItem, b: ConfigItem) => (a.order || 0) - (b.order || 0))
-        
-        // 获取 categories 表数据，用于匹配正确的 categoryId
-        const categories = await this.getCategories(sourceId, { includeDisabled: false, sourceCode })
-        const categoryMap = new Map(categories.map(c => [c.name, c]))
-        
-        // 为每个 item 补充正确的 _id
-        const enrichedItems = items.map((item: any) => {
-          const matchedCategory = categoryMap.get(item.name)
-          const categoryId = matchedCategory?._id || matchedCategory?.id || item.id || item.name
-          
-          return {
-            ...item,
-            _id: categoryId,
-            categoryId: categoryId,
-            sourceId: sourceId
-          } as Category
-        })
-        
-        logger.info('[SourceService] getLearningPathConfig from page_config', { 
-          sourceId, 
-          count: enrichedItems.length,
-          items: enrichedItems.map(i => ({ _id: i._id, name: i.name }))
-        })
-        return enrichedItems
-      }
-      
-      // 2. 配置不存在，回退到直接查询 categories 集合（按 sortOrder 排序）
-      const categories = await this.getCategories(sourceId, { includeDisabled: false, sourceCode })
-      
-      logger.info('[SourceService] getLearningPathConfig fallback to categories', { 
-        sourceId, 
-        count: categories.length 
+        // ★ categories 中有但 page_configs 中没有的新分类 → 自动显示
+        maxConfigOrder += 1
+        return {
+          ...cat,
+          order: maxConfigOrder,
+          visible: true,
+          courses: [],
+          classes: [],
+        }
+      })
+
+      // 5. 过滤 visible: false 的项，按 order 排序
+      const result = enrichedItems
+        .filter((item: any) => item.visible !== false)
+        .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+
+      logger.info('[SourceService] getLearningPathConfig 合并完成', {
+        sourceId,
+        categoriesCount: categories.length,
+        configItemsCount: configItems.length,
+        resultCount: result.length,
+        items: result.map((i: any) => ({ _id: i._id?.slice(0, 12), name: i.name, order: i.order })),
       })
       
-      return categories
+      return result
     } catch (error) {
       logger.error('[SourceService] getLearningPathConfig failed', error)
       return []
@@ -777,10 +809,17 @@ export const SourceService = {
           .filter((item: ConfigItem) => item.visible !== false)
           .sort((a: ConfigItem, b: ConfigItem) => (a.order || 0) - (b.order || 0))
           .slice(0, limit)
+        // ★ 确保封面有默认值（page_configs 中的 items 可能没有 coverImage）
+        for (const item of items) {
+          (item as any).coverImage = (item as any).coverImage || (item as any).cover || DEFAULT_COVER
+          ;(item as any).cover = (item as any).cover || (item as any).coverImage || DEFAULT_COVER
+        }
         logger.info('[SourceService] getHotCoursesConfig from page_config', { 
           sourceId, 
           count: items.length 
         })
+        // ★ 解析封面 cloud:// URL
+        await resolveCoverUrls(items)
         return items as unknown as Course[]
       }
       
@@ -818,6 +857,8 @@ export const SourceService = {
           sourceId, 
           count: items.length 
         })
+        // ★ 解析封面 cloud:// URL
+        await resolveCoverUrls(items)
         return items as unknown as ClassItem[]
       }
       

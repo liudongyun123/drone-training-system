@@ -1,7 +1,7 @@
 // 小程序全局常量配置
 
-// 默认封面图片 URL（统一管理，避免多处硬编码）
-export const DEFAULT_COVER = 'https://mmbiz.qpic.cn/mmbiz_png/Qjiaibiceic3sN1WLVzOicicicicicicicicibicicicibicgXicicicicicicicicicicicicicicicicicicicicicicicicicicicicicic/0?wx_fmt=png'
+// 默认封面图片（统一管理，避免多处硬编码）
+export const DEFAULT_COVER = '/assets/default-cover.png'
 
 // 客服电话（统一管理）
 export const SERVICE_PHONE = '17628157097'

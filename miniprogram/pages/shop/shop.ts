@@ -130,5 +130,15 @@ Page({
 
   goToCart() {
     wx.navigateTo({ url: '/pages/cart/cart' })
+  },
+
+  // 图片加载失败处理
+  onImageError(e: any) {
+    const index = e.currentTarget.dataset.index
+    const products = this.data.products
+    if (products && products[index]) {
+      products[index].coverImage = DEFAULT_COVER
+      this.setData({ products })
+    }
   }
 })

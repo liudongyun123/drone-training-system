@@ -91,10 +91,19 @@ export const classService = {
    */
   async create(data: CreateClassRequest): Promise<{ code: number; data: { id: string } }> {
     try {
+      // ★ 小程序兼容：扁平化字段，确保小程序端（WXML）能直接读取
+      const flatPrice = (data as any).enrollmentConfig?.price ?? 0
+      const flatTitle = (data as any).title || (data as any).name || ''
+      const flatCover = (data as any).coverImage || (data as any).intro?.videoCover || ''
+      
       const classData = {
         ...data,
         enrolledCount: 0,
         status: 'enrolling' as const,
+        // ★ 小程序端兼容字段（WXML 直接读取 classInfo.title / classInfo.price / classInfo.coverImage）
+        title: flatTitle,
+        price: flatPrice,
+        coverImage: flatCover,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }

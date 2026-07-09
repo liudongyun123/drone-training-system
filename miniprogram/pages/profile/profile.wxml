@@ -62,7 +62,7 @@
       </view>
     </view>
 
-    <!-- ==================== 会员卡片（可升级） ==================== -->
+    <!-- ==================== 会员卡片（临时隐藏，资质齐全后恢复） ====================
     <view class="member-card" wx:if="{{memberLevel === 'free'}}" bindtap="upgradeMember">
       <view class="member-left">
         <text class="member-icon">👑</text>
@@ -76,6 +76,7 @@
         <text class="action-arrow">›</text>
       </view>
     </view>
+    -->
 
     <!-- ==================== 学习服务 ==================== -->
     <view class="section">
@@ -121,7 +122,7 @@
         <text class="section-title">订单服务</text>
         <text class="section-more" bindtap="goToMyOrders">全部订单 ›</text>
       </view>
-      
+
       <view class="order-cards">
         <view class="order-card" bindtap="goToCart">
           <view class="order-icon-wrap orange">
@@ -130,26 +131,48 @@
           </view>
           <text class="order-label">购物车</text>
         </view>
-        
+
         <view class="order-card" bindtap="goToMyOrders" data-status="pending">
           <view class="order-icon-wrap blue">
             <text class="order-icon">⏰</text>
           </view>
           <text class="order-label">待支付</text>
         </view>
-        
+
         <view class="order-card" bindtap="goToMyOrders" data-status="shipped">
           <view class="order-icon-wrap green">
             <text class="order-icon">🚚</text>
           </view>
           <text class="order-label">待收货</text>
         </view>
-        
+
         <view class="order-card" bindtap="goToMyCertificates">
           <view class="order-icon-wrap gold">
             <text class="order-icon">🏆</text>
           </view>
           <text class="order-label">我的证书</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ==================== 我的成就 ==================== -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">我的成就</text>
+      </view>
+      
+      <view class="order-cards">
+        <view class="order-card" bindtap="goToMyCertificates">
+          <view class="order-icon-wrap gold">
+            <text class="order-icon">🏆</text>
+          </view>
+          <text class="order-label">我的证书</text>
+        </view>
+        <view class="order-card" bindtap="goToMyContracts">
+          <view class="order-icon-wrap blue">
+            <text class="order-icon">📄</text>
+          </view>
+          <text class="order-label">我的合同</text>
         </view>
       </view>
     </view>

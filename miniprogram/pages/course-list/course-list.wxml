@@ -69,9 +69,9 @@
         bindtap="goToDetail"
         data-id="{{item._id}}"
       >
-        <image 
+          <image 
           class="course-cover" 
-          src="{{item.coverImage || item.cover}}" 
+          src="{{item.coverImage || item.cover || defaultCover}}" 
           mode="aspectFill"
           binderror="onImageError"
           data-index="{{index}}"
@@ -83,10 +83,7 @@
           <text class="course-title">{{item.title}}</text>
           <text class="course-desc">{{item.description}}</text>
           <view class="course-footer">
-            <view class="price">
-              <text class="price-symbol">¥</text>
-              <text class="price-num">{{item.price}}</text>
-            </view>
+            <text class="free-tag">{{item.price > 0 ? '¥' + item.price : '免费'}}</text>
             <text class="students">{{item.salesCount || 0}}人已学</text>
           </view>
         </view>

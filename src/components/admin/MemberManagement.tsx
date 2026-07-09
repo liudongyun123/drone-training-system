@@ -170,9 +170,9 @@ export default function MemberManagement() {
     try {
       setLoading(true)
       
-      // 导入 ensureAuthenticated 确保用户已登录
-      const { ensureAuthenticated } = await import('@/utils/cloudbase')
-      await ensureAuthenticated()
+      // 通过 api-auth 云函数验证 Token
+      const { adminService } = await import('@/services/adminService')
+      await adminService.callFunction('api-auth', { action: 'verifyToken', data: {} })
       
       const result = await membersService.getAll()
       console.log('[MemberManagement] API 返回:', result)
@@ -591,45 +591,58 @@ export default function MemberManagement() {
 
       {/* 数据表格 */}
       <TableContainer component={Paper} sx={{ mt: 2 }}>
-        <Table>
+        <Table sx={{ tableLayout: 'fixed' }} size="small">
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>姓名</TableCell>
-              <TableCell>手机号</TableCell>
-              <TableCell>来源</TableCell> {/* ★ 新增来源列 */}
-              <TableCell>类型</TableCell>
-              <TableCell>等级</TableCell>
-              <TableCell>已购课程</TableCell>
-              <TableCell>注册时间</TableCell>
-              <TableCell>状态</TableCell>
-              <TableCell>操作</TableCell>
+              <TableCell sx={{ width: 130 }}>ID</TableCell>
+              <TableCell sx={{ width: 140 }}>姓名</TableCell>
+              <TableCell sx={{ width: 120 }}>手机号</TableCell>
+              <TableCell sx={{ width: 100 }}>来源</TableCell> {/* ★ 新增来源列 */}
+              <TableCell sx={{ width: 100 }}>类型</TableCell>
+              <TableCell sx={{ width: 90 }}>等级</TableCell>
+              <TableCell sx={{ width: 90 }}>已购课程</TableCell>
+              <TableCell sx={{ width: 110 }}>注册时间</TableCell>
+              <TableCell sx={{ width: 90 }}>状态</TableCell>
+              <TableCell sx={{ width: 140 }}>操作</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {paginatedMembers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
                   <Typography color="textSecondary">暂无数据</Typography>
                 </TableCell>
               </TableRow>
             ) : (
               paginatedMembers.map((member) => (
                 <TableRow key={member._id} hover>
-                  <TableCell sx={{ maxWidth: 120, fontSize: 12 }}>{member._id}</TableCell>
-                  <TableCell>{member.name || '-'}</TableCell>
-                  <TableCell>{member.phone || '-'}</TableCell>
-                  <TableCell>{getSourceChip(member.source)}</TableCell> {/* ★ 来源列 */}
-                  <TableCell>{getTypeChip(member.type)}</TableCell>
-                  <TableCell>{getLevelChip(member.profile?.level)}</TableCell>
-                  <TableCell>
+                  <TableCell
+                    sx={{
+                      width: 130,
+                      fontSize: 12,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={member._id}
+                  >
+                    {member._id}
+                  </TableCell>
+                  <TableCell sx={{ width: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={member.name || ''}>
+                    {member.name || '-'}
+                  </TableCell>
+                  <TableCell sx={{ width: 120 }}>{member.phone || '-'}</TableCell>
+                  <TableCell sx={{ width: 100 }}>{getSourceChip(member.source)}</TableCell> {/* ★ 来源列 */}
+                  <TableCell sx={{ width: 100 }}>{getTypeChip(member.type)}</TableCell>
+                  <TableCell sx={{ width: 90 }}>{getLevelChip(member.profile?.level)}</TableCell>
+                  <TableCell sx={{ width: 90 }}>
                     {member.enrolledCourses?.length || 0} 门
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ width: 110 }}>
                     {formatDateStr(member.createdAt)}
                   </TableCell>
-                  <TableCell>{getStatusChip(member.status || 'active')}</TableCell>
-                  <TableCell>
+                  <TableCell sx={{ width: 90 }}>{getStatusChip(member.status || 'active')}</TableCell>
+                  <TableCell sx={{ width: 140 }}>
                     <IconButton size="small" onClick={() => handleEdit(member)}>
                       <EditIcon />
                     </IconButton>
@@ -642,7 +655,7 @@ export default function MemberManagement() {
                         color="primary"
                         variant="outlined"
                         onClick={() => handleUpgradeToStudent(member)}
-                        sx={{ ml: 1 }}
+                        sx={{ ml: 1, minWidth: 48, px: 0.5, fontSize: 12 }}
                       >
                         升级
                       </Button>

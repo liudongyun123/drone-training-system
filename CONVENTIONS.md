@@ -460,3 +460,77 @@ const breadcrumbMap: Record<string, string> = {
 ```
 
 **4. 在 Layout.tsx 导航菜单中添加（按需）**
+
+---
+
+## 十二、主键与引用完整性规范（强制）
+
+> 历史教训：曾在后台以 `code` 作为课程主键写入，但前端查询用 `id`(`_id`)，
+> 导致前端/后端数据不一致，并产生了大量"孤儿引用"（外键指向不存在的文档）。
+> 本规范防止此类问题复发。
+
+### 12.1 主键铁律：`_id` 是唯一主键
+
+```
+✅ 所有集合的主键 = 文档 _id（CloudBase 自动生成或业务自定义字符串）
+✅ 业务编码（课程编号、订单号等）只能作为普通字段 code / orderNo 存在
+❌ 禁止用 code / 自定义编号作为"外键引用目标"或"查询主键"
+❌ 禁止前端用 code 去查 _id，或反之
+```
+
+- 查询单条：`adminService.get('courses', courseId)`，其中 `courseId` 必须是 `_id`。
+- 关联关系：**文档类外键字段**（如 `courseId`、`classId`、`scheduleId`、`lessonId`）的值必须 **等于被引用文档的 `_id`**。
+- **用户层主键例外（重要）**：本系统的「用户/人员」主键是 **手机号（phone）/ 用户编码（user_001、student005、memberXXX 等）**，
+  不是文档 `_id`。因此 `userId`、`studentId`、`memberId`、`teacherId`、`customerId`、`ownerId` 等
+  「用户标识字段」的值存放的是手机号或用户编码，**不是 `_id`，不得作为指向 `_id` 的外键校验**。
+  这些字段的查询条件是 `phone`/`openid`/编码，而非 `_id`（见 §十二 附则）。
+
+### 12.2 外键命名与字段约定
+
+```
+✅ 文档类外键字段统一以 Id / Ids 结尾：courseId, classId, scheduleId, lessonId,
+   chapterId, questionId, examId, bankId, orderId, categoryId, levelId, productId,
+   certificateId, contractId, couponId, permissionId, enrollmentId, registrationId,
+   learningPathId, sourceId, parentId, relatedId …
+✅ 文档类外键值必须 = 目标集合某文档的 _id
+❌ 不要把业务 code（如 course_001、CAAC_MULTI_VLOS）写进文档类外键字段
+   除非该 _id 本身恰好等于该 code（仅 courses 等业务自定义 _id 允许）
+
+⚠️ 用户/人员标识字段（userId, studentId, memberId, teacherId, customerId, ownerId,
+   fromUserId, toUserId, applicantId, senderId, receiverId, inviterId, referrerId,
+   promoterId, parentUserId, bindUserId, agentId, tutorId, wechatId, followerId …）
+   存的是【手机号 / 用户编码】，不是 _id：
+   ✅ 这些字段的值 = phone 或 user_001 / student005 等编码
+   ❌ 绝不能把它们当成指向 _id 的外键（api-datacheck 已把它们列入 SKIP_FIELDS）
+```
+
+### 12.3 写入前必须校验引用存在
+
+涉及关联写入（新增/更新带外键的文档）时，云函数应先 `get` 校验目标 `_id` 存在；
+不存在则报错返回，禁止写入悬空外键。
+
+```javascript
+// ✅ 正确：写入 lesson 前校验 courseId 存在
+const course = await db.collection('courses').doc(data.courseId).get()
+if (!course.data) return { code: 1, message: 'courseId 不存在' }
+await db.collection('lessons').add(data)
+```
+
+### 12.4 自动化巡检（防回归）
+
+- 云函数 `api-datacheck` 负责全库引用完整性自检与修复：
+  - `POST /api-datacheck { "action": "check" }` → 返回孤儿引用报告
+  - `POST /api-datacheck { "action": "repair", "mode": "delete" }` → 删除孤儿文档
+  - `POST /api-datacheck { "action": "repair", "mode": "unlink" }` → 外键置空（保留文档）
+- **每周一 03:00** 已配置定时触发器 `weekly-integrity-check` 自动执行 `check`。
+- 管理后台 **数据修复** 页（`/admin/data-fix`）提供"数据自检 / 一键清理"按钮，
+  供人工随时巡检。
+- 巡检原理：收集全库所有 `_id` 建总表，扫描所有以 `Id/Ids` 结尾的外键字段，
+  引用值不在总表中即判定为孤儿引用（自动覆盖全部集合，新增模块无需维护关系表）。
+
+### 12.5 自检清单（提交前）
+
+- [ ] 新增/修改的外键字段值是否 = 目标文档的 `_id`？
+- [ ] 是否误把业务 `code` 当成 `_id` 写入外键？
+- [ ] 关联写入是否在云函数内校验了目标存在？
+- [ ] 跑一次 `api-datacheck` 的 `check`，确认 `totalOrphans === 0`？

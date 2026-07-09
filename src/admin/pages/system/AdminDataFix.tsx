@@ -23,6 +23,52 @@ export default function AdminDataFix() {
   const [log, setLog] = useState<string[]>([])
   const [step, setStep] = useState(0)
 
+  // 数据自检（引用完整性）状态
+  const [checking, setChecking] = useState(false)
+  const [repairing, setRepairing] = useState(false)
+  const [checkResult, setCheckResult] = useState<any>(null)
+  const [repairResult, setRepairResult] = useState<any>(null)
+
+  // 全库引用完整性自检：调用 api-datacheck 云函数
+  const handleSelfCheck = async () => {
+    setChecking(true)
+    try {
+      const res: any = await adminService.callFunction('api-datacheck', { action: 'check' })
+      if (res?.code === 0 && res?.data) {
+        setCheckResult(res.data)
+        addLog(`🔍 自检完成: 扫描 ${res.data.scannedCollections} 个集合，发现 ${res.data.totalOrphans} 处孤儿引用`)
+      } else {
+        addLog(`❌ 自检失败: ${res?.message || '未知错误'}`)
+      }
+    } catch (e: any) {
+      addLog(`❌ 自检异常: ${e.message}`)
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  // 一键清理孤儿引用数据（仅删除外键指向不存在的孤儿文档）
+  const handleRepair = async () => {
+    setRepairing(true)
+    try {
+      const res: any = await adminService.callFunction('api-datacheck', { action: 'repair', mode: 'delete' })
+      if (res?.code === 0 && res?.data) {
+        setRepairResult(res.data)
+        addLog(`🧹 清理完成: 共删除 ${res.data.repaired} 条孤儿文档`)
+        // 清理后自动复查
+        const re: any = await adminService.callFunction('api-datacheck', { action: 'check' })
+        setCheckResult(re?.data || null)
+        addLog(`✅ 复查完成: 剩余孤儿引用 ${re?.data?.totalOrphans || 0} 处`)
+      } else {
+        addLog(`❌ 清理失败: ${res?.message || '未知错误'}`)
+      }
+    } catch (e: any) {
+      addLog(`❌ 清理异常: ${e.message}`)
+    } finally {
+      setRepairing(false)
+    }
+  }
+
   const addLog = (msg: string) => {
     setLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`])
   }
@@ -396,6 +442,100 @@ export default function AdminDataFix() {
               )}
             </button>
           </div>
+        </div>
+
+        {/* 数据自检（引用完整性） */}
+        <div className="bg-slate-800/50 rounded-xl p-6 mb-6 border border-slate-700">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-1">数据自检（引用完整性）</h2>
+              <p className="text-slate-400 text-sm">扫描全库外键，发现指向不存在文档的孤儿引用</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSelfCheck}
+                disabled={checking || repairing}
+                className={`px-5 py-3 rounded-lg font-medium transition-all ${
+                  checking || repairing
+                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-sky-500 to-blue-500 text-white hover:shadow-lg hover:shadow-sky-500/25'
+                }`}
+              >
+                {checking ? '自检中...' : '🔍 开始自检'}
+              </button>
+              <button
+                onClick={handleRepair}
+                disabled={checking || repairing || !checkResult || checkResult.totalOrphans === 0}
+                className={`px-5 py-3 rounded-lg font-medium transition-all ${
+                  checking || repairing || !checkResult || checkResult.totalOrphans === 0
+                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-rose-500 to-red-500 text-white hover:shadow-lg hover:shadow-rose-500/25'
+                }`}
+              >
+                {repairing ? '清理中...' : '🧹 一键清理'}
+              </button>
+            </div>
+          </div>
+
+          {checkResult && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-4 gap-4">
+                <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-white">{checkResult.totalIds}</div>
+                  <div className="text-xs text-slate-400">全库文档数</div>
+                </div>
+                <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-sky-400">{checkResult.scannedCollections}</div>
+                  <div className="text-xs text-slate-400">已扫描集合</div>
+                </div>
+                <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                  <div className={`text-2xl font-bold ${checkResult.totalOrphans > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    {checkResult.totalOrphans}
+                  </div>
+                  <div className="text-xs text-slate-400">孤儿引用数</div>
+                </div>
+                <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-amber-400">{checkResult.orphanDocCount}</div>
+                  <div className="text-xs text-slate-400">涉及文档数</div>
+                </div>
+              </div>
+
+              {checkResult.totalOrphans > 0 ? (
+                <div className="bg-slate-900/50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                  <div className="text-sm text-slate-300 mb-2 font-medium">孤儿引用明细（集合.字段 → 无效值）</div>
+                  <div className="space-y-1 font-mono text-xs">
+                    {checkResult.report.map((r: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between text-slate-300">
+                        <span>
+                          <span className="text-rose-400">{r.collection}</span>
+                          <span className="text-slate-500">.</span>
+                          <span className="text-amber-400">{r.field}</span>
+                          <span className="text-slate-500"> ×{r.count}</span>
+                        </span>
+                        <span className="text-slate-500">
+                          {r.samples?.slice(0, 2).map((s: any) => s.value).join(', ')}
+                          {r.count > 2 ? ' ...' : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-emerald-400 text-sm">
+                  ✅ 全库引用完整性正常，无孤儿引用
+                </div>
+              )}
+
+              {repairResult && (
+                <div className="bg-slate-900/50 rounded-lg p-3 text-sm text-slate-300">
+                  上次清理：删除 <span className="text-rose-400 font-semibold">{repairResult.repaired}</span> 条孤儿文档
+                  {repairResult.repaired !== repairResult.orphanDocCount && (
+                    <span className="text-slate-500">（含级联清理）</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 修复进度 */}

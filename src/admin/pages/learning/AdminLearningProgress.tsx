@@ -41,7 +41,7 @@ export default function AdminLearningProgress() {
   const loadUsersAndCourses = async () => {
     try {
       // 加载用户列表
-      const usersRes = await adminService.list('users', {}, { limit: 500 });
+      const usersRes = await adminService.list('members', {}, { limit: 500 });
       if (usersRes.data && Array.isArray(usersRes.data)) {
         setUsers(usersRes.data);
       }

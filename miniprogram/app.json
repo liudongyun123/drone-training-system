@@ -28,7 +28,8 @@
     "pages/my-certificates/my-certificates",
     "pages/learning-path/learning-path",
     "pages/transfer-request/transfer-request",
-    "pages/notifications/notifications"
+    "pages/notifications/notifications",
+    "pages/contract-sign/contract-sign"
   ],
   "window": {
     "navigationBarTitleText": "无人机培训",
@@ -60,12 +61,6 @@
         "text": "培训班",
         "iconPath": "assets/icons/class.png",
         "selectedIconPath": "assets/icons/class-active.png"
-      },
-      {
-        "pagePath": "pages/shop/shop",
-        "text": "商城",
-        "iconPath": "assets/icons/shop.png",
-        "selectedIconPath": "assets/icons/shop-active.png"
       },
       {
         "pagePath": "pages/profile/profile",

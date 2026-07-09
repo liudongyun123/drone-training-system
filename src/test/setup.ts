@@ -1,29 +1,14 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
-// Mock CloudBase SDK
-vi.mock('@/config/tcb', () => ({
-  default: {
-    database: vi.fn(() => ({
-      collection: vi.fn(() => ({
-        where: vi.fn(() => ({
-          limit: vi.fn(() => ({
-            get: vi.fn(() => Promise.resolve({ data: [] }))
-          })),
-          get: vi.fn(() => Promise.resolve({ data: [] }))
-        })),
-        add: vi.fn(() => Promise.resolve({ id: 'test-id' })),
-        doc: vi.fn(() => ({
-          update: vi.fn(() => Promise.resolve({ updated: 1 })),
-          remove: vi.fn(() => Promise.resolve({ deleted: 1 })),
-          get: vi.fn(() => Promise.resolve({ data: {} }))
-        }))
-      }))
-    })),
-    callFunction: vi.fn(() => Promise.resolve({ result: { code: 0, data: [] } })),
-    auth: vi.fn(() => ({
-      getLoginState: vi.fn(() => Promise.resolve(true))
-    }))
+// Mock adminService for HTTP-based cloud function calls
+vi.mock('@/services/adminService', () => ({
+  adminService: {
+    callFunction: vi.fn(() => Promise.resolve({ success: true, data: {} })),
+    list: vi.fn(() => Promise.resolve({ data: [] })),
+    add: vi.fn(() => Promise.resolve({ id: 'test-id' })),
+    update: vi.fn(() => Promise.resolve({ updated: 1 })),
+    delete: vi.fn(() => Promise.resolve({ deleted: 1 })),
   }
 }))
 

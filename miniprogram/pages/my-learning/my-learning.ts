@@ -4,6 +4,7 @@
 import { checkLogin, getUserId, getPhone } from '../../utils/util'
 import { courseApi, newUserApi } from '../../utils/api'
 import { dbGetList } from '../../utils/http'
+import { DEFAULT_COVER } from '../../utils/constants'
 import logger from '../../utils/logger'
 
 Page({
@@ -20,6 +21,7 @@ Page({
     learningCourses: [] as any[],
     completedCourses: [] as any[],
     notStartedCourses: [] as any[],
+    defaultCover: DEFAULT_COVER,
     // 学习统计
     totalStats: {
       totalCourses: 0,
@@ -282,6 +284,17 @@ Page({
     return {
       title: '无人机培训',
       path: '/pages/index/index'
+    }
+  },
+
+  // 图片加载失败处理（按 list 名称区分 notStartedCourses/learningCourses/completedCourses）
+  onImageError(e: any) {
+    const { index, list } = e.currentTarget.dataset
+    if (!list || index === undefined) return
+    const items = this.data[list]
+    if (items && items[index]) {
+      items[index].coverImage = DEFAULT_COVER
+      this.setData({ [list]: items })
     }
   }
 })

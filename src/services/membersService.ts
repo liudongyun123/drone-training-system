@@ -781,15 +781,16 @@ export const membersService = {
    */
   async getPhoneByWechatCode(wechatCode: string): Promise<{ success: boolean; phone?: string; error?: string }> {
     try {
-      const result = await adminService.callFunction('auth-api', {
-        action: 'getPhoneByCode',
+      // 修正：云函数名为 api-auth（非 auth-api）；获取手机号的正确 action 是 wxPhoneLogin（接收 code 返回 data.phone）
+      const result = await adminService.callFunction('api-auth', {
+        action: 'wxPhoneLogin',
         data: { code: wechatCode }
       })
-      
-      if (result?.success && result?.phone) {
-        return { success: true, phone: result.phone }
+
+      if (result?.success && result?.data?.phone) {
+        return { success: true, phone: result.data.phone }
       }
-      return { success: false, error: result?.error || '获取手机号失败' }
+      return { success: false, error: result?.error || result?.data?.error || '获取手机号失败' }
     } catch (error: any) {
       console.error('[membersService] 获取手机号失败:', error)
       return { success: false, error: error.message || '获取手机号失败' }
@@ -809,9 +810,12 @@ export const membersService = {
     try {
       console.log('[membersService] 绑定手机号:', { openid, phone })
       
-      // 1. 验证短信验证码（保留 CloudBase SDK）
-      const verifyResult = await app.auth().verifyOtp({ phone, token: code } as any)
-      if ((verifyResult as any).error) {
+      // 1. 验证短信验证码（通过 HTTP 云函数）
+      const verifyResult = await adminService.callFunction('api-auth', {
+        action: 'verifySmsCode',
+        data: { phone, code }
+      })
+      if (!verifyResult?.success && !(verifyResult as any)?.data) {
         return { success: false, error: '验证码错误或已过期' }
       }
 
@@ -841,7 +845,25 @@ export const membersService = {
         return { success: true, member: existingMember }
       }
       
-      // 3. 手机号不存在，创建新会员
+      // 2.5 手机号未找到，查找是否有 openid 对应的会员（wxMiniappLogin 已创建但未绑手机号）
+      const existingByOpenid = await adminService.list('members', { openid }, { limit: 1 })
+      const openidList = extractList(existingByOpenid) as Member[]
+      
+      if (openidList.length > 0) {
+        const existingMember = openidList[0]
+        const memberId = (existingMember as any)._id
+        
+        await adminService.update('members', memberId, {
+          phone,
+          lastLoginAt: new Date().toISOString()
+        })
+        
+        localStorage.setItem('user_phone', phone)
+        console.log('[membersService] 绑定已有会员手机号成功:', memberId)
+        return { success: true, member: { ...existingMember, phone } as Member }
+      }
+      
+      // 3. 手机号和 openid 都不存在，创建新会员
       const now = new Date().toISOString()
       const newMember: any = {
         name: userName || '微信用户',
@@ -849,6 +871,8 @@ export const membersService = {
         openid,
         type: 'user',
         role: 'student',
+        source: 'online_purchase',
+        loginType: 'wechat',
         profile: {},
         stats: {
           totalHours: 0,
@@ -998,9 +1022,12 @@ export const membersService = {
     code: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // 1. 验证新手机号验证码（保留 CloudBase SDK）
-      const verifyResult = await app.auth().verifyOtp({ phone: newPhone, token: code } as any)
-      if ((verifyResult as any).error) {
+      // 1. 验证新手机号验证码（通过 HTTP 云函数）
+      const verifyResult = await adminService.callFunction('api-auth', {
+        action: 'verifySmsCode',
+        data: { phone: newPhone, code }
+      })
+      if (!verifyResult?.success && !(verifyResult as any)?.data) {
         return { success: false, error: '验证码错误或已过期' }
       }
 

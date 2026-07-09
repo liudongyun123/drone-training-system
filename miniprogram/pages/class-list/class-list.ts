@@ -20,6 +20,7 @@ Page({
     currentSort: 'newest',
     currentSource: 'RENSHE',  // 体系的 code（用于显示）
     currentSourceId: '',      // 体系的 _id（用于查询）
+    defaultCover: DEFAULT_COVER,
     sourceList: [
       { key: 'RENSHE', name: '人社培训', icon: '🏛️', id: '' },
       { key: 'CAAC', name: 'CAAC培训', icon: '✈️', id: '' }

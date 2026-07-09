@@ -1,0 +1,216 @@
+<!-- pages/contract-sign/contract-sign.wxml -->
+<!-- 培训合同签署页面 - 支持签署/列表/查看 -->
+
+<view class="container">
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-box">
+    <view class="spinner"></view>
+    <text class="loading-text">加载合同中...</text>
+  </view>
+
+  <!-- ========== 合同列表模式 ========== -->
+  <view wx:elif="{{showList && !selectedContract}}" class="list-container">
+    <view class="list-header">
+      <text class="list-title">我的合同</text>
+      <text class="list-count">共 {{contractList.length}} 份</text>
+    </view>
+
+    <view wx:if="{{contractList.length === 0}}" class="error-box">
+      <text class="error-text">暂无合同记录</text>
+    </view>
+
+    <view wx:else class="list-scroll">
+      <view
+        wx:for="{{contractList}}"
+        wx:key="_id"
+        class="contract-card"
+        data-contract="{{item}}"
+        bindtap="onViewContract"
+      >
+        <view class="card-left">
+          <text class="card-course">{{item.courseName || '培训协议'}}</text>
+          <text class="card-time">创建于 {{item.createdAt}}</text>
+        </view>
+        <view class="card-right">
+          <view class="card-status" style="background: {{item._statusColor}}15; color: {{item._statusColor}}">
+            <text>{{item._statusIcon}}</text>
+            <text>{{item._statusLabel}}</text>
+          </view>
+          <text class="card-arrow">›</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ========== 已签署详情/新签署完成 ========== -->
+  <view wx:elif="{{signed && selectedContract}}" class="signed-detail">
+    <!-- 状态头部 -->
+    <view class="status-header" style="background: {{statusColor}}15">
+      <text class="status-icon-big">{{statusIcon}}</text>
+      <text class="status-title" style="color: {{statusColor}}">{{statusLabel}}</text>
+      <text class="status-subtitle" wx:if="{{selectedContract.status === 'unsigned' || selectedContract.status === 'student_signed' || selectedContract.status === 'signed'}}">
+        等待公司盖章后合同正式生效
+      </text>
+      <text class="status-subtitle" wx:elif="{{selectedContract.status === 'completed'}}">
+        合同已生效，具备法律效力
+      </text>
+    </view>
+
+    <!-- 基本信息 -->
+    <view class="info-section">
+      <text class="section-title">合同信息</text>
+      <view class="info-grid">
+        <view class="info-item">
+          <text class="info-label">学员姓名</text>
+          <text class="info-value">{{selectedContract.userName}}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">手机号</text>
+          <text class="info-value">{{selectedContract.phone}}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">身份证</text>
+          <text class="info-value">{{selectedContract.idCard || '-'}}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">培训课程</text>
+          <text class="info-value">{{selectedContract.courseName || '-'}}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">学员签署时间</text>
+          <text class="info-value">{{selectedContract.signedAt || '-'}}</text>
+        </view>
+        <view class="info-item" wx:if="{{selectedContract.status === 'completed'}}">
+          <text class="info-label">公司盖章时间</text>
+          <text class="info-value">{{selectedContract.companySignedAt || '-'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 合同内容 -->
+    <view class="info-section">
+      <text class="section-title">合同内容</text>
+      <scroll-view class="contract-content-view" scroll-y enhanced show-scrollbar="{{false}}">
+        <rich-text nodes="{{contractContent}}" />
+      </scroll-view>
+    </view>
+
+    <!-- 学员签名 -->
+    <view class="info-section" wx:if="{{signatureUrl}}">
+      <text class="section-title">学员签名</text>
+      <view class="signature-show">
+        <image src="{{signatureUrl}}" mode="widthFix" class="signature-img" wx:if="{{signatureUrl}}" />
+        <text wx:else class="no-signature">暂无签名图片</text>
+      </view>
+    </view>
+
+    <!-- 公司印章 -->
+    <view class="info-section" wx:if="{{selectedContract.status === 'completed' && companySealUrl}}">
+      <text class="section-title">公司印章</text>
+      <view class="seal-show">
+        <image src="{{companySealUrl}}" mode="aspectFit" class="seal-img" />
+      </view>
+    </view>
+
+    <button class="back-btn" bindtap="goBack">
+      {{source === 'profile' ? '返回列表' : '返回'}}
+    </button>
+  </view>
+
+  <!-- 已签署简单展示（旧格式兼容） -->
+  <view wx:elif="{{signed && contract}}" class="signed-box">
+    <view class="signed-icon">✓</view>
+    <text class="signed-title">合同已签署</text>
+    <text class="signed-time">
+      签署时间：{{contract.signedAt || contract.updatedAt}}
+    </text>
+    <button class="back-btn" bindtap="goBack">返回</button>
+  </view>
+
+  <!-- ========== 合同签署表单 ========== -->
+  <view wx:else class="sign-form">
+    
+    <!-- 步骤提示 -->
+    <view class="steps">
+      <view class="step active">
+        <text class="step-num">1</text>
+        <text class="step-label">阅读协议</text>
+      </view>
+      <view class="step-line"></view>
+      <view class="step {{hasSignature ? 'active' : ''}}">
+        <text class="step-num">2</text>
+        <text class="step-label">手写签名</text>
+      </view>
+      <view class="step-line"></view>
+      <view class="step">
+        <text class="step-num">3</text>
+        <text class="step-label">确认提交</text>
+      </view>
+    </view>
+
+    <!-- 合同内容区域 -->
+    <view class="contract-section">
+      <text class="section-title">培训协议内容</text>
+      <scroll-view class="contract-content" scroll-y enhanced show-scrollbar="{{false}}">
+        <rich-text nodes="{{contractContent}}" />
+      </scroll-view>
+    </view>
+
+    <!-- 手写签名区域 -->
+    <view class="signature-section">
+      <text class="section-title">请在下方手写签名</text>
+      <text class="section-subtitle">请使用手指在白色区域内签名</text>
+      
+      <view class="signature-pad">
+        <canvas
+          type="2d"
+          id="signatureCanvas"
+          class="signature-canvas"
+          style="width: {{canvasWidth ? canvasWidth + 'px' : '100%'}}; height: {{canvasHeight ? canvasHeight + 'px' : '200px'}}"
+          disable-scroll="{{true}}"
+          bindtouchstart="onTouchStart"
+          bindtouchmove="onTouchMove"
+          bindtouchend="onTouchEnd"
+        />
+        <!-- 引导线 -->
+        <view wx:if="{{!hasSignature}}" class="hint-line">
+          <text class="hint-text">请在此处签名</text>
+        </view>
+      </view>
+
+      <button class="clear-btn" bindtap="clearSignature" wx:if="{{hasSignature}}">
+        清除重签
+      </button>
+    </view>
+
+    <!-- 同意复选框 -->
+    <view class="agree-section">
+      <view class="agree-row" bindtap="onAgreeChange">
+        <view class="checkbox {{agreed ? 'checked' : ''}}">
+          <text wx:if="{{agreed}}" class="check-icon">✓</text>
+        </view>
+        <text class="agree-text">
+          我已阅读并同意以上培训协议的全部内容
+        </text>
+      </view>
+    </view>
+
+    <!-- 提交按钮 -->
+    <button
+      class="submit-btn {{agreed && hasSignature ? '' : 'disabled'}}"
+      bindtap="submitSign"
+      loading="{{signing}}"
+      disabled="{{!agreed || !hasSignature || signing}}"
+    >
+      {{signing ? '提交中...' : '确认签署'}}
+    </button>
+
+    <!-- 返回按钮 -->
+    <button class="cancel-btn" bindtap="goBack">
+      暂不签署，稍后再说
+    </button>
+
+  </view>
+
+</view>

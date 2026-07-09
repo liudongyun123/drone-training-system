@@ -10,9 +10,9 @@ export interface IAdminDataService<T> {
   delete(id: string): Promise<boolean>
 }
 
-// 用户数据服务
+// 用户数据服务（统一使用 members 集合）
 export const CloudUserAdminService = {
-  collection: 'users',
+  collection: 'members',
 
   // ✅ 优化：getAll 方法直接返回 total
   async getAll(params?: { offset?: number; limit?: number; search?: string }) {
@@ -23,7 +23,7 @@ export const CloudUserAdminService = {
 
       if (search) {
         query.$or = [
-          { username: new RegExp(search, 'i') },
+          { name: new RegExp(search, 'i') },
           { email: new RegExp(search, 'i') }
         ]
       }
@@ -38,7 +38,7 @@ export const CloudUserAdminService = {
         success: true,
         data: (Array.isArray(listResult.data) ? listResult.data : listResult.data?.list || []).map((u: any) => ({
           id: u._id,
-          username: u.username,
+          username: u.name,
           email: u.email,
           role: u.role,
           status: u.status || 'active',
@@ -59,7 +59,7 @@ export const CloudUserAdminService = {
       if (!result.data) return null
       return {
         id: result.data._id,
-        username: result.data.username,
+        username: result.data.name,
         email: result.data.email,
         role: result.data.role,
         status: result.data.status || 'active',
@@ -115,7 +115,7 @@ export const CloudUserAdminService = {
       const query: any = {}
       if (search) {
         query.$or = [
-          { username: new RegExp(search, 'i') },
+          { name: new RegExp(search, 'i') },
           { email: new RegExp(search, 'i') }
         ]
       }
@@ -1877,6 +1877,14 @@ export const CloudAdminService = {
   async add(collection: string, data: any) {
     try {
       const result = await adminService.add(collection, data)
+      if (result.code !== 0) {
+        console.error(`添加到集合 ${collection} 失败:`, result)
+        return {
+          success: false,
+          data: result.data,
+          message: result.message || '添加失败'
+        }
+      }
       return {
         success: true,
         data: result.data,
@@ -1893,7 +1901,14 @@ export const CloudAdminService = {
 
   async update(collection: string, id: string, data: any) {
     try {
-      await adminService.update(collection, id, data)
+      const result = await adminService.update(collection, id, data)
+      if (result.code !== 0) {
+        console.error(`更新集合 ${collection} 失败:`, result)
+        return {
+          success: false,
+          message: result.message || '更新失败'
+        }
+      }
       return {
         success: true,
         message: '更新成功'
@@ -1909,7 +1924,14 @@ export const CloudAdminService = {
 
   async delete(collection: string, id: string) {
     try {
-      await adminService.delete(collection, id)
+      const result = await adminService.delete(collection, id)
+      if (result.code !== 0) {
+        console.error(`从集合 ${collection} 删除失败:`, result)
+        return {
+          success: false,
+          message: result.message || '删除失败'
+        }
+      }
       return {
         success: true,
         message: '删除成功'

@@ -7,6 +7,7 @@ import { SourceService } from '../../utils/SourceService'
 import { dbGetList } from '../../utils/http'
 import logger from '../../utils/logger'
 import { DEFAULT_COVER } from '../../utils/constants'
+import { getPhone } from '../../utils/util'
 
 // 数据状态枚举
 enum LoadState {
@@ -49,6 +50,10 @@ interface IndexData {
   isCoursesEmpty: boolean
   isClassesEmpty: boolean
   isPathsEmpty: boolean
+
+  // 手机号绑定提醒
+  showBindPhoneBanner: boolean
+  isLoggedIn: boolean
 }
 
 Page<IndexData>({
@@ -83,7 +88,11 @@ Page<IndexData>({
     // 空状态
     isCoursesEmpty: true,
     isClassesEmpty: true,
-    isPathsEmpty: true
+    isPathsEmpty: true,
+
+    // 手机号绑定提醒
+    showBindPhoneBanner: false,
+    isLoggedIn: false
   },
 
   onLoad() {
@@ -91,8 +100,25 @@ Page<IndexData>({
   },
 
   onShow() {
-    // 页面显示时刷新数据（可选）
-    // this.refreshData()
+    // 检查是否需要显示绑定手机号提醒
+    this.checkBindPhoneBanner()
+  },
+
+  // 检查登录但未绑定手机号的情况
+  checkBindPhoneBanner() {
+    const loginInfo = wx.getStorageSync('loginInfo')
+    const phone = getPhone()
+    const isLoggedIn = !!(loginInfo && loginInfo.openid)
+
+    this.setData({
+      isLoggedIn,
+      showBindPhoneBanner: isLoggedIn && !phone
+    })
+  },
+
+  // 点击绑定手机号横幅
+  goToBindPhone() {
+    wx.navigateTo({ url: '/pages/login/login?redirect=bindPhone' })
   },
 
   onPullDownRefresh() {
@@ -224,7 +250,10 @@ Page<IndexData>({
       // 处理课程等级显示
       const processedCourses = (courses || []).map((course: any) => ({
         ...course,
-        levelText: getLevelName(course.level) || course.level || ''
+        levelText: getLevelName(course.level) || course.level || '',
+        // ★ 封面三重兜底：确保 coverImage 和 cover 有值
+        coverImage: course.coverImage || course.cover || DEFAULT_COVER,
+        cover: course.cover || course.coverImage || DEFAULT_COVER
       }))
 
       // 处理培训班等级显示
@@ -247,7 +276,7 @@ Page<IndexData>({
       let heroDesc = this.data.heroDesc
       try {
         const pageConfigResult = await dbGetList('page_configs', {
-          where: { page: 'index', sourceId: currentSourceId },
+          where: { page: 'index', sourceId: currentSource },
           limit: 1
         })
         const pageConfig = (pageConfigResult.data || [])[0]
@@ -377,10 +406,11 @@ Page<IndexData>({
     const categoryId = path._id || ''
     const categoryName = path.name || ''
     const source = this.data.currentSource
+    const icon = path.icon || ''
     
-    logger.debug('首页', 'goToPath', { categoryId, categoryName, source })
+    logger.debug('首页', 'goToPath', { categoryId, categoryName, source, icon })
     
-    const url = `/pages/learning-path/learning-path?id=${categoryId}&name=${encodeURIComponent(categoryName)}&source=${source}`
+    const url = `/pages/learning-path/learning-path?id=${categoryId}&name=${encodeURIComponent(categoryName)}&source=${source}&icon=${encodeURIComponent(icon)}`
     wx.navigateTo({ url })
   },
 

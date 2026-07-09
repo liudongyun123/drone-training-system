@@ -4,6 +4,18 @@ const app = cloudbase.init({ env: process.env.TCB_ENV_ID || 'rcwljy-5ghmq2ex2676
 const db = app.database()
 const _ = db.command
 
+// HTTP 触发器模式，无微信云开发上下文；提供安全桩避免 ReferenceError。
+// getWXContext 返回空 OPENID；openapi 模板消息在 HTTP 模式下降级为直接返回。
+const isWxEnv = false
+const cloud = {
+  getWXContext: () => ({ OPENID: '', ENV: process.env.TCB_ENV_ID || '' }),
+  openapi: {
+    subscribeMessage: {
+      send: async () => ({ errCode: 0, msg: 'skipped in http mode' })
+    }
+  }
+}
+
 // ============================================
 // 消息类型配置
 // ============================================
@@ -386,7 +398,7 @@ async function sendNotice(params) {
   } else {
     // 发送给全体用户 - 查询所有用户
     try {
-      const usersResult = await db.collection('users').field({ phone: true }).limit(1000).get()
+      const usersResult = await db.collection('members').field({ phone: true }).limit(1000).get()
       const allPhones = usersResult.data.map(u => u.phone).filter(p => p)
 
       if (allPhones.length === 0) {
@@ -522,38 +534,51 @@ async function sendTemplate(params) {
 
 exports.main = async (event, context) => {
   const { OPENID: openId } = cloud.getWXContext()
-  const { action, ...params } = event
+  // 兼容经网关暴露后的 HTTP 调用：body 可能是 JSON 字符串或被扁平化到 event 顶层
+  let payload = event
+  if (event && event.body) {
+    try {
+      const parsed = typeof event.body === 'string' ? JSON.parse(event.body) : event.body
+      payload = parsed || event
+    } catch (e) {
+      console.error('[api-message] 解析 body 失败:', e.message)
+    }
+  }
+  // 兼容 Web 端 adminService.callFunction 的 { action, data } 嵌套写法
+  const { action, data, ...rest } = payload
+  const params = { ...rest, ...(data && typeof data === 'object' ? data : {}) }
 
   console.log(`[api-message] action: ${action}`, params)
 
+  let result
   try {
     switch (action) {
       // 站内消息
       case 'sendMessage':
-        return sendMessage(params)
+        result = await sendMessage(params); break
       case 'sendBatchMessage':
-        return sendBatchMessage(params)
+        result = await sendBatchMessage(params); break
       case 'sendNotice':
-        return sendNotice(params)
+        result = await sendNotice(params); break
 
       // 业务场景通知
       case 'notifyTransferResult':
-        return notifyTransferResult(params)
+        result = await notifyTransferResult(params); break
       case 'notifyOrderStatus':
-        return notifyOrderStatus(params)
+        result = await notifyOrderStatus(params); break
       case 'notifyCertificate':
-        return notifyCertificate(params)
+        result = await notifyCertificate(params); break
       case 'notifyClassEnrollment':
-        return notifyClassEnrollment(params)
+        result = await notifyClassEnrollment(params); break
 
       // 订阅消息
       case 'subscribe':
-        return subscribe(params)
+        result = await subscribe(params); break
       case 'sendTemplate':
-        return sendTemplate(params)
+        result = await sendTemplate(params); break
 
       default:
-        return {
+        result = {
           code: 400,
           msg: `未知 action: ${action}`,
           availableActions: [
@@ -571,6 +596,9 @@ exports.main = async (event, context) => {
     }
   } catch (err) {
     console.error('[api-message] error:', err)
-    return { code: 500, msg: `服务异常: ${err.message}` }
+    result = { code: 500, msg: `服务异常: ${err.message}` }
   }
+
+  // api-message 为 Event 函数（经网关以 HTTP 暴露），网关会将返回值直接序列化为响应体，故直接返回结果对象
+  return result
 }

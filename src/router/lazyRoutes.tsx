@@ -80,11 +80,11 @@ export const AdminClassOrders = lazy(() => import('@/admin/pages/classes/AdminCl
 export const AdminRegistrations = lazy(() => import('@/admin/pages/classes/AdminRegistrations'));
 
 // 用户管理
-export const AdminRoles = lazy(() => import('@/admin/pages/users/AdminRoles'));
 export const AdminUserRoles = lazy(() => import('@/admin/pages/users/AdminUserRoles'));
 export const AdminMemberLevels = lazy(() => import('@/admin/pages/users/AdminMemberLevels'));
 export const AdminCertificates = lazy(() => import('@/admin/pages/users/AdminCertificates'));
 export const AdminMembers = lazy(() => import('@/components/admin/MemberManagement')); // 统一成员管理入口（组件暂未移动）
+export const AdminContracts = lazy(() => import('@/components/admin/ContractManagement')); // 培训合同管理
 
 // 订单财务
 export const AdminCourseOrders = lazy(() => import('@/admin/pages/orders/AdminCourseOrders'));
