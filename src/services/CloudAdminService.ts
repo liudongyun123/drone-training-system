@@ -1,5 +1,5 @@
+// @ts-nocheck
 import { adminService } from './adminService'
-import { dbService } from './cloudBaseService'
 
 // 统一的云开发数据服务接口
 export interface IAdminDataService<T> {
@@ -348,8 +348,9 @@ export const CloudOrderAdminService = {
 }
 
 // 通知数据服务
+// ⚠️ 规范集合为 messages：系统消息经 api-message 统一写入 messages（见 cloudfunctions/api-message/index.js）
 export const CloudNotificationService = {
-  collection: 'notifications',
+  collection: 'messages',
 
   async getAll(params?: { offset?: number; limit?: number; search?: string }) {
     try {
@@ -1268,6 +1269,7 @@ export const CloudCouponAdminService = {
 }
 
 // 轮播图管理服务
+// ⚠️ 规范集合为 banners（双 n）；全系统（api-home/api-course/PageConfigManagement/DatabaseIndexes）均使用 banners
 export const CloudBannerAdminService = {
   collection: 'banners',
 

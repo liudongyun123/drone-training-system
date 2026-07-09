@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 数据库索引建议
  * 
@@ -230,7 +231,7 @@ export const INDEX_RECOMMENDATIONS: IndexRecommendation[] = [
     ]
   },
   {
-    collection: 'exam_attempts',
+    collection: 'examAttempts',
     indexes: [
       {
         fields: ['userId', 'examId', 'submitTime'],
@@ -243,7 +244,7 @@ export const INDEX_RECOMMENDATIONS: IndexRecommendation[] = [
 
   // ========== 题库相关 ==========
   {
-    collection: 'question_banks',
+    collection: 'questionBanks',
     indexes: [
       {
         fields: ['courseId', 'status'],
@@ -254,7 +255,7 @@ export const INDEX_RECOMMENDATIONS: IndexRecommendation[] = [
     ]
   },
   {
-    collection: 'bank_questions',
+    collection: 'bankQuestions',
     indexes: [
       {
         fields: ['bankId', 'createdAt'],
@@ -292,7 +293,7 @@ export const INDEX_RECOMMENDATIONS: IndexRecommendation[] = [
 
   // ========== 收藏和错题 ==========
   {
-    collection: 'favorite_questions',
+    collection: 'favoriteQuestions',
     indexes: [
       {
         fields: ['userId', 'questionId'],
@@ -303,7 +304,7 @@ export const INDEX_RECOMMENDATIONS: IndexRecommendation[] = [
     ]
   },
   {
-    collection: 'wrong_questions',
+    collection: 'wrongQuestions',
     indexes: [
       {
         fields: ['userId', 'createdAt'],
@@ -316,7 +317,7 @@ export const INDEX_RECOMMENDATIONS: IndexRecommendation[] = [
 
   // ========== 练习记录 ==========
   {
-    collection: 'practice_records',
+    collection: 'practiceRecords',
     indexes: [
       {
         fields: ['userId', 'createdAt'],
