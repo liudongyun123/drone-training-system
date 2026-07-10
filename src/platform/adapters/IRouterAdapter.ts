@@ -143,14 +143,4 @@ export interface IWechatRouterAdapter extends IRouterAdapter {
   reLaunch(path: string): Promise<void>;
 }
 
-// ============================================================================
-// 导出
-// ============================================================================
 
-export type {
-  RouteConfig,
-  RouteMeta,
-  HistoryState,
-  History,
-  WechatPageConfig,
-};

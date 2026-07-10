@@ -98,14 +98,18 @@ export default function AdminTransfers() {
       } as any)
 
       if (result.code === 0) {
-        const responseData = result.data as any
-        setRequests(responseData?.data || responseData || [])
-        setTotal(responseData?.total || 0)
-        setTotalPages(responseData?.totalPages || 1)
-        
-        // 更新统计
-        if (responseData?.stats) {
-          setStats(responseData.stats as TransferStats)
+        const list = (result.data as any[]) || []
+        setRequests(list)
+        setTotal(result.total || list.length || 0)
+        setTotalPages(
+          (result as any).totalPages ||
+          Math.ceil((result.total || list.length || 0) / pageSize) ||
+          1
+        )
+
+        // 更新统计（列表接口自带 stats；缺失时由 loadStats 兜底）
+        if (result.stats) {
+          setStats(result.stats as TransferStats)
         }
       }
     } catch (error) {

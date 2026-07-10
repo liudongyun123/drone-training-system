@@ -328,7 +328,12 @@ exports.main = async (event, context) => {
         
         // 所有集合统一由 CloudBase 自动生成 _id，避免冒号等特殊字符导致 doc().set() 失败
         delete insertData._id;
-        delete insertData._openid;
+        // 注意：_openid 默认删除（避免误写系统字段），但证书等场景需要显式写入
+        // 用户身份 _openid（如管理后台按手机号查到 openid 后颁发证书，使小程序端可按 _openid 查询），
+        // 因此当调用方显式传入 _openid 时予以保留。
+        if (!insertData._openid) {
+          delete insertData._openid;
+        }
         
         if (insertData._id) {
           // 有自定义 _id 时使用 doc().set() 创建

@@ -14,7 +14,7 @@ import { toast } from '@/components/Toast';
 import {
   Search, User, Phone, BookOpen, CreditCard,
   ChevronLeft, ChevronRight, AlertCircle, RefreshCw,
-  TrendingUp, Hash, Bell, Check, X
+  TrendingUp, Hash, Bell, Check, X, RotateCcw
 } from 'lucide-react';
 
 // 扩展的报名记录类型（支持动态字段）
@@ -83,6 +83,7 @@ export default function AdminRegistrations() {
           { phone: { $regex: searchKeyword, $options: 'i' } },
           { idCard: { $regex: searchKeyword, $options: 'i' } },
           { userId: { $regex: searchKeyword, $options: 'i' } },
+          { className: { $regex: searchKeyword, $options: 'i' } },
           { courseName: { $regex: searchKeyword, $options: 'i' } }
         ];
       }
@@ -121,57 +122,179 @@ export default function AdminRegistrations() {
     loadRegistrations(false);
   };
 
+  // 收集班级关联的全部课程ID（主课程 + includedCourseIds + includedCourses）
+  const collectCourseIds = (classDoc: any): string[] => {
+    const courseIds: string[] = [];
+    if (classDoc?.courseId) courseIds.push(classDoc.courseId);
+    if (Array.isArray(classDoc?.includedCourseIds)) {
+      for (const id of classDoc.includedCourseIds) {
+        if (id && !courseIds.includes(id)) courseIds.push(id);
+      }
+    }
+    if (Array.isArray(classDoc?.includedCourses)) {
+      for (const item of classDoc.includedCourses) {
+        if (typeof item === 'string' && /^[a-f0-9]{24}$/i.test(item) && !courseIds.includes(item)) {
+          courseIds.push(item);
+        }
+      }
+    }
+    return courseIds;
+  };
+
+  // 线下报名（无订单）：审核通过后，开放培训班成员资格 + 关联课程权限（幂等）
+  const grantClassPermissions = async (phone: string, classId: string, enrollment: any) => {
+    // 1. 班级成员 → enrolled（幂等：已存在则更新，不存在则新建）
+    try {
+      const cmRes = await adminService.list('class_members', { classId, phone }, { limit: 1 });
+      const cmList = (cmRes?.code === 0 && (cmRes.data as any)?.list) ? (cmRes.data as any).list : [];
+      if (cmList.length > 0) {
+        await adminService.update('class_members', cmList[0]._id, {
+          status: 'enrolled',
+          updatedAt: new Date().toISOString()
+        });
+      } else {
+        await adminService.add('class_members', {
+          classId,
+          className: enrollment.className || '',
+          courseId: enrollment.courseId || '',
+          userName: enrollment.userName || '',
+          phone,
+          status: 'enrolled',
+          source: enrollment.source || 'offline_enroll',
+          enrollmentTime: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+    } catch (e) {
+      console.error('[报名审核] 开放班级成员失败:', e);
+    }
+    // 2. 关联课程权限（幂等：已存在则跳过）
+    try {
+      const classRes = await adminService.get('classes', classId);
+      const classDoc = (classRes as any)?.data || null;
+      const courseIds = collectCourseIds(classDoc);
+      for (const courseId of courseIds) {
+        const exists = await adminService.list('course_permissions', { phone, courseId }, { limit: 1 });
+        const exList = (exists?.code === 0 && (exists.data as any)?.list) ? (exists.data as any).list : [];
+        if (exList.length === 0) {
+          await adminService.add('course_permissions', {
+            phone,
+            courseId,
+            source: 'class_enrollment',
+            classId,
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        }
+      }
+    } catch (e) {
+      console.error('[报名审核] 开放课程权限失败:', e);
+    }
+  };
+
+  // 生成「线下报名」已支付订单（回流到订单管理模块，打线下报名标签）
+  const createOfflineOrder = async (enrollment: any, phone: string, classId: string) => {
+    try {
+      const now = new Date().toISOString();
+      // 防重复：同一报名已生成过订单则跳过
+      const existRes = await adminService.list('orders', { enrollmentId: enrollment._id }, { limit: 1 });
+      const existList = (existRes?.code === 0 && (existRes.data as any)?.list) ? (existRes.data as any).list : [];
+      if (existList.length > 0) return existList[0]._id;
+
+      const orderNo = `ORD${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      const orderData: Record<string, unknown> = {
+        orderNo,
+        phone,
+        _openid: '',
+        openid: '',
+        userId: enrollment.userId || '',
+        userName: enrollment.userName || '',
+        orderType: 'class',
+        type: 'class',
+        status: 'paid',
+        paymentStatus: 'paid',
+        paymentMethod: 'offline',
+        source: 'offline_enroll',
+        classId,
+        className: enrollment.className || '',
+        courseId: enrollment.courseId || '',
+        courseName: enrollment.courseName || '',
+        buyerName: enrollment.userName || '',
+        buyerPhone: phone,
+        amount: enrollment.amount || 0,
+        finalAmount: enrollment.amount || 0,
+        totalAmount: enrollment.amount || 0,
+        totalPrice: enrollment.amount || 0,
+        enrolledStudents: 1,
+        permissionGranted: true,
+        permissionGrantedAt: now,
+        enrollmentId: enrollment._id || '',
+        createdAt: now,
+        updatedAt: now,
+        paidAt: now,
+      };
+      const res = await adminService.add('orders', orderData);
+      const newId = (res?.data?.id) || '';
+      return newId;
+    } catch (e) {
+      console.error('[报名审核] 生成线下报名订单失败:', e);
+      return '';
+    }
+  };
+
   // 确认报名
   const handleConfirm = async (enrollment: any) => {
     if (!confirm(`确定要确认 "${enrollment.userName || enrollment.userId}" 的报名吗？`)) return;
+    const phone = enrollment.phone;
+    const classId = enrollment.classId;
+    const orderId = enrollment.orderId;
+    const now = new Date().toISOString();
     try {
+      // 1. 报名状态=已确认，支付状态=已支付（线下报名即线下已缴费）
       const result = await enrollmentService.update(enrollment._id, {
         status: 'confirmed',
-        confirmedAt: new Date().toISOString()
+        paymentStatus: 'paid',
+        confirmedAt: now
       });
-      if (result.code === 0) {
-        toast.success('报名已确认');
-        
-        // ★ 开放学习权限：通过 orderId 调用 grantPermission
-        const orderId = enrollment.orderId;
-        if (orderId) {
-          try {
-            const grantResult = await orderService.grantPermission(orderId);
-            if (grantResult.code === 0) {
-              toast.success('学习权限已开放');
-            } else {
-              console.warn('权限开放失败:', grantResult.message);
-            }
-          } catch (grantError) {
-            console.error('开放权限异常:', grantError);
-          }
-        } else {
-          // 没有 orderId 时，尝试通过 memberId + classId 创建权限
-          const phone = enrollment.phone;
-          const classId = enrollment.classId;
-          if (phone && classId) {
-            try {
-              // 先查是否有对应订单
-              const orderQuery = await adminService.list('orders', { phone, classId, status: 'paid' }, { limit: 1 });
-              const orderList = (orderQuery.data as any)?.list || (orderQuery.data as any)?.data || [];
-              if (orderList.length > 0) {
-                await orderService.grantPermission(orderList[0]._id);
-              }
-            } catch (e) {
-              console.error('尝试关联订单开放权限失败:', e);
-            }
-          }
-        }
-        
-        // 发送通知
-        await messageService.sendRegistrationNotification({
-          ...enrollment,
-          status: 'confirmed'
-        });
-        loadRegistrations();
-      } else {
+      if (result.code !== 0) {
         toast.error('操作失败');
+        return;
       }
+      toast.success('报名已确认');
+
+      // 2. 开放学习权限：审核通过即授予「班级成员 + 关联课程权限」
+      try {
+        if (orderId) {
+          const grantResult = await orderService.grantPermission(orderId);
+          if (grantResult.code !== 0) {
+            console.warn('订单权限开放失败:', grantResult.message);
+            if (phone && classId) await grantClassPermissions(phone, classId, enrollment);
+          }
+        } else if (phone && classId) {
+          await grantClassPermissions(phone, classId, enrollment);
+        }
+        toast.success('学习权限已开放');
+      } catch (grantError) {
+        console.error('开放权限异常:', grantError);
+      }
+
+      // 3. 线下报名（无关联订单）：生成「已支付」订单并回流到订单管理模块（打线下报名标签）
+      if (!orderId && phone && classId) {
+        const newOrderId = await createOfflineOrder(enrollment, phone, classId);
+        if (newOrderId) {
+          await enrollmentService.update(enrollment._id, { orderId: newOrderId });
+        }
+      }
+
+      // 4. 发送通知
+      await messageService.sendRegistrationNotification({
+        ...enrollment,
+        status: 'confirmed',
+        paymentStatus: 'paid'
+      });
+      loadRegistrations();
     } catch (error) {
       console.error('确认报名失败:', error);
       toast.error('操作失败');
@@ -190,6 +313,16 @@ export default function AdminRegistrations() {
       });
       if (result.code === 0) {
         toast.success('报名已拒绝');
+        // 同步：拒绝后取消培训班成员资格（class_members），使「我的培训班」与后台一致
+        try {
+          const cmRes = await adminService.list('class_members', { classId: enrollment.classId, phone: enrollment.phone }, { limit: 1 });
+          const cmList = (cmRes?.code === 0 && (cmRes.data as any)?.list) ? (cmRes.data as any).list : [];
+          if (cmList.length > 0) {
+            await adminService.update('class_members', cmList[0]._id, { status: 'dropped', updatedAt: new Date().toISOString() });
+          }
+        } catch (cmErr) {
+          console.error('拒绝报名-取消班级成员失败:', cmErr);
+        }
         // 发送通知
         await messageService.sendRegistrationNotification({
           ...enrollment,
@@ -202,6 +335,29 @@ export default function AdminRegistrations() {
       }
     } catch (error) {
       console.error('拒绝报名失败:', error);
+      toast.error('操作失败');
+    }
+  };
+
+  // 重置为待审核（便于重新执行审核流程）
+  const handleReset = async (enrollment: any) => {
+    if (!confirm(`确定将 "${enrollment.userName || enrollment.userId}" 的报名重置为「待审核」吗？`)) return;
+    try {
+      const result = await enrollmentService.update(enrollment._id, {
+        status: 'pending',
+        confirmedAt: '',
+        rejectedReason: '',
+        rejectedAt: '',
+        updatedAt: new Date().toISOString()
+      });
+      if (result.code === 0) {
+        toast.success('已重置为待审核');
+        loadRegistrations();
+      } else {
+        toast.error('操作失败');
+      }
+    } catch (error) {
+      console.error('重置报名失败:', error);
       toast.error('操作失败');
     }
   };
@@ -391,7 +547,7 @@ export default function AdminRegistrations() {
                   <tr>
                     <th>学员信息</th>
                     <th>身份证号</th>
-                    <th>课程</th>
+                    <th>培训班</th>
                     <th>来源</th>
                     <th>状态</th>
                     <th>支付状态</th>
@@ -428,7 +584,7 @@ export default function AdminRegistrations() {
                         )}
                       </td>
                       <td>
-                        <div className="font-medium text-sm">{enrollment.courseName || enrollment.courseId || '-'}</div>
+                        <div className="font-medium text-sm">{enrollment.className || enrollment.courseName || enrollment.classId || enrollment.courseId || '-'}</div>
                       </td>
                       <td>
                         {renderSourceBadge(enrollment.source || '')}
@@ -472,15 +628,24 @@ export default function AdminRegistrations() {
                               </button>
                             </>
                           )}
-                          {/* 已确认状态显示通知按钮 */}
+                          {/* 已确认/已拒绝状态：通知 + 重新审核 */}
                           {(enrollment.status === 'confirmed' || enrollment.status === 'cancelled') && (
-                            <button
-                              onClick={() => handleSendNotification(enrollment)}
-                              className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
-                              title="发送通知"
-                            >
-                              <Bell size={16} className="text-blue-600" />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleSendNotification(enrollment)}
+                                className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
+                                title="发送通知"
+                              >
+                                <Bell size={16} className="text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => handleReset(enrollment)}
+                                className="p-1.5 hover:bg-amber-100 rounded-lg transition-colors"
+                                title="重新审核"
+                              >
+                                <RotateCcw size={16} className="text-amber-600" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>

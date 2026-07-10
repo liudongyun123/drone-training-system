@@ -4,7 +4,7 @@
 // - 轮播图（全局）- 公告（全局）- 学习路径（按体系分类）
 // - 热门课程（按体系分类）- 最新开班（按体系分类）
 // ============================================================================
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Image, Bell, Route, Star, Calendar, Layout,
   Plus, Edit, Trash2, ToggleLeft, ToggleRight,
@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { Button, Input, TextArea, Loading, Modal } from '@/components';
 import { adminService } from '@/services/adminService';
-import { CloudAdminService } from '@/services/CloudAdminService';
 import { configVersionService } from '@/services/messageService';
 import ImageUploader from './ImageUploader';
 
@@ -207,7 +206,7 @@ export default function PageConfigManagement() {
 
   const loadSources = async () => {
     try {
-      const result = await adminService.listSources({}, { limit: 100 });
+      const result = await adminService.listSources({}, { limit: 100 }) as { data?: { list?: Source[] } };
       console.log('[PageConfig] loadSources result:', result);
       if (result.data?.list && result.data.list.length > 0) {
         // 按 code 排序，确保顺序一致（CAAC 优先）

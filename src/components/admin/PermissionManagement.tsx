@@ -459,6 +459,60 @@ export default function PermissionManagement() {
     }
   }
 
+  // 移除班级成员
+  const handleRemoveMember = async (member: any) => {
+    if (!window.confirm(`确定移除成员「${member.userName || member.userId}」的班级权限吗？`)) return
+    try {
+      const result = await permissionService.removeClassMember(member._id)
+      if (result.code === 0) {
+        window.alert('已移除成员')
+        await loadClassMembers()
+      } else {
+        window.alert('移除失败')
+      }
+    } catch (e: any) {
+      window.alert(e.message || '移除失败')
+    }
+  }
+
+  // 导出当前权限数据（CSV）
+  const exportPermissions = () => {
+    try {
+      const isClass = activeTab === 'class-members'
+      const header = isClass
+        ? ['用户', '手机号', '班级', '来源', '视频权限', '状态']
+        : ['用户', '课程', '来源', '状态', '过期时间']
+      const rows = isClass
+        ? filteredClassMembers.map((m: any) => [
+            m.userName || '',
+            m.userPhone || m.userId || '',
+            m.className || m.classId || '',
+            m.source || '',
+            m.videoEnabled ? '已开通' : '未开通',
+            m.status || '',
+          ])
+        : filteredCoursePermissions.map((p: any) => [
+            p.userName || '',
+            p.courseName || p.courseId || '',
+            p.source || '',
+            p.status || '',
+            p.expiredAt || '',
+          ])
+      const csv = [header, ...rows]
+        .map((r) => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+        .join('\n')
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = isClass ? '班级权限.csv' : '课程权限.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('导出失败:', e)
+    }
+  }
+
   // 继续添加下一个
   const continueAddNext = () => {
     setAddMemberStep('search')
@@ -669,7 +723,7 @@ export default function PermissionManagement() {
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             刷新
           </button>
-          <button className="btn btn-outline btn-sm">
+          <button className="btn btn-outline btn-sm" onClick={exportPermissions}>
             <Download size={16} />
             导出
           </button>
@@ -880,7 +934,7 @@ export default function PermissionManagement() {
                               </button>
                               <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-32">
                                 <li><a>详情</a></li>
-                                <li><a className="text-error">移除</a></li>
+                                <li><a className="text-error" onClick={() => handleRemoveMember(member)}>移除</a></li>
                               </ul>
                             </div>
                           </td>

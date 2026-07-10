@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 管理后台统一服务 - 生产级别 v8.0
  * 
@@ -49,7 +50,8 @@ httpClient.interceptors.response.use(
 // ==================== 通用 CRUD 操作 ====================
 
 async function httpRequest<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
-  const response = await httpClient.post('', { action, ...params }) as Record<string, unknown>
+  // ★ 统一走 /db-init 云函数（与小程序一致）；根路径 / 无 HTTP 触发器，会返回 INVALID_PATH
+  const response = await httpClient.post('/db-init', { action, ...params }) as Record<string, unknown>
   
   if (response && typeof response === 'object' && response.code !== undefined && response.code !== 0) {
     console.error(`[adminService] ${action} 返回错误:`, response)

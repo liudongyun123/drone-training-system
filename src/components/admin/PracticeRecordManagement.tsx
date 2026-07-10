@@ -1,8 +1,9 @@
 /**
  * 练习记录与成绩管理组件 - 纯 Tailwind CSS 版本
  */
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { CloudPracticeService } from '@/services/CloudPracticeService'
+import { adminService } from '@/services/adminService'
 import type { UserPracticeRecord } from '@/types/practice'
 import type { Question } from '@/types/service'
 import { TrendingUp, CheckCircle, Clock, Trophy, Target, Award, BookOpen, AlertCircle, Loader2 } from 'lucide-react'
@@ -53,8 +54,6 @@ export default function PracticeRecordManagement() {
 
   useEffect(() => {
     loadRecords()
-    loadStats()
-    loadWrongQuestions()
   }, [])
 
   useEffect(() => {
@@ -63,18 +62,30 @@ export default function PracticeRecordManagement() {
     }
   }, [tabValue])
 
+  // ✅ 修复：以管理员视角加载全平台练习记录（不再局限于当前登录用户）
   const loadRecords = async () => {
     try {
       setLoading(true)
-      const result: any = await CloudPracticeService.getUserRecords()
-      const mappedData: UserPracticeRecord[] = (Array.isArray(result) ? result : []).map((item: any) => ({
+      const [recordsRes, membersRes] = await Promise.all([
+        adminService.list('practiceRecords', {}, { limit: 2000, orderBy: 'completedAt', order: 'desc' }),
+        adminService.list('members', {}, { limit: 2000 }),
+      ])
+      const memberMap = new Map<string, string>()
+      ;(membersRes.data?.list || []).forEach((m: any) => {
+        memberMap.set(m._id, m.name || m.username || m.phone || m._id)
+      })
+      const rawList: any[] = Array.isArray(recordsRes.data)
+        ? recordsRes.data
+        : (recordsRes.data?.list || [])
+      const mappedData: any[] = rawList.map((item: any) => ({
         id: item._id || item.id,
+        userId: item.userId,
         bankId: item.bankId || item.bank_id || '',
         bankTitle: item.bankTitle || item.bank_title || '',
         score: item.score || 0,
         totalQuestions: item.totalQuestions || item.total_questions || 0,
         correctAnswers: item.correctAnswers || item.correct_answers || 0,
-        duration: item.duration || 0,
+        duration: item.duration || item.timeSpent || 0,
         isPassed: item.isPassed || item.is_passed || false,
         completedAt: item.completedAt || item.completed_at || '',
         createdAt: item.createdAt || item.created_at || '',
@@ -85,31 +96,33 @@ export default function PracticeRecordManagement() {
           isCorrect: a.isCorrect ?? a.is_correct ?? false,
         })),
       }))
-      setRecords(mappedData)
-    } catch (error) {
-      console.error('加载练习记录失败:', error)
-      setToast({ show: true, message: '加载练习记录失败', type: 'error' })
-    } finally {
-      setLoading(false)
-    }
-  }
+      const withNames = mappedData.map((r) => ({
+        ...r,
+        userName: memberMap.get(r.userId || '') || r.userId || '未知用户',
+      }))
+      setRecords(withNames)
 
-  const loadStats = async () => {
-    try {
-      const stats = await CloudPracticeService.getUserStats()
-      setUserStats(stats)
-    } catch (error) {
-      console.error('加载统计数据失败:', error)
-    }
-  }
+      // 全平台统计
+      const totalQuestions = withNames.reduce((s: number, r: any) => s + (r.totalQuestions || 0), 0)
+      const totalCorrect = withNames.reduce((s: number, r: any) => s + (r.correctAnswers || 0), 0)
+      const passed = withNames.filter((r: any) => r.isPassed).length
+      const avg = withNames.length
+        ? Math.round(withNames.reduce((s: number, r: any) => s + (r.score || 0), 0) / withNames.length)
+        : 0
+      setUserStats({
+        totalPractices: withNames.length,
+        passedPractices: passed,
+        averageScore: avg,
+        totalQuestions,
+        totalCorrect,
+      })
 
-  const loadWrongQuestions = () => {
-    const wrongQuestions: WrongQuestion[] = []
-    records.forEach(record => {
-      if (record.answers) {
-        record.answers.forEach((answer) => {
+      // 错题集
+      const wrongs: WrongQuestion[] = []
+      withNames.forEach((record: any) => {
+        ;(record.answers || []).forEach((answer: any) => {
           if (!answer.isCorrect) {
-            wrongQuestions.push({
+            wrongs.push({
               question: { id: answer.questionId } as any,
               recordId: record.id,
               bankTitle: record.bankTitle,
@@ -117,14 +130,19 @@ export default function PracticeRecordManagement() {
               score: record.score,
               isPassed: record.isPassed,
               userAnswer: answer.userAnswer,
-              correctAnswer: (answer as any).correctAnswer,
+              correctAnswer: answer.correctAnswer,
               timesWrong: 1,
             })
           }
         })
-      }
-    })
-    setWrongQuestions(wrongQuestions)
+      })
+      setWrongQuestions(wrongs)
+    } catch (error) {
+      console.error('加载练习记录失败:', error)
+      setToast({ show: true, message: '加载练习记录失败', type: 'error' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const loadLeaderboard = async () => {
@@ -219,6 +237,7 @@ export default function PracticeRecordManagement() {
             <thead className="bg-slate-100 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">题库</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">用户</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">分数</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">正确率</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">用时</th>
@@ -229,7 +248,7 @@ export default function PracticeRecordManagement() {
             <tbody className="divide-y divide-slate-100">
               {records.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
                     <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>暂无练习记录</p>
                   </td>
@@ -238,6 +257,7 @@ export default function PracticeRecordManagement() {
                 records.map((record) => (
                   <tr key={record.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 text-slate-800">{record.bankTitle}</td>
+                    <td className="px-6 py-4 text-slate-600">{(record as any).userName || '-'}</td>
                     <td className="px-6 py-4 font-semibold text-slate-800">{record.score} 分</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${

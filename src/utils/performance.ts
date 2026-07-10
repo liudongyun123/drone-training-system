@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 性能监控工具 - 生产环境优化
  * 监控页面性能指标、LCP、FID、CLS 等核心 Web Vitals

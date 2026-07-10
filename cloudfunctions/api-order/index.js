@@ -211,8 +211,14 @@ exports.main = async (event, context) => {
         return await claimCoupon(data)
       case 'getCart':
         return await getCartApi(data)
+      case 'addToCart':
+        return await addToCartApi(data)
+      case 'removeFromCart':
+        return await removeFromCartApi(data)
       case 'clearCart':
         return await clearCartApi(data)
+      case 'useCoupon':
+        return await useCoupon(data)
       default:
         return createResponse({ 
           code: 400, 
@@ -628,6 +634,92 @@ async function clearCartApi(data) {
   return createResponse({ code: 0, success: true, message: '购物车已清空' })
 }
 
+// ========== 购物车：加入 ==========
+// 入参：{ item: { type, id, name, price, cover }, phone?, openid?/userId? }
+async function addToCartApi(data) {
+  const { item } = data || {}
+  if (!item || !item.id) {
+    return createResponse({ code: 400, success: false, error: '缺少商品信息' })
+  }
+  try {
+    // 去重：同 item.id 不重复加，仅 +1
+    const existing = await db.collection('cart').where({ productId: item.id }).limit(1).get()
+    if (existing.data && existing.data.length > 0) {
+      const doc = existing.data[0]
+      const qty = (doc.quantity || 1) + 1
+      await db.collection('cart').doc(doc._id).update({ quantity: qty, updatedAt: new Date().toISOString() })
+    } else {
+      const addData = {
+        productId: item.id,
+        type: item.type || 'product',
+        name: item.name || '',
+        price: item.price || 0,
+        cover: item.cover || '',
+        quantity: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      if (data.phone) addData.phone = data.phone
+      if (data.openid || data.userId) addData._openid = data.openid || data.userId
+      await db.collection('cart').add(addData)
+    }
+    return createResponse({ code: 0, success: true, message: '已加入购物车' })
+  } catch (error) {
+    console.error('[api-order] 加入购物车失败:', error)
+    return createResponse({ code: 500, success: false, error: '加入购物车失败: ' + error.message })
+  }
+}
+
+// ========== 购物车：移除 ==========
+// 入参：{ itemId, phone?, openid?/userId? }
+async function removeFromCartApi(data) {
+  const { itemId } = data || {}
+  if (!itemId) {
+    return createResponse({ code: 400, success: false, error: '缺少商品ID' })
+  }
+  try {
+    const query = { _id: itemId }
+    if (data.phone) query.phone = data.phone
+    else if (data.openid || data.userId) query._openid = data.openid || data.userId
+    await db.collection('cart').where(query).remove()
+    return createResponse({ code: 0, success: true, message: '已移除' })
+  } catch (error) {
+    console.error('[api-order] 移除购物车失败:', error)
+    return createResponse({ code: 500, success: false, error: '移除失败: ' + error.message })
+  }
+}
+
+// ========== 优惠券：使用 ==========
+// 入参：{ couponId, orderId?, phone? }
+async function useCoupon(data) {
+  const { couponId, orderId, phone } = data || {}
+  if (!couponId) {
+    return createResponse({ code: 400, success: false, error: '缺少优惠券ID' })
+  }
+  try {
+    const res = await db.collection('coupons').doc(couponId).get()
+    if (!res.data) {
+      return createResponse({ code: 404, success: false, error: '优惠券不存在' })
+    }
+    const updateData = {
+      status: 'used',
+      orderId: orderId || '',
+      usedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+    if (phone) updateData.phone = phone
+    await db.collection('coupons').doc(couponId).update(updateData)
+    return createResponse({
+      code: 0,
+      success: true,
+      data: { id: couponId, status: 'used', orderId: orderId || '' }
+    })
+  } catch (error) {
+    console.error('[api-order] 使用优惠券失败:', error)
+    return createResponse({ code: 500, success: false, error: '使用优惠券失败: ' + error.message })
+  }
+}
+
 // 获取订单详情
 async function getOrderDetail(data) {
   const { orderId } = data
@@ -801,7 +893,9 @@ async function enrollClass(data) {
     userId = '',
     openid = '',
     status = 'pending',
-    source = 'online_enroll'
+    source = 'online_enroll',
+    orderId = '',
+    paymentStatus = ''
   } = data
 
   if (!classId) {
@@ -841,6 +935,23 @@ async function enrollClass(data) {
         error: '班级不存在'
       })
     }
+
+    // 若携带订单ID，关联订单信息（统一身份、金额、支付方式），便于生成审核记录
+    let orderInfo = null
+    if (orderId) {
+      try {
+        const orderRes = await db.collection('orders').doc(orderId).get()
+        orderInfo = getDocData(orderRes) || null
+      } catch (e) {
+        orderInfo = null
+      }
+    }
+    const finalUserId = userId || (orderInfo && orderInfo.userId) || ''
+    const finalPaymentStatus = paymentStatus || (orderInfo ? (orderInfo.status === 'paid' ? 'paid' : 'unpaid') : 'unpaid')
+    const finalAmount = (orderInfo && (orderInfo.finalAmount || orderInfo.amount)) ? (orderInfo.finalAmount || orderInfo.amount) : 0
+    // 线下待审核（status=pending）不立即开放课程权限，待后台审核确认后再授权
+    const grantNow = status !== 'pending'
+    const memberStatus = grantNow ? 'enrolled' : status
 
     // 检查是否已满员
     const memberCount = await db.collection('class_members')
@@ -899,15 +1010,18 @@ async function enrollClass(data) {
       classId,
       className: cls.name,
       courseId: cls.courseId || '',
-      userId,
+      userId: finalUserId,
       userName,
       phone,
       idCard,
       emergencyContact,
       emergencyPhone: finalEmergencyPhone,
       notes: finalNotes,
-      status,
+      status: memberStatus,
       source,
+      orderId,
+      paymentStatus: finalPaymentStatus,
+      amount: finalAmount,
       enrollmentTime: now,
       createdAt: now,
       updatedAt: now
@@ -922,7 +1036,34 @@ async function enrollClass(data) {
 
     console.log('[api-order] 班级报名成功:', result.id)
 
-    // ★ 报名成功后，自动授权关联课程
+    // 写入报名审核记录（enrollments），供后台「报名审核」展示与审核
+    try {
+      await db.collection('enrollments').add({
+        orderId,
+        memberId: finalUserId,
+        userId: finalUserId,
+        phone,
+        userName,
+        idCard,
+        classId,
+        className: cls.name,
+        courseId: cls.courseId || '',
+        courseName: cls.courseName || cls.name || '',
+        source,
+        paymentStatus: finalPaymentStatus,
+        status: status,
+        amount: finalAmount,
+        enrollmentDate: now,
+        enrollmentTime: now,
+        notes: finalNotes,
+        createdAt: now,
+        updatedAt: now
+      })
+    } catch (e) {
+      console.error('[api-order] 写入报名审核记录失败:', e)
+    }
+
+    // ★ 报名成功后，自动授权关联课程（仅线下待审核以外的状态立即授权）
     try {
       // 获取班级关联的所有课程ID
       const courseIds = []
@@ -945,7 +1086,7 @@ async function enrollClass(data) {
         }
       }
 
-      if (phone && courseIds.length > 0) {
+      if (grantNow && phone && courseIds.length > 0) {
         for (const courseId of courseIds) {
           // 检查是否已有权限
           const existingPerm = await db.collection('course_permissions')

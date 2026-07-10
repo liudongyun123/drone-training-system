@@ -106,6 +106,7 @@ export interface Order {
   remark?: string       // 备注
   couponId?: string      // 使用的优惠券ID
   couponCode?: string   // 优惠券代码
+  source?: string        // 订单来源（如 offine_enroll 线下报名）
 }
 
 // ============== 辅助函数 ==============

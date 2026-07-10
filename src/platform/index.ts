@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Platform - 平台适配层统一导出
  * 

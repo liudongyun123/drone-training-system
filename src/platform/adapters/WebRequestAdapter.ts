@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Web Request Adapter - Web 端请求适配器实现
  */

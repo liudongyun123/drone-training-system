@@ -12,15 +12,13 @@ export default function MobileCourseListPage() {
   const {
     courses,
     loading,
-    error,
     total,
     hasMore,
     filters,
     setFilters,
-    refresh,
     loadMore,   // ← 移动端用无限滚动，不用分页
     resetFilters
-  } = useCourseList({ initialFilters: { pageSize: 6 } }) as any
+  } = useCourseList({ filters: { pageSize: 6 } })
 
   // ========== 移动端特有：下拉筛选 ==========
   const [showFilter, setShowFilter] = useState(false)
@@ -50,7 +48,7 @@ export default function MobileCourseListPage() {
           placeholder="搜索课程..."
           className="flex-1 input input-bordered input-sm"
           value={filters.keyword || ''}
-          onChange={e => setFilters({ keyword: e.target.value })}
+          onChange={e => setFilters({ ...filters, keyword: e.target.value })}
         />
         <button
           className="btn btn-sm btn-ghost"
@@ -64,7 +62,7 @@ export default function MobileCourseListPage() {
       {showFilter && (
         <MobileFilterDropdown
           filters={filters}
-          onChange={setFilters}
+          onChange={(f) => setFilters({ ...filters, ...f })}
           onReset={resetFilters}
         />
       )}

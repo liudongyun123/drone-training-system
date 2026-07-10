@@ -425,7 +425,7 @@ Page({
           try {
             const { request } = require('../../utils/http')
             const result = await request('/api-upload', 'POST', {
-              action: 'upload',
+              action: 'uploadFile',
               fileName: cloudPath,
               fileContent: readRes.data,
               encoding: 'base64'

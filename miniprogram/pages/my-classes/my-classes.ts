@@ -15,8 +15,12 @@ const statusTextMap: Record<string, string> = {
 const enrollmentStatusTextMap: Record<string, string> = {
   pending: '待确认',
   confirmed: '已确认',
+  enrolled: '已确认',
+  active: '已确认',
+  learning: '进行中',
   completed: '已完成',
-  cancelled: '已取消'
+  cancelled: '已取消',
+  dropped: '已取消'
 }
 
 Page({

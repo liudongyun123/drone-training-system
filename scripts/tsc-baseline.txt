@@ -1,0 +1,272 @@
+src/admin/pages/classes/AdminClasses.tsx:TS2345:Argument of type '{ name: string; description: string; level: any; courseId: string; includedCourseIds: any; maxStudents: number; startDate: string; endDate: string; location: string; teacherId: string; sourceId: any; intro: { ...; }; enrollmentConfig: { ...; }; }' is not assignable to parameter of type 'SetStateAction<ClassFormData>'.
+src/admin/pages/classes/AdminRegistrations.tsx:TS2322:Type '"confirmed"' is not assignable to type '"active" | "cancelled" | "completed" | undefined'.
+src/admin/pages/classes/AdminRegistrations.tsx:TS2353:Object literal may only specify known properties, and 'rejectedReason' does not exist in type 'Partial<Enrollment>'.
+src/admin/pages/classes/AdminRegistrations.tsx:TS2367:This comparison appears to be unintentional because the types '"pending" | "completed" | "refunded" | "learning" | "dropped"' and '"cancelled"' have no overlap.
+src/admin/pages/content/components/TeacherForm.tsx:TS2322:Type '"active" | "inactive" | "suspended"' is not assignable to type '"active" | "inactive"'.
+src/admin/pages/content/components/TeacherList.tsx:TS2345:Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+src/admin/pages/courses/components/CourseForm.tsx:TS2339:Property 'realName' does not exist on type 'Teacher'.
+src/admin/pages/learning/AdminLearningProgress.tsx:TS2345:Argument of type '{ progress?: number | undefined; status?: string | undefined; }' is not assignable to parameter of type '{ progress?: number | undefined; status?: "completed" | "in_progress" | "not_started" | undefined; videoProgress?: number | undefined; }'.
+src/admin/pages/orders/AdminCourseOrders.tsx:TS2339:Property 'refund' does not exist on type '{ list(query?: Record<string, any>, options?: { page?: number | undefined; pageSize?: number | undefined; limit?: number | undefined; }): Promise<{ code: number; data: ListResponse<unknown>; }>; ... 5 more ...; grantPermission(orderId: string): Promise<...>; }'.
+src/admin/pages/orders/AdminCourseOrders.tsx:TS6133:'BellOff' is declared but its value is never read.
+src/admin/pages/orders/AdminFinance.tsx:TS2322:Type '"error"' is not assignable to type '"warning" | "info" | "danger" | undefined'.
+src/admin/pages/orders/AdminFinance.tsx:TS2322:Type '"success"' is not assignable to type '"warning" | "info" | "danger" | undefined'.
+src/admin/pages/orders/AdminFinance.tsx:TS2339:Property 'paidUsers' does not exist on type 'RevenueStats'.
+src/admin/pages/orders/AdminFinance.tsx:TS2339:Property 'type' does not exist on type 'Order'.
+src/admin/pages/orders/AdminFinance.tsx:TS2345:Argument of type '{ wechatPayEnabled: boolean; alipayEnabled: boolean; mchId: any; appId: any; notifyUrl: any; }' is not assignable to parameter of type 'SetStateAction<{ wechatPayEnabled: boolean; alipayEnabled: boolean; mchId: string; appId: string; notifyUrl: string; apiKey: string; }>'.
+src/admin/pages/orders/AdminTransfers.tsx:TS2339:Property 'data' does not exist on type '{ code: number; message: string; }'.
+src/admin/pages/shop/AdminProducts.tsx:TS2339:Property 'list' does not exist on type 'ProductCategory[]'.
+src/admin/pages/shop/AdminShopOrders.tsx:TS2345:Argument of type '{ orderType: string; status: string; } | { orderType: string; status?: undefined; }' is not assignable to parameter of type 'OrderFilters | undefined'.
+src/admin/pages/system/AdminDictionaries.tsx:TS2571:Object is of type 'unknown'.
+src/admin/pages/system/AdminLevels.tsx:TS6133:'getSourceId' is declared but its value is never read.
+src/admin/pages/system/AdminOfflineEnrollment.tsx:TS2345:Argument of type '{ type: string; classId: string; className: string; phone: string; userName: string; buyerPhone: string; buyerName: string; paymentMethod: "offline" | "cash" | "transfer"; amount: number; totalAmount: number; ... 4 more ...; paidAt: string; }' is not assignable to parameter of type 'Partial<Order>'.
+src/components/CouponSelector.tsx:TS18048:'res.data' is possibly 'undefined'.
+src/components/CouponSelector.tsx:TS6133:'selectedCouponCode' is declared but its value is never read.
+src/components/ErrorBoundary.tsx:TS4114:This member must have an 'override' modifier because it overrides a member in the base class 'Component<Props, State, any>'.
+src/components/Layout.tsx:TS2339:Property 'forEach' does not exist on type 'ListResponse<unknown>'.
+src/components/Layout.tsx:TS2339:Property 'length' does not exist on type 'ListResponse<unknown>'.
+src/components/Layout.tsx:TS6133:'Gauge' is declared but its value is never read.
+src/components/Layout.tsx:TS6133:'LevelsIcon' is declared but its value is never read.
+src/components/Layout.tsx:TS7030:Not all code paths return a value.
+src/components/LazyImage.tsx:TS7030:Not all code paths return a value.
+src/components/LazyLoad.tsx:TS4114:This member must have an 'override' modifier because it overrides a member in the base class 'Component<LazyWrapperProps, LazyWrapperState, any>'.
+src/components/LazyLoad.tsx:TS6133:'LazyPlaceholder' is declared but its value is never read.
+src/components/LazyLoad.tsx:TS6133:'lazy' is declared but its value is never read.
+src/components/NoticePopup.tsx:TS6133:'bannerOpen' is declared but its value is never read.
+src/components/NoticePopup.tsx:TS6133:'setBannerOpen' is declared but its value is never read.
+src/components/PerformanceMonitor.tsx:TS6133:'getPerformanceMetrics' is declared but its value is never read.
+src/components/ThemeToggle.tsx:TS6133:'showLabel' is declared but its value is never read.
+src/components/VideoPlayer.tsx:TS2774:This condition will always return true since this function is always defined. Did you mean to call it instead?
+src/components/admin/BannerManagement.tsx:TS2345:Argument of type 'never[] | unknown[]' is not assignable to parameter of type 'SetStateAction<Banner[]>'.
+src/components/admin/BannerManagement.tsx:TS2345:Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+src/components/admin/ChapterManagement.tsx:TS2305:Module '"../../types/class"' has no exported member 'CourseChapter'.
+src/components/admin/ChapterManagement.tsx:TS2345:Argument of type '{ id: any; title: any; category: any; questionCount: any; difficulty: any; status: any; createdAt: any; }[]' is not assignable to parameter of type 'SetStateAction<QuestionBank[]>'.
+src/components/admin/CommentManagement.tsx:TS6133:'setDialogOpen' is declared but its value is never read.
+src/components/admin/ContractManagement.tsx:TS2322:Type '(page: number, pageSize: number) => void' is not assignable to type '(page: number) => void'.
+src/components/admin/ContractManagement.tsx:TS2571:Object is of type 'unknown'.
+src/components/admin/ContractManagement.tsx:TS6133:'ContractStatus' is declared but its value is never read.
+src/components/admin/ContractManagement.tsx:TS6133:'templateSaved' is declared but its value is never read.
+src/components/admin/CouponManagement.tsx:TS2345:Argument of type 'never[] | unknown[]' is not assignable to parameter of type 'SetStateAction<Coupon[]>'.
+src/components/admin/CourseManagement.tsx:TS2322:Type '"warning"' is not assignable to type '"success" | "error"'.
+src/components/admin/CourseManagement.tsx:TS2345:Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+src/components/admin/CourseManagement.tsx:TS2345:Argument of type 'unknown[]' is not assignable to parameter of type 'SetStateAction<{ _id: string; name: string; }[]>'.
+src/components/admin/Dashboard.tsx:TS2304:Cannot find name 'getOrderCourseIds'.
+src/components/admin/Dashboard.tsx:TS2304:Cannot find name 'getOrderCourseNames'.
+src/components/admin/Dashboard.tsx:TS6133:'Paper' is declared but its value is never read.
+src/components/admin/DashboardNew.tsx:TS2304:Cannot find name 'adminService'.
+src/components/admin/DashboardNew.tsx:TS6133:'Paper' is declared but its value is never read.
+src/components/admin/ExamManagement.tsx:TS2304:Cannot find name 'Question'.
+src/components/admin/ExamManagement.tsx:TS2339:Property 'error' does not exist on type '{ success: boolean; message: string; warning?: undefined; } | { success: boolean; message: string; warning: string | undefined; }'.
+src/components/admin/ExamManagement.tsx:TS2345:Argument of type 'never[] | { id: any; title: any; courseId: any; questionCount: any; duration: any; passScore: any; status: any; createdAt: any; }[]' is not assignable to parameter of type 'SetStateAction<ExamPaper[]>'.
+src/components/admin/ExamManagement.tsx:TS6133:'courses' is declared but its value is never read.
+src/components/admin/IconPicker.tsx:TS7030:Not all code paths return a value.
+src/components/admin/ImageUploader.tsx:TS6133:'X' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS2322:Type '"active" | "draft"' is not assignable to type '"active"'.
+src/components/admin/LearningPathManagement.tsx:TS2339:Property 'id' does not exist on type 'Course'.
+src/components/admin/LearningPathManagement.tsx:TS2339:Property 'id' does not exist on type 'LearningPath'.
+src/components/admin/LearningPathManagement.tsx:TS2345:Argument of type '{ id: any; title: any; }[]' is not assignable to parameter of type 'SetStateAction<Course[]>'.
+src/components/admin/LearningPathManagement.tsx:TS6133:'Autocomplete' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS6133:'Paper' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS6133:'Table' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS6133:'TableBody' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS6133:'TableCell' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS6133:'TableContainer' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS6133:'TableHead' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS6133:'TableRow' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS6133:'courses' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS6133:'getDifficultyColor' is declared but its value is never read.
+src/components/admin/LearningPathManagement.tsx:TS6133:'getDifficultyText' is declared but its value is never read.
+src/components/admin/MemberManagement.tsx:TS2339:Property 'data' does not exist on type 'ListResponse<unknown>'.
+src/components/admin/MemberManagement.tsx:TS2353:Object literal may only specify known properties, and 'level' does not exist in type 'CreateMemberRequest'.
+src/components/admin/MemberManagement.tsx:TS6133:'MemberSourceDescriptions' is declared but its value is never read.
+src/components/admin/MemberManagement.tsx:TS6133:'MemberSourceLabels' is declared but its value is never read.
+src/components/admin/MemberManagement.tsx:TS6133:'MoneyIcon' is declared but its value is never read.
+src/components/admin/MemberManagement.tsx:TS6133:'TabPanel' is declared but its value is never read.
+src/components/admin/MemberManagement.tsx:TS6133:'getMemberRelationCount' is declared but its value is never read.
+src/components/admin/MemberManagement.tsx:TS6133:'phone' is declared but its value is never read.
+src/components/admin/MessageManagement.tsx:TS2345:Argument of type 'unknown[]' is not assignable to parameter of type 'SetStateAction<Message[]>'.
+src/components/admin/MessageManagement.tsx:TS2769:No overload matches this call.
+src/components/admin/NoticeManagement.tsx:TS2322:Type '"all" | "vip" | "new"' is not assignable to type '"all"'.
+src/components/admin/NoticeManagement.tsx:TS2322:Type '"banner" | "modal" | "toast"' is not assignable to type '"modal"'.
+src/components/admin/NoticeManagement.tsx:TS2322:Type '"draft" | "published" | "expired"' is not assignable to type '"draft"'.
+src/components/admin/NoticeManagement.tsx:TS2322:Type '"low" | "medium" | "high"' is not assignable to type '"medium"'.
+src/components/admin/NoticeManagement.tsx:TS2322:Type '{ count: number; page: number; rowsPerPage: number; onPageChange: any; onRowsPerPageChange: any; }' is not assignable to type 'IntrinsicAttributes & AdminTablePaginationProps'.
+src/components/admin/NoticeManagement.tsx:TS6133:'FormHelperText' is declared but its value is never read.
+src/components/admin/NoticeManagement.tsx:TS6133:'PushPin' is declared but its value is never read.
+src/components/admin/NoticeManagement.tsx:TS6133:'SelectChangeEvent' is declared but its value is never read.
+src/components/admin/NoticeManagement.tsx:TS6133:'ToggleOff' is declared but its value is never read.
+src/components/admin/NoticeManagement.tsx:TS6133:'ToggleOn' is declared but its value is never read.
+src/components/admin/NoticeManagement.tsx:TS6133:'VisibilityOff' is declared but its value is never read.
+src/components/admin/OrderManagement.tsx:TS2339:Property 'target' does not exist on type 'number'.
+src/components/admin/OrderManagement.tsx:TS7006:Parameter '_' implicitly has an 'any' type.
+src/components/admin/OrderManagement.tsx:TS7006:Parameter 'newPage' implicitly has an 'any' type.
+src/components/admin/PageConfigManagement.tsx:TS18046:'c' is of type 'unknown'.
+src/components/admin/PageConfigManagement.tsx:TS18046:'config' is of type 'unknown'.
+src/components/admin/PageConfigManagement.tsx:TS18046:'item' is of type 'unknown'.
+src/components/admin/PageConfigManagement.tsx:TS2322:Type '{ children: Element; open: boolean; onClose: () => void; title: string; }' is not assignable to type 'IntrinsicAttributes & ModalProps'.
+src/components/admin/PageConfigManagement.tsx:TS2339:Property '_id' does not exist on type '{}'.
+src/components/admin/PageConfigManagement.tsx:TS2339:Property 'data' does not exist on type '{}'.
+src/components/admin/PageConfigManagement.tsx:TS2339:Property 'icon' does not exist on type 'LearningPathGroup'.
+src/components/admin/PageConfigManagement.tsx:TS2571:Object is of type 'unknown'.
+src/components/admin/PageConfigManagement.tsx:TS6133:'loadClasses' is declared but its value is never read.
+src/components/admin/PageConfigManagement.tsx:TS6133:'loadCourses' is declared but its value is never read.
+src/components/admin/PageConfigManagement.tsx:TS6133:'loadDataWithSourceId' is declared but its value is never read.
+src/components/admin/PageConfigManagement.tsx:TS6133:'loadLearningPaths' is declared but its value is never read.
+src/components/admin/PageConfigManagement.tsx:TS6133:'renderGlobalBadge' is declared but its value is never read.
+src/components/admin/PageConfigManagement.tsx:TS6133:'saveClassConfigsDirect' is declared but its value is never read.
+src/components/admin/PageConfigManagement.tsx:TS6133:'saveCourseConfigsDirect' is declared but its value is never read.
+src/components/admin/PageConfigManagement.tsx:TS6133:'setDebugInfo' is declared but its value is never read.
+src/components/admin/PermissionManagement.tsx:TS2345:Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+src/components/admin/PermissionManagement.tsx:TS2538:Type 'undefined' cannot be used as an index type.
+src/components/admin/PermissionManagement.tsx:TS6133:'Clock' is declared but its value is never read.
+src/components/admin/PermissionManagement.tsx:TS6133:'Minus' is declared but its value is never read.
+src/components/admin/PermissionManagement.tsx:TS6133:'Upload' is declared but its value is never read.
+src/components/admin/PracticeRecordManagement.tsx:TS2322:Type '{ id: any; bankId: any; bankTitle: any; score: any; totalQuestions: any; correctAnswers: any; duration: any; isPassed: any; completedAt: any; createdAt: any; answers: any; }[]' is not assignable to type 'UserPracticeRecord[]'.
+src/components/admin/QuestionBankManagement.tsx:TS6133:'Fab' is declared but its value is never read.
+src/components/admin/QuestionBankManagement.tsx:TS6133:'UploadFileIcon' is declared but its value is never read.
+src/components/admin/QuestionBankManagement.tsx:TS6133:'importDialogOpen' is declared but its value is never read.
+src/components/admin/QuestionBankManagement.tsx:TS6133:'importFile' is declared but its value is never read.
+src/components/admin/QuestionBankManagement.tsx:TS6133:'importPreview' is declared but its value is never read.
+src/components/admin/QuestionBankManagement.tsx:TS6133:'setImportDialogOpen' is declared but its value is never read.
+src/components/admin/QuestionBankManagement.tsx:TS6133:'setImportFile' is declared but its value is never read.
+src/components/admin/QuestionBankManagement.tsx:TS6133:'setImportPreview' is declared but its value is never read.
+src/components/admin/QuestionManagement.tsx:TS2552:Cannot find name 'isOpen'. Did you mean 'open'?
+src/components/admin/QuestionManagement.tsx:TS6133:'Edit' is declared but its value is never read.
+src/components/admin/QuestionManagement.tsx:TS6133:'Trash2' is declared but its value is never read.
+src/components/admin/QuestionManagement.tsx:TS6133:'Upload' is declared but its value is never read.
+src/components/admin/QuestionManagement.tsx:TS6133:'bankId' is declared but its value is never read.
+src/components/admin/QuestionManagement.tsx:TS6133:'onUpdateQuestion' is declared but its value is never read.
+src/components/admin/RoleManagement.tsx:TS2345:Argument of type 'never[] | unknown[]' is not assignable to parameter of type 'SetStateAction<Role[]>'.
+src/components/admin/RoleManagement.tsx:TS6133:'getPermissionName' is declared but its value is never read.
+src/components/admin/SystemLogManagement.tsx:TS2345:Argument of type 'never[] | unknown[] | (ListResponse<unknown> & any[])' is not assignable to parameter of type 'SetStateAction<SystemLog[]>'.
+src/components/admin/SystemSettings.tsx:TS6133:'e' is declared but its value is never read.
+src/components/admin/SystemSettings.tsx:TS6133:'loading' is declared but its value is never read.
+src/components/admin/SystemSettings.tsx:TS7053:Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'ListResponse<unknown>'.
+src/components/admin/VideoUpload.tsx:TS6133:'formatSize' is declared but its value is never read.
+src/components/auth/PhoneLogin.tsx:TS7030:Not all code paths return a value.
+src/components/auth/RouteGuard.tsx:TS6133:'Shield' is declared but its value is never read.
+src/components/common/ErrorBoundary.tsx:TS4114:This member must have an 'override' modifier because it overrides a member in the base class 'Component<Props, State, any>'.
+src/components/layout/MobileNav.tsx:TS6133:'GraduationCap' is declared but its value is never read.
+src/components/layout/MobileNav.tsx:TS6133:'user' is declared but its value is never read.
+src/components/layout/ResponsiveLayout.tsx:TS6133:'Fab' is declared but its value is never read.
+src/components/layout/ResponsiveLayout.tsx:TS6133:'isMobile' is declared but its value is never read.
+src/components/layout/ResponsiveLayout.tsx:TS6133:'logout' is declared but its value is never read.
+src/components/ui/BatchOperationPanel.tsx:TS6133:'Check' is declared but its value is never read.
+src/components/ui/BatchOperationPanel.tsx:TS6133:'Trash2' is declared but its value is never read.
+src/components/ui/BatchOperationPanel.tsx:TS6133:'handleSelectItem' is declared but its value is never read.
+src/components/ui/BatchOperationPanel.tsx:TS6133:'item' is declared but its value is never read.
+src/components/ui/ExportButton.tsx:TS6133:'selectedFormat' is declared but its value is never read.
+src/components/ui/ExportButton.tsx:TS6133:'setSelectedFormat' is declared but its value is never read.
+src/components/ui/LazyImage.tsx:TS6133:'isInView' is declared but its value is never read.
+src/router/index.tsx:TS6133:'AdminNoticeManagement' is declared but its value is never read.
+src/router/index.tsx:TS6133:'QuestionBankListPage' is declared but its value is never read.
+src/services/core/PerformanceMonitor.tsx:TS2614:Module '"./BaseService"' has no exported member 'CacheItem'. Did you mean to use 'import CacheItem from "./BaseService"' instead?
+src/services/core/PerformanceMonitor.tsx:TS6133:'CacheItem' is declared but its value is never read.
+src/web/pages/account/CartPage.tsx:TS6133:'CartItemType' is declared but its value is never read.
+src/web/pages/account/CheckoutPage.tsx:TS18047:'payResult' is possibly 'null'.
+src/web/pages/account/CheckoutPage.tsx:TS2353:Object literal may only specify known properties, and 'total' does not exist in type 'Partial<Order>'.
+src/web/pages/account/CheckoutPage.tsx:TS6133:'Loading' is declared but its value is never read.
+src/web/pages/account/CheckoutPage.tsx:TS6133:'isMobile' is declared but its value is never read.
+src/web/pages/account/CouponCenterPage.tsx:TS2339:Property 'getAvailableCoupons' does not exist on type '{ getList: (params?: { status?: string | undefined; page?: number | undefined; limit?: number | undefined; } | undefined) => Promise<PaginatedResponse<Coupon>>; ... 8 more ...; getStats: () => Promise<...>; }'.
+src/web/pages/account/CouponCenterPage.tsx:TS6133:'Copy' is declared but its value is never read.
+src/web/pages/account/CouponCenterPage.tsx:TS6133:'Percent' is declared but its value is never read.
+src/web/pages/account/CouponCenterPage.tsx:TS6133:'Ticket' is declared but its value is never read.
+src/web/pages/account/LoginPage.tsx:TS2339:Property 'needBindPhone' does not exist on type '{ success: boolean; error?: string | undefined; }'.
+src/web/pages/account/LoginPage.tsx:TS6133:'AlertCircle' is declared but its value is never read.
+src/web/pages/account/LoginPage.tsx:TS6133:'handleWechatLogin' is declared but its value is never read.
+src/web/pages/account/MessagesPage.tsx:TS2304:Cannot find name 'phone'.
+src/web/pages/account/MessagesPage.tsx:TS6133:'ChevronRight' is declared but its value is never read.
+src/web/pages/account/MessagesPage.tsx:TS6133:'Empty' is declared but its value is never read.
+src/web/pages/account/MessagesPage.tsx:TS6133:'Filter' is declared but its value is never read.
+src/web/pages/account/MessagesPage.tsx:TS6133:'Settings' is declared but its value is never read.
+src/web/pages/account/MyCouponsPage.tsx:TS2339:Property 'getUserCoupons' does not exist on type '{ getList: (params?: { status?: string | undefined; page?: number | undefined; limit?: number | undefined; } | undefined) => Promise<PaginatedResponse<Coupon>>; ... 8 more ...; getStats: () => Promise<...>; }'.
+src/web/pages/account/MyCouponsPage.tsx:TS6133:'Copy' is declared but its value is never read.
+src/web/pages/account/MyOrdersPage.tsx:TS18046:'reg' is of type 'unknown'.
+src/web/pages/account/MyOrdersPage.tsx:TS2322:Type '{ id: string | undefined; _id: string | undefined; orderNo: string | undefined; items: OrderItem[] | undefined; total: any; courseId: any; courseName: any; courseCover: any; ... 5 more ...; isEnrollment: false; }[]' is not assignable to type 'Order[]'.
+src/web/pages/account/MyOrdersPage.tsx:TS2339:Property 'courseId' does not exist on type '{}'.
+src/web/pages/account/MyOrdersPage.tsx:TS2339:Property 'name' does not exist on type '{}'.
+src/web/pages/account/MyOrdersPage.tsx:TS2339:Property 'total' does not exist on type 'Order'.
+src/web/pages/account/MyOrdersPage.tsx:TS6133:'ChevronRight' is declared but its value is never read.
+src/web/pages/account/TransferRequestPage.tsx:TS2339:Property 'code' does not exist on type 'TransferStats'.
+src/web/pages/account/TransferRequestPage.tsx:TS2339:Property 'courseName' does not exist on type '{}'.
+src/web/pages/account/TransferRequestPage.tsx:TS2339:Property 'data' does not exist on type 'TransferStats'.
+src/web/pages/account/TransferRequestPage.tsx:TS2339:Property 'message' does not exist on type '{ code: number; data: { id: string; }; }'.
+src/web/pages/account/TransferRequestPage.tsx:TS2339:Property 'name' does not exist on type '{}'.
+src/web/pages/account/TransferRequestPage.tsx:TS6133:'total' is declared but its value is never read.
+src/web/pages/home/HomePage.tsx:TS2345:Argument of type 'unknown[]' is not assignable to parameter of type 'SetStateAction<HeroBanner[]>'.
+src/web/pages/home/HomePage.tsx:TS7053:Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ beginner: { color: string; bgColor: string; textColor: string; }; intermediate: { color: string; bgColor: string; textColor: string; }; advanced: { color: string; bgColor: string; textColor: string; }; }'.
+src/web/pages/home/NoticesPage.tsx:TS6133:'CheckCircle' is declared but its value is never read.
+src/web/pages/home/NoticesPage.tsx:TS6133:'Link' is declared but its value is never read.
+src/web/pages/home/TeachersPage.tsx:TS2345:Argument of type 'unknown[]' is not assignable to parameter of type 'SetStateAction<Teacher[]>'.
+src/web/pages/learning/CourseDetailPage.tsx:TS18048:'classItem.maxStudents' is possibly 'undefined'.
+src/web/pages/learning/CourseDetailPage.tsx:TS2339:Property 'createRegistration' does not exist on type '{ create(data: CreateRegistrationRequest): Promise<{ code: number; data: { _id: string | undefined; }; }>; getMyRegistrations(userIdentifier: string, phone?: string | undefined, options?: PaginationParams): Promise<...>; ... 6 more ...; updatePayment(id: string, data: { ...; }): Promise<...>; }'.
+src/web/pages/learning/CourseDetailPage.tsx:TS2339:Property 'description' does not exist on type 'ClassV2'.
+src/web/pages/learning/CourseDetailPage.tsx:TS2339:Property 'teacherName' does not exist on type 'ClassV2'.
+src/web/pages/learning/CourseDetailPage.tsx:TS2345:Argument of type 'Class[]' is not assignable to parameter of type 'SetStateAction<ClassV2[]>'.
+src/web/pages/learning/CourseDetailPage.tsx:TS2551:Property 'getMyRegistration' does not exist on type '{ create(data: CreateRegistrationRequest): Promise<{ code: number; data: { _id: string | undefined; }; }>; getMyRegistrations(userIdentifier: string, phone?: string | undefined, options?: PaginationParams): Promise<...>; ... 6 more ...; updatePayment(id: string, data: { ...; }): Promise<...>; }'. Did you mean 'getMyRegistrations'?
+src/web/pages/learning/CourseDetailPage.tsx:TS2552:Cannot find name 'courseId'. Did you mean 'course'?
+src/web/pages/learning/CourseListPage.tsx:TS6133:'BookOpen' is declared but its value is never read.
+src/web/pages/learning/CourseListPage.tsx:TS6133:'categoriesLoading' is declared but its value is never read.
+src/web/pages/learning/CourseListPage.tsx:TS6133:'loadCategories' is declared but its value is never read.
+src/web/pages/learning/CoursesPage.tsx:TS2305:Module '"@/types/database"' has no exported member 'Course'.
+src/web/pages/learning/CoursesPage.tsx:TS6133:'CardActions' is declared but its value is never read.
+src/web/pages/learning/CoursesPage.tsx:TS6133:'React' is declared but its value is never read.
+src/web/pages/learning/CoursesPage.tsx:TS6133:'refresh' is declared but its value is never read.
+src/web/pages/learning/CoursesPage.tsx:TS6133:'setCart' is declared but its value is never read.
+src/web/pages/learning/CoursesPage.tsx:TS6133:'useEffect' is declared but its value is never read.
+src/web/pages/learning/LearningPathsPage.tsx:TS18048:'path.categoryIds' is possibly 'undefined'.
+src/web/pages/learning/LearningPathsPage.tsx:TS2769:No overload matches this call.
+src/web/pages/learning/LessonPlayerPage.tsx:TS6133:'ChevronRight' is declared but its value is never read.
+src/web/pages/learning/LessonPlayerPage.tsx:TS6133:'Lock' is declared but its value is never read.
+src/web/pages/learning/LessonPlayerPage.tsx:TS6133:'navigate' is declared but its value is never read.
+src/web/pages/learning/MyLearningPage.tsx:TS2339:Property 'courseId' does not exist on type '{}'.
+src/web/pages/learning/MyLearningPage.tsx:TS2339:Property 'name' does not exist on type '{}'.
+src/web/pages/learning/MyLearningPage.tsx:TS2339:Property 'status' does not exist on type '{}'.
+src/web/pages/learning/MyLearningPage.tsx:TS2339:Property 'videoGrantCourseId' does not exist on type '{}'.
+src/web/pages/learning/MyLearningPage.tsx:TS6133:'li' is declared but its value is never read.
+src/web/pages/learning/MyLearningPage.tsx:TS6133:'user' is declared but its value is never read.
+src/web/pages/practice/CertificateCenterPage.tsx:TS18048:'cert.certificateNo' is possibly 'undefined'.
+src/web/pages/practice/CertificateCenterPage.tsx:TS18048:'cert.courseTitle' is possibly 'undefined'.
+src/web/pages/practice/CertificateCenterPage.tsx:TS2769:No overload matches this call.
+src/web/pages/practice/CertificateCenterPage.tsx:TS6133:'AlertCircle' is declared but its value is never read.
+src/web/pages/practice/CertificateCenterPage.tsx:TS6133:'QrCode' is declared but its value is never read.
+src/web/pages/practice/ExamCenterPage.tsx:TS6133:'passCount' is declared but its value is never read.
+src/web/pages/practice/ExamCenterPage.tsx:TS6133:'setIsDemoMode' is declared but its value is never read.
+src/web/pages/practice/ExamPage.tsx:TS2367:This comparison appears to be unintentional because the types 'string | string[]' and 'boolean' have no overlap.
+src/web/pages/practice/ExamPage.tsx:TS7030:Not all code paths return a value.
+src/web/pages/practice/ExamResultPage.tsx:TS6133:'Clock' is declared but its value is never read.
+src/web/pages/practice/MarketingCenterPage.tsx:TS18048:'groupBuyStatRes.data' is possibly 'undefined'.
+src/web/pages/practice/MarketingCenterPage.tsx:TS2345:Argument of type '{ total: number; active: number; used: number; expired: number; } | undefined' is not assignable to parameter of type 'SetStateAction<{ total: number; active: number; used: number; }>'.
+src/web/pages/practice/MarketingCenterPage.tsx:TS6133:'AlertCircle' is declared but its value is never read.
+src/web/pages/practice/MarketingCenterPage.tsx:TS6133:'ChevronRight' is declared but its value is never read.
+src/web/pages/practice/MarketingCenterPage.tsx:TS6133:'navigate' is declared but its value is never read.
+src/web/pages/practice/MyPracticePage.tsx:TS6133:'Card' is declared but its value is never read.
+src/web/pages/practice/MyPracticePage.tsx:TS6133:'ChevronRight' is declared but its value is never read.
+src/web/pages/practice/MyPracticePage.tsx:TS6133:'TrendingUp' is declared but its value is never read.
+src/web/pages/practice/QuestionBankListPage.tsx:TS6133:'BarChart3' is declared but its value is never read.
+src/web/pages/practice/QuestionBankListPage.tsx:TS6133:'ChevronRight' is declared but its value is never read.
+src/web/pages/practice/QuestionBankPracticePage.tsx:TS6133:'Bookmark' is declared but its value is never read.
+src/web/pages/practice/QuestionBankPracticePage.tsx:TS6133:'Flag' is declared but its value is never read.
+src/web/pages/practice/QuestionBankPracticePage.tsx:TS6133:'XCircle' is declared but its value is never read.
+src/web/pages/practice/QuestionBankPracticePage.tsx:TS6133:'isCorrect' is declared but its value is never read.
+src/web/pages/shop/ProductDetailPage.tsx:TS6133:'Rating' is declared but its value is never read.
+src/web/pages/shop/ShopPage.tsx:TS6133:'Rating' is declared but its value is never read.
+src/web/pages/shop/ShopPage.tsx:TS6133:'SelectChangeEvent' is declared but its value is never read.
+src/web/pages/training/ClassEnrollmentPage.tsx:TS18048:'cls.price' is possibly 'undefined'.
+src/web/pages/training/ClassEnrollmentPage.tsx:TS6133:'Clock' is declared but its value is never read.
+src/web/pages/training/ClassEnrollmentPage.tsx:TS6133:'handleViewClass' is declared but its value is never read.
+src/web/pages/training/ClassEnrollmentPage.tsx:TS6133:'loginWithPhone' is declared but its value is never read.
+src/web/pages/training/ClassEnrollmentPage.tsx:TS6133:'smsSent' is declared but its value is never read.
+src/web/pages/training/MyClassesPage.tsx:TS6133:'ChevronRight' is declared but its value is never read.
+src/web/pages/training/MyClassesPage.tsx:TS6133:'toast' is declared but its value is never read.
+src/web/pages/training/MySchedulePage.tsx:TS6133:'Filter' is declared but its value is never read.
+src/web/pages/training/MySchedulePage.tsx:TS6133:'idx' is declared but its value is never read.
+src/web/pages/training/MyTrainingPage.tsx:TS6133:'AlertCircle' is declared but its value is never read.
+src/web/pages/training/MyTrainingPage.tsx:TS6133:'CheckCircle' is declared but its value is never read.
+src/web/pages/training/MyTrainingPage.tsx:TS6133:'Play' is declared but its value is never read.
+src/web/pages/training/MyTrainingPage.tsx:TS6133:'Plus' is declared but its value is never read.
+src/web/pages/training/MyTrainingPage.tsx:TS6133:'Users' is declared but its value is never read.
+src/web/pages/training/MyTrainingPage.tsx:TS6133:'formatTime' is declared but its value is never read.
+src/web/pages/training/MyTrainingPage.tsx:TS6133:'toast' is declared but its value is never read.
+src/web/pages/training/MyTrainingPage.tsx:TS6133:'todaySchedules' is declared but its value is never read.
+src/web/pages/training/StudentScheduleChangePage.tsx:TS2352:Conversion of type '{ list: any[]; total: number; }' to type 'ScheduleChange[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/web/pages/training/StudentScheduleChangePage.tsx:TS6133:'classApi' is declared but its value is never read.

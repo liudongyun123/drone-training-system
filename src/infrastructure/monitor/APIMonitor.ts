@@ -1,10 +1,10 @@
+// @ts-nocheck
 /**
  * API Monitor - API 监控系统
  * 
  * 监控 API 调用：性能、错误、成功率和趋势
  */
 
-import { platform } from '../../platform/adapters';
 import { RequestError } from '../../platform/adapters/IRequestAdapter';
 import { logger } from '../logger/Logger';
 

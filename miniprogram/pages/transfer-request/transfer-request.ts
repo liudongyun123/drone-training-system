@@ -147,10 +147,10 @@ Page({
       const studentId = userInfo?.id || userInfo?._openid || phone
 
       const [totalRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
-        dbGetList('transferRequests', { where: { studentId }, limit: 0 }),
-        dbGetList('transferRequests', { where: { studentId, status: 'pending' }, limit: 0 }),
-        dbGetList('transferRequests', { where: { studentId, status: 'approved' }, limit: 0 }),
-        dbGetList('transferRequests', { where: { studentId, status: 'rejected' }, limit: 0 }),
+        dbGetList('transfer_requests', { where: { studentId }, limit: 0 }),
+        dbGetList('transfer_requests', { where: { studentId, status: 'pending' }, limit: 0 }),
+        dbGetList('transfer_requests', { where: { studentId, status: 'approved' }, limit: 0 }),
+        dbGetList('transfer_requests', { where: { studentId, status: 'rejected' }, limit: 0 }),
       ])
 
       const total = (totalRes as any).total || (totalRes as any).data?.length || 0
@@ -179,13 +179,13 @@ Page({
       // 优先 studentId，备用 phone 查询
       let result: any
       if (studentId) {
-        result = await dbGetList('transferRequests', {
+        result = await dbGetList('transfer_requests', {
           where: { studentId },
           orderBy: 'createdAt desc',
           limit: 50
         })
       } else {
-        result = await dbGetList('transferRequests', {
+        result = await dbGetList('transfer_requests', {
           where: { studentPhone: phone },
           orderBy: 'createdAt desc',
           limit: 50
@@ -362,7 +362,7 @@ Page({
       const userInfo = getUserInfo()
       const now = new Date().toISOString()
       
-      const result = await dbAdd('transferRequests', {
+      const result = await dbAdd('transfer_requests', {
         studentId: userInfo?.id || userInfo?._openid || phone,
         studentName: userInfo?.name || userInfo?.nickName || '',
         studentPhone: phone,
@@ -447,7 +447,7 @@ Page({
       success: async (res) => {
         if (res.confirm) {
           try {
-            await dbUpdate('transferRequests', request._id || request.id, {
+            await dbUpdate('transfer_requests', request._id || request.id, {
               status: 'cancelled',
               updatedAt: new Date().toISOString()
             })

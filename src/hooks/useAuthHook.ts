@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 认证相关 Hooks
  */

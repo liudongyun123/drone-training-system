@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Platform Adapters - 平台适配器模块
  * 

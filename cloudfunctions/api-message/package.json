@@ -8,5 +8,11 @@
   },
   "engines": {
     "node": "18"
-  }
+  },
+  "triggers": [
+    {
+      "name": "http-trigger",
+      "type": "http"
+    }
+  ]
 }

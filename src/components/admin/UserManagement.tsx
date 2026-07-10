@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -32,7 +32,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Add as AddIcon,
 } from '@mui/icons-material'
-import { CloudUserAdminService, CloudAdminService } from '../../services/CloudAdminService'
+import { CloudUserAdminService } from '../../services/CloudAdminService'
 import AdminTablePagination from './AdminTablePagination'
 import { formatDateStr } from '@/utils/dateUtils'
 
@@ -151,25 +151,24 @@ export default function UserManagement() {
 
   const handleAddUser = async () => {
     try {
-      const result = await CloudAdminService.add('users', {
+      // ✅ 修复：新增用户写入 members 集合（与列表/编辑/删除保持一致），避免落到已废弃的 users 旧集合
+      const result = await CloudUserAdminService.add({
+        phone: addForm.phone,
+        username: addForm.username || addForm.phone,
+        role: addForm.role,
+        status: 'active',
         password: addForm.password,
-        data: {
-          phone: addForm.phone,
-          username: addForm.username || addForm.phone,
-          role: addForm.role,
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
-      
-      if ((result as any).code === 0) {
+
+      if (result) {
         setSnackbar({ open: true, message: '用户添加成功', severity: 'success' })
         setAddDialogOpen(false)
         setAddForm({ phone: '', password: '', username: '', role: 'student' })
         await loadUsers()
       } else {
-        setSnackbar({ open: true, message: result.message || '添加失败', severity: 'error' })
+        setSnackbar({ open: true, message: '添加失败', severity: 'error' })
       }
     } catch (error) {
       setSnackbar({ open: true, message: '添加用户失败', severity: 'error' })

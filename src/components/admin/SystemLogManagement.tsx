@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -63,6 +63,42 @@ export default function SystemLogManagement() {
       console.error('加载系统日志失败:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 重置筛选条件
+  const resetFilters = () => {
+    setSearchKeyword('')
+    setLevelFilter('all')
+    setModuleFilter('all')
+    setDateFilter('today')
+  }
+
+  // 导出当前筛选后的日志为 CSV
+  const exportLogs = () => {
+    try {
+      const header = ['时间', '级别', '模块', '操作', '用户', '消息', 'IP']
+      const rows = filteredLogs.map((log) => [
+        log.createdAt,
+        getLevelText(log.level),
+        log.module,
+        log.operation,
+        log.userName || '',
+        log.message,
+        log.ip || '',
+      ])
+      const csv = [header, ...rows]
+        .map((r) => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+        .join('\n')
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = '系统日志.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('导出日志失败:', e)
     }
   }
 
@@ -229,10 +265,10 @@ export default function SystemLogManagement() {
               <MenuItem value="all">全部</MenuItem>
             </Select>
           </FormControl>
-          <Button variant="outlined" startIcon={<FilterList />}>
+          <Button variant="outlined" startIcon={<FilterList />} onClick={resetFilters}>
             重置筛选
           </Button>
-          <Button variant="outlined" startIcon={<Download />}>
+          <Button variant="outlined" startIcon={<Download />} onClick={exportLogs}>
             导出日志
           </Button>
         </Box>

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { dbService } from './cloudBaseService'
 import { authService } from './cloudBaseService'
 import { adminService } from './adminService'

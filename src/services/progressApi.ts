@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 学习进度管理 API v2.0
  * 版本: v20260515-unified

@@ -42,6 +42,22 @@ interface Coupon {
   createdAt: string
 }
 
+interface CouponForm {
+  name: string
+  code: string
+  type: 'discount' | 'fixed' | 'free'
+  value: number
+  minAmount: number
+  totalCount: number
+  usedCount: number
+  courseLimit: 'all' | 'specific' | 'category'
+  courseId: string
+  categoryId: string
+  status: 'active' | 'inactive' | 'expired'
+  startTime: string
+  endTime: string
+}
+
 export default function CouponManagement() {
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,18 +67,18 @@ export default function CouponManagement() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const [couponForm, setCouponForm] = useState({
+  const [couponForm, setCouponForm] = useState<CouponForm>({
     name: '',
     code: '',
-    type: 'discount' as const,
+    type: 'discount',
     value: 0,
     minAmount: 0,
     totalCount: 100,
     usedCount: 0,
-    courseLimit: 'all' as const,
+    courseLimit: 'all',
     courseId: '',
     categoryId: '',
-    status: 'active' as const,
+    status: 'active',
     startTime: '',
     endTime: '',
   })

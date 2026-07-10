@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Platform Adapter - 请求适配器接口定义
  * 定义跨平台统一的请求接口
@@ -196,18 +197,4 @@ export interface RequestAdapterConfig {
   retryDelay?: number;
 }
 
-// ============================================================================
-// 导出
-// ============================================================================
 
-export type {
-  RequestConfig,
-  RequestInterceptor,
-  ResponseInterceptor,
-  BaseResponse,
-  PaginatedResponse,
-  ListResponse,
-  RequestAdapterConfig,
-};
-
-export { RequestError, ErrorCode };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Upload, FileText, AlertCircle, CheckCircle, Download } from 'lucide-react';
 
 interface Question {

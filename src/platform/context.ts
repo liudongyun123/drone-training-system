@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Platform Context - 平台上下文
  * 

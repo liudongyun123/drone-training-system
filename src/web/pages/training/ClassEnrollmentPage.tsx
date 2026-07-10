@@ -276,24 +276,30 @@ export default function ClassEnrollmentPage() {
     
     setEnrolling(true);
     try {
-      // 创建订单并发起支付
-      const result = await adminService.callAdminFunction('createOrder', {
-          data: {
-            items: [{
-              type: 'class',
-              classId: selectedClass._id,
-              className: selectedClass.name,
-              price: selectedClass.price,
-            }],
-            totalAmount: selectedClass.price,
-            phone: enrollmentForm.phone,
-            studentName: enrollmentForm.name,
-          }
+      // 创建订单并发起支付（统一走 api-order 的 create）
+      const result = await adminService.callFunction('api-order', {
+        action: 'create',
+        data: {
+          orderType: 'class',
+          phone: enrollmentForm.phone,
+          classId: selectedClass._id,
+          className: selectedClass.name,
+          totalPrice: selectedClass.price,
+          finalAmount: selectedClass.price,
+          items: [{
+            type: 'class',
+            classId: selectedClass._id,
+            className: selectedClass.name,
+            price: selectedClass.price,
+            title: selectedClass.name,
+          }],
+          studentName: enrollmentForm.name,
+        }
       });
-      
+
       if (result?.code === 0) {
-        // 跳转支付页面
-        const orderId = result?.data?.orderId;
+        // 跳转支付页面（api-order create 返回 data._id / data.id）
+        const orderId = result?.data?._id || result?.data?.id;
         navigate(`/checkout?orderId=${orderId}&type=class`);
       } else {
         setError(result?.message || '创建订单失败');

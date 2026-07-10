@@ -1000,7 +1000,9 @@ export default function AdminFinance() {
                             </td>
                             <td className="px-4 py-3 text-sm font-medium text-gray-800">¥{order.finalAmount}</td>
                             <td className="px-4 py-3">
-                              {order.type === 'class' ? (
+                              {order.source === 'offline_enroll' ? (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">线下报名</span>
+                              ) : order.type === 'class' ? (
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">线下班</span>
                               ) : order.type === 'course' ? (
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">线上课程</span>

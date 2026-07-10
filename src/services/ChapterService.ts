@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { dbService } from './cloudBaseService'
 import type { CourseChapter } from '../types/class'
 

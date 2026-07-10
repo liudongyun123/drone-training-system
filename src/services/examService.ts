@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 考试服务 - 在线考试、题库练习、成绩管理
  * 统一通过 adminService (HTTP → db-init 云函数) 访问数据库

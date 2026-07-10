@@ -16,7 +16,7 @@ const API_TIMEOUT = parseInt(env.VITE_API_TIMEOUT || "30000", 10);
 const DEBUG_MODE = env.VITE_DEBUG_MODE === "true";
 
 // 构建版本号
-const BUILD_VERSION = 'v20260708-1905-b1-b3-b4-shop';
+const BUILD_VERSION = 'v20260710-1700-cert-create';
 
 // Sentry 配置
 const SENTRY_DSN = process.env.SENTRY_DSN || '';

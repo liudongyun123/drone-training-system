@@ -2,7 +2,7 @@
 // 商品详情页 - Web 端
 // ============================================================================
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Grid,

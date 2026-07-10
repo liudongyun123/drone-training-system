@@ -2,7 +2,7 @@
 // 商城页面 - Web 端
 // ============================================================================
 
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Box,
   Grid,

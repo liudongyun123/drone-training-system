@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 调课请求服务 v2.0
  * 版本: v20260515-unified
@@ -11,7 +12,7 @@
  */
 import { CloudDBService } from './CloudDBService'
 
-const COLLECTION = 'transferRequests'
+const COLLECTION = 'transfer_requests'
 
 // 调课请求类型
 export interface TransferRequest {

@@ -3,7 +3,7 @@
  * 显示 Core Web Vitals 指标
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, RefreshCw, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { 
   getPerformanceMetrics, 

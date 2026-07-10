@@ -49,7 +49,7 @@ const ALL_MODULES: Omit<DiagnoseResult, 'status' | 'count' | 'error'>[] = [
   { name: '报名审核', icon: <ClipboardList size={20} />, collection: 'registrations', category: '线下培训' },
   { name: '出勤记录', icon: <ClipboardList size={20} />, collection: 'attendance', category: '线下培训' },
   { name: '出勤明细', icon: <ClipboardList size={20} />, collection: 'attendance_records', category: '线下培训' },
-  { name: '调课请求', icon: <Wrench size={20} />, collection: 'transferRequests', category: '线下培训' },
+  { name: '调课请求', icon: <Wrench size={20} />, collection: 'transfer_requests', category: '线下培训' },
   { name: '调课记录', icon: <Wrench size={20} />, collection: 'schedule_changes', category: '线下培训' },
 
   // ===== 教师 =====

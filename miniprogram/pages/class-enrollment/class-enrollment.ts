@@ -254,10 +254,11 @@ Page({
 
   // 创建培训班报名记录
   async enrollClass(orderId: string, status: string, source: string, phone: string, openid: string) {
-    logger.debug('培训班报名', '创建报名记录', { status, source })
+    logger.debug('培训班报名', '创建报名记录', { status, source, orderId })
     await callFunction('api-order', {
       action: 'enrollClass',
       data: {
+        orderId,
         classId: this.classId,
         phone,
         openid,

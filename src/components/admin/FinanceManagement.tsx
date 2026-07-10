@@ -22,12 +22,18 @@ import {
   Tab,
   Alert,
   LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
 } from '@mui/material'
 import {
   ArrowUpward,
   ArrowDownward,
   TrendingUp,
   AttachMoney,
+  Close,
 } from '@mui/icons-material'
 import AdminChart from './AdminChart'
 import { CloudOrderAdminService } from '../../services/CloudAdminService'
@@ -76,6 +82,7 @@ export default function FinanceManagement() {
   const [statusData, setStatusData] = useState<StatusData[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
   useEffect(() => {
     loadFinanceData()
@@ -428,7 +435,7 @@ export default function FinanceManagement() {
                     </TableCell>
                     <TableCell>{order.createdAt}</TableCell>
                     <TableCell>
-                      <Button size="small" variant="text">
+                      <Button size="small" variant="text" onClick={() => setSelectedOrder(order)}>
                         查看详情
                       </Button>
                     </TableCell>
@@ -478,6 +485,29 @@ export default function FinanceManagement() {
           </Grid>
         </Grid>
       )}
+
+      <Dialog open={!!selectedOrder} onClose={() => setSelectedOrder(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          订单详情
+          <IconButton onClick={() => setSelectedOrder(null)} sx={{ position: 'absolute', right: 8, top: 8 }}>
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedOrder && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Typography><strong>订单ID：</strong>{selectedOrder.id}</Typography>
+              <Typography><strong>用户：</strong>{selectedOrder.userName || selectedOrder.userId}</Typography>
+              <Typography><strong>金额：</strong>¥{selectedOrder.amount}</Typography>
+              <Typography><strong>状态：</strong>{getStatusText(selectedOrder.status)}</Typography>
+              <Typography><strong>创建时间：</strong>{selectedOrder.createdAt}</Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSelectedOrder(null)}>关闭</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

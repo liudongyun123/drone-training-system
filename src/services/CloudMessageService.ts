@@ -3,7 +3,6 @@
  * 为前台页面提供消息数据的读取和管理服务
  */
 import { dbService } from './cloudBaseService'
-import { tcbService } from './tcbService'
 
 // 消息类型
 export type MessageType = 'system' | 'notice' | 'audit' | 'order' | 'course' | 'certificate'

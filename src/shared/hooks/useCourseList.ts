@@ -19,15 +19,17 @@ interface UseCourseListResult {
   error: Error | null
   hasMore: boolean
   page: number
-  
+  filters: CourseFilters
+
   // 方法
   loadMore: () => Promise<void>
   refresh: () => Promise<void>
   setFilters: (filters: CourseFilters) => void
+  resetFilters: () => void
 }
 
 export function useCourseList(options: UseCourseListOptions = {}): UseCourseListResult {
-  const { filters = {}, autoLoad = true } = options
+  const { filters: initialFilters = {}, autoLoad = true } = options
   
   const [courses, setCourses] = useState<Course[]>([])
   const [total, setTotal] = useState(0)
@@ -35,7 +37,7 @@ export function useCourseList(options: UseCourseListOptions = {}): UseCourseList
   const [error, setError] = useState<Error | null>(null)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
-  const [currentFilters, setCurrentFilters] = useState<CourseFilters>(filters)
+  const [currentFilters, setCurrentFilters] = useState<CourseFilters>(initialFilters)
   
   // 加载课程列表
   const loadCourses = useCallback(async (pageNum: number, append = false) => {
@@ -89,7 +91,13 @@ export function useCourseList(options: UseCourseListOptions = {}): UseCourseList
     setCurrentFilters(newFilters)
     setPage(1)
   }, [])
-  
+
+  // 重置筛选条件到初始值
+  const resetFilters = useCallback(() => {
+    setCurrentFilters(initialFilters)
+    setPage(1)
+  }, [initialFilters])
+
   return {
     courses,
     total,
@@ -97,8 +105,10 @@ export function useCourseList(options: UseCourseListOptions = {}): UseCourseList
     error,
     hasMore,
     page,
+    filters: currentFilters,
     loadMore,
     refresh,
-    setFilters
+    setFilters,
+    resetFilters
   }
 }

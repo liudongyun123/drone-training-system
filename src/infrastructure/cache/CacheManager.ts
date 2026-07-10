@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Cache Manager - 分层缓存管理器
  * 

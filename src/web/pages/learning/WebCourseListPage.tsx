@@ -15,21 +15,20 @@ export default function WebCourseListPage() {
     error,
     total,
     page,
-    hasMore,
     filters,
     setFilters,
     refresh,
     resetFilters
-  } = useCourseList({ initialFilters: { pageSize: 12 } }) as any
+  } = useCourseList({ filters: { pageSize: 12 } })
 
   // ========== Web 端特有：侧边筛选 ==========
   const handleFilterChange = (newFilters: Partial<CourseFilters>) => {
-    setFilters(newFilters)
+    setFilters({ ...filters, ...newFilters })
   }
 
   // ========== Web 端特有：分页 ==========
   const handlePageChange = (newPage: number) => {
-    setFilters({ page: newPage })
+    setFilters({ ...filters, page: newPage })
   }
 
   // ========== Web 端特有：3列网格布局 ==========
@@ -59,7 +58,7 @@ export default function WebCourseListPage() {
             ))}
           </div>
         ) : error ? (
-          <ErrorState message={error as string} onRetry={refresh} />
+          <ErrorState message={error.message} onRetry={refresh} />
         ) : (
           <>
             <div className="grid grid-cols-3 gap-6">
@@ -71,10 +70,10 @@ export default function WebCourseListPage() {
             {/* 分页导航 - Web 端才有 */}
             <div className="mt-8 flex justify-center">
               <Pagination
-                current={page}
+                currentPage={page}
                 total={total}
                 pageSize={filters.pageSize || 12}
-                onChange={handlePageChange}
+                onPageChange={handlePageChange}
               />
             </div>
           </>

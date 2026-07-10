@@ -276,7 +276,7 @@ export default function ContractManagement() {
       // 上传到云存储并保存配置
       const { adminService } = await import('../../services/adminService')
       const uploadRes = await adminService.callFunction('api-upload', {
-        action: 'upload',
+        action: 'uploadFile',
         fileName: `contracts/seals/${Date.now()}_${file.name}`,
         fileContent: base64.split(',')[1],
         encoding: 'base64'

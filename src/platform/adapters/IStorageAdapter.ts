@@ -140,11 +140,4 @@ export interface ICacheAdapter {
   getOrSet<T = any>(key: string, factory: () => T): T;
 }
 
-// ============================================================================
-// 导出
-// ============================================================================
 
-export type {
-  StorageConfig,
-  StorageItem,
-};

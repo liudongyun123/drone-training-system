@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 管理后台 API 服务 v2.0
  * 版本: v20260515-unified

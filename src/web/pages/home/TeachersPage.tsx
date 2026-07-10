@@ -2,7 +2,6 @@
  * 教师团队页面
  */
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Award, BookOpen, Users, Star, Mail, Phone } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import { Loading, EmptyState } from '@/components';
