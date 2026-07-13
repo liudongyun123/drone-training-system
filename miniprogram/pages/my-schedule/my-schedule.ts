@@ -12,6 +12,7 @@ const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '�
 interface DateItem {
   date: string      // MM-DD
   day: number        // 1-31
+  weekday: string   // 周几
   isToday: boolean  // 是否今天
 }
 
@@ -51,12 +52,14 @@ Page({
     const dates: DateItem[] = []
     const currentDate = formatDate(today.toISOString(), 'MM-DD')
     
-    for (let i = -3; i <= 7; i++) {
+    // 扩大日期范围，覆盖更远的排课（前 7 天 ~ 后 30 天）
+    for (let i = -7; i <= 30; i++) {
       const date = new Date(today)
       date.setDate(today.getDate() + i)
       dates.push({
         date: formatDate(date.toISOString(), 'MM-DD'),
         day: date.getDate(),
+        weekday: WEEKDAYS[date.getDay()],
         isToday: i === 0
       })
     }
@@ -136,38 +139,53 @@ Page({
   // 计算当日日程
   calculateDaySchedules() {
     const { schedule, currentDate } = this.data
-    
+    const now = new Date()
+
+    // 时间字段兼容：class_schedules 用 date(YYYY-MM-DD) + startTime/endTime(HH:mm)
+    // 旧数据可能把 startTime 存成完整日期时间
+    const isClock = (v: any) => typeof v === 'string' && /^\d{1,2}:\d{2}/.test(v)
+
     const daySchedules = schedule
       .filter((item: any) => {
-        const itemDate = formatDate(item.startTime, 'MM-DD')
+        const raw = item.date || item.startTime
+        const itemDate = formatDate(raw, 'MM-DD')
         return itemDate === currentDate
       })
       .map((item: any) => {
-        const startTimeStr = formatDate(item.startTime, 'HH:mm')
-        const endTimeStr = formatDate(item.endTime, 'HH:mm')
-        
-        let statusText = '未知'
-        let statusType = 'default'
-        if (item.status === 'not_started') {
-          statusText = '未开始'
-          statusType = 'pending'
-        } else if (item.status === 'ongoing') {
+        const startTimeStr = isClock(item.startTime) ? item.startTime : formatDate(item.startTime, 'HH:mm')
+        const endTimeStr = isClock(item.endTime) ? item.endTime : formatDate(item.endTime, 'HH:mm')
+
+        // 根据日期+时间动态计算状态（后台写入的 status 为 'scheduled'）
+        let status = item.status
+        if (item.date && isClock(startTimeStr) && isClock(endTimeStr)) {
+          const start = new Date(`${item.date}T${startTimeStr}:00`)
+          const end = new Date(`${item.date}T${endTimeStr}:00`)
+          if (now < start) status = 'not_started'
+          else if (now > end) status = 'ended'
+          else status = 'ongoing'
+        }
+
+        let statusText = '未开始'
+        let statusType = 'pending'
+        if (status === 'ongoing') {
           statusText = '进行中'
           statusType = 'active'
-        } else if (item.status === 'ended') {
+        } else if (status === 'ended') {
           statusText = '已结束'
           statusType = 'ended'
         }
-        
+
         return {
           ...item,
           startTimeStr,
           endTimeStr,
+          status,
           statusText,
-          statusType
+          statusType,
+          teacher: item.teacher || item.teacherName || ''
         }
       })
-    
+
     this.setData({ daySchedules })
   },
 

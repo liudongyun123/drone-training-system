@@ -4,6 +4,13 @@
 import logger from './logger'
 
 const API_BASE = 'https://rcwljy-5ghmq2ex26764978.service.tcloudbase.com'
+// 说明：api-shop 的 HTTP 访问入口注册在 .service 旧网关的 `*` 域（WEB_SCF / Web 函数模式），
+// 且 api-shop 已改造为 Web 函数（监听 :9000），因此所有云函数统一走 .service 网关。
+// （历史上曾尝试把 api-shop 单独路由到 .app 网关，但 .app 并未注册 /api-shop 路由，一直 INVALID_PATH，已废弃。）
+
+function resolveBase(path: string): string {
+  return API_BASE
+}
 
 /**
  * HTTP 请求封装
@@ -13,9 +20,10 @@ export async function request<T = any>(
   method: 'GET' | 'POST' = 'POST',
   data?: any
 ): Promise<T> {
+  const base = resolveBase(path)
   return new Promise((resolve, reject) => {
     wx.request({
-      url: `${API_BASE}${path}`,
+      url: `${base}${path}`,
       method,
       data,
       header: {
@@ -238,14 +246,30 @@ export async function getMyEnrollments(phoneOrUserId: string, userId?: string) {
 
 /**
  * 获取我的日程
+ * 排课记录由后台按「班级」创建，存于 class_schedules 集合（字段：classId/date/startTime/endTime），
+ * 不含 userId。因此需先解析用户报名的班级 classId，再按 classId 查询排课。
  */
 export async function getMySchedules(params: { userId?: string; classId?: string }) {
-  const where: any = {}
-  if (params.userId) where.userId = params.userId
-  if (params.classId) where.classId = params.classId
-  return dbGetList('schedules', {
-    where,
-    orderBy: 'startTime asc'
+  // 1. 确定要查询的班级 ID 列表
+  let classIds: string[] = []
+  if (params.classId) {
+    classIds = [params.classId]
+  } else if (params.userId) {
+    // 未指定班级时，查出用户报名的所有班级
+    const enroll = await getMyEnrollments(params.userId)
+    classIds = (enroll.data || [])
+      .map((e: any) => e.classId)
+      .filter(Boolean)
+  }
+
+  if (classIds.length === 0) {
+    return { data: [] }
+  }
+
+  // 2. 按班级查询排课（后台写入的集合为 class_schedules）
+  return dbGetList('class_schedules', {
+    where: { classId: { $in: classIds } },
+    orderBy: 'date asc'
   })
 }
 
@@ -384,6 +408,7 @@ export async function addWrongQuestion(data: {
   question: string
   yourAnswer: string
   correctAnswer: string
+  options?: string[]
 }) {
   // 先查询是否已存在
   const existing = await dbGetList('wrongQuestions', {

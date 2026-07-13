@@ -30,6 +30,7 @@ function extractList(result: any): any[] {
 export interface LabelConfig {
   text: string;
   color: string;
+  bg?: string;
 }
 
 /** 等级配置项 */

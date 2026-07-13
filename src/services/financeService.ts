@@ -7,6 +7,7 @@
  */
 
 import { CloudDBService } from './CloudDBService'
+import { adminService } from './adminService'
 import type { Order, OrderItem, PaginationParams, RevenueStats, DailyStat } from '../types/service'
 
 // 订单项统计
@@ -24,6 +25,15 @@ interface TeacherPerformanceStat {
   totalRevenue: number
   orderCount: number
   studentCount: number
+}
+
+// 已收款订单状态集合（视为已收款、计入营收）：包含线上已支付、线下已收款、已完成
+const PAID_STATUSES = ['paid', 'completed', 'paid_offline']
+
+// 订单金额兼容取值：不同来源订单可能使用 finalAmount / totalAmount / amount / totalPrice
+const getOrderAmount = (o: any): number => {
+  const v = Number(o?.finalAmount ?? o?.totalAmount ?? o?.amount ?? o?.totalPrice ?? 0)
+  return Number.isFinite(v) ? v : 0
 }
 
 export const financeService = {
@@ -92,8 +102,8 @@ export const financeService = {
       })
 
       const allOrders = result.data || []
-      const classOrders = allOrders.filter(o => o.type === 'class')
-      const courseOrders = allOrders.filter(o => o.type === 'course')
+      const classOrders = allOrders.filter(o => (o.orderType || o.type) === 'class')
+      const courseOrders = allOrders.filter(o => (o.orderType || o.type) === 'course')
 
       return {
         code: 0,
@@ -147,7 +157,7 @@ export const financeService = {
    * 获取收入统计
    */
   async getRevenueStats(startDate?: string, endDate?: string): Promise<{ code: number; data: RevenueStats }> {
-    const query: Record<string, any> = { status: 'paid' }
+    const query: Record<string, any> = { status: { $in: PAID_STATUSES } }
     if (startDate && endDate) {
       query.createdAt = { $gte: startDate, $lte: endDate }
     }
@@ -158,7 +168,7 @@ export const financeService = {
     })
 
     const orders = result.data || []
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.finalAmount || 0), 0)
+    const totalRevenue = orders.reduce((sum, o) => sum + getOrderAmount(o), 0)
     const totalOrders = orders.length
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
 
@@ -169,7 +179,7 @@ export const financeService = {
       if (!dailyStatsMap[date]) {
         dailyStatsMap[date] = { date, revenue: 0, orders: 0 }
       }
-      dailyStatsMap[date].revenue += order.finalAmount || 0
+      dailyStatsMap[date].revenue += getOrderAmount(order)
       dailyStatsMap[date].orders += 1
     })
 
@@ -191,7 +201,7 @@ export const financeService = {
    */
   async getCourseSalesStats(): Promise<{ code: number; data: CourseSalesStat[] }> {
     const result = await CloudDBService.query<Order>('orders', {
-      where: { status: 'paid' },
+      where: { status: { $in: PAID_STATUSES } },
       limit: 1000
     })
 
@@ -210,7 +220,7 @@ export const financeService = {
           }
         }
         courseStats[courseId].salesCount += 1
-        courseStats[courseId].revenue += item.price || 0
+        courseStats[courseId].revenue += item.price || item.totalPrice || 0
       })
     })
 
@@ -225,7 +235,7 @@ export const financeService = {
    */
   async getTeacherPerformanceStats(): Promise<{ code: number; data: TeacherPerformanceStat[] }> {
     const result = await CloudDBService.query<Order>('orders', {
-      where: { status: 'paid' },
+      where: { status: { $in: PAID_STATUSES } },
       limit: 1000
     })
 
@@ -245,7 +255,7 @@ export const financeService = {
             studentCount: 0
           }
         }
-        teacherStats[teacherId].totalRevenue += item.price || 0
+        teacherStats[teacherId].totalRevenue += item.price || item.totalPrice || 0
         teacherStats[teacherId].orderCount += 1
         teacherStats[teacherId].studentCount += 1
       })
@@ -307,33 +317,34 @@ export const financeService = {
   async getPaymentStats() {
     const now = new Date()
     const today = now.toISOString().split('T')[0]
-    const weekStart = new Date(now.setDate(now.getDate() - now.getDay())).toISOString().split('T')[0]
-    const monthStart = now.toISOString().split('T')[0].slice(0, 7) + '-01'
+
+    // 本周起始（周日），使用独立日期对象避免覆盖 now
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - now.getDay())
+    const weekStartStr = weekStart.toISOString().split('T')[0]
+
+    // 本月起始
+    const monthStartStr = now.toISOString().slice(0, 7) + '-01'
+
+    // 已收款时间：优先用 paidAt，缺失时回退 createdAt（线下报名订单常无 paidAt）
+    const paidDateOf = (o: any) => o.paidAt || o.createdAt || ''
+    const inPeriod = (o: any, start: string) => paidDateOf(o) >= start
 
     try {
-      // 查询今日支付
-      const todayResult = await CloudDBService.query<Order>('orders', {
-        where: { status: 'paid', paidAt: { $gte: today } },
+      // 一次性拉取全部已收款订单，在前端按时间过滤（规避 paidAt 缺失与日期计算问题）
+      const result = await CloudDBService.query<Order>('orders', {
+        where: { status: { $in: PAID_STATUSES } },
         limit: 1000
       })
-      const todayOrders = todayResult.data || []
-      const todayAmount = todayOrders.reduce((sum, o) => sum + (o.finalAmount || 0), 0)
+      const orders = result.data || []
 
-      // 查询本周支付
-      const weekResult = await CloudDBService.query<Order>('orders', {
-        where: { status: 'paid', paidAt: { $gte: weekStart } },
-        limit: 1000
-      })
-      const weekOrders = weekResult.data || []
-      const weekAmount = weekOrders.reduce((sum, o) => sum + (o.finalAmount || 0), 0)
+      const todayOrders = orders.filter(o => inPeriod(o, today))
+      const weekOrders = orders.filter(o => inPeriod(o, weekStartStr))
+      const monthOrders = orders.filter(o => inPeriod(o, monthStartStr))
 
-      // 查询本月支付
-      const monthResult = await CloudDBService.query<Order>('orders', {
-        where: { status: 'paid', paidAt: { $gte: monthStart } },
-        limit: 1000
-      })
-      const monthOrders = monthResult.data || []
-      const monthAmount = monthOrders.reduce((sum, o) => sum + (o.finalAmount || 0), 0)
+      const todayAmount = todayOrders.reduce((sum, o) => sum + getOrderAmount(o), 0)
+      const weekAmount = weekOrders.reduce((sum, o) => sum + getOrderAmount(o), 0)
+      const monthAmount = monthOrders.reduce((sum, o) => sum + getOrderAmount(o), 0)
 
       // 查询待支付订单数
       const pendingCount = await CloudDBService.count('orders', { status: 'pending' })
@@ -371,26 +382,59 @@ export const financeService = {
   /**
    * 获取退款记录
    */
-  async getRefundList(params: PaginationParams = {}) {
-    const { page = 1, pageSize = 10 } = params
+  async getRefundList(params: PaginationParams & { status?: string; keyword?: string } = {}) {
+    const { page = 1, pageSize = 10, status, keyword } = params as any
 
     try {
-      const result = await CloudDBService.query('refunds', {
+      // 构建过滤条件（status 精确匹配；keyword 模糊匹配订单号/手机号）
+      const where: Record<string, any> = {}
+      if (status) where.status = status
+      if (keyword && keyword.trim()) {
+        const kw = keyword.trim()
+        where.$or = [
+          { orderNo: { $regex: kw, $options: 'i' } },
+          { phone: { $regex: kw, $options: 'i' } },
+        ]
+      }
+
+      // 退款申请队列存储在 refundRequests 集合
+      const result = await CloudDBService.query('refundRequests', {
+        where,
         orderBy: 'createdAt',
         order: 'desc',
         skip: (page - 1) * pageSize,
         limit: pageSize
       })
 
+      const list = (result.data || []).map((r: any) => ({
+        _id: r._id,
+        orderId: r.orderId,
+        orderNo: r.orderNo,
+        phone: r.phone,
+        orderType: r.orderType,
+        amount: r.actualAmount,
+        totalAmount: r.totalAmount,
+        fee: r.fee,
+        reason: r.reason || '-',
+        status: r.status,
+        reviewNote: r.reviewNote || '',
+        createdAt: r.createdAt || ''
+      }))
+
       return {
         code: 0,
-        data: { list: result.data || [], total: result.total || 0, page, pageSize }
+        data: { list, total: result.total || list.length, page, pageSize }
       }
     } catch (error: any) {
+      // refundRequests 集合可能尚未创建（尚无任何退款申请）→ 视为空列表，不报错
+      const msg = error?.message || ''
+      if (msg.includes('not exist') || msg.includes('ResourceNotFound') || msg.includes('Db or Table')) {
+        return { code: 0, data: { list: [], total: 0, page, pageSize } }
+      }
       console.error('获取退款记录失败:', error)
       return {
         code: -1,
-        message: error.message || '获取退款记录失败',
+        message: msg || '获取退款记录失败',
         data: { list: [], total: 0, page, pageSize }
       }
     }
@@ -399,19 +443,17 @@ export const financeService = {
   /**
    * 处理退款
    */
-  async refund(orderId: string, reason: string) {
+  async approveRefund(refundId: string, override?: { actualAmount?: number; fee?: number; reviewNote?: string }) {
     try {
-      // 更新订单状态为已退款
-      await CloudDBService.update('orders', orderId, {
-        status: 'refunded',
-        refundReason: reason,
-        refundedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      // 审核通过 → 调用 api-order 执行真实微信部分退款
+      await adminService.callFunction('api-order', {
+        action: 'approveRefund',
+        data: { refundId, ...(override || {}) }
       })
-      return { code: 0, message: '退款处理成功' }
+      return { code: 0, message: '退款成功' }
     } catch (error: any) {
-      console.error('退款失败:', error)
-      return { code: -1, message: error.message || '退款失败' }
+      console.error('审核退款失败:', error)
+      return { code: -1, message: error.message || '审核退款失败' }
     }
   },
 
@@ -420,12 +462,10 @@ export const financeService = {
    */
   async rejectRefund(refundId: string, reason: string) {
     try {
-      // 将退款记录状态更新为已拒绝
-      await CloudDBService.update('refunds', refundId, {
-        status: 'rejected',
-        rejectReason: reason,
-        rejectedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      // 拒绝退款 → 调用 api-order（置 refundRequests 为 rejected，订单 refundStatus 复原）
+      await adminService.callFunction('api-order', {
+        action: 'rejectRefund',
+        data: { refundId, reviewNote: reason }
       })
       return { code: 0, message: '已拒绝退款' }
     } catch (error: any) {
@@ -435,12 +475,32 @@ export const financeService = {
   },
 
   /**
+   * 创建退款申请（统一入口：小程序端发起 / 管理后台代发起）
+   * 返回退款单 _id 及系统计算的金额，供后续审核（approveRefund）使用
+   */
+  async createRefundRequest(orderId: string, reason = '') {
+    try {
+      const res: any = await adminService.callFunction('api-order', {
+        action: 'createRefundRequest',
+        data: { orderId, reason }
+      })
+      if (res?.code === 0) {
+        return { code: 0, ...(res.data || {}), message: res.message || '已创建退款申请' }
+      }
+      return { code: res?.code ?? -1, message: res?.message || res?.error || '创建退款申请失败' }
+    } catch (error: any) {
+      console.error('创建退款申请失败:', error)
+      return { code: -1, message: error.message || '创建退款申请失败' }
+    }
+  },
+
+  /**
    * 导出支付记录
    */
   async exportPaymentReport() {
     try {
       const result = await CloudDBService.query<Order>('orders', {
-        where: { status: 'paid' },
+        where: { status: { $in: PAID_STATUSES } },
         orderBy: 'paidAt',
         order: 'desc',
         limit: 1000
@@ -450,7 +510,7 @@ export const financeService = {
       const paymentData = orders.map(o => ({
         orderNo: o.orderNo,
         title: o.items?.[0]?.title || '-',
-        amount: o.finalAmount || 0,
+        amount: getOrderAmount(o),
         payMethod: o.paymentMethod || 'wechat',
         status: o.status,
         paidAt: o.paidAt || ''

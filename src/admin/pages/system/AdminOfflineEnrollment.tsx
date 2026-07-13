@@ -64,7 +64,7 @@ export default function AdminOfflineEnrollment() {
     setHistoryLoading(true);
     try {
       const result = await orderService.list(
-        { type: 'class', paymentMethod: { $in: ['offline', 'cash', 'transfer'] } },
+        { orderType: 'class', paymentMethod: { $in: ['offline', 'cash', 'transfer'] } },
         { page: 1, pageSize: 20 }
       ) as unknown as { code: number; data: { list: any[] } };
       if (result?.code === 0) {
@@ -195,6 +195,7 @@ export default function AdminOfflineEnrollment() {
 
       // 1. 创建订单
       const orderData = {
+        orderType: 'class',
         type: 'class',
         classId: selectedClass._id,
         className: selectedClass.name,
@@ -212,7 +213,7 @@ export default function AdminOfflineEnrollment() {
         paidAt: new Date().toISOString(),
       };
 
-      const orderResult: any = await orderService.create(orderData);
+      const orderResult: any = await orderService.create(orderData as any);
       
       if (!orderResult || orderResult.code !== 0) {
         throw new Error(orderResult?.message || '创建订单失败');

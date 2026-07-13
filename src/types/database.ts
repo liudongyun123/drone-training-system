@@ -26,14 +26,15 @@ export interface OrderItem {
 
 // ============== 订单状态枚举 ==============
 
-export type OrderStatus = 'pending' | 'paid' | 'completed' | 'cancelled' | 'refunded'
+export type OrderStatus = 'pending' | 'paid' | 'completed' | 'cancelled' | 'refunded' | 'paid_offline'
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: '待支付',
   paid: '已支付',
   completed: '已完成',
   cancelled: '已取消',
-  refunded: '已退款'
+  refunded: '已退款',
+  paid_offline: '线下已付'
 }
 
 export const ORDER_STATUS_COLORS: Record<OrderStatus, 'default' | 'success' | 'warning' | 'error' | 'info'> = {
@@ -41,7 +42,8 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, 'default' | 'success' | 'w
   paid: 'success',
   completed: 'success',
   cancelled: 'default',
-  refunded: 'error'
+  refunded: 'error',
+  paid_offline: 'success'
 }
 
 // ============== 统一订单接口 ==============
@@ -81,6 +83,17 @@ export interface Order {
   courseId?: string     // 课程ID
   courseName?: string  // 课程名称
   courseCover?: string // 课程封面
+
+  // ========== 订单分类（course/class/shop，双写） ==========
+  orderType?: string    // 订单类型（课程/培训班/商城）
+  type?: string         // 订单类型（兼容旧字段，与 orderType 双写）
+
+  // ========== 培训班订单相关 ==========
+  classId?: string      // 培训班ID
+  className?: string    // 培训班名称
+  phone?: string        // 下单手机号
+  buyerPhone?: string   // 购买人手机号
+  buyerName?: string    // 购买人姓名
 
   // ========== 金额 ==========
   amount: number        // 订单金额（核心）

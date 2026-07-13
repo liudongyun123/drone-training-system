@@ -8,7 +8,7 @@ export interface ConfirmOptions {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: 'danger' | 'warning' | 'info';
+  variant?: 'danger' | 'warning' | 'info' | 'success' | 'error';
 }
 
 interface ConfirmState extends ConfirmOptions {
@@ -87,6 +87,16 @@ export function useConfirm() {
         button: 'bg-blue-600 hover:bg-blue-700 text-white',
         icon: 'text-blue-600',
         border: 'border-blue-200',
+      },
+      success: {
+        button: 'bg-green-600 hover:bg-green-700 text-white',
+        icon: 'text-green-600',
+        border: 'border-green-200',
+      },
+      error: {
+        button: 'bg-red-600 hover:bg-red-700 text-white',
+        icon: 'text-red-600',
+        border: 'border-red-200',
       },
     };
 

@@ -564,12 +564,10 @@ Page({
       wx.showToast({ title: '支付成功', icon: 'success' })
       
       setTimeout(() => {
-        // 课程订单 → 跳转合同签署页
+        // 课程订单：购买后无需签培训合同，直接跳转「我的学习」
+        // 仅培训班（class-enrollment 流程）才涉及合同签署
         if (this.data.type === 'course' && this.courseId) {
-          const courseName = encodeURIComponent(this.data.courseInfo?.title || '')
-          wx.redirectTo({
-            url: `/pages/contract-sign/contract-sign?orderId=${orderId}&courseId=${this.courseId}&courseName=${courseName}`
-          })
+          wx.redirectTo({ url: '/pages/my-learning/my-learning' })
         } else {
           wx.redirectTo({ url: '/pages/my-orders/my-orders' })
         }
