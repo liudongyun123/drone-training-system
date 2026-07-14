@@ -57,13 +57,22 @@ export default function AdminProducts() {
     loadData()
   }, [])
 
+  // 分类名称：优先按 categoryId 匹配，兼容遗留 category（自由文本 code）兜底
+  const getCategoryName = (p: Product): string => {
+    const matched = categories.find(c => c._id === p.categoryId)
+    if (matched) return matched.name
+    return p.category || '-'
+  }
+
   const loadData = async () => {
     try {
       setLoading(true)
       // 并行加载商品列表和分类列表
       const [productsResult, categoriesResult] = await Promise.all([
         adminService.listProducts({}, { limit: 100 }) as unknown as { data: { list: Product[] } },
-        adminService.listCategories({ limit: 100 }) as unknown as { data: ProductCategory[] }
+        // ★ 商品分类存放在 product_categories 集合（与商城 shopApi.categoryApi 一致），
+        // 之前误用 categories（课程分类）导致下拉框显示课程分类、分类列恒为「-」
+        adminService.list('product_categories', {}, { limit: 100 }) as unknown as { data: { list: any[] } }
       ])
       
       // 映射数据字段（兼容不同命名）
@@ -77,7 +86,12 @@ export default function AdminProducts() {
       }))
       
       setProducts(mappedProducts)
-      setCategories(categoriesResult.data?.list || (Array.isArray(categoriesResult.data) ? categoriesResult.data : []))
+      // product_categories 文档的字段嵌套在 data 子对象中，需兼容提取
+      setCategories((categoriesResult.data?.list || []).map((c: any) => ({
+        _id: c._id,
+        name: c.data?.name || c.name || '',
+        code: c.data?.code || c.code
+      })))
     } catch (err) {
       console.error('加载商品失败:', err)
     } finally {
@@ -212,7 +226,7 @@ export default function AdminProducts() {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900">{product.name || product.title}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">
-                    {categories.find(c => c._id === product.categoryId)?.name || '-'}
+                    {getCategoryName(product)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900">¥{product.price}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{product.stock}</td>

@@ -1,7 +1,7 @@
 // pages/exam/exam.ts
 // 考试/练习答题页
 
-import { getQuestions, dbGetList } from '../../utils/http'
+import { getQuestions, dbGetList, savePracticeRecord, addWrongQuestion } from '../../utils/http'
 import logger from '../../utils/logger'
 
 interface Question {
@@ -31,9 +31,14 @@ Page({
   timer: null as any,
 
   onLoad(options: any) {
-    const { type, bankId, examId, singleMode } = options
+    const { type, bankId, examId, singleMode, bankTitle, examTitle } = options
     wx.setNavigationBarTitle({ title: type === 'exam' ? '模拟考试' : '答题练习' })
-    this.setData({ type, bankId: bankId || '', examId: examId || '' })
+    this.setData({
+      type,
+      bankId: bankId || '',
+      examId: examId || '',
+      targetName: (type === 'exam' ? examTitle : bankTitle) || bankId || examId || '练习'
+    })
 
     if (singleMode === 'true') {
       this.loadSingleQuestion()
@@ -80,6 +85,17 @@ Page({
     }
   },
 
+  // 题目字段归一化：题库文档存 content/question，练习页渲染用 title，三者兜底
+  normalizeQuestion(q: any): any {
+    if (!q) return q
+    return {
+      ...q,
+      title: q.title || q.question || q.content || '',
+      question: q.question || q.content || q.title || '',
+      content: q.content || q.question || q.title || ''
+    }
+  },
+
   async loadQuestions() {
     try {
       const { type, bankId, examId } = this.data
@@ -93,9 +109,10 @@ Page({
         
         if (exam) {
           const questionsResult = await getQuestions({ examId })
+          const qs = (questionsResult.data || []).map((q: any) => this.normalizeQuestion(q))
           this.setData({
-            questions: questionsResult.data || [],
-            currentQuestion: questionsResult.data?.[0] || null,
+            questions: qs,
+            currentQuestion: qs[0] || null,
             timeLeft: (exam.duration || 30) * 60
           })
           this.startTimer()
@@ -103,9 +120,10 @@ Page({
       } else {
         // 练习模式 - 加载题库题目
         const result = await getQuestions({ bankId })
+        const qs = (result.data || []).map((q: any) => this.normalizeQuestion(q))
         this.setData({
-          questions: result.data || [],
-          currentQuestion: result.data?.[0] || null
+          questions: qs,
+          currentQuestion: qs[0] || null
         })
       }
     } catch (err) {
@@ -198,7 +216,7 @@ Page({
   },
 
   // 提交考试
-  submitExam() {
+  async submitExam() {
     if (this.timer) {
       clearInterval(this.timer)
     }
@@ -220,6 +238,42 @@ Page({
     })
 
     const score = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0
+
+    // 持久化：练习记录 + 错题（不阻塞跳转）
+    try {
+      const userId = wx.getStorageSync('userId') || wx.getStorageSync('phone') || wx.getStorageSync('openid') || ''
+      const targetId = this.data.examId || this.data.bankId || ''
+      await savePracticeRecord({
+        type: this.data.type === 'exam' ? 'exam' : 'bank',
+        targetId,
+        targetName: this.data.targetName || targetId,
+        score,
+        correctCount,
+        totalCount: questions.length,
+        duration: 0,
+        answers: userAnswers
+      })
+      // 错题入库（按 userId + questionId 去重累加）
+      const wrong = questionResults.filter((r: any) => !r.isCorrect)
+      for (const w of wrong) {
+        const q = w.question || {}
+        try {
+          await addWrongQuestion({
+            userId,
+            bankId: this.data.bankId || '',
+            questionId: q._id || '',
+            question: q.title || q.question || q.content || '',
+            options: q.options || [],
+            yourAnswer: (userAnswers[q._id] || []).join(','),
+            correctAnswer: Array.isArray(q.answer) ? q.answer.join(',') : (q.answer || '')
+          })
+        } catch (e) {
+          logger.error('考试', '写入错题失败', e)
+        }
+      }
+    } catch (e) {
+      logger.error('考试', '保存练习记录失败', e)
+    }
 
     wx.setStorageSync('examResult', {
       type: this.data.type,

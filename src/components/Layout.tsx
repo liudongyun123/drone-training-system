@@ -9,7 +9,7 @@ import {
   Bell, Search, ChevronRight, LogOut,
   LayoutDashboard, Wallet, Shield, FolderTree,
   MessageSquare, ScrollText, UsersRound,
-  Wrench, Layers, Building2, CreditCard, ClipboardList,
+  Wrench, Layers, Building2, CreditCard, ClipboardList, Percent, RefreshCw,
   BookMarked, Megaphone, Gauge, Database, Globe,
   BookMarked as LevelsIcon
 } from 'lucide-react';
@@ -141,6 +141,8 @@ const adminMenuGroups: MenuGroup[] = [
       { path: '/admin/class-orders', icon: Users, label: '培训班订单', description: '线上报名' },
       { path: '/admin/shop-orders', icon: ShoppingCart, label: '商城订单', description: '配件销售' },
       { path: '/admin/finance', icon: Wallet, label: '财务统计', description: '收入报表/对账' },
+      { path: '/admin/refund-management', icon: RefreshCw, label: '退款管理', description: '退款申请/审核' },
+      { path: '/admin/refund-config', icon: Percent, label: '退款规则', description: '手续费/阶梯规则' },
     ]
   },
 

@@ -410,7 +410,7 @@ export default function CourseForm({
                 </option>
                 {teachers.map((teacher) => (
                   <option key={teacher._id} value={teacher._id}>
-                    {teacher.name || teacher.realName}{' '}
+                    {teacher.name || (teacher as any).realName}{' '}
                     {teacher.specialty
                       ? `(${teacher.specialty.join(', ')})`
                       : ''}

@@ -629,7 +629,7 @@ export default function AdminRegistrations() {
                             </>
                           )}
                           {/* 已确认/已拒绝状态：通知 + 重新审核 */}
-                          {(enrollment.status === 'confirmed' || enrollment.status === 'cancelled') && (
+                          {((enrollment.status as string) === 'confirmed' || (enrollment.status as string) === 'cancelled') && (
                             <>
                               <button
                                 onClick={() => handleSendNotification(enrollment)}

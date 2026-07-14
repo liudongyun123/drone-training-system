@@ -56,8 +56,11 @@ export const CloudOrderService = {
         courseId: orderData.courseId,
         courseName: orderData.courseName,
         courseCover: orderData.courseCover,
+        orderType: 'course',        // ★ 订单类型，兼容前台 orderType 读取
+        type: 'course',             // ★ 双写 type，兼容后台按 type 查询
         amount: orderData.amount,
         discountAmount: 0,
+        totalAmount: orderData.amount,  // ★ 补齐 totalAmount，兼容后台金额统计
         finalAmount: orderData.amount,
         status: 'pending',
         paymentMethod: 'wechat',

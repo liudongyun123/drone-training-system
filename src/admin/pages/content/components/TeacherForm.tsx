@@ -40,7 +40,7 @@ export function TeacherForm({ teacher, isOpen, onClose, onSave, saving = false }
         bio: teacher.bio || '',
         specialties: teacher.specialties || [],
         certifications: teacher.certifications || [],
-        status: teacher.status || 'active',
+        status: (teacher.status as any) || 'active',
       });
     } else {
       setFormData({

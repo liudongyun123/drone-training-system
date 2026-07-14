@@ -112,7 +112,8 @@ export default function SystemLogManagement() {
         log =>
           log.message.toLowerCase().includes(searchKeyword.toLowerCase()) ||
           log.operation.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-          (log.userName && log.userName.toLowerCase().includes(searchKeyword.toLowerCase()))
+          ((log.userName) &&
+            (log.userName).toLowerCase().includes(searchKeyword.toLowerCase()))
       )
     }
 
@@ -126,8 +127,25 @@ export default function SystemLogManagement() {
       filtered = filtered.filter(log => log.module === moduleFilter)
     }
 
+    // 日期过滤（today/week/month/all）
+    if (dateFilter !== 'all') {
+      const now = new Date()
+      const start = new Date(now)
+      if (dateFilter === 'today') {
+        start.setHours(0, 0, 0, 0)
+      } else if (dateFilter === 'week') {
+        start.setDate(now.getDate() - 7)
+      } else if (dateFilter === 'month') {
+        start.setMonth(now.getMonth() - 1)
+      }
+      filtered = filtered.filter(log => {
+        const t = new Date(log.createdAt).getTime()
+        return !isNaN(t) && t >= start.getTime()
+      })
+    }
+
     setFilteredLogs(filtered)
-  }, [searchKeyword, levelFilter, moduleFilter, logs])
+  }, [searchKeyword, levelFilter, moduleFilter, dateFilter, logs])
 
   const getLevelColor = (level: string) => {
     const colors = {

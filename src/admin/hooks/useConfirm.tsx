@@ -100,7 +100,7 @@ export function useConfirm() {
       },
     };
 
-    const style = variantStyles[state.variant || 'info'];
+    const style = variantStyles[state.variant || 'info'] || variantStyles.info;
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">

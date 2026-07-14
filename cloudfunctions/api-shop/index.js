@@ -180,8 +180,11 @@ async function createOrder(data, userId) {
   const orderNo = generateOrderNo();
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const expiredAt = new Date(Date.now() + 30 * 60 * 1e3).toISOString();
+  const orderType = data.orderType || "course";
   const order = {
     orderNo,
+    orderType,
+    type: orderType,
     items,
     totalAmount,
     finalAmount: totalAmount,
@@ -404,6 +407,7 @@ async function createShopOrder(data, userId) {
     _openid: openid,
     userId: order.userId || openid,
     orderType: "shop",
+    type: "shop",
     shopItems: order.shopItems,
     shippingAddress: order.shippingAddress || {},
     remark: order.remark || "",
@@ -529,3 +533,54 @@ exports.main = async (event, context) => {
     return errorResult;
   }
 };
+
+// ========== Web 函数模式（WEB_SCF / HTTP 网关 Web 模式）==========
+// 云函数以 HTTP(Web) 模式部署时，运行时会执行本文件并期望进程内启动 HTTP 服务监听
+// PORT(默认 9000)；网关将请求转发到该服务。这里直接复用上面的 exports.main 业务逻辑，
+// 把网关转发的原始 HTTP 请求重新组装成 event 交给 main 处理，再将响应写回。
+// 仅当本文件作为主模块被 `node index.js` 启动时（web 模式）才监听端口；
+// 事件(Event)模式下运行时直接调用 exports.main，不启动服务。
+if (require.main === module) {
+  const http = require("http");
+  const PORT = process.env.PORT || 9000;
+  const server = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", async () => {
+      try {
+        const event = {
+          httpMethod: req.method,
+          headers: req.headers,
+          body: body || undefined
+        };
+        if (body) {
+          try {
+            const parsed = JSON.parse(body);
+            event.action = parsed.action;
+            event.data = parsed.data;
+          } catch (e) {
+            // 非 JSON body 忽略，交给 main 处理
+          }
+        }
+        const result = await exports.main(event, {});
+        const statusCode = (result && result.statusCode) || 200;
+        const headers = (result && result.headers) || {
+          "Content-Type": "application/json"
+        };
+        const outBody = result && result.body != null ? result.body : "";
+        res.writeHead(statusCode, headers);
+        res.end(typeof outBody === "string" ? outBody : JSON.stringify(outBody));
+      } catch (err) {
+        res.writeHead(500, {
+          "Content-Type": "application/json"
+        });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+  });
+  server.listen(PORT, () => {
+    console.log("[api-shop] web server listening on :" + PORT);
+  });
+}

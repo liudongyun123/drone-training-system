@@ -12,6 +12,7 @@ import ExamList from './components/ExamList';
 import ExamForm, { type ExamFormData } from './components/ExamForm';
 import QuestionBankList, { type BankFormData } from './components/QuestionBankList';
 import QuestionList from './components/QuestionList';
+import QuestionForm, { type QuestionFormData } from './components/QuestionForm';
 
 type TabKey = 'exams' | 'questionBanks' | 'questions';
 
@@ -86,6 +87,21 @@ export default function AdminExamsUnited() {
     } catch (error) {
       console.error('删除题目失败:', error);
       await confirm({ title: '删除失败', message: '删除失败，请重试', variant: 'warning' });
+    }
+  };
+
+  const handleQuestionSave = async (data: QuestionFormData) => {
+    if (!selectedBank) {
+      await confirm({ title: '提示', message: '请先选择题库', variant: 'warning' });
+      return;
+    }
+    try {
+      await questionList.save(data, questionModal.editing);
+      questionModal.close();
+      await questionList.load();
+    } catch (error: any) {
+      const msg = error instanceof Error ? error.message : '保存失败，请重试';
+      await confirm({ title: '保存失败', message: msg, variant: 'warning' });
     }
   };
 
@@ -179,6 +195,7 @@ export default function AdminExamsUnited() {
             onSelectedBankChange={setSelectedBank}
             onKeywordChange={questionList.setKeyword}
             onDifficultyFilterChange={questionList.setDifficultyFilter}
+            onCreate={() => questionModal.open()}
             onEdit={questionModal.open} onDelete={handleQuestionDelete}
             onImport={handleImportQuestions}
             importing={importState.importing} importProgress={importState.progress}
@@ -189,6 +206,11 @@ export default function AdminExamsUnited() {
         <ExamForm
           exam={examModal.editing} isOpen={examModal.isOpen}
           onClose={examModal.close} onSave={handleExamSave}
+        />
+
+        <QuestionForm
+          question={questionModal.editing} isOpen={questionModal.isOpen}
+          onClose={questionModal.close} onSave={handleQuestionSave}
         />
 
         {/* 全局确认弹窗 */}

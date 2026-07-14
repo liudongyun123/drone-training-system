@@ -89,6 +89,8 @@ export const AdminContracts = lazy(() => import('@/components/admin/ContractMana
 // 订单财务
 export const AdminCourseOrders = lazy(() => import('@/admin/pages/orders/AdminCourseOrders'));
 export const AdminFinance = lazy(() => import('@/admin/pages/orders/AdminFinance'));
+export const AdminRefundConfig = lazy(() => import('@/admin/pages/orders/AdminRefundConfig'));
+export const AdminRefundManagement = lazy(() => import('@/admin/pages/orders/AdminRefundManagement'));
 export const AdminTransfers = lazy(() => import('@/admin/pages/orders/AdminTransfers'));
 
 // 考试管理

@@ -13,6 +13,13 @@ import {
 import { financeService } from '@/services/financeService';
 import type { Order } from '@/types';
 import { formatDateStr } from '@/utils/dateUtils';
+import RefundReviewModal from '@/components/admin/RefundReviewModal';
+
+// 订单金额兼容取值（不同来源订单字段不同）
+const getOrderAmount = (o: any): number => {
+  const v = Number(o?.finalAmount ?? o?.totalAmount ?? o?.amount ?? o?.totalPrice ?? 0)
+  return Number.isFinite(v) ? v : 0
+}
 
 // 课程销售数据接口
 interface CourseSales {
@@ -48,6 +55,8 @@ function OrderDetailModal({ order, isOpen, onClose, onStatusChange }: OrderDetai
     const statusMap: Record<string, { text: string; class: string }> = {
       pending: { text: '待支付', class: 'bg-yellow-100 text-yellow-700' },
       paid: { text: '已支付', class: 'bg-green-100 text-green-700' },
+      completed: { text: '已完成', class: 'bg-blue-100 text-blue-700' },
+      paid_offline: { text: '线下已付', class: 'bg-orange-100 text-orange-700' },
       cancelled: { text: '已取消', class: 'bg-gray-100 text-gray-700' },
       refunded: { text: '已退款', class: 'bg-red-100 text-red-700' },
     };
@@ -150,7 +159,7 @@ function OrderDetailModal({ order, isOpen, onClose, onStatusChange }: OrderDetai
                 </div>
                 <div className="flex justify-between pt-2 border-t">
                   <span className="font-semibold text-gray-800">实付金额</span>
-                  <span className="font-bold text-xl text-blue-600">¥{order.finalAmount}</span>
+                  <span className="font-bold text-xl text-blue-600">¥{getOrderAmount(order)}</span>
                 </div>
               </div>
             </div>
@@ -229,12 +238,11 @@ export default function AdminFinance() {
   const [refundPageSize] = useState(10);
   const [refundLoading, setRefundLoading] = useState(false);
   
-  // 处理退款弹窗
+  // 退款审核弹窗（持有退款申请单，而非订单）
   const [refundModal, setRefundModal] = useState<{
     isOpen: boolean;
-    order: Order | null;
-  }>({ isOpen: false, order: null });
-  const [rejectReason, setRejectReason] = useState('');
+    refund: any | null;
+  }>({ isOpen: false, refund: null });
   const [loading, setLoading] = useState(false);
   
   // 统计数据
@@ -255,7 +263,7 @@ export default function AdminFinance() {
   const [orderPage, setOrderPage] = useState(1);
   const [orderPageSize] = useState(10);
   const [orderKeyword, setOrderKeyword] = useState('');
-  const [orderStatus, setOrderStatus] = useState<'all' | 'pending' | 'paid' | 'cancelled' | 'refunded'>('all');
+  const [orderStatus, setOrderStatus] = useState<'all' | 'pending' | 'paid' | 'completed' | 'paid_offline' | 'cancelled' | 'refunded'>('all');
   const [orderType, setOrderType] = useState<'all' | 'class' | 'course'>('all');
   
   // 课程销售数据
@@ -295,8 +303,8 @@ export default function AdminFinance() {
         const { classOrders, courseOrders } = result.data;
         
         // 计算各类订单金额
-        const classAmount = classOrders.reduce((sum, o) => sum + (o.finalAmount || 0), 0);
-        const courseAmount = courseOrders.reduce((sum, o) => sum + (o.finalAmount || 0), 0);
+        const classAmount = classOrders.reduce((sum, o) => sum + getOrderAmount(o), 0);
+        const courseAmount = courseOrders.reduce((sum, o) => sum + getOrderAmount(o), 0);
         
         setUserOrderStats({
           phone,
@@ -332,7 +340,7 @@ export default function AdminFinance() {
           totalRevenue: revenueResult.data.totalRevenue,
           totalOrders: revenueResult.data.totalOrders,
           avgOrderValue: revenueResult.data.avgOrderValue,
-          paidUsers: revenueResult.data.paidUsers || revenueResult.data.totalOrders || 0,
+          paidUsers: (revenueResult.data as any).paidUsers || revenueResult.data.totalOrders || 0,
         }));
       }
       
@@ -358,7 +366,7 @@ export default function AdminFinance() {
         query.status = orderStatus;
       }
       if (orderType !== 'all') {
-        query.type = orderType;
+        query.orderType = orderType;
       }
       
       const result = await financeService.getOrders(query, {
@@ -482,28 +490,12 @@ export default function AdminFinance() {
     }
   };
   
-  // 处理退款
-  const handleRefund = async (orderId: string, reason: string) => {
-    try {
-      const result = await financeService.refund(orderId, reason);
-      if (result.code === 0) {
-        await confirm({ 
-          title: '退款成功', 
-          message: '退款申请已提交，款项将原路退回', 
-          variant: 'success' 
-        });
-        setRefundModal({ isOpen: false, order: null });
-        loadRefundList();
-        loadPaymentStats();
-      } else {
-        await confirm({ title: '退款失败', message: result.message || '退款失败，请重试', variant: 'error' });
-      }
-    } catch (error) {
-      console.error('退款失败:', error);
-      await confirm({ title: '退款失败', message: '退款失败，请重试', variant: 'error' });
-    }
+  // 打开退款审核弹窗（共享 RefundReviewModal 内部维护可编辑金额/手续费）
+  const openReviewModal = (refund: any) => {
+    setRefundModal({ isOpen: true, refund });
   };
   
+
   // 导出支付记录
   const handleExportPayments = async () => {
     try {
@@ -575,6 +567,8 @@ export default function AdminFinance() {
     const statusMap: Record<string, { text: string; class: string }> = {
       pending: { text: '待支付', class: 'bg-yellow-100 text-yellow-700' },
       paid: { text: '已支付', class: 'bg-green-100 text-green-700' },
+      completed: { text: '已完成', class: 'bg-blue-100 text-blue-700' },
+      paid_offline: { text: '线下已付', class: 'bg-orange-100 text-orange-700' },
       cancelled: { text: '已取消', class: 'bg-gray-100 text-gray-700' },
       refunded: { text: '已退款', class: 'bg-red-100 text-red-700' },
     };
@@ -815,6 +809,8 @@ export default function AdminFinance() {
                     <option value="all">全部状态</option>
                     <option value="pending">待支付</option>
                     <option value="paid">已支付</option>
+                    <option value="completed">已完成</option>
+                    <option value="paid_offline">线下已付</option>
                     <option value="cancelled">已取消</option>
                     <option value="refunded">已退款</option>
                   </select>
@@ -926,7 +922,7 @@ export default function AdminFinance() {
                                     </span>
                                     {getStatusBadge(order.status)}
                                   </div>
-                                  <span className="font-medium text-orange-600">¥{order.finalAmount}</span>
+                                  <span className="font-medium text-orange-600">¥{getOrderAmount(order)}</span>
                                 </div>
                               ))}
                             </div>
@@ -947,7 +943,7 @@ export default function AdminFinance() {
                                     </span>
                                     {getStatusBadge(order.status)}
                                   </div>
-                                  <span className="font-medium text-purple-600">¥{order.finalAmount}</span>
+                                  <span className="font-medium text-purple-600">¥{getOrderAmount(order)}</span>
                                 </div>
                               ))}
                             </div>
@@ -998,18 +994,18 @@ export default function AdminFinance() {
                                 <span className="text-gray-500"> +{order.items.length - 1}</span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-800">¥{order.finalAmount}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-gray-800">¥{getOrderAmount(order)}</td>
                             <td className="px-4 py-3">
                               {order.source === 'offline_enroll' ? (
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">线下报名</span>
-                              ) : order.type === 'class' ? (
+                              ) : (order.orderType || order.type) === 'class' ? (
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">线下班</span>
-                              ) : order.type === 'course' ? (
+                              ) : (order.orderType || order.type) === 'course' ? (
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">线上课程</span>
-                              ) : order.type === 'product' ? (
+                              ) : (order.orderType || order.type) === 'product' ? (
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">商城</span>
                               ) : (
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{order.type || '未知'}</span>
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{order.orderType || order.type || '未知'}</span>
                               )}
                             </td>
                             <td className="px-4 py-3">{getStatusBadge(order.status)}</td>
@@ -1360,21 +1356,15 @@ export default function AdminFinance() {
                                 {formatDateStr(refund.createdAt)}
                               </td>
                               <td className="px-4 py-3 text-right">
-                                {refund.status === 'pending' && (
-                                  <div className="flex justify-end gap-2">
-                                    <button
-                                      onClick={() => handleRefund(refund.orderId, refund.reason)}
-                                      className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-medium transition-colors"
-                                    >
-                                      确认退款
-                                    </button>
-                                    <button
-                                      onClick={() => setRefundModal({ isOpen: true, order: refund })}
-                                      className="px-3 py-1 border border-gray-300 hover:bg-gray-50 rounded text-xs font-medium transition-colors"
-                                    >
-                                      拒绝
-                                    </button>
-                                  </div>
+                                {refund.status === 'pending' ? (
+                                  <button
+                                    onClick={() => openReviewModal(refund)}
+                                    className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-medium transition-colors"
+                                  >
+                                    审核
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-gray-400">已处理</span>
                                 )}
                               </td>
                             </tr>
@@ -1422,65 +1412,16 @@ export default function AdminFinance() {
         onStatusChange={handleOrderStatusChange}
       />
 
-      {/* 拒绝退款弹窗 */}
-      {refundModal.isOpen && refundModal.order && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-xl font-bold text-gray-800">拒绝退款</h2>
-              <p className="text-sm text-gray-500 mt-1">订单号: {refundModal.order.orderNo}</p>
-            </div>
-            <div className="p-6">
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">退款金额</p>
-                <p className="text-2xl font-bold text-red-600">¥{refundModal.order.finalAmount}</p>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">拒绝原因</label>
-                <textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                  rows={3}
-                  placeholder="请输入拒绝原因（将通知用户）"
-                />
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t flex gap-3">
-              <button
-                onClick={() => setRefundModal({ isOpen: false, order: null })}
-                className="flex-1 py-2.5 border hover:bg-gray-50 rounded-lg font-medium transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={async () => {
-                  if (!rejectReason.trim()) {
-                    await confirm({ title: '提示', message: '请输入拒绝原因', variant: 'info' });
-                    return;
-                  }
-                  const result = await financeService.rejectRefund(
-                    refundModal.order!._id!,
-                    rejectReason
-                  );
-                  if (result.code === 0) {
-                    await confirm({ title: '操作成功', message: '已拒绝退款申请', variant: 'success' });
-                    setRefundModal({ isOpen: false, order: null });
-                    setRejectReason('');
-                    loadRefundList();
-                    loadPaymentStats();
-                  } else {
-                    await confirm({ title: '操作失败', message: result.message || '拒绝退款失败', variant: 'error' });
-                  }
-                }}
-                className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
-              >
-                确认拒绝
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 退款审核弹窗（共享组件，财务/课程订单统一入口） */}
+      <RefundReviewModal
+        isOpen={refundModal.isOpen}
+        refund={refundModal.refund}
+        onClose={() => setRefundModal({ isOpen: false, refund: null })}
+        onDone={() => {
+          loadRefundList();
+          loadPaymentStats();
+        }}
+      />
     </div>
   );
 }

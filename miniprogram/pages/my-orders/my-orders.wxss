@@ -384,9 +384,20 @@
   padding: 0;
 }
 
+.action-btn.btn-refund {
+  color: #ef4444;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
 .action-btn:active {
   opacity: 0.8;
   transform: scale(0.98);
+}
+
+.refund-status {
+  color: #ef4444;
+  font-weight: 500;
 }
 
 /* 底部提示 */

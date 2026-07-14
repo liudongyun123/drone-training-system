@@ -66,9 +66,9 @@
       >
         <image class="cert-icon" src="/assets/icons/diploma.png" mode="aspectFit" lazy-load />
         <view class="cert-info">
-          <text class="cert-title">{{item.className}}</text>
-          <text class="cert-meta">成绩: {{item.score}}分</text>
-          <text class="cert-meta">颁发日期: {{item.issuedAt}}</text>
+          <text class="cert-title">{{item.displayTitle}}</text>
+          <text class="cert-meta" wx:if="{{item.certificateNo}}">证书编号: {{item.certificateNo}}</text>
+          <text class="cert-meta">颁发日期: {{item.displayDate}}</text>
         </view>
         <view class="cert-action">
           <text class="action-text">查看</text>

@@ -26,6 +26,7 @@
     "pages/exam/exam",
     "pages/result/result",
     "pages/my-certificates/my-certificates",
+    "pages/certificate-detail/certificate-detail",
     "pages/learning-path/learning-path",
     "pages/transfer-request/transfer-request",
     "pages/notifications/notifications",

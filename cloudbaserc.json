@@ -108,5 +108,34 @@
     "name": "y"
   },
   "functionRoot": "./cloudfunctions",
-  "functions": []
+  "functions": [
+    {
+      "name": "api-order",
+      "timeout": 60,
+      "memorySize": 256,
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "installDependency": true,
+      "triggers": [
+        {
+          "name": "http-trigger",
+          "type": "http"
+        }
+      ]
+    },
+    {
+      "name": "api-message",
+      "timeout": 60,
+      "memorySize": 256,
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "installDependency": true,
+      "triggers": [
+        {
+          "name": "http-trigger",
+          "type": "http"
+        }
+      ]
+    }
+  ]
 }

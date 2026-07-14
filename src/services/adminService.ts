@@ -49,6 +49,32 @@ httpClient.interceptors.response.use(
 
 // ==================== 通用 CRUD 操作 ====================
 
+// 操作日志：在数据访问层统一记录后台增删改操作，写入 system_logs 集合。
+// 这样「操作日志」模块才会有真实数据（而非仅登录/登出）。
+async function recordOperationLog(
+  module: string,
+  operation: string,
+  message: string,
+  extra: Record<string, unknown> = {}
+): Promise<void> {
+  try {
+    await httpClient.post('/db-init', {
+      action: 'add',
+      collection: 'system_logs',
+      data: {
+        level: 'info',
+        module,
+        operation,
+        message,
+        ...extra,
+        createdAt: new Date().toISOString(),
+      },
+    })
+  } catch (e) {
+    // 日志写入失败不影响主业务流程
+  }
+}
+
 async function httpRequest<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
   // ★ 统一走 /db-init 云函数（与小程序一致）；根路径 / 无 HTTP 触发器，会返回 INVALID_PATH
   const response = await httpClient.post('/db-init', { action, ...params }) as Record<string, unknown>
@@ -121,6 +147,10 @@ export const adminService = {
     if (!id) {
       console.warn('[adminService] add 返回的 id 为空, result:', JSON.stringify(result))
     }
+    // 记录操作日志（跳过日志集合自身，避免递归）
+    if (collection !== 'system_logs') {
+      void recordOperationLog(collection, 'create', `新增 ${collection} 记录${id ? ` (${id})` : ''}`)
+    }
     return { code: 0, data: { id }, message }
   },
 
@@ -134,6 +164,10 @@ export const adminService = {
       console.error('[adminService] update 失败:', JSON.stringify(result))
       return { code, message: result?.message || '更新失败' }
     }
+    // 记录操作日志（跳过日志集合自身，避免递归）
+    if (collection !== 'system_logs') {
+      void recordOperationLog(collection, 'update', `更新 ${collection} 记录 (${id})`)
+    }
     return { code: 0 }
   },
 
@@ -146,6 +180,10 @@ export const adminService = {
     if (code !== 0) {
       console.error('[adminService] delete 失败:', JSON.stringify(result))
       return { code, message: result?.message || '删除失败' }
+    }
+    // 记录操作日志（跳过日志集合自身，避免递归）
+    if (collection !== 'system_logs') {
+      void recordOperationLog(collection, 'delete', `删除 ${collection} 记录 (${id})`)
     }
     return { code: 0 }
   },

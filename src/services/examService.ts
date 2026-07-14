@@ -967,26 +967,41 @@ export const questionBankService = {
       
       const bankId = questionsData[0]?.bankId || '';
       let bankName = '';
+      let passingScore = 60;
       if (bankId) {
         const bankResult = await adminService.get('questionBanks', bankId);
         const bankData = extractSingle(bankResult);
-        bankName = bankData?.title || '';
+        bankName = bankData?.title || bankData?.name || '';
+        passingScore = bankData?.passingScore ?? bankData?.passing_score ?? 60;
       }
-      
+
+      const score = Math.round((correctCount / answers.length) * 100);
+      const isPassed = score >= passingScore;
+      const timeISO = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const nowISO = new Date().toISOString();
+
       const record: Omit<PracticeRecord, '_id'> = {
         userId: finalUserId,
         bankId,
         bankName,
+        bankTitle: bankName,
         mode: 'random' as const,
         courseId: '',
         questionCount: answers.length,
+        totalQuestions: answers.length,
         correctCount,
-        score: Math.round((correctCount / answers.length) * 100),
+        correctAnswers: correctCount,
+        score,
+        passingScore,
+        isPassed,
         duration: 30,
+        timeSpent: 30,
         answers: scoredAnswers,
-        startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        endTime: new Date().toISOString(),
-        createdAt: new Date().toISOString()
+        startTime: timeISO,
+        startedAt: timeISO,
+        endTime: nowISO,
+        completedAt: nowISO,
+        createdAt: nowISO
       };
       
       const result = await adminService.add('practiceRecords', record);

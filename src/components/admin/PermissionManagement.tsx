@@ -112,7 +112,7 @@ export default function PermissionManagement() {
   const loadCoursePermissions = async () => {
     setLoading(true)
     try {
-      const result = await permissionService.getUserPermissions('', { limit: 200 })
+      const result = await permissionService.getUserPermissions('', { limit: 5000 })
       setCoursePermissions(result)
 
       // 计算统计
@@ -142,9 +142,12 @@ export default function PermissionManagement() {
     setEditingPermission(permission)
     setEditFormData({
       videoEnabled: permission.videoAccess?.enabled ?? true,
-      videoValidDays: permission.videoAccess?.validUntil 
-        ? Math.ceil((new Date(permission.videoAccess.validUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-        : 365,
+      videoValidDays: (() => {
+        if (!permission.videoAccess?.validUntil) return 365
+        const days = Math.ceil((new Date(permission.videoAccess.validUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        // 已过期（<=0）时回退到默认 365，避免下拉框出现无匹配项的空选
+        return days > 0 ? days : 365
+      })(),
       status: permission.status as 'active' | 'expired' | 'revoked'
     })
     setEditResult(null)
@@ -496,7 +499,7 @@ export default function PermissionManagement() {
             p.courseName || p.courseId || '',
             p.source || '',
             p.status || '',
-            p.expiredAt || '',
+            p.videoAccess?.validUntil || '',
           ])
       const csv = [header, ...rows]
         .map((r) => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(','))
@@ -933,7 +936,6 @@ export default function PermissionManagement() {
                                 <MoreVertical size={14} />
                               </button>
                               <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-32">
-                                <li><a>详情</a></li>
                                 <li><a className="text-error" onClick={() => handleRemoveMember(member)}>移除</a></li>
                               </ul>
                             </div>

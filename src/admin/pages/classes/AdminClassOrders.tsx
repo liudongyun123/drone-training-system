@@ -140,8 +140,8 @@ export default function AdminClassOrders() {
       // 查询 enrollments 集合（线上报名）
       const enrollmentsQuery = { ...query };
       const enrollmentsResult = await adminService.listWithOps('enrollments', enrollmentsQuery, { skip: (page - 1) * pageSize, limit: pageSize });
-      // 查询 orders 集合中的培训班订单（线下报名，type='class'）
-      const ordersQuery = { ...query, type: 'class' };
+      // 查询 orders 集合中的培训班订单（线下报名，orderType='class'）
+      const ordersQuery = { ...query, orderType: 'class' };
       const ordersResult = await adminService.listWithOps('orders', ordersQuery, { skip: (page - 1) * pageSize, limit: pageSize });
       
       let list: any[] = [];
@@ -366,6 +366,7 @@ export default function AdminClassOrders() {
 
       // 1. 创建订单
       const orderData = {
+        orderType: 'class',
         type: 'class',
         classId: classId,
         className: className,

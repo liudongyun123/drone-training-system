@@ -3,7 +3,6 @@
 // ============================================================================
 import { useState, useEffect, useCallback } from 'react';
 import { examService, questionBankService } from '@/services/database';
-import { examService as examServiceDirect } from '@/services/examService';
 import { safeGetList, safeGetTotal } from '@/utils/safeData';
 import type { Exam, QuestionBank, BankQuestion } from '@/types';
 
@@ -147,7 +146,8 @@ export function useQuestionList(bankId: string) {
     }
     setLoading(true);
     try {
-      const result = await examServiceDirect.getQuestions(bankId);
+      // 修复：按 bankId 查 questions 集合（此前误用 examService.getQuestions(examId)，导致题目列表恒为空）
+      const result = await questionBankService.getQuestions(bankId);
       const allQuestions = safeGetList(result);
 
       // 客户端过滤
@@ -179,13 +179,34 @@ export function useQuestionList(bankId: string) {
   useEffect(() => { load(); }, [load]);
 
   const remove = async (question: BankQuestion) => {
-    // 从题库中移除题目
-    const result = await questionBankService.getList({ page: 1, pageSize: 1000 });
-    const allBanks = safeGetList(result);
-    const bank = allBanks.find((b: QuestionBank) => b._id === bankId);
-    if (bank && (bank as any).questions) {
-      const updatedQuestions = (bank as any).questions.filter((q: any) => q._id !== question._id);
-      await questionBankService.update(bankId, { questions: updatedQuestions } as any);
+    // 修复：题目存储在独立的 questions 集合，直接删除该文档并同步题库计数
+    // （此前误改 bank.questions 内嵌数组，导致删除不生效）
+    if (!question._id) throw new Error('题目 ID 缺失，无法删除');
+    await questionBankService.deleteQuestion(question._id, bankId);
+  };
+
+  // 新增/编辑单题：写 questions 集合（同时写 content/question、score/points、explanation/analysis 兼容两端字段）
+  const save = async (data: any, editing: BankQuestion | null) => {
+    if (!bankId) throw new Error('请先选择题库');
+    if (!data.content?.trim()) throw new Error('请输入题目内容');
+    const payload: any = {
+      bankId,
+      type: data.type,
+      content: data.content,
+      question: data.content,
+      options: data.options || [],
+      answer: data.answer,
+      difficulty: data.difficulty || 'medium',
+      score: data.score || 1,
+      points: data.score || 1,
+      explanation: data.explanation || '',
+      analysis: data.explanation || '',
+      status: 'active',
+    };
+    if (editing && editing._id) {
+      await questionBankService.updateQuestion(editing._id, payload);
+    } else {
+      await questionBankService.createQuestion(payload);
     }
   };
 
@@ -227,7 +248,7 @@ export function useQuestionList(bankId: string) {
   return {
     questions, loading, total, page, setPage,
     keyword, setKeyword, difficultyFilter, setDifficultyFilter,
-    load, remove, importQuestions,
+    load, remove, save, importQuestions,
   };
 }
 

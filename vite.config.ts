@@ -16,7 +16,7 @@ const API_TIMEOUT = parseInt(env.VITE_API_TIMEOUT || "30000", 10);
 const DEBUG_MODE = env.VITE_DEBUG_MODE === "true";
 
 // 构建版本号
-const BUILD_VERSION = 'v20260710-1700-cert-create';
+const BUILD_VERSION = 'v20260714-0938-full-fix';
 
 // Sentry 配置
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
@@ -125,13 +125,13 @@ export default defineConfig({
     // 使用 esbuild 压缩并移除 console 和 debugger
     minify: 'esbuild',
     esbuild: {
-      // drop: ['console', 'debugger'], // 临时保留 console 用于调试保存问题
+      drop: ['debugger'], // 生产环境移除 debugger（保留 console 用于关键日志）
       // 压缩级别
       compress: {
         // 移除未使用的代码
         dead_code: true,
         // 生产环境移除 console.log（保留 console.error/warn/info 用于关键日志）
-        drop_console: false, // 临时保留 console 用于调试保存问题
+        drop_console: true, // 生产环境移除 console.log 等噪音
         drop_debugger: true,
         // 传递参数给 terser
         passes: 2,

@@ -187,8 +187,18 @@ exports.main = async (event, context) => {
         return await createPayOrder(data)
       case 'queryOrder':
         return await queryPayOrder(data)
-      case 'refund':
-        return await createRefund(data)
+      case 'getRefundConfig':
+        return await getRefundConfigAction()
+      case 'saveRefundConfig':
+        return await saveRefundConfigAction(data)
+      case 'calcRefund':
+        return await calcRefundAction(data)
+      case 'createRefundRequest':
+        return await createRefundRequestAction(data)
+      case 'approveRefund':
+        return await approveRefundAction(data)
+      case 'rejectRefund':
+        return await rejectRefundAction(data)
       case 'createContract':
         return await createContract(data)
       case 'signContract':
@@ -266,13 +276,14 @@ async function createOrder(data) {
   }
   
   try {
-    // ★ 防重复购买：课程和培训班不能重复下单
+    // ★ 防重复购买：仅拦截已支付/已完成的订单；pending 表示支付未完成，允许重新下单
+    const PURCHASED_STATUSES = ['paid', 'completed', 'paid_offline']
     if (orderType === 'course' && courseId) {
       const existingCourseOrder = await db.collection('orders')
         .where({
           phone,
           courseId,
-          status: _.in(['pending', 'paid', 'completed'])
+          status: _.in(PURCHASED_STATUSES)
         })
         .limit(1)
         .get()
@@ -284,6 +295,8 @@ async function createOrder(data) {
           error: '您已购买过该课程，无需重复购买'
         })
       }
+      // 清理该用户遗留的未支付订单，避免重复堆积并防止被误判为重复购买
+      await cancelStalePendingOrders({ phone, courseId })
     }
     
     if (orderType === 'class' && classId) {
@@ -291,7 +304,7 @@ async function createOrder(data) {
         .where({
           phone,
           classId,
-          status: _.in(['pending', 'paid', 'completed'])
+          status: _.in(PURCHASED_STATUSES)
         })
         .limit(1)
         .get()
@@ -303,6 +316,7 @@ async function createOrder(data) {
           error: '您已报名此培训班，无需重复报名'
         })
       }
+      await cancelStalePendingOrders({ phone, classId })
     }
     
     const orderData = {
@@ -312,6 +326,7 @@ async function createOrder(data) {
       openid: openid || '',   // 同时存一份便于查询
       userId: userId || '',
       orderType,
+      type: orderType,  // ★ 双写 type，兼容后台按 type 查询（AdminCourseOrders/AdminClassOrders/financeService）
       status,
       totalPrice: totalPrice || 0,
       finalAmount: finalAmount || totalPrice || 0,
@@ -355,13 +370,32 @@ async function createOrder(data) {
         ...orderData
       }
     })
-  } catch (error) {
+    } catch (error) {
     console.error('[api-order] 创建订单失败:', error)
     return createResponse({
       code: 500,
       success: false,
       error: '创建订单失败: ' + error.message
     })
+  }
+}
+
+// 取消用户遗留的未支付订单（支付未完成/已取消），避免重复下单被拦截
+async function cancelStalePendingOrders({ phone, courseId, classId }) {
+  try {
+    const where = { phone, status: 'pending' }
+    if (courseId) where.courseId = courseId
+    if (classId) where.classId = classId
+    const pending = await db.collection('orders').where(where).get()
+    for (const o of (pending.data || [])) {
+      await db.collection('orders').doc(o._id).update({
+        status: 'cancelled',
+        cancelReason: '重复下单自动取消',
+        updatedAt: new Date().toISOString()
+      })
+    }
+  } catch (e) {
+    console.error('[api-order] 清理 pending 订单失败:', e)
   }
 }
 
@@ -1393,41 +1427,273 @@ async function queryPayOrder(data) {
 }
 
 // ========== 申请退款 ==========
-async function createRefund(data) {
-  const { orderId, reason = '用户申请退款' } = data
-  if (!WX_PAY_CONFIG.PRIVATE_KEY || !WX_PAY_CONFIG.CERT_SERIAL_NO) {
-    return createResponse({ code: 500, success: false, error: '微信支付证书未配置' })
+// ========== 退款配置 + 手续费引擎 + 申请/审核（部分退款） ==========
+
+// 默认退款配置（首次访问时写入 refundConfig 集合）
+function getDefaultRefundConfig() {
+  return {
+    classFeeRate: 0.1,            // 培训班：固定比例手续费（默认扣 10%）
+    classOverrides: {},           // 按班级覆盖：{ [classId]: rate }
+    courseTiers: [                // 课程：阶梯规则（按顺序首个命中者生效，最后一条为兜底不可退）
+      { maxDays: 3,    maxProgress: 0,   refundRate: 1.0, label: '未开始且3天内' },
+      { maxDays: 7,    maxProgress: 50,  refundRate: 0.8, label: '进度<50%且7天内' },
+      { maxDays: 30,   maxProgress: 100, refundRate: 0.5, label: '进度<100%且30天内' },
+      { maxDays: 9999, maxProgress: 100, refundRate: 0.0, label: '超出时限不可退' }
+    ],
+    updatedAt: new Date().toISOString()
   }
+}
+
+async function readRefundConfig() {
+  try {
+    const res = await db.collection('refundConfig').doc('refundConfig').get()
+    const cfg = getDocData(res)
+    if (cfg) return cfg
+  } catch (e) { /* 集合可能尚未创建，下面写入会自建 */ }
+  const def = getDefaultRefundConfig()
+  try { await db.collection('refundConfig').doc('refundConfig').set(def) } catch (e) {}
+  return def
+}
+
+// 订单金额（兼容多字段）
+function orderAmount(o) {
+  return Number(o.finalAmount || o.totalAmount || o.amount || o.totalPrice || 0) || 0
+}
+
+// 课程进度（尽力而为；无进度数据时按 0 处理）
+async function getCourseProgress(phone, courseId) {
+  if (!phone || !courseId) return 0
+  try {
+    const res = await db.collection('courseProgress').where({ phone, courseId }).get()
+    const list = res && res.data ? res.data : []
+    const rec = Array.isArray(list) ? (list[0] && (list[0].data || list[0])) : null
+    if (rec && typeof rec.progress === 'number') return rec.progress
+  } catch (e) {}
+  return 0
+}
+
+// 根据订单与配置计算退款（手续费 + 实际退款金额）
+async function calcRefundInternal(order, cfg) {
+  const total = orderAmount(order)
+  const orderType = order.orderType || order.type || 'course'
+  const days = Math.max(0, Math.floor((Date.now() - new Date(order.paidAt || order.createdAt || Date.now()).getTime()) / 86400000))
+  let feeRate = 0
+  let rule = ''
+  if (orderType === 'class') {
+    const rate = (cfg.classOverrides && cfg.classOverrides[order.classId]) ?? cfg.classFeeRate ?? 0.1
+    feeRate = rate
+    rule = `培训班固定手续费 ${(rate * 100).toFixed(0)}%`
+  } else {
+    const progress = await getCourseProgress(order.phone || order.buyerPhone, order.courseId)
+    const tiers = (cfg.courseTiers && cfg.courseTiers.length) ? cfg.courseTiers : getDefaultRefundConfig().courseTiers
+    let matched = null
+    for (const t of tiers) {
+      if (days <= t.maxDays && progress <= t.maxProgress) { matched = t; break }
+    }
+    if (!matched) matched = tiers[tiers.length - 1]  // 兜底（不可退）
+    feeRate = 1 - matched.refundRate
+    rule = `课程阶梯规则：${matched.label || ''}（购买${days}天，进度${progress}%）`
+  }
+  const fee = Math.round(total * feeRate * 100) / 100
+  const actual = Math.round((total - fee) * 100) / 100
+  return { totalAmount: total, fee, actualAmount: actual, refundRate: 1 - feeRate, feeRate, rule, days }
+}
+
+async function getRefundConfigAction() {
+  const cfg = await readRefundConfig()
+  return createResponse({ code: 0, success: true, data: cfg })
+}
+
+async function saveRefundConfigAction(data) {
+  const { classFeeRate, classOverrides, courseTiers } = data || {}
+  const cur = await readRefundConfig()
+  const next = {
+    classFeeRate: typeof classFeeRate === 'number' ? classFeeRate : cur.classFeeRate,
+    classOverrides: (classOverrides && typeof classOverrides === 'object') ? classOverrides : (cur.classOverrides || {}),
+    courseTiers: (Array.isArray(courseTiers) && courseTiers.length)
+      ? courseTiers.map(t => ({
+          maxDays: Number(t.maxDays) || 0,
+          maxProgress: Number(t.maxProgress) || 0,
+          refundRate: Number(t.refundRate) || 0,
+          label: t.label || ''
+        }))
+      : cur.courseTiers,
+    updatedAt: new Date().toISOString()
+  }
+  await db.collection('refundConfig').doc('refundConfig').set(next)
+  return createResponse({ code: 0, success: true, data: next })
+}
+
+async function calcRefundAction(data) {
+  const { orderId } = data
+  if (!orderId) return createResponse({ code: 400, success: false, error: '缺少 orderId' })
   try {
     const orderRes = await db.collection('orders').doc(orderId).get()
     const order = getDocData(orderRes)
     if (!order) return createResponse({ code: 404, success: false, error: '订单不存在' })
-    if (order.status !== 'paid') return createResponse({ code: 400, success: false, error: '只能退款已支付的订单' })
-    
-    const outRefundNo = `REF${Date.now()}`
-    const result = await httpRequest(
-      `${WX_PAY_BASE}/v3/refund/domestic/refunds`, 'POST',
-      {
-        out_trade_no: order.orderNo,
-        out_refund_no: outRefundNo,
-        reason,
-        amount: {
-          refund: Math.round((order.finalAmount || order.amount || 0) * 100),
-          total: Math.round((order.finalAmount || order.amount || 0) * 100),
-          currency: 'CNY'
-        }
-      }
-    )
-    if (result.refund_id) {
-      await db.collection('orders').doc(orderId).update({
-        status: 'refunded', refundNo: outRefundNo, refundReason: reason,
-        refundedAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-      })
-      return createResponse({ code: 0, success: true, data: { refundId: result.refund_id }, message: '退款申请成功' })
+    if (order.refundStatus && order.refundStatus !== 'none') {
+      return createResponse({ code: 400, success: false, error: '该订单已有退款流程' })
     }
-    return createResponse({ code: 500, success: false, error: '退款失败: ' + JSON.stringify(result) })
+    if (!['paid', 'completed', 'paid_offline'].includes(order.status)) {
+      return createResponse({ code: 400, success: false, error: '当前订单状态不可退款' })
+    }
+    const cfg = await readRefundConfig()
+    const calc = await calcRefundInternal(order, cfg)
+    return createResponse({ code: 0, success: true, data: { orderId, orderType: order.orderType || order.type, ...calc } })
   } catch (err) {
-    return createResponse({ code: 500, success: false, error: '退款失败: ' + err.message })
+    return createResponse({ code: 500, success: false, error: '计算退款失败: ' + err.message })
+  }
+}
+
+async function createRefundRequestAction(data) {
+  const { orderId, reason = '' } = data
+  if (!orderId) return createResponse({ code: 400, success: false, error: '缺少 orderId' })
+  try {
+    const orderRes = await db.collection('orders').doc(orderId).get()
+    const order = getDocData(orderRes)
+    if (!order) return createResponse({ code: 404, success: false, error: '订单不存在' })
+    if (order.refundStatus && order.refundStatus !== 'none') {
+      return createResponse({ code: 400, success: false, error: '该订单已有退款申请' })
+    }
+    if (!['paid', 'completed', 'paid_offline'].includes(order.status)) {
+      return createResponse({ code: 400, success: false, error: '当前订单状态不可退款' })
+    }
+    const cfg = await readRefundConfig()
+    const calc = await calcRefundInternal(order, cfg)
+    const reqDoc = {
+      orderId,
+      orderNo: order.orderNo,
+      phone: order.phone || order.buyerPhone || '',
+      orderType: order.orderType || order.type || 'course',
+      totalAmount: calc.totalAmount,
+      requestAmount: calc.totalAmount,
+      fee: calc.fee,
+      actualAmount: calc.actualAmount,
+      reason,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+    const addRes = await db.collection('refundRequests').add(reqDoc)
+    const reqId = (addRes && (addRes.id || addRes._id)) || null
+    await db.collection('orders').doc(orderId).update({ refundStatus: 'pending', refundId: reqId, updatedAt: new Date().toISOString() })
+    return createResponse({ code: 0, success: true, data: { refundId: reqId, ...calc }, message: '退款申请已提交，等待审核' })
+  } catch (err) {
+    return createResponse({ code: 500, success: false, error: '提交退款申请失败: ' + err.message })
+  }
+}
+
+async function approveRefundAction(data) {
+  const { refundId, orderId, actualAmount, fee, reviewNote = '' } = data
+  const rid = refundId || orderId
+  if (!rid) return createResponse({ code: 400, success: false, error: '缺少 refundId' })
+  try {
+    const reqRes = await db.collection('refundRequests').doc(rid).get()
+    const req = getDocData(reqRes)
+    if (!req) return createResponse({ code: 404, success: false, error: '退款申请不存在' })
+    if (req.status !== 'pending') return createResponse({ code: 400, success: false, error: '该申请已处理' })
+    const orderRes = await db.collection('orders').doc(req.orderId).get()
+    const order = getDocData(orderRes)
+    if (!order) return createResponse({ code: 404, success: false, error: '订单不存在' })
+
+    const total = req.totalAmount || orderAmount(order)
+    let actual = (typeof actualAmount === 'number') ? actualAmount : req.actualAmount
+    let feeVal = (typeof fee === 'number') ? fee : req.fee
+    if (actual == null) actual = total - (feeVal || 0)
+    actual = Math.max(0, Number(actual) || 0)
+
+    const now = new Date().toISOString()
+    // 线下支付（paid_offline）或证书未配置：不存在微信交易，仅本地更新退款状态
+    const isOffline = order.status === 'paid_offline'
+    const canWechat = !isOffline &&
+      !!WX_PAY_CONFIG.PRIVATE_KEY && !!WX_PAY_CONFIG.CERT_SERIAL_NO &&
+      (order.status === 'paid' || order.status === 'completed')
+
+    if (canWechat) {
+      const outRefundNo = `REF${Date.now()}`
+      const result = await httpRequest(
+        `${WX_PAY_BASE}/v3/refund/domestic/refunds`, 'POST',
+        {
+          out_trade_no: order.orderNo,
+          out_refund_no: outRefundNo,
+          reason: req.reason || '退款审核通过',
+          amount: {
+            refund: Math.round(actual * 100),
+            total: Math.round(total * 100),
+            currency: 'CNY'
+          }
+        }
+      )
+      if (result.refund_id) {
+        await db.collection('refundRequests').doc(rid).update({
+          status: 'approved', actualAmount: actual, fee: feeVal, reviewNote,
+          refundNo: outRefundNo, refundedAt: now, refundMethod: 'wechat', updatedAt: now
+        })
+        await db.collection('orders').doc(req.orderId).update({
+          status: 'refunded', refundStatus: 'refunded', refundedAmount: actual,
+          refundNo: outRefundNo, refundReason: req.reason, refundedAt: now, updatedAt: now
+        })
+        try {
+          await notifyMessage('sendMessage', {
+            phone: req.phone, type: 'refund', title: '退款已处理',
+            content: `您的订单 ${req.orderNo} 退款已通过，实际退款 ¥${actual}（手续费 ¥${feeVal || 0}），预计原路退回。`,
+            relatedId: req.orderNo, relatedType: 'order'
+          })
+        } catch (e) { console.error('退款通知失败', e) }
+        return createResponse({ code: 0, success: true, data: { refundId: rid }, message: '退款成功' })
+      }
+      return createResponse({ code: 500, success: false, error: '微信退款失败: ' + JSON.stringify(result) })
+    }
+
+    // 线下支付 / 未对接微信证书：本地标记退款完成（人工退款）
+    const manualNo = `MANUAL${Date.now()}`
+    await db.collection('refundRequests').doc(rid).update({
+      status: 'approved', actualAmount: actual, fee: feeVal, reviewNote,
+      refundNo: manualNo, refundedAt: now, refundMethod: isOffline ? 'offline' : 'manual', updatedAt: now
+    })
+    await db.collection('orders').doc(req.orderId).update({
+      status: 'refunded', refundStatus: 'refunded', refundedAmount: actual,
+      refundNo: manualNo, refundReason: req.reason, refundedAt: now, updatedAt: now
+    })
+    try {
+      await notifyMessage('sendMessage', {
+        phone: req.phone, type: 'refund', title: '退款已处理',
+        content: `您的订单 ${req.orderNo} 退款已通过，实际退款 ¥${actual}（手续费 ¥${feeVal || 0}）。`,
+        relatedId: req.orderNo, relatedType: 'order'
+      })
+    } catch (e) { console.error('退款通知失败', e) }
+    const msg = isOffline ? '线下退款已处理' : '退款已记录（未对接微信退款）'
+    return createResponse({ code: 0, success: true, data: { refundId: rid }, message: msg })
+  } catch (err) {
+    return createResponse({ code: 500, success: false, error: '审核退款失败: ' + err.message })
+  }
+}
+
+async function rejectRefundAction(data) {
+  const { refundId, orderId, reviewNote = '' } = data
+  const rid = refundId || orderId
+  if (!rid) return createResponse({ code: 400, success: false, error: '缺少 refundId' })
+  try {
+    const reqRes = await db.collection('refundRequests').doc(rid).get()
+    const req = getDocData(reqRes)
+    if (!req) return createResponse({ code: 404, success: false, error: '退款申请不存在' })
+    if (req.status !== 'pending') return createResponse({ code: 400, success: false, error: '该申请已处理' })
+    const now = new Date().toISOString()
+    await db.collection('refundRequests').doc(rid).update({ status: 'rejected', reviewNote, updatedAt: now })
+    await db.collection('orders').doc(req.orderId).update({ refundStatus: 'rejected', updatedAt: now })
+    try {
+      await notifyMessage('sendMessage', {
+        phone: req.phone,
+        type: 'refund',
+        title: '退款申请未通过',
+        content: `您的订单 ${req.orderNo} 退款申请未通过${reviewNote ? '：' + reviewNote : ''}`,
+        relatedId: req.orderNo,
+        relatedType: 'order'
+      })
+    } catch (e) { console.error('退款通知失败', e) }
+    return createResponse({ code: 0, success: true, message: '已拒绝退款' })
+  } catch (err) {
+    return createResponse({ code: 500, success: false, error: '拒绝退款失败: ' + err.message })
   }
 }
 

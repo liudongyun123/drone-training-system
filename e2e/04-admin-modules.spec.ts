@@ -7,10 +7,10 @@ import { test, expect } from '@playwright/test';
 test.describe('管理员模块导航', () => {
   const adminModules = [
     { path: '/admin/courses', name: '课程管理' },
-    { path: '/admin/students', name: '学员管理' },
+    { path: '/admin/members', name: '学员管理' },
     { path: '/admin/teachers', name: '教师管理' },
-    { path: '/admin/orders', name: '订单财务' },
-    { path: '/admin/schedules', name: '排课出勤' },
+    { path: '/admin/finance', name: '订单财务' },
+    { path: '/admin/class-schedules', name: '排课出勤' },
   ];
 
   for (const module of adminModules) {

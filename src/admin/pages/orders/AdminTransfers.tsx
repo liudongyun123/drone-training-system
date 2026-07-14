@@ -343,7 +343,7 @@ export default function AdminTransfers() {
       }
 
       if (result.code === 0) {
-        const batchResult = result.data as { successCount?: number; failCount?: number } | undefined;
+        const batchResult = (result as any)?.data as { successCount?: number; failCount?: number } | undefined;
         
         // 批量发送消息通知
         try {

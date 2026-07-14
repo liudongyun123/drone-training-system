@@ -77,25 +77,40 @@ export default function PracticeRecordManagement() {
       const rawList: any[] = Array.isArray(recordsRes.data)
         ? recordsRes.data
         : (recordsRes.data?.list || [])
-      const mappedData: any[] = rawList.map((item: any) => ({
-        id: item._id || item.id,
-        userId: item.userId,
-        bankId: item.bankId || item.bank_id || '',
-        bankTitle: item.bankTitle || item.bank_title || '',
-        score: item.score || 0,
-        totalQuestions: item.totalQuestions || item.total_questions || 0,
-        correctAnswers: item.correctAnswers || item.correct_answers || 0,
-        duration: item.duration || item.timeSpent || 0,
-        isPassed: item.isPassed || item.is_passed || false,
-        completedAt: item.completedAt || item.completed_at || '',
-        createdAt: item.createdAt || item.created_at || '',
-        answers: (item.answers || []).map((a: any) => ({
-          questionId: a.questionId || a.question_id || '',
-          userAnswer: a.userAnswer || a.user_answer || '',
-          correctAnswer: a.correctAnswer || a.correct_answer || '',
-          isCorrect: a.isCorrect ?? a.is_correct ?? false,
-        })),
-      }))
+      const mappedData: any[] = rawList.map((item: any) => {
+        // 兼容小程序端：answers 可能是 { [questionId]: 用户答案 } 对象，也可能是 Web 端的标准数组
+        const rawAnswers = item.answers
+        let normalizedAnswers: any[] = []
+        if (Array.isArray(rawAnswers)) {
+          normalizedAnswers = rawAnswers.map((a: any) => ({
+            questionId: a.questionId || a.question_id || '',
+            userAnswer: a.userAnswer || a.user_answer || '',
+            correctAnswer: a.correctAnswer || a.correct_answer || '',
+            isCorrect: a.isCorrect ?? a.is_correct ?? false,
+          }))
+        } else if (rawAnswers && typeof rawAnswers === 'object') {
+          normalizedAnswers = Object.entries(rawAnswers).map(([qid, ans]) => ({
+            questionId: qid,
+            userAnswer: Array.isArray(ans) ? (ans as string[]).join(',') : String(ans ?? ''),
+            correctAnswer: '',
+            isCorrect: false,
+          }))
+        }
+        return {
+          id: item._id || item.id,
+          userId: item.userId,
+          bankId: item.bankId || item.bank_id || item.targetId || '',
+          bankTitle: item.bankTitle || item.bank_title || item.targetName || '',
+          score: item.score || 0,
+          totalQuestions: item.totalQuestions || item.total_questions || item.totalCount || 0,
+          correctAnswers: item.correctAnswers || item.correct_answers || item.correctCount || 0,
+          duration: item.duration || item.timeSpent || 0,
+          isPassed: item.isPassed ?? item.is_passed ?? false,
+          completedAt: item.completedAt || item.completed_at || item.createdAt || '',
+          createdAt: item.createdAt || item.created_at || '',
+          answers: normalizedAnswers,
+        }
+      })
       const withNames = mappedData.map((r) => ({
         ...r,
         userName: memberMap.get(r.userId || '') || r.userId || '未知用户',

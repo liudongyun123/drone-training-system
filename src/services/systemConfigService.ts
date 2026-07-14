@@ -121,7 +121,24 @@ export async function getSystemConfig(): Promise<SystemConfig> {
     const result = await adminService.list(CONFIG_COLLECTION, {}, { limit: 1 });
     const data = extractList(result);
     if (data && data.length > 0) {
-      return data[0] as SystemConfig;
+      const doc = data[0];
+      // ★ 与默认结构合并，确保 loginProviders/roles/dictionaries/wechatConfig 始终存在。
+      // 历史上 systemConfig 集合可能只存了 dictionaries（type:"dictionaries"），
+      // 若直接返回会导致登录配置页对 undefined 调 .map() 崩溃。
+      return {
+        ...defaultConfig,
+        ...doc,
+        loginProviders:
+          doc.loginProviders && doc.loginProviders.length
+            ? doc.loginProviders
+            : defaultConfig.loginProviders,
+        roles:
+          doc.roles && doc.roles.length
+            ? doc.roles
+            : defaultConfig.roles,
+        dictionaries: doc.dictionaries || defaultConfig.dictionaries,
+        wechatConfig: doc.wechatConfig || defaultConfig.wechatConfig,
+      } as SystemConfig;
     }
     // 没有配置则创建默认配置
     return await initSystemConfig();

@@ -123,6 +123,7 @@ async function initTestData() {
       await orderColl.add({
         userId: TEST_USER_ID,
         orderType: 'course',
+        type: 'course',
         courseId: 'course1',
         courseInfo: {
           id: 'course1',

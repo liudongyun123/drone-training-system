@@ -9,9 +9,10 @@ import { useConfirm } from '@/admin/hooks/useConfirm';
 import { useSourceConfig } from '@/admin/hooks/useSourceConfig';
 import AdminPageTemplate from '@/admin/pages/system/_AdminPageTemplate';
 import { adminService } from '@/services/adminService';
-import { orderService } from '@/services/database';
 import { messageService } from '@/services/messageService';
+import { financeService } from '@/services/financeService';
 import { toast } from '@/components/Toast';
+import RefundReviewModal from '@/components/admin/RefundReviewModal';
 import {
   Search, RefreshCw, Eye, CheckCircle,
   XCircle, Clock, CreditCard, BookOpen, ChevronLeft, ChevronRight,
@@ -39,6 +40,11 @@ export default function AdminCourseOrders() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  // 退款审核（与财务统计共用 RefundReviewModal，统一走 refundRequests 管线）
+  const [reviewRefund, setReviewRefund] = useState<{ isOpen: boolean; refund: any | null }>({
+    isOpen: false,
+    refund: null
+  });
 
   // ★ 使用统一配置hook获取体系
   const { sourceOptions } = useSourceConfig();
@@ -55,8 +61,8 @@ export default function AdminCourseOrders() {
   const loadOrders = async () => {
     setLoading(true);
     try {
-      // 课程订单：查询 type='course' 的订单
-      const query: Record<string, any> = { type: 'course' };
+      // 课程订单：查询 orderType='course' 的订单（所有订单都含 orderType 字段）
+      const query: Record<string, any> = { orderType: 'course' };
       if (filterStatus) query.status = filterStatus;
       // 体系筛选：订单的 sourceId 字段存储的是体系 code
       if (filterSource) query.sourceId = filterSource;
@@ -138,25 +144,34 @@ export default function AdminCourseOrders() {
     }
   };
 
-  // 退款
+  // 退款（统一流程：创建退款申请 → 打开退款审核弹窗，与财务统计同一管线）
   const handleRefund = async (order: any) => {
-    const ok = await confirm({ title: '退款确认', message: `确定要为订单 ${order.orderNo || order._id} 退款吗？`, variant: 'danger' });
+    const ok = await confirm({
+      title: '退款确认',
+      message: `将为订单 ${order.orderNo || order._id} 创建退款申请，确认后可在审核弹窗中调整实退金额/手续费。`,
+      variant: 'danger'
+    });
     if (!ok) return;
     try {
-      const result: any = await orderService.refund(order._id);
-      if (result.code === 0) {
-        toast.success('退款成功');
-        // 发送退款通知
-        await messageService.sendOrderNotification({
-          ...order,
-          status: 'refunded'
+      const res: any = await financeService.createRefundRequest(order._id, '管理员发起退款');
+      if (res.code === 0 && res.refundId) {
+        setReviewRefund({
+          isOpen: true,
+          refund: {
+            _id: res.refundId,
+            orderNo: order.orderNo,
+            phone: order.phone,
+            orderType: order.orderType,
+            totalAmount: res.totalAmount ?? order.totalAmount ?? order.finalAmount ?? order.totalPrice ?? 0,
+            rule: res.rule || '管理员手填',
+            reason: '管理员发起退款'
+          }
         });
-        loadOrders();
       } else {
-        toast.error(result.message || '操作失败');
+        toast.error(res.message || '创建退款申请失败');
       }
     } catch (error) {
-      console.error('退款失败:', error);
+      console.error('创建退款申请失败:', error);
       toast.error('操作失败，请重试');
     }
   };
@@ -517,6 +532,17 @@ export default function AdminCourseOrders() {
       )}
 
       <ConfirmDialog />
+
+      {/* 退款审核弹窗（与财务统计共用同一退款管线） */}
+      <RefundReviewModal
+        isOpen={reviewRefund.isOpen}
+        refund={reviewRefund.refund}
+        onClose={() => setReviewRefund({ isOpen: false, refund: null })}
+        onDone={() => {
+          setReviewRefund({ isOpen: false, refund: null });
+          loadOrders();
+        }}
+      />
     </AdminPageTemplate>
   );
 }

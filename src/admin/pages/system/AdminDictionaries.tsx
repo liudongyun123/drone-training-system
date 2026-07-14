@@ -1,7 +1,7 @@
 // ============================================================================
 // 字典管理页面 - 可视化编辑所有状态标签、等级分类、类型配置
 // ============================================================================
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings, Plus, Edit, Trash2, Save, X, ChevronRight, AlertCircle } from 'lucide-react';
 import { useDictionary } from '../../hooks/useDictionary';
 import { useConfirm } from '../../hooks/useConfirm';
@@ -30,6 +30,55 @@ const GROUP_META: Record<string, { label: string; icon: string; type: 'object' |
   learningPathCategories: { label: '学习路径等级', icon: '🛤️', type: 'learningPath' },
 };
 
+// 状态标签预设样式（可视化选择）。tailwind 供 Web 使用，
+// bgHex/textHex 供小程序端使用（小程序无法解析 Tailwind 类名，需 hex）
+const TAG_PRESETS = [
+  { name: '灰', tailwind: 'bg-gray-100 text-gray-700', bgHex: '#f3f4f6', textHex: '#374151' },
+  { name: '绿', tailwind: 'bg-green-100 text-green-700', bgHex: '#dcfce7', textHex: '#15803d' },
+  { name: '蓝', tailwind: 'bg-blue-100 text-blue-700', bgHex: '#dbeafe', textHex: '#1d4ed8' },
+  { name: '黄', tailwind: 'bg-yellow-100 text-yellow-700', bgHex: '#fef9c3', textHex: '#a16207' },
+  { name: '红', tailwind: 'bg-red-100 text-red-700', bgHex: '#fee2e2', textHex: '#b91c1c' },
+  { name: '紫', tailwind: 'bg-purple-100 text-purple-700', bgHex: '#f3e8ff', textHex: '#7e22ce' },
+  { name: '橙', tailwind: 'bg-orange-100 text-orange-700', bgHex: '#ffedd5', textHex: '#c2410c' },
+  { name: '青', tailwind: 'bg-cyan-100 text-cyan-700', bgHex: '#cffafe', textHex: '#0e7490' },
+];
+
+// 可视化标签样式选择器：点击预设色块即可，也可手填自定义 Tailwind 类
+function TagPresetPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (preset: { tailwind: string; bgHex: string; textHex: string }) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {TAG_PRESETS.map((p) => {
+        const active = value === p.tailwind;
+        return (
+          <button
+            type="button"
+            key={p.tailwind}
+            onClick={() => onChange(p)}
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium ${p.tailwind} ${
+              active ? 'ring-2 ring-offset-1 ring-blue-500' : 'opacity-80 hover:opacity-100'
+            }`}
+          >
+            {p.name}
+          </button>
+        );
+      })}
+      <input
+        type="text"
+        value={value || ''}
+        onChange={(e) => onChange({ tailwind: e.target.value, bgHex: '', textHex: '' })}
+        className="flex-1 min-w-[8rem] px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        placeholder="或输入自定义 Tailwind 类"
+      />
+    </div>
+  );
+}
+
 export default function AdminDictionaries() {
   const [selectedGroup, setSelectedGroup] = useState<string>('orderStatus');
   const { confirm, ConfirmDialog } = useConfirm();
@@ -39,32 +88,53 @@ export default function AdminDictionaries() {
   const [hasChanges, setHasChanges] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [newItem, setNewItem] = useState<any>(null);
+  // 本地工作副本：所有编辑/新增/删除先作用于 working，保存时写回服务器
+  const [working, setWorking] = useState<any>(null);
 
   const { raw, loading, refresh } = useDictionary({ groupKey: selectedGroup });
   const meta = GROUP_META[selectedGroup];
 
+  // 服务器数据加载完成（或切换分组）后，同步到本地工作副本
+  useEffect(() => {
+    setWorking(raw);
+  }, [raw]);
+
   const groups = Object.keys(GROUP_META);
 
+  // 将本地工作副本写回数据库
   const handleSave = async () => {
     if (!hasChanges) return;
     setSaving(true);
     try {
-      // 调用数据库 API 更新配置（通过 adminService HTTP）
       const { adminService } = await import('@/services/adminService');
       const configRes = await adminService.list('systemConfig', { type: 'dictionaries' }, { limit: 1 });
       const data = configRes?.data?.list || [];
-      
+      const payload = working;
+
       if (data.length > 0) {
         const currentDicts = data[0].dictionaries || {};
-        const updated = { ...currentDicts, [selectedGroup]: raw };
+        const updated = { ...currentDicts, [selectedGroup]: payload };
         await adminService.update('systemConfig', data[0]._id, {
           dictionaries: updated,
           updatedAt: new Date(),
         });
+      } else {
+        // 配置文档不存在时兜底新建
+        await adminService.add('systemConfig', {
+          type: 'dictionaries',
+          dictionaries: { [selectedGroup]: payload },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
       }
+
       setHasChanges(false);
       setEditingKey(null);
-      await refresh();
+      setEditForm(null);
+      setIsAdding(false);
+      setNewItem(null);
+      await refresh(); // 清空缓存并重新拉取，确保 working 与服务器一致
+      await confirm({ title: '保存成功', message: '字典配置已更新', variant: 'info' });
     } catch (error) {
       console.error('保存失败:', error);
       await confirm({ title: '保存失败', message: '保存失败，请重试', variant: 'warning' });
@@ -81,60 +151,103 @@ export default function AdminDictionaries() {
     });
     if (!ok) return;
 
-    // 从当前数据中删除该项
-    const meta = GROUP_META[selectedGroup];
     if (meta?.type === 'object') {
-      // object 类型：从字典中删除该 key
-      const newData = { ...(raw as Record<string, LabelConfig>) };
-      delete newData[key];
-      // 触发保存
-      setHasChanges(true);
-      // 通知父组件更新
-      if (typeof refresh === 'function') {
-        // 等待下一次渲染后再保存
-        setTimeout(() => refresh(), 0);
-      }
+      setWorking((prev: Record<string, LabelConfig>) => {
+        const newData = { ...(prev || {}) };
+        delete newData[key];
+        return newData;
+      });
     } else if (meta?.type === 'array') {
-      // array 类型：从数组中删除该项 (直接修改 raw 会通过 useDictionary 触发更新)
-      (raw as OptionItem[]).filter(item => item.value !== key);
-      // 触发保存
-      setHasChanges(true);
-      if (typeof refresh === 'function') {
-        setTimeout(() => refresh(), 0);
-      }
+      setWorking((prev: OptionItem[]) => ((prev || []) as OptionItem[]).filter(item => item.value !== key));
     }
+    setHasChanges(true);
   };
 
   // 开始新增
   const handleStartAdd = () => {
-    const meta = GROUP_META[selectedGroup];
     if (meta?.type === 'object') {
-      // object 类型：初始化一个新对象
-      setNewItem({ text: '', color: 'bg-gray-100 text-gray-700' });
+      // object 类型：需要键名 + 显示文本 + 样式类
+      setNewItem({ key: '', text: '', color: 'bg-gray-100 text-gray-700' });
       setIsAdding(true);
     } else if (meta?.type === 'array') {
-      // array 类型：初始化一个新数组项
       setNewItem({ label: '', value: '' });
       setIsAdding(true);
     }
   };
 
-  // 保存新增项
-  const handleSaveNew = () => {
-    if (!newItem) return;
+  // 应用 object 新增（写入 working）
+  const applyObjectAdd = async () => {
+    if (!newItem?.key?.trim()) {
+      await confirm({ title: '缺少键名', message: '请填写配置项键名（英文标识）', variant: 'warning' });
+      return;
+    }
+    const key = newItem.key.trim();
+    setWorking((prev: Record<string, LabelConfig>) => ({
+      ...(prev || {}),
+      [key]: {
+        text: newItem.text || key,
+        color: newItem.color || 'bg-gray-100 text-gray-700',
+        ...(newItem.colorHex ? { colorHex: newItem.colorHex, textHex: newItem.textHex } : {}),
+      },
+    }));
     setHasChanges(true);
     setIsAdding(false);
     setNewItem(null);
-    // 通知父组件更新
-    if (typeof refresh === 'function') {
-      setTimeout(() => refresh(), 0);
+  };
+
+  // 应用 array 新增（写入 working）
+  const applyArrayAdd = async () => {
+    if (!newItem?.value?.trim()) {
+      await confirm({ title: '缺少值', message: '请填写 value 值', variant: 'warning' });
+      return;
     }
+    const value = newItem.value.trim();
+    setWorking((prev: OptionItem[]) => [
+      ...(prev || []),
+      { value, label: newItem.label || value },
+    ]);
+    setHasChanges(true);
+    setIsAdding(false);
+    setNewItem(null);
   };
 
   // 取消新增
   const handleCancelAdd = () => {
     setIsAdding(false);
     setNewItem(null);
+  };
+
+  // 应用 object 编辑（写入 working，保留 bg 等附加字段避免丢失背景）
+  const applyObjectEdit = (key: string, form: any) => {
+    setWorking((prev: Record<string, LabelConfig>) => ({
+      ...(prev || {}),
+      [key]: { ...form, text: form.text, color: form.color },
+    }));
+    setHasChanges(true);
+    setEditingKey(null);
+    setEditForm(null);
+  };
+
+  // 应用 array 编辑（写入 working，保留 value 等其它字段）
+  const applyArrayEdit = (value: string, form: any) => {
+    setWorking((prev: OptionItem[]) =>
+      ((prev || []) as OptionItem[]).map(item =>
+        item.value === value ? { ...item, label: form.label } : item
+      )
+    );
+    setHasChanges(true);
+    setEditingKey(null);
+    setEditForm(null);
+  };
+
+  // 应用学习路径等级编辑（写入 working）
+  const applyLearningPath = (source: string, category: string, levels: string[]) => {
+    setWorking((prev: any) => {
+      const next = { ...(prev || {}) };
+      next[source] = { ...(next[source] || {}), [category]: levels };
+      return next;
+    });
+    setHasChanges(true);
   };
 
   return (
@@ -165,8 +278,14 @@ export default function AdminDictionaries() {
                       key={key}
                       onClick={() => {
                         setSelectedGroup(key);
+                        // 切换分组后立即清空工作副本，避免 meta.type 已变为新类型、
+                        // 但 working 仍是旧分组数据导致的「数组列表拿到对象」瞬态崩溃
+                        setWorking(null);
                         setEditingKey(null);
+                        setEditForm(null);
                         setHasChanges(false);
+                        setIsAdding(false);
+                        setNewItem(null);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                         selectedGroup === key
@@ -189,7 +308,7 @@ export default function AdminDictionaries() {
                 <div>
                   <h2 className="text-lg font-semibold text-slate-900">{meta?.label || selectedGroup}</h2>
                   <p className="text-sm text-slate-500 mt-0.5">
-                    类型：{meta?.type === 'array' ? '列表选项' : '状态标签'}
+                    类型：{meta?.type === 'array' ? '列表选项' : meta?.type === 'learningPath' ? '学习路径' : '状态标签'}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -219,37 +338,37 @@ export default function AdminDictionaries() {
                   <div className="text-center py-12 text-slate-400">加载中...</div>
                 ) : meta?.type === 'object' ? (
                   <ObjectConfigList
-                    data={raw as Record<string, LabelConfig>}
+                    data={working as Record<string, LabelConfig>}
                     editingKey={editingKey}
                     setEditingKey={setEditingKey}
                     editForm={editForm}
                     setEditForm={setEditForm}
-                    setHasChanges={setHasChanges}
                     onDelete={handleDelete}
                     isAdding={isAdding}
                     newItem={newItem}
                     setNewItem={setNewItem}
-                    onSaveNew={handleSaveNew}
+                    onSaveNew={applyObjectAdd}
+                    onSaveEdit={applyObjectEdit}
                     onCancelAdd={handleCancelAdd}
                   />
                 ) : meta?.type === 'learningPath' ? (
                   <LearningPathConfigList
-                    data={raw}
-                    setHasChanges={setHasChanges}
+                    data={working}
+                    onApplyLearningPath={applyLearningPath}
                   />
                 ) : (
                   <ArrayConfigList
-                    data={raw as OptionItem[]}
+                    data={working as OptionItem[]}
                     editingKey={editingKey}
                     setEditingKey={setEditingKey}
                     editForm={editForm}
                     setEditForm={setEditForm}
-                    setHasChanges={setHasChanges}
                     onDelete={handleDelete}
                     isAdding={isAdding}
                     newItem={newItem}
                     setNewItem={setNewItem}
-                    onSaveNew={handleSaveNew}
+                    onSaveNew={applyArrayAdd}
+                    onSaveEdit={applyArrayEdit}
                     onCancelAdd={handleCancelAdd}
                   />
                 )}
@@ -264,8 +383,8 @@ export default function AdminDictionaries() {
           <div className="text-sm text-amber-800">
             <p className="font-medium">注意事项</p>
             <p className="mt-1">
-              字典配置会影响全局状态显示和下拉选项。修改后可能需要刷新页面才能看到效果。
-              建议在非业务高峰期进行修改。
+              字典配置会影响全局状态显示和下拉选项。修改后需点击「保存更改」才会生效，
+              建议修改后刷新相关页面以查看最新效果。建议在非业务高峰期进行修改。
             </p>
           </div>
         </div>
@@ -282,12 +401,12 @@ function ObjectConfigList({
   setEditingKey,
   editForm,
   setEditForm,
-  setHasChanges,
   onDelete,
   isAdding,
   newItem,
   setNewItem,
   onSaveNew,
+  onSaveEdit,
   onCancelAdd,
 }: {
   data: Record<string, LabelConfig>;
@@ -295,12 +414,12 @@ function ObjectConfigList({
   setEditingKey: (k: string | null) => void;
   editForm: any;
   setEditForm: (f: any) => void;
-  setHasChanges: (v: boolean) => void;
   onDelete: (k: string) => void;
   isAdding: boolean;
   newItem: any;
   setNewItem: (f: any) => void;
   onSaveNew: () => void;
+  onSaveEdit: (k: string, f: any) => void;
   onCancelAdd: () => void;
 }) {
   if (!data) return <div className="text-slate-400">暂无数据</div>;
@@ -315,17 +434,17 @@ function ObjectConfigList({
           <div className="flex-1 flex gap-3">
             <input
               type="text"
+              value={newItem?.key || ''}
+              onChange={(e) => setNewItem({ ...newItem, key: e.target.value })}
+              className="w-40 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
+              placeholder="键名(英文)"
+            />
+            <input
+              type="text"
               value={newItem?.text || ''}
               onChange={(e) => setNewItem({ ...newItem, text: e.target.value })}
               className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="显示文本"
-            />
-            <input
-              type="text"
-              value={newItem?.color || ''}
-              onChange={(e) => setNewItem({ ...newItem, color: e.target.value })}
-              className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="样式类"
             />
             <button
               onClick={onSaveNew}
@@ -338,6 +457,10 @@ function ObjectConfigList({
               <X className="w-4 h-4" />
             </button>
           </div>
+          <TagPresetPicker
+            value={newItem?.color || ''}
+            onChange={(p) => setNewItem({ ...newItem, color: p.tailwind, colorHex: p.bgHex, textHex: p.textHex })}
+          />
         </div>
       )}
       {entries.map(([key, val]) => (
@@ -347,6 +470,7 @@ function ObjectConfigList({
         >
           <code className="text-sm text-slate-600 font-mono bg-white px-2 py-1 rounded">{key}</code>
           {editingKey === key ? (
+            <>
             <div className="flex-1 flex gap-3">
               <input
                 type="text"
@@ -355,18 +479,8 @@ function ObjectConfigList({
                 className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="显示文本"
               />
-              <input
-                type="text"
-                value={editForm?.color || ''}
-                onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-                className="flex-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="样式类"
-              />
               <button
-                onClick={() => {
-                  setEditingKey(null);
-                  setHasChanges(true);
-                }}
+                onClick={() => onSaveEdit(key, editForm)}
                 className="p-1.5 text-green-600 hover:bg-green-50 rounded"
               >
                 <Save className="w-4 h-4" />
@@ -375,11 +489,16 @@ function ObjectConfigList({
                 <X className="w-4 h-4" />
               </button>
             </div>
+            <TagPresetPicker
+              value={editForm?.color || ''}
+                onChange={(p) => setEditForm({ ...editForm, color: p.tailwind, colorHex: p.bgHex, textHex: p.textHex })}
+            />
+            </>
           ) : (
             <>
               <div className="flex-1 flex items-center gap-3">
                 <span
-                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium ${val.color}`}
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium ${val.color} ${val.bg || ''}`}
                 >
                   {val.text}
                 </span>
@@ -417,12 +536,12 @@ function ArrayConfigList({
   setEditingKey,
   editForm,
   setEditForm,
-  setHasChanges,
   onDelete,
   isAdding,
   newItem,
   setNewItem,
   onSaveNew,
+  onSaveEdit,
   onCancelAdd,
 }: {
   data: OptionItem[];
@@ -430,15 +549,15 @@ function ArrayConfigList({
   setEditingKey: (k: string | null) => void;
   editForm: any;
   setEditForm: (f: any) => void;
-  setHasChanges: (v: boolean) => void;
   onDelete: (k: string) => void;
   isAdding: boolean;
   newItem: any;
   setNewItem: (f: any) => void;
   onSaveNew: () => void;
+  onSaveEdit: (k: string, f: any) => void;
   onCancelAdd: () => void;
 }) {
-  if (!data || data.length === 0) return <div className="text-slate-400">暂无数据</div>;
+  if (!data || !Array.isArray(data) || data.length === 0) return <div className="text-slate-400">暂无数据</div>;
 
   return (
     <div className="space-y-2">
@@ -490,10 +609,7 @@ function ArrayConfigList({
                 placeholder="显示文本"
               />
               <button
-                onClick={() => {
-                  setEditingKey(null);
-                  setHasChanges(true);
-                }}
+                onClick={() => onSaveEdit(item.value, editForm)}
                 className="p-1.5 text-green-600 hover:bg-green-50 rounded"
               >
                 <Save className="w-4 h-4" />
@@ -533,10 +649,10 @@ function ArrayConfigList({
 // 学习路径分类等级配置列表
 function LearningPathConfigList({
   data,
-  setHasChanges,
+  onApplyLearningPath,
 }: {
   data: any;
-  setHasChanges: (v: boolean) => void;
+  onApplyLearningPath: (source: string, category: string, levels: string[]) => void;
 }) {
   const [expandedSources, setExpandedSources] = useState<string[]>([]);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
@@ -564,8 +680,10 @@ function LearningPathConfigList({
     setEditLevels([]);
   };
 
-  const saveEdit = async () => {
-    setHasChanges(true);
+  const saveEdit = () => {
+    if (!editingCategory) return;
+    const [source, category] = editingCategory.split(':');
+    onApplyLearningPath(source, category, editLevels);
     setEditingCategory(null);
     setEditLevels([]);
   };
@@ -574,18 +692,15 @@ function LearningPathConfigList({
     const newLevels = [...editLevels];
     newLevels[index] = value;
     setEditLevels(newLevels);
-    setHasChanges(true);
   };
 
   const addLevel = () => {
     setEditLevels([...editLevels, '']);
-    setHasChanges(true);
   };
 
   const removeLevel = (index: number) => {
     const newLevels = editLevels.filter((_, i) => i !== index);
     setEditLevels(newLevels);
-    setHasChanges(true);
   };
 
   return (
@@ -669,7 +784,7 @@ function LearningPathConfigList({
                             </div>
                           ) : (
                             <div className="flex flex-wrap gap-2">
-                              {((levels as string[]) || []).map((level, idx) => (
+                              {(Array.isArray(levels) ? levels : []).map((level, idx) => (
                                 <span
                                   key={idx}
                                   className="inline-flex items-center px-2.5 py-1 rounded-full text-sm bg-blue-100 text-blue-700"

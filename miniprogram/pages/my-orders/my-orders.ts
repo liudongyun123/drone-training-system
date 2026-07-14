@@ -62,11 +62,24 @@ Page({
       let processedOrders = orders || []
       
       // 处理订单数据
-      processedOrders = processedOrders.map((order: any) => ({
-        ...order,
-        statusText: statusMap[order.status] || order.status,
-        createdAt: this.formatTime(order.createdAt)
-      }))
+      processedOrders = processedOrders.map((order: any) => {
+        const refundStatus = order.refundStatus
+        const refundStatusText =
+          refundStatus === 'pending' ? '退款审核中'
+          : refundStatus === 'refunded' ? '已退款'
+          : refundStatus === 'rejected' ? '退款被拒绝'
+          : ''
+        const canRefund =
+          ['paid', 'completed', 'paid_offline'].includes(order.status) &&
+          (!refundStatus || refundStatus === 'none')
+        return {
+          ...order,
+          statusText: statusMap[order.status] || order.status,
+          createdAt: this.formatTime(order.createdAt),
+          refundStatusText,
+          canRefund
+        }
+      })
 
       // 根据当前 Tab 筛选状态
       const currentTab = this.data.currentTab
@@ -292,6 +305,42 @@ Page({
     } else if (order.orderType === 'shop') {
       wx.switchTab({ url: '/pages/shop/shop' })
     }
+  },
+
+  // 申请退款（入口仅在小程序端，管理后台审核）
+  async applyRefund(e: any) {
+    const order = e.currentTarget.dataset.order
+    if (!await requirePhoneBinding('申请退款')) return
+
+    const amount = order.totalPrice || order.totalAmount || order.finalAmount || 0
+    wx.showModal({
+      title: '申请退款',
+      content: `订单金额 ¥${amount}，如需要可填写退款原因，提交后由管理员审核。`,
+      editable: true,
+      placeholderText: '请输入退款原因（选填）',
+      success: async (res) => {
+        if (!res.confirm) return
+        const reason = (res.content || '').trim()
+        wx.showLoading({ title: '提交中...' })
+        try {
+          const result: any = await callFunction('api-order', {
+            action: 'createRefundRequest',
+            data: { orderId: order._id, reason }
+          })
+          wx.hideLoading()
+          if (result && result.success) {
+            wx.showToast({ title: '已提交，等待审核', icon: 'success' })
+            this.loadOrders()
+          } else {
+            wx.showToast({ title: result?.error || '提交失败', icon: 'none' })
+          }
+        } catch (err: any) {
+          wx.hideLoading()
+          logger.error('订单', '申请退款失败', err)
+          wx.showToast({ title: err.message || '提交失败', icon: 'none' })
+        }
+      }
+    })
   },
 
   // 去逛逛

@@ -61,6 +61,10 @@
           <text class="info-label">下单时间：</text>
           <text class="info-value">{{item.createdAt}}</text>
         </view>
+        <view class="order-info" wx:if="{{item.refundStatusText}}">
+          <text class="info-label">退款状态：</text>
+          <text class="info-value refund-status">{{item.refundStatusText}}</text>
+        </view>
 
         <!-- 订单商品 -->
         <view class="order-items">
@@ -143,6 +147,15 @@
               <text>删除订单</text>
             </view>
           </block>
+          <!-- 申请退款（可退款订单，入口仅在小程序端） -->
+          <view
+            wx:if="{{item.canRefund}}"
+            class="action-btn btn-refund"
+            bindtap="applyRefund"
+            data-order="{{item}}"
+          >
+            <text>申请退款</text>
+          </view>
         </view>
       </view>
     </view>

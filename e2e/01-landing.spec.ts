@@ -14,6 +14,10 @@ test.describe('用户前台流程', () => {
   });
 
   test('首页应该正确加载', async ({ page }) => {
+    // 等待页面加载完成（SPA 需等待渲染）
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
     // 检查页面标题
     await expect(page).toHaveTitle(/Drone.*Training|无人机|培训/i);
     

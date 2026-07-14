@@ -713,13 +713,6 @@ export default function ContractManagement() {
         </DialogActions>
       </Dialog>
 
-      {/* 签署记录-分页 */}
-      <AdminTablePagination
-        total={total}
-        page={params.page}
-        pageSize={params.pageSize}
-        onPageChange={handlePageChange}
-      />
       </Box>
       )}
 
@@ -878,99 +871,6 @@ export default function ContractManagement() {
         )}
       </Box>
       )}
-
-      {/* 合同详情弹窗 */}
-      <Dialog
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle sx={{ borderBottom: '1px solid #f0f0f0' }}>
-          合同详情
-        </DialogTitle>
-        <DialogContent sx={{ py: 3 }}>
-          {selectedContract && (
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  基本信息
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                <Grid container spacing={2}>
-                  <Grid item xs={4}>
-                    <Typography variant="caption" color="textSecondary">学员姓名</Typography>
-                    <Typography>{selectedContract.userName}</Typography>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography variant="caption" color="textSecondary">手机号</Typography>
-                    <Typography>{selectedContract.phone}</Typography>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography variant="caption" color="textSecondary">身份证</Typography>
-                    <Typography>{selectedContract.idCard || '-'}</Typography>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography variant="caption" color="textSecondary">课程</Typography>
-                    <Typography>{selectedContract.courseName || '-'}</Typography>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography variant="caption" color="textSecondary">签署状态</Typography>
-                    <Chip
-                      size="small"
-                      label={CONTRACT_STATUS_LABELS[selectedContract.status]}
-                      color={CONTRACT_STATUS_COLORS[selectedContract.status]}
-                    />
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography variant="caption" color="textSecondary">签署时间</Typography>
-                    <Typography>
-                      {selectedContract.signedAt ? formatDateStr(selectedContract.signedAt) : '未签署'}
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  合同内容
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                <Paper variant="outlined" sx={{ p: 2, maxHeight: 300, overflow: 'auto', bgcolor: '#fafafa', fontSize: '14px', lineHeight: 1.8 }}>
-                  <div dangerouslySetInnerHTML={{ __html: selectedContract.contractContent }} />
-                </Paper>
-              </Grid>
-              {selectedContract.status === 'signed' && signatureUrl && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>学员签名</Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  <Paper variant="outlined" sx={{ p: 2, display: 'flex', justifyContent: 'center', bgcolor: '#fafafa' }}>
-                    <img src={signatureUrl} alt="学员签名" style={{ maxWidth: '100%', maxHeight: 150, border: '1px solid #e0e0e0', borderRadius: 4 }} />
-                  </Paper>
-                </Grid>
-              )}
-              {selectedContract.status === 'signed' && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>签署信息</Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="textSecondary">验证方式</Typography>
-                      <Typography>{selectedContract.verifyMethod === 'sms' ? '短信验证' : '无'}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="textSecondary">签署设备</Typography>
-                      <Typography>{selectedContract.signDevice || '-'}</Typography>
-                    </Grid>
-                  </Grid>
-                </Grid>
-              )}
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ borderTop: '1px solid #f0f0f0', px: 3, py: 2 }}>
-          <Button onClick={() => setDetailOpen(false)}>关闭</Button>
-        </DialogActions>
-      </Dialog>
 
       {/* 模板预览弹窗 */}
       <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} maxWidth="md" fullWidth>

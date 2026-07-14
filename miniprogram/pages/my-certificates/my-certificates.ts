@@ -1,7 +1,7 @@
 // pages/my-certificates/my-certificates.ts
 // 我的证书页
 
-import { getExternalCertificates, getTrainingCertificates } from '../../utils/http'
+import { getExternalCertificates, getTrainingCertificates, getCertificates } from '../../utils/http'
 import { certificateApi } from '../../utils/api'
 import { checkLogin, formatDate } from '../../utils/util'
 import logger from '../../utils/logger'
@@ -10,13 +10,11 @@ Page({
   data: {
     tabs: [
       { key: 'external', title: '外部证书' },
-      { key: 'training', title: '结业证明' },
-      { key: 'system', title: '系统证书' }
+      { key: 'training', title: '结业证明' }
     ],
     currentTab: 'external',
     externalCerts: [] as any[],
     trainingCerts: [] as any[],
-    systemCerts: [] as any[],
     loading: true
   },
 
@@ -44,22 +42,31 @@ Page({
 
     try {
       const phone = wx.getStorageSync('phone') || ''
-      const userId = wx.getStorageSync('userId') || ''
 
       // 并行加载所有证书数据
-      const [externalResult, trainingResult, systemCertResult] = await Promise.all([
+      const [externalResult, trainingResult, completionResult] = await Promise.all([
         // 外部证书
         phone ? getExternalCertificates(phone).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
-        // 培训证书
+        // 培训证书（后台颁发）
         phone ? getTrainingCertificates(phone).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
-        // 系统证书（使用新 API）
-        certificateApi.getList({ userId }).catch(() => [])
+        // 课程结业证书（课程学完自动颁发，写入 certificates 集合）
+        phone ? getCertificates(phone).catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
       ])
+
+      // 合并后台颁发的培训证书与课程自动颁发的结业证书，统一在「结业证明」Tab 展示，
+      // 避免课程完成后用户在小程序端看不到自己的证书。
+      const trainingCerts = [
+        ...(trainingResult?.data || []),
+        ...(completionResult?.data || [])
+      ].map((c: any) => ({
+        ...c,
+        displayTitle: c.courseName || c.courseTitle || c.className || c.name || '结业证书',
+        displayDate: this.formatCertDate(c.issuedAt || c.issueDate || c.createdAt || '')
+      }))
 
       this.setData({
         externalCerts: externalResult?.data || [],
-        trainingCerts: trainingResult?.data || [],
-        systemCerts: Array.isArray(systemCertResult) ? systemCertResult : [],
+        trainingCerts,
         loading: false
       })
 
@@ -80,25 +87,17 @@ Page({
     wx.showToast({ title: '功能开发中', icon: 'none' })
   },
 
-  // 查看证书详情（使用新 API）
-  async viewCert(e: any) {
+  // 查看证书详情 - 跳转仿真证书详情页
+  viewCert(e: any) {
     const { id, type } = e.currentTarget.dataset
-    try {
-      if (type === 'system' && id) {
-        const cert = await certificateApi.getDetail(id)
-        if (cert) {
-          wx.showModal({
-            title: '证书详情',
-            content: `证书名称: ${cert.name || '培训证书'}\n颁发日期: ${cert.issuedAt || cert.createdAt || '-'}\n证书编号: ${cert.certificateCode || '-'}`
-          })
-        }
-      } else {
-        wx.showToast({ title: '证书详情功能开发中', icon: 'none' })
+    const list = type === 'external' ? this.data.externalCerts : this.data.trainingCerts
+    const cert = (list || []).find((c: any) => c._id === id)
+    wx.navigateTo({
+      url: `/pages/certificate-detail/certificate-detail?id=${id}&type=${type}`,
+      success: (res) => {
+        res.eventChannel.emit('cert', { cert, type })
       }
-    } catch (err) {
-      logger.error('证书', '查看证书详情失败', err)
-      wx.showToast({ title: '加载失败', icon: 'none' })
-    }
+    })
   },
 
   // 下载证书（使用新 API）

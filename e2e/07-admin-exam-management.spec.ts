@@ -7,20 +7,23 @@ import { test, expect } from '@playwright/test';
 
 test.describe('管理员考试管理流程', () => {
   test.beforeEach(async ({ page }) => {
-    // 先登录管理员
+    // 先登录管理员（简易登录页：默认账号密码标签）
     await page.goto('/#/admin/login');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-    
-    // 尝试登录
-    const usernameInput = page.locator('#username');
-    const passwordInput = page.locator('#password');
-    const loginButton = page.locator('button[type="submit"]');
-    
+    await page.waitForTimeout(1500);
+
+    const pwdTab = page.getByRole('button', { name: '账号密码登录' });
+    if (await pwdTab.isVisible().catch(() => false)) {
+      await pwdTab.click();
+      await page.waitForTimeout(300);
+    }
+
+    const usernameInput = page.locator('input[placeholder="用户名"]');
+    const passwordInput = page.locator('input[placeholder="密码"]');
     if (await usernameInput.isVisible({ timeout: 3000 })) {
       await usernameInput.fill('admin');
       await passwordInput.fill('admin123');
-      await loginButton.click();
+      await page.locator('button[type="submit"]').click();
       await page.waitForTimeout(3000);
     }
   });

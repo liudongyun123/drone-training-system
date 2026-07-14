@@ -1,0 +1,296 @@
+/* pages/certificate-detail/certificate-detail.wxss */
+
+.page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #1e3a5f 0%, #0f2440 100%);
+  padding: 48rpx 40rpx 200rpx;
+  box-sizing: border-box;
+}
+
+/* 证书外框 */
+.cert-wrap {
+  padding: 12rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #f5d98b 0%, #c9a227 50%, #f5d98b 100%);
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.4);
+}
+
+.cert {
+  position: relative;
+  background: #fdfbf5;
+  border-radius: 16rpx;
+  padding: 64rpx 48rpx 48rpx;
+  overflow: hidden;
+}
+
+/* 底纹 */
+.cert::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(201, 162, 39, 0.06), transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(30, 58, 95, 0.05), transparent 40%);
+  pointer-events: none;
+}
+
+/* 装饰边角 */
+.corner {
+  position: absolute;
+  width: 56rpx;
+  height: 56rpx;
+  border: 4rpx solid #c9a227;
+}
+.corner-tl { top: 20rpx; left: 20rpx; border-right: none; border-bottom: none; }
+.corner-tr { top: 20rpx; right: 20rpx; border-left: none; border-bottom: none; }
+.corner-bl { bottom: 20rpx; left: 20rpx; border-right: none; border-top: none; }
+.corner-br { bottom: 20rpx; right: 20rpx; border-left: none; border-top: none; }
+
+/* 抬头 */
+.cert-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.cert-logo {
+  font-size: 64rpx;
+  margin-bottom: 12rpx;
+}
+
+.cert-org {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1e3a5f;
+  letter-spacing: 4rpx;
+}
+
+.cert-line {
+  width: 120rpx;
+  height: 4rpx;
+  background: #c9a227;
+  margin: 20rpx 0 8rpx;
+}
+
+/* 标题 */
+.cert-title-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 32rpx 0 40rpx;
+  position: relative;
+}
+
+.cert-title {
+  font-size: 60rpx;
+  font-weight: 700;
+  color: #1e3a5f;
+  letter-spacing: 12rpx;
+  text-indent: 12rpx;
+}
+
+.cert-subtitle {
+  font-size: 22rpx;
+  color: #c9a227;
+  letter-spacing: 8rpx;
+  margin-top: 8rpx;
+}
+
+/* 正文 */
+.cert-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 0 12rpx;
+}
+
+.cert-p {
+  font-size: 28rpx;
+  color: #444;
+  line-height: 1.9;
+}
+
+.cert-p-multi {
+  text-align: center;
+  line-height: 2;
+}
+
+.cert-name {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin: 16rpx 0;
+  border-bottom: 3rpx solid #c9a227;
+  padding: 0 24rpx 6rpx;
+}
+
+.cert-course {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #c9a227;
+  margin: 16rpx 0;
+  text-align: center;
+}
+
+/* 成绩徽章 */
+.cert-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: center;
+  margin: 36rpx auto 8rpx;
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  border: 4rpx solid #c9a227;
+  justify-content: center;
+  background: rgba(201, 162, 39, 0.08);
+}
+
+.score-num {
+  font-size: 52rpx;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.score-label {
+  font-size: 20rpx;
+  color: #8a7333;
+  margin-top: 2rpx;
+}
+
+/* 底部 */
+.cert-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 56rpx;
+  position: relative;
+}
+
+.foot-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.foot-item-right {
+  align-items: flex-end;
+}
+
+.foot-label {
+  font-size: 20rpx;
+  color: #999;
+  margin-bottom: 6rpx;
+}
+
+.foot-value {
+  font-size: 24rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+/* 印章 */
+.cert-seal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120rpx;
+  height: 120rpx;
+  transform: rotate(-12deg);
+}
+
+.seal-img {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+}
+
+.seal-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(196, 30, 58, 0.7);
+  font-size: 20rpx;
+  color: rgba(196, 30, 58, 0.85);
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+  padding: 0 8rpx;
+  box-sizing: border-box;
+}
+
+.seal-star {
+  font-size: 24rpx;
+  color: rgba(196, 30, 58, 0.85);
+  margin-top: 2rpx;
+}
+
+/* 二维码验真 */
+.cert-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 40rpx;
+  padding-top: 32rpx;
+  border-top: 1rpx dashed rgba(201, 162, 39, 0.4);
+}
+
+.qr-img {
+  width: 180rpx;
+  height: 180rpx;
+  background: #fff;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  padding: 8rpx;
+  box-sizing: border-box;
+}
+
+.qr-tip {
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-top: 16rpx;
+}
+
+/* 操作栏 */
+.actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 24rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: rgba(15, 36, 64, 0.92);
+  display: flex;
+  gap: 24rpx;
+}
+
+.btn {
+  flex: 1;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  padding: 20rpx 0;
+  border: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #f5d98b, #c9a227);
+  color: #1e3a5f;
+  font-weight: 600;
+}
+
+/* 离屏 canvas */
+.off-canvas {
+  position: fixed;
+  left: -9999rpx;
+  top: -9999rpx;
+  width: 750px;
+  height: 1060px;
+}

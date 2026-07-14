@@ -173,6 +173,7 @@ export const adminAuthService = {
         operation: 'login',
         message: `管理员 ${username} 登录成功`,
         userId: user._id,
+        userName: user.username,
         username: user.username
       })
 
@@ -202,6 +203,7 @@ export const adminAuthService = {
           operation: 'logout',
           message: `管理员 ${this.state.user.username} 登出`,
           userId: this.state.user.id,
+          userName: this.state.user.username,
           username: this.state.user.username
         })
       }

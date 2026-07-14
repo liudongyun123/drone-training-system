@@ -12,7 +12,7 @@ export { default as Modal } from './Modal';
 export { default as Button, IconButton } from './Button';
 export { default as ConfirmDialog, useConfirmDialog } from './ConfirmDialog';
 export { default as EmptyState, EmptySearchState, EmptyCartState, NoPermissionState } from './EmptyState';
-export { EmptyState as Empty } from './EmptyState';
+export { default as Empty } from './EmptyState';
 export { default as Layout } from './Layout';
 export { default as Footer } from './Footer';
 export { default as Card, StatCard, InfoCard } from './Card';

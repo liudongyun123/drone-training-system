@@ -105,7 +105,7 @@ export default function MyOrdersPage() {
         // ★ 统一使用 phone 查询
         const query = { phone: phone };
         
-        const regResult = await adminService.listWithOps('registrations', query, { limit: 100 });
+        const regResult = await adminService.listWithOps('enrollments', query, { limit: 100 });
         
         const registrations = regResult?.data?.list || [];
         console.log('[MyOrdersPage] 获取到报班记录:', registrations.length, '条', registrations);

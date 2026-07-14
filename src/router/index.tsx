@@ -53,6 +53,8 @@ import {
   AdminMembers,
 
   AdminFinance,
+  AdminRefundConfig,
+  AdminRefundManagement,
   AdminExamsUnited,
   AdminCertificates,
   AdminMarketing,
@@ -241,6 +243,8 @@ const adminRoutes = [
   { path: '/admin/attendance', element: adminRoute(() => <Navigate to="/admin/class-schedules" replace />) }, // 旧出勤管理 → 新排课管理
   { path: '/admin/schedules', element: adminRoute(() => <Navigate to="/admin/class-schedules" replace />) }, // 旧排课管理 → 新排课管理
   { path: '/admin/finance', element: adminRoute(AdminFinance) }, // 财务统计
+  { path: '/admin/refund-management', element: adminRoute(AdminRefundManagement) }, // 退款管理（申请+审核+规则入口）
+  { path: '/admin/refund-config', element: adminRoute(AdminRefundConfig) }, // 退款规则设置
   { path: '/admin/question-banks', element: adminRoute(() => <Navigate to="/admin/exams" replace />) }, // 旧题库管理 → 新考试题库
   { path: '/admin/offline-enrollment', element: adminRoute(() => <Navigate to="/admin/class-orders" replace />) }, // 线下报名 → 培训班订单
   { path: '/admin/banners', element: adminRoute(() => <Navigate to="/admin/page-config" replace />) }, // 旧轮播图 → 新内容配置

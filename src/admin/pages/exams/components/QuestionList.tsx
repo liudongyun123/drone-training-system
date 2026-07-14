@@ -3,7 +3,7 @@
 // ============================================================================
 import { useState } from 'react';
 import {
-  Edit, Trash2, Search, BookOpen, Database, ChevronLeft, ChevronRight, Upload,
+  Edit, Trash2, Search, BookOpen, Database, ChevronLeft, ChevronRight, Upload, Plus,
 } from 'lucide-react';
 import { useDictionary } from '@/admin/hooks/useDictionary';
 import { useConfirm } from '@/admin/hooks/useConfirm';
@@ -38,6 +38,7 @@ interface QuestionListProps {
   onSelectedBankChange: (bankId: string) => void;
   onKeywordChange: (keyword: string) => void;
   onDifficultyFilterChange: (filter: 'easy' | 'medium' | 'hard' | 'all') => void;
+  onCreate: () => void;
   onEdit: (question: BankQuestion) => void;
   onDelete: (question: BankQuestion) => Promise<void>;
   onImport: (questions: any[]) => Promise<void>;
@@ -48,7 +49,7 @@ interface QuestionListProps {
 export default function QuestionList({
   questions, loading, total, page, selectedBank, keyword, difficultyFilter, banks,
   onPageChange, onSelectedBankChange, onKeywordChange, onDifficultyFilterChange,
-  onEdit, onDelete, onImport, importing, importProgress,
+  onCreate, onEdit, onDelete, onImport, importing, importProgress,
 }: QuestionListProps) {
   const [showImportModal, setShowImportModal] = useState(false);
 
@@ -139,6 +140,11 @@ export default function QuestionList({
               </>
             )}
           </select>
+
+          <button onClick={onCreate} disabled={!selectedBank}
+            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
+            <Plus size={20} />新增题目
+          </button>
 
           <button onClick={() => setShowImportModal(true)} disabled={!selectedBank}
             className="px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50">

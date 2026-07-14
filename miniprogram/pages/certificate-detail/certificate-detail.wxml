@@ -1,0 +1,81 @@
+<view class="page">
+      <!-- 证书主体（可视区，用于展示） -->
+  <view class="cert-wrap" style="background: linear-gradient(135deg, {{themeBorder}}, #f5d98b, {{themeBorder}});">
+    <view class="cert {{isExternal ? 'cert-external' : ''}}" style="{{bgPattern ? 'background-image: radial-gradient(circle at 20% 15%, rgba(201,162,39,0.06), transparent 40%), radial-gradient(circle at 85% 85%, rgba(30,58,95,0.05), transparent 40%);' : ''}}">
+      <!-- 装饰边角 -->
+      <view class="corner corner-tl" style="border-color: {{themeBorder}};"></view>
+      <view class="corner corner-tr" style="border-color: {{themeBorder}};"></view>
+      <view class="corner corner-bl" style="border-color: {{themeBorder}};"></view>
+      <view class="corner corner-br" style="border-color: {{themeBorder}};"></view>
+
+      <!-- 抬头 -->
+      <view class="cert-head">
+        <view class="cert-logo">🛸</view>
+        <text class="cert-org" style="color: {{themeAccent}};">{{issuer}}</text>
+        <view class="cert-line" style="background: {{themeBorder}};"></view>
+      </view>
+
+      <!-- 标题 -->
+      <view class="cert-title-box">
+        <text class="cert-title" style="color: {{themeAccent}};">{{isExternal ? '资质证书' : (subtitle || '结业证书')}}</text>
+        <text class="cert-subtitle" style="color: {{themeBorder}};">CERTIFICATE</text>
+      </view>
+
+      <!-- 正文 -->
+      <view class="cert-body">
+        <block wx:if="{{!isExternal}}">
+          <text class="cert-p">兹证明</text>
+          <text class="cert-name" style="color: {{themeAccent}}; border-color: {{themeBorder}};">{{userName}}</text>
+          <text class="cert-p cert-p-multi">学员已完成</text>
+          <text class="cert-course" style="color: {{themeBorder}};">《{{courseTitle}}》</text>
+          <text class="cert-p cert-p-multi">培训课程全部内容，考核合格，特发此证，以资鼓励。</text>
+        </block>
+        <block wx:else>
+          <text class="cert-p">持证人</text>
+          <text class="cert-name" style="color: {{themeAccent}}; border-color: {{themeBorder}};">{{userName}}</text>
+          <text class="cert-course" style="color: {{themeBorder}};">{{courseTitle}}</text>
+          <text class="cert-p cert-p-multi" wx:if="{{statusText}}">证书状态：{{statusText}}</text>
+        </block>
+      </view>
+
+      <!-- 分数徽章（有分数才显示） -->
+      <view class="cert-score" wx:if="{{score}}" style="border-color: {{themeBorder}};">
+        <text class="score-num" style="color: {{themeAccent}};">{{score}}</text>
+        <text class="score-label">考核成绩</text>
+      </view>
+
+      <!-- 底部信息 -->
+      <view class="cert-foot">
+        <view class="foot-item">
+          <text class="foot-label">证书编号</text>
+          <text class="foot-value">{{certNo}}</text>
+        </view>
+        <view class="cert-seal">
+          <image wx:if="{{sealImage}}" src="{{sealImage}}" mode="aspectFit" class="seal-img" />
+          <block wx:else>
+            <text class="seal-text">{{issuerShort}}</text>
+            <text class="seal-star">★</text>
+          </block>
+        </view>
+        <view class="foot-item foot-item-right">
+          <text class="foot-label">颁发日期</text>
+          <text class="foot-value">{{issueDate}}</text>
+        </view>
+      </view>
+
+      <!-- 二维码验真 -->
+      <view class="cert-qr" wx:if="{{qrVerify}}">
+        <image class="qr-img" src="{{qrUrl}}" mode="aspectFit" />
+        <text class="qr-tip">扫码验证证书真伪</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作栏 -->
+  <view class="actions">
+    <button class="btn btn-primary" bindtap="saveToAlbum">保存到相册</button>
+  </view>
+
+  <!-- 离屏 canvas，用于导出图片 -->
+  <canvas type="2d" id="certCanvas" class="off-canvas"></canvas>
+</view>

@@ -72,9 +72,11 @@ Page({
     if (q.options && q.options.length > 0) {
       optionsHtml = q.options.map((opt: any, idx: number) => {
         const prefix = String.fromCharCode(65 + idx) // A, B, C, D
-        const isCorrect = q.correctAnswer === prefix || q.correctAnswer === opt.key
-        const isWrong = q.yourAnswer === prefix || q.yourAnswer === opt.key
-        return `${prefix}. ${opt.content} ${isCorrect ? '✅' : ''} ${isWrong ? '(你的答案)' : ''}`
+        const correctSet = String(q.correctAnswer || '').split(',').map((s: string) => s.trim())
+        const wrongSet = String(q.yourAnswer || '').split(',').map((s: string) => s.trim())
+        const isCorrect = correctSet.includes(prefix) || q.correctAnswer === opt.key
+        const isWrong = wrongSet.includes(prefix) || q.yourAnswer === opt.key
+        return `${prefix}. ${opt} ${isCorrect ? '✅' : ''} ${isWrong ? '(你的答案)' : ''}`
       }).join('\n')
     }
     
