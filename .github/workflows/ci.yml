@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------- 1. 云函数契约自检（硬门禁） ----------
+  # 静态扫描 src/ + miniprogram/ 对云函数的 (函数, action) 调用，
+  # 比对各 cloudfunctions/api-* 的 dispatch 声明，发现「前端调用但云函数未实现」的缺口。
+  # 退出码 0 = 一致；1 = 有缺口 → 阻断合并。
+  contract-check:
+    name: 云函数契约自检
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: 检查前后端 (云函数, action) 契约一致性
+        run: node scripts/check-contract.mjs
+
+  # ---------- 2. 端到端测试（Playwright） ----------
+  # 覆盖后台多模块冒烟加载 + 学员管理写库闭环。
+  # 注：E2E 连接真实 CloudBase 环境，依赖网络与真实数据，较易波动，
+  # 故设为 continue-on-error，不阻塞主流程，仅作结果报告。
+  e2e:
+    name: 端到端测试 (Playwright)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: 安装 Playwright 浏览器
+        run: npx playwright install --with-deps chromium
+      - name: 运行 E2E
+        run: npx playwright test --project="Desktop Chrome"
+      - name: 上传测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
