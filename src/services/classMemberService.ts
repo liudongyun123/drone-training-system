@@ -41,7 +41,7 @@ export const classMemberService = {
   },
 
   // 班级在读名单
-  async getClassRoster(classId, { keyword = '', statuses } = {}) {
+  async getClassRoster(classId, { keyword = '', statuses }: { keyword?: string; statuses?: string[] } = {}) {
     const where = { classId, status: statuses || { $in: ROSTER_STATUSES } }
     if (keyword) {
       where.$or = [
@@ -99,6 +99,16 @@ export const classMemberService = {
     if (!toClass) return { code: -1, message: '目标班级不存在' }
     const fromName = fromClass?.name || enr.className || ''
     const { phone, name } = this._memberBase(enr)
+    // 调班前置校验：仅"付费在读且未过期"或"免费班未过期"允许调班；过期/已退/待付不可调
+    const st = await this._getMemberClassState(enr)
+    if (!st.canTransfer) {
+      return {
+        code: 403,
+        message: st.expired
+          ? '培训已过期，不可调班（付费学员过期后仅可结业清理，不能调班）'
+          : (st.reason || '该学员当前状态不可调班')
+      }
+    }
     // 同步报名记录到新班（含课程归属）
     await CloudDBService.update('enrollments', enrollmentId, {
       classId: toClassId,
@@ -202,9 +212,16 @@ export const classMemberService = {
   },
 
   // 移除学员（取消报名）
+  // 前置：付费且培训未结束的学员禁止移除（必须调班，或等培训完成后由管理员清理结业）
+  // 联动：enrollments→cancelled + class_members→dropped + 班级计数-1
+  //       + 订单打 enrollmentCancelled 标记（小程序端过滤） + 收回班级视频权限 + 推送通知
   async removeMember(enrollmentId) {
     const enr = await CloudDBService.get('enrollments', enrollmentId)
     if (!enr) return { code: -1, message: '报名记录不存在' }
+    const st = await this._getMemberClassState(enr)
+    if (!st.canRemove) {
+      return { code: 403, message: st.reason || '该学员当前不可移除' }
+    }
     await CloudDBService.update('enrollments', enrollmentId, {
       status: 'cancelled',
       cancelReason: '管理员移除',
@@ -215,7 +232,41 @@ export const classMemberService = {
       await this._adjustClassCount(enr.classId, -1)
       // 同步镜像到 class_members（置为 dropped）
       await this._mirrorRemove(enr)
+      const { phone } = this._memberBase(enr)
+      // 标记该班订单为已取消报名（保留财务记录，仅供小程序端过滤）
+      if (phone) await this._mirrorCancelOrder(phone, enr.classId, true)
+      // 收回该学员在该班的全部课程视频权限
+      await this._revokeClassPermissions(phone, enr.classId)
     }
+    await this._notifyRemove(enr)
+    return { code: 0 }
+  },
+
+  // 重新加入班级（仅后台操作，移出/取消报名的逆操作）
+  // 联动：enrollments→confirmed + class_members→active + 班级计数+1
+  //       + 清除订单取消标记 + 恢复班级视频权限 + 推送通知
+  async rejoinClass(enrollmentId) {
+    const enr = await CloudDBService.get('enrollments', enrollmentId)
+    if (!enr) return { code: -1, message: '报名记录不存在' }
+    await CloudDBService.update('enrollments', enrollmentId, {
+      status: 'confirmed',
+      cancelReason: '',
+      cancelledAt: '',
+      rejoinAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    })
+    if (enr.classId) {
+      await this._adjustClassCount(enr.classId, +1)
+      await this._mirrorConfirm(enr)
+      const { phone } = this._memberBase(enr)
+      if (phone) {
+        // 清除订单取消标记，使小程序端重新显示该班
+        await this._mirrorCancelOrder(phone, enr.classId, false)
+        // 恢复该班课程视频权限（仅恢复被收回的，不影响其它来源权限）
+        await this._restoreClassPermissions(phone, enr.classId)
+      }
+    }
+    await this._notifyRejoin(enr)
     return { code: 0 }
   },
 
@@ -598,6 +649,153 @@ export const classMemberService = {
       })
     } catch (e) {
       console.error('[classMemberService] 调班消息推送失败:', e)
+    }
+  },
+
+  // 学员在某班的"资金/班期"状态 → 派生是否可移除 / 可调班
+  // 依据：orders（phone+classId+orderType=class）的支付状态 + class 的 price/endDate
+  // 规则（依业务约定）：
+  //  - 付费(已付)且培训未结束  → 不可移除（须调班或等结业），可迁移（调班）
+  //  - 付费且已过期            → 可移除（结业清理，不退费），不可调班
+  //  - 已退款 / 免费班 / 待付款 → 可移除；免费班未过期可迁移
+  async _getMemberClassState(enr) {
+    const { phone } = this._memberBase(enr)
+    const classId = enr.classId
+    const cls = classId ? await CloudDBService.get('classes', classId) : null
+    if (!cls) {
+      return { paid: false, refunded: false, pending: false, freeClass: true, expired: false, canRemove: true, canTransfer: true, reason: '' }
+    }
+    const price = cls.enrollmentConfig?.price ?? cls.price ?? 0
+    const freeClass = Number(price) === 0
+    const now = new Date()
+    const endDate = cls.endDate ? new Date(cls.endDate) : null
+    const expired = !!endDate && !isNaN(endDate.getTime()) && now > endDate
+    let paid = false, refunded = false, pending = false
+    if (phone && classId) {
+      const oRes = await CloudDBService.query('orders', {
+        where: { phone, classId, orderType: 'class' }, limit: 20
+      })
+      for (const o of (oRes.data || [])) {
+        if (o.status === 'refunded') refunded = true
+        else if (o.status === 'pending') pending = true
+        else if (['paid', 'completed', 'paid_offline'].includes(o.status)) paid = true
+      }
+    }
+    let canRemove = true
+    let canTransfer = false
+    let reason = ''
+    if (paid && !expired) {
+      canRemove = false
+      canTransfer = true
+      reason = '该学员已付费且培训未结束，不能直接移除；请使用「调班」（仅限培训有效期内），或等培训完成后由管理员清理。'
+    } else if (paid && expired) {
+      canRemove = true
+      canTransfer = false
+      reason = '培训已结束，可直接移除（结业清理，不退费）。'
+    } else if (freeClass) {
+      canRemove = true
+      canTransfer = !expired
+    } else {
+      // 待付款 / 已退款 / 无订单
+      canRemove = true
+      canTransfer = false
+    }
+    return { paid, refunded, pending, freeClass, expired, canRemove, canTransfer, reason }
+  },
+
+  // 对外暴露：供后台 UI 在渲染前判断按钮可用性
+  async getMemberClassState(enrollmentId) {
+    const enr = await CloudDBService.get('enrollments', enrollmentId)
+    if (!enr) {
+      return { code: -1, paid: false, freeClass: true, expired: false, canRemove: true, canTransfer: true, reason: '报名记录不存在' }
+    }
+    const st = await this._getMemberClassState(enr)
+    return { code: 0, ...st }
+  },
+
+  // 订单"取消报名"软标记：保留财务记录，仅供小程序端 getMyEnrollments 过滤
+  async _mirrorCancelOrder(phone, classId, cancelled) {
+    if (!phone || !classId) return
+    try {
+      const res = await CloudDBService.query('orders', {
+        where: { phone, classId, orderType: 'class' }, limit: 50
+      })
+      for (const o of (res.data || [])) {
+        await CloudDBService.update('orders', o._id, {
+          enrollmentCancelled: !!cancelled,
+          updatedAt: new Date().toISOString()
+        })
+      }
+    } catch (e) {
+      console.error('[classMemberService] 订单取消标记失败:', e)
+    }
+  },
+
+  // 恢复某班课程视频权限（移出后重新加入时调用）：仅把被收回的置为有效，不动其它来源权限
+  async _restoreClassPermissions(phone, classId) {
+    try {
+      const res = await CloudDBService.query('course_permissions', {
+        where: { phone, classId }, limit: 200
+      })
+      for (const p of (res.data || [])) {
+        await CloudDBService.update('course_permissions', p._id, {
+          status: 'active',
+          videoAccess: { ...(p.videoAccess || {}), enabled: true },
+          updatedAt: new Date().toISOString()
+        })
+      }
+    } catch (e) {
+      console.error('[classMemberService] 恢复班级视频权限失败:', e)
+    }
+  },
+
+  // 移出班级消息通知（小程序消息中心）
+  async _notifyRemove(enr) {
+    const { phone, userId } = this._memberBase(enr)
+    if (!phone && !userId) return
+    try {
+      await CloudDBService.add('messages', {
+        userId,
+        phone,
+        type: 'course',
+        title: '移出班级通知',
+        content: `您已被移出「${enr.className || ''}」，相关课程视频权限已收回。如有疑问请联系管理员。`,
+        priority: 'medium',
+        status: 'unread',
+        isSystem: false,
+        relatedType: 'class',
+        relatedId: enr.classId,
+        link: '/my-training',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+    } catch (e) {
+      console.error('[classMemberService] 移出消息推送失败:', e)
+    }
+  },
+
+  // 重新加入班级消息通知（小程序消息中心）
+  async _notifyRejoin(enr) {
+    const { phone, userId } = this._memberBase(enr)
+    if (!phone && !userId) return
+    try {
+      await CloudDBService.add('messages', {
+        userId,
+        phone,
+        type: 'course',
+        title: '重新加入通知',
+        content: `您已重新加入「${enr.className || ''}」，课程视频权限已恢复，请在"我的培训"中查看。`,
+        priority: 'medium',
+        status: 'unread',
+        isSystem: false,
+        relatedType: 'class',
+        relatedId: enr.classId,
+        link: '/my-training',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+    } catch (e) {
+      console.error('[classMemberService] 重新加入消息推送失败:', e)
     }
   },
 

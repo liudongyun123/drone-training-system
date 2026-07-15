@@ -58,6 +58,7 @@ export default function AdminClassMembers() {
   const [roster, setRoster] = useState<any[]>([]);
   const [pending, setPending] = useState<any[]>([]);
   const [keyword, setKeyword] = useState('');
+  const [rosterFilter, setRosterFilter] = useState<'active' | 'removed'>('active');
   const [classLoading, setClassLoading] = useState(false);
 
   // 调班弹窗
@@ -118,23 +119,29 @@ export default function AdminClassMembers() {
     if (!selectedClassId && list.length) setSelectedClassId(list[0]._id);
   }, [selectedClassId]);
 
-  const loadRoster = useCallback(async (classId: string) => {
+  const loadRoster = useCallback(async (classId: string, filter: 'active' | 'removed' = 'active') => {
     if (!classId) { setRoster([]); setPending([]); return; }
     setClassLoading(true);
     try {
-      const [r, p] = await Promise.all([
-        classMemberService.getClassRoster(classId, { keyword }),
-        classMemberService.getPendingEnrollments(classId)
-      ]);
-      setRoster(r);
-      setPending(p);
+      if (filter === 'removed') {
+        const r = await classMemberService.getClassRoster(classId, { statuses: ['cancelled'], keyword });
+        setRoster(r);
+        setPending([]);
+      } else {
+        const [r, p] = await Promise.all([
+          classMemberService.getClassRoster(classId, { keyword }),
+          classMemberService.getPendingEnrollments(classId)
+        ]);
+        setRoster(r);
+        setPending(p);
+      }
     } finally {
       setClassLoading(false);
     }
   }, [keyword]);
 
   useEffect(() => { loadClasses(); }, [loadClasses]);
-  useEffect(() => { if (activeTab === 'class') loadRoster(selectedClassId); }, [activeTab, selectedClassId, loadRoster]);
+  useEffect(() => { if (activeTab === 'class') loadRoster(selectedClassId, rosterFilter); }, [activeTab, selectedClassId, rosterFilter, loadRoster]);
 
   const handleConfirm = async (enrollmentId: string) => {
     const res = await classMemberService.confirmEnrollment(enrollmentId, REVIEWER);
@@ -174,8 +181,29 @@ export default function AdminClassMembers() {
   const handleRemove = async (enrollment: any) => {
     if (!window.confirm(`确认将 ${enrollment.studentName || enrollment.userName || '该学员'} 移出班级？`)) return;
     const res = await classMemberService.removeMember(enrollment._id || enrollment.id);
-    if (res.code === 0) { toast.success('已移除'); loadRoster(selectedClassId); }
+    if (res.code === 0) { toast.success('已移除'); loadRoster(selectedClassId, rosterFilter); }
     else toast.error(res.message || '操作失败');
+  };
+
+  const handleRejoin = async (enrollment: any) => {
+    if (!window.confirm(`确认将 ${enrollment.studentName || enrollment.userName || '该学员'} 重新加入班级？`)) return;
+    const res = await classMemberService.rejoinClass(enrollment._id || enrollment.id);
+    if (res.code === 0) { toast.success('已重新加入'); loadRoster(selectedClassId, rosterFilter); }
+    else toast.error(res.message || '操作失败');
+  };
+
+  // 行内按钮可用性（与服务端判定保持一致，客户端仅做 UX 提示）
+  const memberState = (e: any) => {
+    const cls = classes.find((c: any) => c._id === e.classId) || {};
+    const paid = e.payment?.status
+      ? ['paid', 'completed', 'paid_offline'].includes(e.payment.status)
+      : e.paymentStatus === 'paid';
+    const free = Number(cls.enrollmentConfig?.price ?? cls.price ?? 0) === 0;
+    const endDate = cls.endDate ? new Date(cls.endDate).getTime() : 0;
+    const expired = endDate > 0 && Date.now() > endDate;
+    const canRemove = !(paid && !expired);
+    const canTransfer = !expired;
+    return { paid, free, expired, canRemove, canTransfer };
   };
 
   const handleToggleVideo = async (enrollment: any) => {
@@ -507,6 +535,18 @@ export default function AdminClassMembers() {
             </div>
           )}
 
+          {/* 名单筛选 */}
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={() => setRosterFilter('active')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${rosterFilter === 'active' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+            >在读学员</button>
+            <button
+              onClick={() => setRosterFilter('removed')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${rosterFilter === 'removed' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+            >已移出（可恢复）</button>
+          </div>
+
           {/* 名单表格 */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
@@ -527,7 +567,7 @@ export default function AdminClassMembers() {
                   <tr><td colSpan={8} className="text-center py-8 text-gray-400">加载中…</td></tr>
                 )}
                 {!classLoading && roster.length === 0 && (
-                  <tr><td colSpan={8} className="text-center py-8 text-gray-400">该班级暂无在读学员</td></tr>
+                  <tr><td colSpan={8} className="text-center py-8 text-gray-400">{rosterFilter === 'removed' ? '该班级暂无已移出的学员' : '该班级暂无在读学员'}</td></tr>
                 )}
                 {!classLoading && roster.map((e) => (
                   <tr key={e._id || e.id} className="border-t hover:bg-gray-50">
@@ -564,14 +604,33 @@ export default function AdminClassMembers() {
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => openMove(e)} className="flex items-center gap-1 px-2 py-1 rounded bg-blue-50 text-blue-600 text-xs" title="调整班级">
-                          <ArrowRightLeft size={14} /> 调班
+                      {e.status === 'cancelled' || e.status === 'dropped' ? (
+                        <button onClick={() => handleRejoin(e)} className="flex items-center gap-1 px-2 py-1 rounded bg-green-50 text-green-600 text-xs" title="重新加入班级">
+                          <UserPlus size={14} /> 重新加入
                         </button>
-                        <button onClick={() => handleRemove(e)} className="flex items-center gap-1 px-2 py-1 rounded bg-red-50 text-red-600 text-xs" title="移除">
-                          <UserMinus size={14} />
-                        </button>
-                      </div>
+                      ) : (() => {
+                        const ms = memberState(e)
+                        return (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openMove(e)}
+                              disabled={!ms.canTransfer}
+                              title={ms.canTransfer ? '调整班级' : '培训已过期，不可调班'}
+                              className="flex items-center gap-1 px-2 py-1 rounded bg-blue-50 text-blue-600 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <ArrowRightLeft size={14} /> 调班
+                            </button>
+                            <button
+                              onClick={() => handleRemove(e)}
+                              disabled={!ms.canRemove}
+                              title={ms.canRemove ? '移除' : '已付费在读，请调班或等培训完成'}
+                              className="flex items-center gap-1 px-2 py-1 rounded bg-red-50 text-red-600 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <UserMinus size={14} />
+                            </button>
+                          </div>
+                        )
+                      })()}
                     </td>
                   </tr>
                 ))}

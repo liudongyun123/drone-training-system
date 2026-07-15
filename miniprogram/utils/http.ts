@@ -207,18 +207,25 @@ export async function getMyEnrollments(phoneOrUserId: string, userId?: string) {
 
   // 合并三个集合的数据，标记来源和数据优先级
   // 优先级：class_members > enrollments > orders（class_members 数据最完整）
-  const members = (classMembers.data || []).map((item: any) => ({
-    ...item,
-    _source: 'class_members',
-    _priority: 1
-  }))
-  const enrolls = (enrollments.data || []).map((item: any) => ({
-    ...item,
-    _source: 'enrollments',
-    _priority: 2
-  }))
-  // orders 数据映射为报名记录格式
-  const orders = (ordersResult.data || []).map((item: any) => ({
+  // 过滤已退课(dropped)/已取消报名(cancelled) 的记录，保证后台"移出/重新加入"在端上同步
+  const members = (classMembers.data || [])
+    .filter((item: any) => item.status !== 'dropped')
+    .map((item: any) => ({
+      ...item,
+      _source: 'class_members',
+      _priority: 1
+    }))
+  const enrolls = (enrollments.data || [])
+    .filter((item: any) => item.status !== 'cancelled')
+    .map((item: any) => ({
+      ...item,
+      _source: 'enrollments',
+      _priority: 2
+    }))
+  // orders 数据映射为报名记录格式（跳过后台已取消报名的班级订单）
+  const orders = (ordersResult.data || [])
+    .filter((item: any) => !item.enrollmentCancelled)
+    .map((item: any) => ({
     ...item,
     classId: item.classId || '',
     className: item.className || item.items?.[0]?.className || '',
