@@ -119,6 +119,8 @@ export const classMemberService = {
     }
     // 1. 同步镜像到 class_members（小程序端班级成员/视频权限读取源）
     await this._mirrorMove(enr, fromClassId, toClassId, toClass.name)
+    // 1.1 同步班级订单（orders orderType=class），否则小程序合并班级列表时仍显示原班
+    await this._mirrorMoveOrder(phone, fromClassId, toClassId, toClass.name)
     // 2. 迁移未来出勤记录到新班（attendance_records）
     await this._migrateAttendance(
       [enr.phone, enr.studentId, enr.userId].filter(Boolean),
@@ -492,6 +494,26 @@ export const classMemberService = {
         enrolledAt: new Date().toISOString(),
         createdAt: new Date().toISOString()
       })
+    }
+  },
+
+  // 调班订单镜像：把该学员原班的 class 订单 classId 改挂到新班
+  // 小程序 getMyEnrollments 会合并 orders 集合，不更新会导致仍显示原班
+  async _mirrorMoveOrder(phone, fromClassId, toClassId, toClassName) {
+    if (!phone || !fromClassId || !toClassId || fromClassId === toClassId) return
+    try {
+      const res = await CloudDBService.query('orders', {
+        where: { phone, classId: fromClassId, orderType: 'class' }, limit: 50
+      })
+      for (const o of (res.data || [])) {
+        await CloudDBService.update('orders', o._id, {
+          classId: toClassId,
+          className: toClassName,
+          updatedAt: new Date().toISOString()
+        })
+      }
+    } catch (e) {
+      console.error('[classMemberService] 调班订单同步失败:', e)
     }
   },
 
