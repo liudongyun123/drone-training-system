@@ -37,6 +37,9 @@ export interface Class {
   endDate: string                // 结束日期
   startTime?: string             // 默认开始时间
   endTime?: string               // 默认结束时间
+  // 报名时间段（可选；不填则不限制）
+  enrollStart?: string           // 报名开始日期 YYYY-MM-DD
+  enrollDeadline?: string        // 报名截止日期 YYYY-MM-DD（当天仍有效，视为 23:59 截止）
   
   // 地点
   location: string               // 上课地点
@@ -134,6 +137,8 @@ export interface CreateClassRequest {
   maxStudents: number
   startDate: string
   endDate: string
+  enrollStart?: string
+  enrollDeadline?: string
   location: string
   teacherId: string
   assistantIds?: string[]
@@ -153,6 +158,8 @@ export interface UpdateClassRequest {
   maxStudents?: number
   startDate?: string
   endDate?: string
+  enrollStart?: string
+  enrollDeadline?: string
   location?: string
   teacherId?: string
   assistantIds?: string[]

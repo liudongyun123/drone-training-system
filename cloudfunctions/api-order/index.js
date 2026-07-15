@@ -970,6 +970,32 @@ async function enrollClass(data) {
       })
     }
 
+    // 报名时间段 / 招生状态 校验
+    const serverNow = new Date()
+    if (cls.status && !['enrolling', 'full'].includes(cls.status)) {
+      return createResponse({
+        code: 400,
+        success: false,
+        error: `该班级当前不可报名（状态：${cls.status}）`
+      })
+    }
+    if (cls.enrollStart) {
+      const s = new Date(cls.enrollStart)
+      if (!isNaN(s.getTime()) && serverNow < s) {
+        return createResponse({ code: 400, success: false, error: '报名尚未开始' })
+      }
+    }
+    if (cls.enrollDeadline) {
+      const d = new Date(cls.enrollDeadline)
+      if (!isNaN(d.getTime())) {
+        // 若只填日期（YYYY-MM-DD），视为当天 23:59:59 截止
+        if (/^\d{4}-\d{2}-\d{2}$/.test(cls.enrollDeadline)) d.setHours(23, 59, 59, 999)
+        if (serverNow > d) {
+          return createResponse({ code: 400, success: false, error: '报名已截止' })
+        }
+      }
+    }
+
     // 若携带订单ID，关联订单信息（统一身份、金额、支付方式），便于生成审核记录
     let orderInfo = null
     if (orderId) {

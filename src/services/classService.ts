@@ -215,6 +215,14 @@ export const classService = {
    */
   async createSchedule(data: CreateScheduleRequest): Promise<{ code: number; data: { id: string } }> {
     try {
+      // 校验排课日期是否落在班级开班~结班区间内（日期字符串 YYYY-MM-DD 可直接比较）
+      const cls = await CloudDBService.get<Class>('classes', data.classId)
+      if (cls && cls.startDate && cls.endDate && data.date) {
+        if (data.date < cls.startDate || data.date > cls.endDate) {
+          throw new Error(`排课日期 ${data.date} 超出班级开班(${cls.startDate})~结班(${cls.endDate})区间`)
+        }
+      }
+
       const scheduleData = {
         ...data,
         status: 'scheduled',
@@ -243,6 +251,15 @@ export const classService = {
   async createSchedulesBatch(params: BatchCreateScheduleRequest): Promise<{ code: number; data: { inserted: number; ids: string[] } }> {
     try {
       const { classId, startDate, endDate, startTime, endTime, repeatType, repeatDays, excludeDates = [] } = params
+
+      // 校验排课区间是否落在班级开班~结班区间内
+      const cls = await CloudDBService.get<Class>('classes', classId)
+      if (cls && cls.startDate && cls.endDate) {
+        if ((startDate && startDate < cls.startDate) || (endDate && endDate > cls.endDate)) {
+          throw new Error(`排课区间需落在班级开班(${cls.startDate})~结班(${cls.endDate})区间内`)
+        }
+      }
+
       
       // 生成日期列表
       const dates: string[] = []

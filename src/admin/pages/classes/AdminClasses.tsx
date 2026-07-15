@@ -101,6 +101,8 @@ interface ClassFormData {
   maxStudents: number;
   startDate: string;
   endDate: string;
+  enrollStart: string;       // 报名开始日期（可选）
+  enrollDeadline: string;    // 报名截止日期（可选）
   location: string;
   teacherId: string;
   sourceId: string;
@@ -122,6 +124,8 @@ const initialFormData: ClassFormData = {
   maxStudents: 20,
   startDate: '',
   endDate: '',
+  enrollStart: '',
+  enrollDeadline: '',
   location: '',
   teacherId: '',
   sourceId: '',
@@ -339,9 +343,14 @@ export default function AdminClasses() {
       maxStudents: cls.maxStudents,
       startDate: cls.startDate,
       endDate: cls.endDate,
+      enrollStart: clsAny.enrollStart || '',
+      enrollDeadline: clsAny.enrollDeadline || '',
       location: cls.location,
       teacherId: cls.teacherId,
       sourceId: clsAny.sourceId || '',
+      category: clsAny.category || '',
+      categoryId: clsAny.categoryId || '',
+      coverImage: clsAny.coverImage || '',
       intro: cls.intro || initialFormData.intro,
       enrollmentConfig: cls.enrollmentConfig || initialFormData.enrollmentConfig
     });
@@ -977,6 +986,26 @@ export default function AdminClasses() {
                       type="date"
                       value={formData.endDate}
                       onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">报名开始日期（可选）</label>
+                    <input
+                      type="date"
+                      value={formData.enrollStart}
+                      onChange={(e) => setFormData(prev => ({ ...prev, enrollStart: e.target.value }))}
+                      className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">报名截止日期（可选）</label>
+                    <input
+                      type="date"
+                      value={formData.enrollDeadline}
+                      onChange={(e) => setFormData(prev => ({ ...prev, enrollDeadline: e.target.value }))}
                       className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
