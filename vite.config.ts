@@ -16,7 +16,7 @@ const API_TIMEOUT = parseInt(env.VITE_API_TIMEOUT || "30000", 10);
 const DEBUG_MODE = env.VITE_DEBUG_MODE === "true";
 
 // 构建版本号
-const BUILD_VERSION = 'v20260714-0938-full-fix';
+const BUILD_VERSION = 'v20260715-1434-examresult-typefix';
 
 // Sentry 配置
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
@@ -95,19 +95,24 @@ export default defineConfig({
         // 手动分割代码块 - 策略：按库功能分组，每 chunk 控制在 500KB 以下
         // 注意：framer-motion/video.js/fullcalendar/recharts 等大型库仅被懒加载页面引用，
         // Rollup 会自动将它们包含在对应页面 chunk 中，无需手动分包
-        manualChunks: {
-          // React Router
-          'vendor-router': ['react-router-dom'],
-          // UI 核心库（不包含 emotion 和 icons，约 478KB）
-          'vendor-mui-core': ['@mui/material'],
-          // Emotion 样式引擎（MUI 依赖，约 26KB）
-          'vendor-emotion': ['@emotion/react', '@emotion/styled'],
-          // MUI Icons（单独 chunk，tree-shaking 后只包含实际使用的图标，约 5KB）
-          'vendor-mui-icons': ['@mui/icons-material'],
-          // 状态管理
-          'vendor-state': ['zustand'],
-          // 工具库
-          'vendor-utils': ['axios', 'dayjs', 'lucide-react'],
+        manualChunks(id) {
+          // 1) 超大云开发 SDK 单独成包（含其所有 @cloudbase 子包），避免被多个懒加载页面重复打包
+          //    （@cloudbase/js-sdk ~700KB+，仅课程上传/播放页按需加载，不进首屏）
+          if (id.includes('node_modules/@cloudbase/')) {
+            return 'vendor-cloudbase';
+          }
+          // 2) node_modules 内的第三方依赖按库顶层路径分组（仅匹配顶层包，避免误伤子依赖）
+          if (id.includes('node_modules')) {
+            if (id.includes('node_modules/react-router')) return 'vendor-router';
+            if (id.includes('node_modules/@mui/material')) return 'vendor-mui-core';
+            if (id.includes('node_modules/@mui/icons-material')) return 'vendor-mui-icons';
+            if (id.includes('node_modules/@emotion')) return 'vendor-emotion';
+            if (id.includes('node_modules/zustand')) return 'vendor-state';
+            if (id.includes('node_modules/axios') || id.includes('node_modules/dayjs') || id.includes('node_modules/lucide-react') || id.includes('node_modules/framer-motion')) {
+              return 'vendor-utils';
+            }
+            return 'vendor-other';
+          }
         },
         // 使用内容哈希生成文件名
         entryFileNames: `assets/[name]-${BUILD_VERSION}.js`,

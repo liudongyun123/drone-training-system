@@ -93,7 +93,7 @@ export default function SystemSettings() {
       setLoading(true)
       const { adminService } = await import('../../services/adminService')
       const result = await adminService.list('system_config', { type: 'settings' }, { limit: 1 })
-      const data = result?.data?.list?.[0] || result?.data?.[0]
+      const data = result?.data?.list?.[0]
       if (data) {
         setConfig(prev => ({
           basic: data.basic || prev.basic,
@@ -114,7 +114,7 @@ export default function SystemSettings() {
       const { adminService } = await import('../../services/adminService')
       // 尝试更新已有配置，若不存在则创建
       const listResult = await adminService.list('system_config', { type: 'settings' }, { limit: 1 })
-      const existing = listResult?.data?.list?.[0] || listResult?.data?.[0]
+      const existing = listResult?.data?.list?.[0]
       if (existing?._id) {
         await adminService.update('system_config', existing._id, { ...config, type: 'settings' })
       } else {

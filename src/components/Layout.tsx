@@ -11,7 +11,6 @@ import {
   MessageSquare, ScrollText, UsersRound,
   Wrench, Layers, Building2, CreditCard, ClipboardList, Percent, RefreshCw,
   BookMarked, Megaphone, Gauge, Database, Globe,
-  BookMarked as LevelsIcon
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -161,8 +160,8 @@ const adminMenuGroups: MenuGroup[] = [
     icon: UsersRound,
     items: [
       { path: '/admin/members', icon: UsersRound, label: '成员管理', description: '用户/学员', relatedPaths: ['/admin/students'] },
+      { path: '/admin/class-members', icon: UsersRound, label: '学员管理', description: '班级名单/购课人员/课程视频权限' },
       { path: '/admin/user-roles', icon: Shield, label: '管理员角色', description: '后台账号/权限配置' },
-      { path: '/admin/permissions', icon: Shield, label: '权限管理', description: '视频权限/班级成员' },
     ]
   },
 
@@ -326,8 +325,8 @@ export default function Layout() {
       // 3. 获取系统公告
       try {
         const notices = await adminService.list('notices', { status: 'published' }, { limit: 3, orderBy: 'createdAt', order: 'desc' });
-        if (notices.data && notices.data.length > 0) {
-          notices.data.forEach((notice: any) => {
+        if (notices.data?.list && notices.data.list.length > 0) {
+          notices.data.list.forEach((notice: any) => {
             notificationItems.push({
               id: notice._id,
               type: 'notice',

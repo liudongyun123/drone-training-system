@@ -45,7 +45,6 @@ import {
   School as SchoolIcon,
   EmojiEvents as GraduateIcon,
   TrendingUp as TrendingUpIcon,
-  AttachMoney as MoneyIcon,
   Book as BookIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material'
@@ -54,8 +53,6 @@ import {
   Member, 
   MemberType, 
   MemberSource, 
-  MemberSourceLabels, 
-  MemberSourceDescriptions 
 } from '../../types/member'
 import AdminTablePagination from './AdminTablePagination'
 import { formatDateStr } from '@/utils/dateUtils'
@@ -340,7 +337,7 @@ export default function MemberManagement() {
       }, { limit: 50 })
 
       const enrollments = enrollmentsResult.code === 0
-        ? (Array.isArray(enrollmentsResult.data) ? enrollmentsResult.data : (enrollmentsResult.data?.data || []))
+        ? (enrollmentsResult.data?.list || [])
         : []
 
       setMemberPermissions({

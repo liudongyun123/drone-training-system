@@ -1,12 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Award, Clock, CheckCircle, XCircle, ArrowLeft, RotateCcw,
+import {
+  Award, CheckCircle, XCircle, ArrowLeft, RotateCcw,
   FileText, BarChart3, AlertCircle, ChevronDown, ChevronUp
 } from 'lucide-react';
 import type { ExamAttempt, Exam, Question } from '@/types';
 import { examService } from '@/services/examService';
+import { examAttemptService } from '@/services/database';
 import Loading from '@/components/Loading';
+
+// 将 examAttemptService 返回的记录映射为本组件使用的 ExamAttempt 结构
+function mapExamAttempt(record: any): ExamAttempt {
+  return {
+    _id: record._id,
+    examId: record.examId || '',
+    userId: record.userId || '',
+    courseId: record.courseId || '',
+    score: record.score || 0,
+    passStatus: record.passStatus ?? (record.score >= 60),
+    answers: Array.isArray(record.answers) ? record.answers : [],
+    startTime: record.startTime || new Date().toISOString(),
+    submitTime: record.submitTime || '',
+    duration: record.duration || 60,
+  };
+}
 
 export default function ExamResult() {
   const { attemptId } = useParams() as { attemptId?: string };
@@ -44,38 +61,20 @@ export default function ExamResult() {
     loadResult();
   }, [attemptId]);
 
-  // 加载最新的考试记录
+  // 加载最新的考试记录（经由 examAttemptService，不直连 SDK）
   const loadLatestAttempt = async () => {
     try {
       setLoading(true);
       setError(null);
       console.log('[ExamResult] loadLatestAttempt: 正在查询最新记录');
-      
-      const cloudService = await import('@/services/cloudBaseService') as any;
-      const { getDb } = cloudService;
-      const result = await getDb()
-        .collection('examAttempts')
-        .orderBy('submitTime', 'desc')
-        .limit(1)
-        .get();
-      
-      console.log('[ExamResult] loadLatestAttempt: 查询结果', result);
-      
-      if (result.data && result.data.length > 0) {
-        const latest = result.data[0];
-        const attemptData: ExamAttempt = {
-          _id: latest._id,
-          examId: latest.examId || '',
-          userId: latest.userId || '',
-          courseId: latest.courseId || '',
-          score: latest.score || 0,
-          passStatus: latest.passStatus ?? (latest.score >= 60),
-          answers: Array.isArray(latest.answers) ? latest.answers : [],
-          startTime: latest.startTime || new Date().toISOString(),
-          submitTime: latest.submitTime || '',
-          duration: latest.duration || 60
-        };
-        
+
+      const res = await examAttemptService.getList({ page: 1, pageSize: 1 });
+      const list = res.list || [];
+      console.log('[ExamResult] loadLatestAttempt: 查询结果', list);
+
+      if (list.length > 0) {
+        const attemptData = mapExamAttempt(list[0]);
+
         setAttempt(attemptData);
         setExam({
           _id: attemptData.examId || 'unknown',
@@ -84,7 +83,7 @@ export default function ExamResult() {
           passScore: 60,
           duration: 60,
         } as Exam);
-        
+
         // 获取题目
         if (attemptData.examId) {
           const questionsRes = await examService.getQuestions(attemptData.examId);
@@ -109,79 +108,41 @@ export default function ExamResult() {
       console.log('[ExamResult] 步骤1: 设置 loading=true');
       setLoading(true);
       setError(null);
-      
-      console.log('[ExamResult] 步骤2: 调用 getAttemptDetail, attemptId:', attemptId);
-      
-      // 直接查询数据库，不使用 service
-      let attemptData: ExamAttempt | null = null;
-      
+
+      console.log('[ExamResult] 步骤2: 调用 examAttemptService, attemptId:', attemptId);
+
+      // 全部经由 examAttemptService（adminService → db-init 云函数），不直连 SDK
+      let record: any = null;
       try {
-        console.log('[ExamResult] 步骤2.1: 导入 cloudBaseService');
-        const cloudService2 = await import('@/services/cloudBaseService') as any;
-        const { getDb } = cloudService2;
-        console.log('[ExamResult] 步骤2.2: 导入成功，准备查询');
-        
-        // 直接查询，不依赖任何用户身份
-        console.log('[ExamResult] 步骤2.3: 执行数据库查询, ID:', attemptId);
-        const result = await getDb().collection('examAttempts').doc(attemptId!).get();
-        console.log('[ExamResult] 步骤2.4: 查询结果:', JSON.stringify(result));
-        
-        if (result && result.data) {
-          console.log('[ExamResult] 步骤2.5: 找到记录');
-          attemptData = {
-            _id: result.data._id || attemptId,
-            examId: result.data.examId || '',
-            userId: result.data.userId || '',
-            courseId: result.data.courseId || '',
-            score: result.data.score || 0,
-            passStatus: result.data.passStatus ?? (result.data.score >= 60),
-            answers: Array.isArray(result.data.answers) ? result.data.answers : [],
-            startTime: result.data.startTime || new Date().toISOString(),
-            submitTime: result.data.submitTime || '',
-            duration: result.data.duration || 60
-          };
-        } else {
-          console.log('[ExamResult] 步骤2.5: 直接查询未命中，尝试获取最新记录');
-          // 获取最新记录
-          const latestResult = await getDb()
-            .collection('examAttempts')
-            .orderBy('submitTime', 'desc')
-            .limit(5)
-            .get();
-          console.log('[ExamResult] 最新记录数量:', latestResult.data?.length);
-          
-          if (latestResult.data && latestResult.data.length > 0) {
-            const latest = latestResult.data[0];
-            attemptData = {
-              _id: latest._id || attemptId,
-              examId: latest.examId || '',
-              userId: latest.userId || '',
-              courseId: latest.courseId || '',
-              score: latest.score || 0,
-              passStatus: latest.passStatus ?? (latest.score >= 60),
-              answers: Array.isArray(latest.answers) ? latest.answers : [],
-              startTime: latest.startTime || new Date().toISOString(),
-              submitTime: latest.submitTime || '',
-              duration: latest.duration || 60
-            };
-          }
-        }
+        record = await examAttemptService.getById(attemptId!);
+        console.log('[ExamResult] 步骤2.1: getById 结果:', record);
       } catch (e: any) {
-        console.error('[ExamResult] 数据库查询失败:', e?.message || e, 'code:', e?.code, 'errCode:', e?.errCode);
+        console.error('[ExamResult] getById 失败:', e?.message || e);
       }
-      
-      console.log('[ExamResult] 步骤3: 处理查询结果, attemptData:', attemptData);
-      
-      if (!attemptData) {
+
+      if (!record) {
+        console.log('[ExamResult] 步骤2.2: 直接查询未命中，尝试获取最新记录');
+        const latestRes = await examAttemptService.getList({ page: 1, pageSize: 5 });
+        const latestList = latestRes.list || [];
+        console.log('[ExamResult] 最新记录数量:', latestList.length);
+        if (latestList.length > 0) {
+          record = latestList[0];
+        }
+      }
+
+      console.log('[ExamResult] 步骤3: 处理查询结果, record:', record);
+
+      if (!record) {
         console.log('[ExamResult] 步骤3.1: 未找到记录，显示错误');
         setError('考试记录不存在');
         setLoading(false);
         return;
       }
-      
+
       console.log('[ExamResult] 步骤4: 设置考试记录');
+      const attemptData = mapExamAttempt(record);
       setAttempt(attemptData);
-      
+
       // 获取考试信息
       let examInfo: any = {
         _id: attemptData.examId || 'unknown',
@@ -190,7 +151,7 @@ export default function ExamResult() {
         passScore: 60,
         duration: 60,
       };
-      
+
       if (attemptData.examId) {
         console.log('[ExamResult] 步骤5: 获取考试信息, examId:', attemptData.examId);
         const examRes = await examService.getDetail(attemptData.examId);
@@ -199,9 +160,9 @@ export default function ExamResult() {
           console.log('[ExamResult] 考试信息获取成功:', examInfo);
         }
       }
-      
+
       setExam(examInfo);
-      
+
       // 获取题目信息
       if (attemptData.examId) {
         console.log('[ExamResult] 步骤6: 获取题目信息');
@@ -211,7 +172,7 @@ export default function ExamResult() {
           console.log('[ExamResult] 题目数量:', questionsRes.data.length);
         }
       }
-      
+
       console.log('[ExamResult] 步骤7: 加载完成，准备渲染');
     } catch (err: any) {
       console.error('[ExamResult] 加载失败:', err?.message || err);
