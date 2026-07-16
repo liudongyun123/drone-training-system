@@ -42,7 +42,7 @@ interface NoticeItem {
   title: string;
   content: string;
   type: 'system' | 'general' | 'class' | 'course';
-  status: 'published' | 'draft';
+  status: 'published' | 'draft' | 'expired';
   isPinned: boolean;
   createdAt?: string;
 }
@@ -119,6 +119,7 @@ interface LearningPathGroup {
   courses: CourseItem[];
   classes: ClassItem[];
   visible: boolean;
+  icon?: string;
 }
 
 // 热门课程配置项
@@ -1460,6 +1461,10 @@ export default function PageConfigManagement() {
       const collection = editItem.collection || getCollectionName();
       // 移除不必要的字段
       const { collection: _, id, ...saveData } = editItem;
+      // 公告需同时写 noticeType（与公告管理模块保持一致，避免下游按 noticeType 读取时缺字段）
+      if (collection === 'notices' && saveData.type) {
+        saveData.noticeType = saveData.type;
+      }
       
       console.log('[PageConfig] 保存数据:', { collection, saveData });
       
@@ -1506,7 +1511,11 @@ export default function PageConfigManagement() {
 
   // 切换状态
   const handleToggleStatus = async (item: any) => {
-    const newStatus = item.status === 'active' || item.status === 'published' ? 'inactive' : 'active';
+    // 公告(notices)的状态是 published/draft/expired，其它模块是 active/inactive
+    const isNotice = activeTab === 'notices';
+    const newStatus = isNotice
+      ? (item.status === 'published' ? 'draft' : 'published')
+      : (item.status === 'active' || item.status === 'published' ? 'inactive' : 'active');
     try {
       await adminService.update(getCollectionName(), item._id || item.id, { status: newStatus });
       loadData();
@@ -1552,7 +1561,8 @@ export default function PageConfigManagement() {
       return { ...base, title: '', subtitle: '', image: '', link: '/courses', order: banners.length + 1 };
     }
     if (activeTab === 'notices') {
-      return { ...base, title: '', content: '', type: 'general', isPinned: false };
+      // 公告状态应为 published/draft/expired（非 active/inactive），默认草稿，由切换按钮发布
+      return { ...base, title: '', content: '', type: 'general', isPinned: false, status: 'draft' };
     }
     if (activeTab === 'courses' || activeTab === 'classes' || activeTab === 'learningPaths') {
       return { ...base, sourceCode: selectedSource, categoryId: '', title: '', name: '' };
@@ -1942,8 +1952,8 @@ export default function PageConfigManagement() {
                           <p className="text-sm text-gray-500 truncate">{notice.content}</p>
                         </div>
                         {notice.isPinned && <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">置顶</span>}
-                        <span className={`px-2 py-1 text-xs rounded ${notice.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
-                          {notice.status === 'published' ? '已发布' : '草稿'}
+                        <span className={`px-2 py-1 text-xs rounded ${notice.status === 'published' ? 'bg-green-100 text-green-700' : notice.status === 'expired' ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-500'}`}>
+                          {notice.status === 'published' ? '已发布' : notice.status === 'expired' ? '已过期' : '草稿'}
                         </span>
                         <div className="flex gap-2">
                           <Button size="sm" variant="ghost" onClick={() => handleToggleStatus(notice)}>
@@ -2586,7 +2596,7 @@ export default function PageConfigManagement() {
       </div>
 
       {/* 添加/编辑弹窗 */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editItem?._id ? '编辑' : '添加'}>
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem?._id ? '编辑' : '添加'}>
         <div className="space-y-4">
           {activeTab === 'banners' && (
             <>
