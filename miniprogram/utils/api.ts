@@ -1081,10 +1081,11 @@ export const newUserApi = {
    */
   async getStats() {
     const openid = wx.getStorageSync('openid')
-    if (!openid) {
+    const phone = wx.getStorageSync('phone') || ''
+    if (!openid && !phone) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser('getStats', { openid })
+    const res = await callApiUser('getStats', { openid, phone })
     return res
   },
 
@@ -1093,10 +1094,11 @@ export const newUserApi = {
    */
   async getLearningStats() {
     const openid = wx.getStorageSync('openid')
-    if (!openid) {
+    const phone = wx.getStorageSync('phone') || ''
+    if (!openid && !phone) {
       return { success: false, error: '未登录' }
     }
-    const res = await callApiUser('getLearningStats', { openid })
+    const res = await callApiUser('getLearningStats', { openid, phone })
     return res
   },
 
@@ -1216,8 +1218,8 @@ export const newOrderApi = {
   /**
    * 获取优惠券列表
    */
-  async getCoupons(status?: string) {
-    const res = await callApiOrder('getCoupons', { status })
+  async getCoupons(status?: string, userId?: string) {
+    const res = await callApiOrder('getCoupons', { status, userId })
     return res.data || []
   },
 

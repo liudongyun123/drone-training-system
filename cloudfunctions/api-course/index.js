@@ -492,27 +492,37 @@ async function getMyCourses(params, userId) {
     })
     .get()
 
-  // 获取学习进度
-  const progressList = await db.collection('learning_progress')
-    .where({
-      _openid: openid,
-      courseId: _.in(courseIds)
-    })
+  // 获取学习进度（统一读 user_progress：小程序 saveProgress/markCompleted 实际写入此集合；
+  // learning_progress 在 HTTP 环境下 _openid 恒空导致查不到，故改读 user_progress 并按课程聚合）
+  const identity = openid
+  const progressList = await db.collection('user_progress')
+    .where(_.or([
+      { userId: identity, courseId: _.in(courseIds) },
+      { phone: identity, courseId: _.in(courseIds) }
+    ]))
     .get()
 
   const progressMap = {}
   progressList.data.forEach(p => {
-    progressMap[p.courseId] = p
+    const cid = p.courseId
+    if (!progressMap[cid]) progressMap[cid] = { completed: 0, lastWatchAt: '', lastLessonId: '' }
+    if (p.completed) progressMap[cid].completed += 1
+    if (p.lastWatchAt && p.lastWatchAt > progressMap[cid].lastWatchAt) {
+      progressMap[cid].lastWatchAt = p.lastWatchAt
+      progressMap[cid].lastLessonId = p.lessonId
+    }
   })
 
   let myCourses = courses.data.map(course => {
-    const p = progressMap[course._id] || {}
+    const pm = progressMap[course._id] || { completed: 0, lastWatchAt: '', lastLessonId: '' }
+    const totalLessons = course.lessonCount || (course.lessons && course.lessons.length) || 0
+    const progress = totalLessons > 0 ? Math.round((pm.completed / totalLessons) * 100) : 0
     return {
       ...formatCourse(course),
-      progress: p.progress || 0,
-      lastLessonId: p.lastLessonId,
-      lastLessonTitle: p.lastLessonTitle,
-      lastStudyAt: p.lastStudyAt
+      progress,
+      lastLessonId: pm.lastLessonId,
+      lastLessonTitle: '',
+      lastStudyAt: pm.lastWatchAt
     }
   })
 
@@ -1252,35 +1262,28 @@ async function batchUpdateProgress(data) {
 }
 
 async function getProgressStats() {
-  const totalResult = await db.collection('learning_progress').count()
-  const notStartedResult = await db.collection('learning_progress').where({ status: 'not_started' }).count()
-  const inProgressResult = await db.collection('learning_progress').where({ status: 'in_progress' }).count()
-  const completedResult = await db.collection('learning_progress').where({ status: 'completed' }).count()
+  // 统一读 user_progress（与小程序 saveProgress/markCompleted 写入端一致）
+  const totalResult = await db.collection('user_progress').count()
+  const completedResult = await db.collection('user_progress').where({ completed: true }).count()
 
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-  const thisWeekResult = await db.collection('learning_progress')
+  const thisWeekResult = await db.collection('user_progress')
     .where({ createdAt: _.gte(weekAgo) })
     .count()
 
-  const allProgress = await db.collection('learning_progress')
-    .field({ progress: true })
-    .limit(1000)
-    .get()
-
-  let avgProgress = 0
-  if (allProgress.data && allProgress.data.length > 0) {
-    const sum = allProgress.data.reduce((acc, p) => acc + (p.progress || 0), 0)
-    avgProgress = Math.round(sum / allProgress.data.length)
-  }
+  const total = totalResult.total || 0
+  const completed = completedResult.total || 0
+  // user_progress 无百分比字段，用「已完成课时记录 / 总记录」近似平均进度
+  const avgProgress = total > 0 ? Math.round((completed / total) * 100) : 0
 
   return {
     success: true,
     data: {
-      total: totalResult.total,
-      notStarted: notStartedResult.total,
-      inProgress: inProgressResult.total,
-      completed: completedResult.total,
-      thisWeek: thisWeekResult.total,
+      total,
+      notStarted: 0,
+      inProgress: total - completed,
+      completed,
+      thisWeek: thisWeekResult.total || 0,
       avgProgress,
     }
   }

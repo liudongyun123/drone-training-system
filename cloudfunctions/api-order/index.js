@@ -609,12 +609,14 @@ async function getOrderStats(data) {
 
 // ========== 优惠券 ==========
 async function getCoupons(data) {
-  const { status, page = 1, pageSize = 20 } = data || {}
+  const { userId, phone, status, page = 1, pageSize = 20 } = data || {}
   const where = {}
+  if (userId) where.userId = userId
+  if (phone) where.phone = phone
   if (status) where.status = status
-  const countRes = await db.collection('coupons').where(where).count()
-  const res = await db.collection('coupons').where(where)
-    .orderBy('createdAt', 'desc').skip((page - 1) * pageSize).limit(pageSize).get()
+  const countRes = await db.collection('user_coupons').where(where).count()
+  const res = await db.collection('user_coupons').where(where)
+    .orderBy('obtainedAt', 'desc').skip((page - 1) * pageSize).limit(pageSize).get()
   return createResponse({
     code: 0,
     success: true,
@@ -642,17 +644,20 @@ async function claimCoupon(data) {
   const t = tpl.data
   if (!t) return createResponse({ code: 404, success: false, error: '优惠券模板不存在' })
   const now = new Date().toISOString()
+  // 写入用户持有券集合 user_coupons（与 couponService 一致），状态置 unused 使其可被选用
   const doc = {
     userId: userId || '',
     phone: phone || '',
-    templateId: couponTemplateId,
-    code: 'C' + Date.now(),
-    discount: t.discount || 0,
-    status: 'active',
+    couponId: couponTemplateId,
+    couponCode: 'C' + Date.now(),
+    coupon: { discount: t.discount || 0, name: t.name || '', title: t.title || '' },
+    status: 'unused',
+    obtainedAt: now,
+    expiresAt: t.expireAt || '',
     createdAt: now,
-    expireAt: t.expireAt || ''
+    updatedAt: now
   }
-  const r = await db.collection('coupons').add(doc)
+  const r = await db.collection('user_coupons').add(doc)
   return createResponse({ code: 0, success: true, data: { id: r.id, ...doc } })
 }
 
@@ -734,7 +739,7 @@ async function useCoupon(data) {
     return createResponse({ code: 400, success: false, error: '缺少优惠券ID' })
   }
   try {
-    const res = await db.collection('coupons').doc(couponId).get()
+    const res = await db.collection('user_coupons').doc(couponId).get()
     if (!res.data) {
       return createResponse({ code: 404, success: false, error: '优惠券不存在' })
     }
@@ -745,7 +750,7 @@ async function useCoupon(data) {
       updatedAt: new Date().toISOString()
     }
     if (phone) updateData.phone = phone
-    await db.collection('coupons').doc(couponId).update(updateData)
+    await db.collection('user_coupons').doc(couponId).update(updateData)
     return createResponse({
       code: 0,
       success: true,
