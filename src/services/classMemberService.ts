@@ -713,6 +713,24 @@ export const classMemberService = {
     return { code: 0, ...st }
   },
 
+  // 批量获取班级成员状态（后台名单渲染用，避免逐条 await）
+  // B2 修复：enrollment 记录本身不携带 payment 字段，客户端无法判断付费状态，
+  // 必须由服务端聚合 orders 后给出权威的 canRemove / canTransfer。
+  async getMemberClassStates(enrollmentIds) {
+    const data: Record<string, any> = {}
+    await Promise.all(
+      (enrollmentIds || []).map(async (id) => {
+        const enr = await CloudDBService.get('enrollments', id)
+        if (!enr) {
+          data[id] = { paid: false, refunded: false, pending: false, freeClass: true, expired: false, canRemove: true, canTransfer: true, reason: '报名记录不存在' }
+          return
+        }
+        data[id] = await this._getMemberClassState(enr)
+      })
+    )
+    return { code: 0, data }
+  },
+
   // 订单"取消报名"软标记：保留财务记录，仅供小程序端 getMyEnrollments 过滤
   async _mirrorCancelOrder(phone, classId, cancelled) {
     if (!phone || !classId) return

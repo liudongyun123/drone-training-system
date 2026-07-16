@@ -60,6 +60,8 @@ export default function AdminClassMembers() {
   const [keyword, setKeyword] = useState('');
   const [rosterFilter, setRosterFilter] = useState<'active' | 'removed'>('active');
   const [classLoading, setClassLoading] = useState(false);
+  // B2 修复：服务端权威的"资金/班期"状态（移除/调班按钮可用性）
+  const [memberStates, setMemberStates] = useState<Record<string, any>>({});
 
   // 调班弹窗
   const [moveOpen, setMoveOpen] = useState(false);
@@ -120,20 +122,30 @@ export default function AdminClassMembers() {
   }, [selectedClassId]);
 
   const loadRoster = useCallback(async (classId: string, filter: 'active' | 'removed' = 'active') => {
-    if (!classId) { setRoster([]); setPending([]); return; }
+    if (!classId) { setRoster([]); setPending([]); setMemberStates({}); return; }
     setClassLoading(true);
     try {
+      let r: any[] = []
       if (filter === 'removed') {
-        const r = await classMemberService.getClassRoster(classId, { statuses: ['cancelled'], keyword });
+        r = await classMemberService.getClassRoster(classId, { statuses: ['cancelled'], keyword });
         setRoster(r);
         setPending([]);
       } else {
-        const [r, p] = await Promise.all([
+        const [rosterRes, pendingRes] = await Promise.all([
           classMemberService.getClassRoster(classId, { keyword }),
           classMemberService.getPendingEnrollments(classId)
         ]);
+        r = rosterRes;
         setRoster(r);
-        setPending(p);
+        setPending(pendingRes);
+      }
+      // B2 修复：批量拉取服务端权威状态，使付费在读学员的移除按钮正确置灰
+      if (r.length) {
+        const ids = r.map((e: any) => e._id || e.id)
+        const stRes = await classMemberService.getMemberClassStates(ids)
+        setMemberStates((stRes && stRes.data) || {})
+      } else {
+        setMemberStates({})
       }
     } finally {
       setClassLoading(false);
@@ -188,7 +200,13 @@ export default function AdminClassMembers() {
   const handleRejoin = async (enrollment: any) => {
     if (!window.confirm(`确认将 ${enrollment.studentName || enrollment.userName || '该学员'} 重新加入班级？`)) return;
     const res = await classMemberService.rejoinClass(enrollment._id || enrollment.id);
-    if (res.code === 0) { toast.success('已重新加入'); loadRoster(selectedClassId, rosterFilter); }
+    if (res.code === 0) {
+      toast.success('已重新加入');
+      // B3 修复：重新加入后切回"在读"页签，使该学员立即可见（否则仍停留在"已移出"空列表）
+      const next: 'active' | 'removed' = 'active';
+      setRosterFilter(next);
+      loadRoster(selectedClassId, next);
+    }
     else toast.error(res.message || '操作失败');
   };
 
@@ -204,6 +222,16 @@ export default function AdminClassMembers() {
     const canRemove = !(paid && !expired);
     const canTransfer = !expired;
     return { paid, free, expired, canRemove, canTransfer };
+  };
+
+  // B2 修复：优先用服务端权威状态（enrollment 不携带 payment，客户端无从判断付费）。
+  // 仅当服务端状态尚未加载到时，才回退到客户端粗算，避免付费在读学员的移除按钮未置灰。
+  const memberStateOf = (e: any) => {
+    const s = memberStates[e._id || e.id];
+    if (s) {
+      return { paid: s.paid, free: s.freeClass, expired: s.expired, canRemove: s.canRemove, canTransfer: s.canTransfer };
+    }
+    return memberState(e);
   };
 
   const handleToggleVideo = async (enrollment: any) => {
@@ -609,7 +637,7 @@ export default function AdminClassMembers() {
                           <UserPlus size={14} /> 重新加入
                         </button>
                       ) : (() => {
-                        const ms = memberState(e)
+                        const ms = memberStateOf(e)
                         return (
                           <div className="flex items-center gap-2">
                             <button
