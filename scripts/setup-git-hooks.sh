@@ -18,6 +18,6 @@ chmod +x .git/hooks/pre-commit
 echo "✅ Git hooks 安装成功！"
 echo ""
 echo "📋 已安装的 hooks："
-echo "  - pre-commit: TypeScript 类型检查 + ESLint"
+echo "  - pre-commit: TypeScript 类型检查 + ESLint + 云函数契约自检 + 状态枚举一致性"
 echo ""
 echo "💡 要卸载 hooks，请运行：rm .git/hooks/pre-commit"

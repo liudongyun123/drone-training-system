@@ -17,6 +17,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "check:contract": "node scripts/check-contract.mjs",
+    "check:status": "node scripts/check-status-enum.mjs",
+    "health": "node scripts/health-check.mjs",
     "type-check": "tsc --noEmit",
     "type-check:strict": "tsc --noEmit --strict",
     "quality": "bash scripts/quality-check.sh",
