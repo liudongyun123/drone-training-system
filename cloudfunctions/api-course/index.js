@@ -419,6 +419,9 @@ async function updateProgress(data) {
     .count()
 
   const overallProgress = Math.round((completedLessons.length / totalLessons.total) * 100)
+  // 同步 status 字段，供 getProgressStats 按 not_started/in_progress/completed 三分类统计
+  const progressStatus =
+    overallProgress >= 100 ? 'completed' : overallProgress > 0 ? 'in_progress' : 'not_started'
 
   // 更新或创建进度记录
   if (existing.data && existing.data.length > 0) {
@@ -426,6 +429,7 @@ async function updateProgress(data) {
       .doc(existing.data[0]._id)
       .update({
         progress: overallProgress,
+        status: progressStatus,
         completedLessons,
         lastLessonId: lessonId,
         lastLessonTitle: lessonData.title,
@@ -440,6 +444,7 @@ async function updateProgress(data) {
         courseId,
         lessonId,
         progress: overallProgress,
+        status: progressStatus,
         completedLessons,
         lastLessonId: lessonId,
         lastLessonTitle: lessonData.title,
@@ -805,8 +810,8 @@ async function issueCertificate(data) {
     const course = await db.collection('courses').doc(courseId).get()
     if (!course.data) return { success: false, error: '课程不存在' }
 
-    // 检查是否已颁发过
-    const existing = await db.collection('training_certificates')
+    // 检查是否已颁发过（统一写 certificates 集合，与 getCertificates/verify/revoke 读取端一致）
+    const existing = await db.collection('certificates')
       .where({ userId, courseId, status: 'active' })
       .limit(1)
       .get()
@@ -850,8 +855,8 @@ async function issueCertificate(data) {
     const certNo = `UAV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
     const now = new Date().toISOString()
 
-    // 创建证书
-    const certResult = await db.collection('training_certificates').add({
+    // 创建证书（统一写入 certificates 集合，避免与读取端 training_certificates/certificates 割裂）
+    const certResult = await db.collection('certificates').add({
       data: {
         certNo,
         userId,
@@ -913,7 +918,8 @@ async function getLearningStats(data, userId) {
     const lastDate = new Date(recentProgress.data[0].lastStudyAt)
     const today = new Date()
     const diffDays = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24))
-    consecutiveDays = diffDays <= 1 ? Math.floor(Math.random() * 30) + 1 : 0
+    // 连续学习天数：基于最近学习记录确定性计算（原实现返回随机值属 bug）
+    consecutiveDays = diffDays <= 1 ? 1 : 0
   }
 
   return {

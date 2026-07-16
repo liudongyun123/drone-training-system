@@ -195,11 +195,13 @@ export async function getMyEnrollments(phoneOrUserId: string, userId?: string) {
       orderBy: 'createdAt desc'
     }),
     // ★ 补充查询 orders 集合中的培训班订单（兼容 enrollClass 调用失败的情况）
+    // 注意：班级订单的"已付款"包含 paid / completed / paid_offline（线下付款），
+    // 须全部纳入，否则线下报名学员的培训班不会出现在"我的培训"（违反订单状态约定）。
     dbGetList('orders', {
       where: {
         ...where,
         orderType: 'class',
-        status: { $in: ['pending', 'paid', 'completed'] }
+        status: { $in: ['pending', 'paid', 'completed', 'paid_offline'] }
       },
       orderBy: 'createdAt desc'
     })
@@ -495,7 +497,7 @@ export async function getExternalCertificates(userId: string) {
  * 获取培训证书
  */
 export async function getTrainingCertificates(userId: string) {
-  return dbGetList('training_certificates', {
+  return dbGetList('certificates', {
     where: { userId },
     orderBy: 'issuedAt desc'
   })
