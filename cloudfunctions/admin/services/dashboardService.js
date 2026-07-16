@@ -44,20 +44,15 @@ class DashboardService {
       
       const ordersResult = await this.db.collection('orders')
         .where({
-          status: 'paid',
+          status: _.in(['paid', 'completed', 'paid_offline']),
           createdAt: { $gte: startOfMonth }
         })
         .get()
 
       const monthRevenue = ordersResult.data.reduce((sum, order) => {
-        // 兼容新旧订单格式
-        if (order.amount) {
-          return sum + (typeof order.amount === 'number' ? order.amount : 0)
-        }
-        if (order.items && order.items.length > 0) {
-          return sum + order.items.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0)
-        }
-        return sum
+        // 与前端财务 getOrderAmount / api-order getOrderStats 一致：兼容多种金额字段
+        const amt = order.finalAmount || order.totalAmount || order.amount || 0
+        return sum + (typeof amt === 'number' ? amt : 0)
       }, 0)
 
       return ApiResponse.success({

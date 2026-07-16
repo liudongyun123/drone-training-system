@@ -146,15 +146,18 @@ async function createOrder(data, userId) {
     return { success: false, error: "\u5546\u54C1\u4E0D\u5B58\u5728" };
   }
   let existingOrders;
+  // 已付款状态集合：paid/completed/paid_offline（与 api-order PAID_STATUSES 一致），
+  // 否则已完成/线下付款订单的用户仍可重复购买同一商品
+  const PAID_STATUSES = ["paid", "completed", "paid_offline"];
   if (phone) {
     existingOrders = await db.collection("orders").where({
       phone,
-      status: "paid"
+      status: _.in(PAID_STATUSES)
     }).get();
   } else {
     existingOrders = await db.collection("orders").where({
       _openid: openid,
-      status: "paid"
+      status: _.in(PAID_STATUSES)
     }).get();
   }
   const purchasedIds = new Set(

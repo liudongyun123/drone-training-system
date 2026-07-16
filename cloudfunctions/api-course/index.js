@@ -461,11 +461,11 @@ async function getMyCourses(params, userId) {
   const openid = userId || getOpenId()
   const { tab = 'studying' } = params
 
-  // 获取已支付订单
+  // 获取已支付订单（已付款状态集合须含 completed/paid_offline，否则线下报名/已完成订单用户的「我的课程」不显示）
   const orders = await db.collection('orders')
     .where({
       _openid: openid,
-      status: 'paid'
+      status: _.in(['paid', 'completed', 'paid_offline'])
     })
     .get()
 
@@ -888,7 +888,7 @@ async function getLearningStats(data, userId) {
   const openid = userId || getOpenId()
 
   const ordersResult = await db.collection('orders')
-    .where({ _openid: openid, status: 'paid' })
+    .where({ _openid: openid, status: _.in(['paid', 'completed', 'paid_offline']) })
     .count()
 
   const completedResult = await db.collection('learning_progress')

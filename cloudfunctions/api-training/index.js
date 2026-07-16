@@ -307,8 +307,9 @@ async function getMyEnrollments(params, userId) {
   const { page = 1, pageSize = 10, status = '' } = params
 
   let where = {}
-  if (openid) where.userId = openid
-  if (openid) where._openid = openid
+  // HTTP 环境下报名记录只写 userId（不写 _openid），若同时要求两个字段相等会查不到。
+  // 用 $or 兼容两种标识，避免「我的报名记录」在 HTTP 环境返回空。
+  if (openid) where.$or = [{ userId: openid }, { _openid: openid }]
 
   // 支持手机号查询
   if (params.phone) {
