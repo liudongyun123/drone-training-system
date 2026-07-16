@@ -22,6 +22,7 @@ interface ProgressApiResponse<T> {
 interface UserProgress {
   _id: string
   userId: string
+  phone?: string // 统一身份字段（与学员端 / 小程序 / 云函数一致）
   userName?: string
   userPhone?: string
   courseId: string
@@ -35,6 +36,38 @@ interface UserProgress {
   completedAt?: number
   createdAt: number
   updatedAt: number
+}
+
+// 统一进度记录形态：兼容「学员端」(watchProgress/completed/phone/lastWatchTime)
+// 与「后台端」(progress/status/userPhone/userName/lastStudyTime) 两套字段写法，
+// 使后台进度管理页与统计能正确反映三端（Web/小程序/云函数）学员进度。
+function normalizeProgress(p: any): UserProgress {
+  const progress =
+    typeof p.progress === 'number'
+      ? p.progress
+      : typeof p.watchProgress === 'number'
+        ? p.watchProgress
+        : 0
+
+  let status = p.status
+  if (!status || !['not_started', 'in_progress', 'completed'].includes(status)) {
+    if (p.completed === true || progress >= 100) status = 'completed'
+    else if (progress > 0) status = 'in_progress'
+    else status = 'not_started'
+  }
+
+  const phone = p.phone || p.userPhone || ''
+  const userName = p.userName || p.userPhone || phone || p.userId || '-'
+
+  return {
+    ...p,
+    progress,
+    status,
+    phone,
+    userPhone: phone,
+    userName,
+    lastStudyTime: p.lastStudyTime || p.lastWatchTime || p.updatedAt,
+  } as UserProgress
 }
 
 interface ProgressStats {
@@ -85,6 +118,7 @@ export const progressApi = {
         where.$or = [
           { userName: { $regex: params.keyword, $options: 'i' } },
           { userPhone: { $regex: params.keyword, $options: 'i' } },
+          { phone: { $regex: params.keyword, $options: 'i' } },
           { courseTitle: { $regex: params.keyword, $options: 'i' } },
         ]
       }
@@ -103,7 +137,7 @@ export const progressApi = {
       return {
         success: true,
         data: {
-          list: result.data,
+          list: (result.data || []).map(normalizeProgress),
           total: result.total,
           page,
           pageSize,
@@ -131,7 +165,7 @@ export const progressApi = {
 
       return {
         success: true,
-        data: result.data,
+        data: (result.data || []).map(normalizeProgress),
       }
     } catch (error: any) {
       return {
@@ -336,28 +370,26 @@ export const progressApi = {
    */
   async getStats(): Promise<ProgressApiResponse<ProgressStats>> {
     try {
-      const [total, notStarted, inProgress, completed] = await Promise.all([
-        CloudDBService.count(COLLECTION, {}),
-        CloudDBService.count(COLLECTION, { status: 'not_started' }),
-        CloudDBService.count(COLLECTION, { status: 'in_progress' }),
-        CloudDBService.count(COLLECTION, { status: 'completed' }),
-      ])
+      // 拉取全部记录并在客户端归一化统计，兼容学员端(watchProgress/completed)
+      // 与后台端(progress/status)两套字段，使统计正确反映三端进度。
+      const all = await CloudDBService.query<any>(COLLECTION, { limit: 1000 })
+      const list = (all.data || []).map(normalizeProgress)
+
+      const total = list.length
+      const completed = list.filter(p => p.status === 'completed').length
+      const inProgress = list.filter(p => p.status === 'in_progress').length
+      const notStarted = list.filter(p => p.status === 'not_started').length
 
       // 本周新增
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).getTime()
-      const weekResult = await CloudDBService.query(COLLECTION, {
-        where: { createdAt: { $gte: weekAgo } },
-        limit: 1000,
-      })
-      const thisWeek = weekResult.total
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+      const thisWeek = list.filter(p => {
+        const t = p.createdAt || p.lastStudyTime
+        return t && new Date(t).getTime() >= weekAgo
+      }).length
 
       // 平均进度
-      const avgResult = await CloudDBService.query(COLLECTION, {
-        field: { progress: true },
-        limit: 1000,
-      })
-      const avgProgress = avgResult.data.length > 0
-        ? Math.round(avgResult.data.reduce((sum: number, p: any) => sum + (p.progress || 0), 0) / avgResult.data.length)
+      const avgProgress = total > 0
+        ? Math.round(list.reduce((sum: number, p: any) => sum + (p.progress || 0), 0) / total)
         : 0
 
       return {
@@ -391,7 +423,7 @@ export const progressApi = {
     lastStudyTime?: number
   }>> {
     try {
-      const result = await CloudDBService.query<UserProgress>(COLLECTION, {
+      const result = await CloudDBService.query<any>(COLLECTION, {
         where: { userId },
         orderBy: 'lastStudyTime',
         order: 'desc',
@@ -405,7 +437,7 @@ export const progressApi = {
       let totalProgress = 0
       let lastStudyTime: number | undefined
 
-      result.data.forEach(p => {
+      ;(result.data || []).map(normalizeProgress).forEach(p => {
         courses.add(p.courseId)
         totalLessons++
         totalProgress += p.progress || 0
@@ -444,6 +476,7 @@ export const progressApi = {
    */
   async upsertProgress(data: {
     userId: string
+    phone?: string
     courseId: string
     lessonId: string
     userName?: string
@@ -455,19 +488,21 @@ export const progressApi = {
     videoProgress?: number
   }): Promise<ProgressApiResponse<{ _id: string }>> {
     try {
-      // 查找是否存在
-      const existing = await CloudDBService.query(COLLECTION, {
-        where: {
-          userId: data.userId,
-          courseId: data.courseId,
-          lessonId: data.lessonId,
-        },
-        limit: 1,
-      })
+      // 查找是否存在（按 userId 或 phone 匹配，保证三端身份互通）
+      const base: Record<string, any> = { courseId: data.courseId, lessonId: data.lessonId }
+      const where = data.phone
+        ? { $or: [{ ...base, userId: data.userId }, { ...base, phone: data.phone }] }
+        : { ...base, userId: data.userId }
+      const existing = await CloudDBService.query(COLLECTION, { where, limit: 1 })
 
       const now = Date.now()
+      // 规范化：后台手动设置进度时同步写 watchProgress / completed，与学员端(小程序/Web)写入字段集一致，
+      // 避免 user_progress 出现双 schema（学员端 watchProgress/completed vs 后台端 progress/status）
       const updateData: Record<string, any> = {
         ...data,
+        phone: data.phone || data.userPhone || '',
+        watchProgress: typeof data.progress === 'number' ? data.progress : (data.watchProgress || 0),
+        completed: data.status === 'completed' || (typeof data.progress === 'number' && data.progress >= 100) || data.completed === true,
         updatedAt: now,
         lastStudyTime: now,
       }

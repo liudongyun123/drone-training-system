@@ -83,17 +83,21 @@ Page({
           isFree: l.isFree || l.isPreview || false
         }))
       
-      // 检查是否已购买
+      // 检查是否已购买（与 my-learning、api-order.createOrder 判定保持一致）
       let hasPermission = false
       const phone = wx.getStorageSync('phone') || ''
+      const PAID_STATUSES = ['paid', 'completed', 'paid_offline']
 
       if (phone) {
+        // 1) course_permissions：兼容 courseId / data.courseId / targetId / data.targetId 多种字段
         const permResult = await dbGetList('course_permissions', {
-          where: { phone, courseId }
+          where: { phone }
         })
         const perms = (permResult.data || []) as any[]
-        // 记录须存在且未被撤销/关闭、未过期才算有权限（旧记录无 videoAccess 字段则向后兼容视为有效）
         hasPermission = perms.some((p: any) => {
+          const cid = p.courseId || p.data?.courseId || p.targetId || p.data?.targetId
+          if (cid !== courseId) return false
+          // 记录须未被撤销/关闭、未过期才算有权限（旧记录无 videoAccess 字段则向后兼容视为有效）
           if (p.status === 'revoked') return false
           if (p.videoAccess && p.videoAccess.enabled === false) return false
           if (p.videoAccess && p.videoAccess.validUntil) {
@@ -102,6 +106,16 @@ Page({
           }
           return true
         })
+
+        // 2) 兜底：已支付订单（与 createOrder 的"已购买"判定一致，防止"订单说已买、权限说没买"矛盾）
+        if (!hasPermission) {
+          try {
+            const orderRes = await dbGetList('orders', { where: { phone, courseId } })
+            hasPermission = (orderRes.data || []).some((o: any) => PAID_STATUSES.includes(o.status))
+          } catch (e) {
+            logger.warn('课程详情', '查询已支付订单失败', e)
+          }
+        }
       }
       
       // 确保课程有封面兜底

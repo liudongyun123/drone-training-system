@@ -466,7 +466,8 @@ async function subscribe(params) {
     status: 'active'
   }
 
-  const { _id } = await db.collection('subscriptions').add(record)
+  const addResult = await db.collection('subscriptions').add(record)
+  const _id = addResult.id
 
   return {
     code: 0,

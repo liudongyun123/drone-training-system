@@ -432,38 +432,6 @@ export const adminLearningApi = {
   // ==================== 学习进度管理 ====================
 
   /**
-   * 获取进度列表
-   */
-  async getProgressList(params?: {
-    page?: number
-    pageSize?: number
-    userId?: string
-    courseId?: string
-    status?: string
-    keyword?: string
-  }): Promise<FeatureApiResponse<{
-    list: any[]
-    total: number
-    page: number
-    pageSize: number
-  }>> {
-    return callFunction('api-course', {
-      action: 'getProgressList',
-      data: params || {}
-    })
-  },
-
-  /**
-   * 获取学员进度详情
-   */
-  async getUserProgress(userId: string): Promise<FeatureApiResponse<any[]>> {
-    return callFunction('api-course', {
-      action: 'getUserProgress',
-      data: { userId }
-    })
-  },
-
-  /**
    * 获取课程进度详情
    */
   async getCourseProgress(courseId: string): Promise<FeatureApiResponse<any[]>> {
@@ -474,7 +442,7 @@ export const adminLearningApi = {
   },
 
   /**
-   * 更新进度
+   * 更新进度（课程/课时进度统一写 user_progress，此处仅转发）
    */
   async updateProgress(progressId: string, data: {
     progress?: number
@@ -488,27 +456,7 @@ export const adminLearningApi = {
   },
 
   /**
-   * 完成课时
-   */
-  async completeLesson(progressId: string): Promise<FeatureApiResponse<void>> {
-    return callFunction('api-course', {
-      action: 'completeLesson',
-      data: { progressId }
-    })
-  },
-
-  /**
-   * 重置进度
-   */
-  async resetProgress(userId: string, courseId: string): Promise<FeatureApiResponse<void>> {
-    return callFunction('api-course', {
-      action: 'resetProgress',
-      data: { userId, courseId }
-    })
-  },
-
-  /**
-   * 获取进度统计
+   * 获取进度统计（后台管理进度已统一走 progressApi → user_progress，此处仅保留全局统计）
    */
   async getProgressStats(): Promise<FeatureApiResponse<{
     total: number
@@ -521,23 +469,6 @@ export const adminLearningApi = {
     return callFunction('api-course', {
       action: 'getProgressStats',
       data: {}
-    })
-  },
-
-  /**
-   * 获取学员学习统计
-   */
-  async getUserLearningStats(userId: string): Promise<FeatureApiResponse<{
-    totalCourses: number
-    completedCourses: number
-    totalLessons: number
-    completedLessons: number
-    totalProgress: number
-    lastStudyTime?: number
-  }>> {
-    return callFunction('api-course', {
-      action: 'getUserLearningStats',
-      data: { userId }
     })
   }
 }

@@ -142,8 +142,8 @@ export const classMemberService = {
   },
 
   // 收集班级关联的全部课程ID（主课程 + includedCourseIds + includedCourses）
-  _collectClassCourseIds(cls) {
-    const courseIds = []
+  async _collectClassCourseIds(cls) {
+    const courseIds: string[] = []
     if (cls?.courseId) courseIds.push(cls.courseId)
     if (Array.isArray(cls?.includedCourseIds)) {
       for (const id of cls.includedCourseIds) {
@@ -151,9 +151,25 @@ export const classMemberService = {
       }
     }
     if (Array.isArray(cls?.includedCourses)) {
+      const nameItems: string[] = []
       for (const item of cls.includedCourses) {
-        if (typeof item === 'string' && /^[a-f0-9]{24}$/i.test(item) && !courseIds.includes(item)) {
-          courseIds.push(item)
+        if (typeof item === 'string') {
+          if (/^[a-f0-9]{24}$/i.test(item)) {
+            if (!courseIds.includes(item)) courseIds.push(item)
+          } else if (item.trim()) {
+            nameItems.push(item.trim())
+          }
+        }
+      }
+      // 名称数组：按课程标题解析为课程ID（best-effort），避免名称格式 includedCourses 被静默丢弃
+      if (nameItems.length > 0) {
+        try {
+          const res = await CloudDBService.query('courses', { where: { title: { $in: nameItems } }, limit: 100 })
+          for (const c of (res.data || []) as any[]) {
+            if (c._id && !courseIds.includes(c._id)) courseIds.push(c._id)
+          }
+        } catch (e) {
+          console.error('[classMemberService] includedCourses 名称解析失败:', e)
         }
       }
     }
@@ -184,7 +200,7 @@ export const classMemberService = {
   // 幂等：已存在的课程权限（含独立购课）不重复创建
   async _grantClassPermissions(phone, name, toClassId, toClass) {
     try {
-      const courseIds = this._collectClassCourseIds(toClass)
+      const courseIds = await this._collectClassCourseIds(toClass)
       const now = new Date().toISOString()
       const validUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
       for (const courseId of courseIds) {

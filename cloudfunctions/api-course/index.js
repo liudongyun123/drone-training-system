@@ -418,7 +418,8 @@ async function updateProgress(data) {
     .where({ courseId })
     .count()
 
-  const overallProgress = Math.round((completedLessons.length / totalLessons.total) * 100)
+  const totalLessonCount = totalLessons.total || 0
+  const overallProgress = totalLessonCount > 0 ? Math.round((completedLessons.length / totalLessonCount) * 100) : 0
   // 同步 status 字段，供 getProgressStats 按 not_started/in_progress/completed 三分类统计
   const progressStatus =
     overallProgress >= 100 ? 'completed' : overallProgress > 0 ? 'in_progress' : 'not_started'
@@ -897,64 +898,6 @@ async function issueCertificate(data) {
   }
 }
 
-// ========== 学习统计 (from api-course) ==========
-
-async function getLearningStats(data, userId) {
-  const openid = userId || getOpenId()
-
-  const ordersResult = await db.collection('orders')
-    .where({ _openid: openid, status: _.in(['paid', 'completed', 'paid_offline']) })
-    .count()
-
-  const completedResult = await db.collection('learning_progress')
-    .where({
-      _openid: openid,
-      overallProgress: _.gte(100),
-    })
-    .count()
-
-  const certResult = await db.collection('certificates')
-    .where({ _openid: openid, status: 'active' })
-    .count()
-
-  const recentProgress = await db.collection('learning_progress')
-    .where({ _openid: openid })
-    .orderBy('lastStudyAt', 'desc')
-    .limit(1)
-    .get()
-
-  let consecutiveDays = 1
-  if (recentProgress.data && recentProgress.data.length > 0 && recentProgress.data[0].lastStudyAt) {
-    const lastDate = new Date(recentProgress.data[0].lastStudyAt)
-    const today = new Date()
-    const diffDays = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24))
-    // 连续学习天数：基于最近学习记录确定性计算（原实现返回随机值属 bug）
-    consecutiveDays = diffDays <= 1 ? 1 : 0
-  }
-
-  return {
-    success: true,
-    data: {
-      totalCourses: ordersResult.total,
-      completedCourses: completedResult.total,
-      certificates: certResult.total,
-      consecutiveDays,
-    }
-  }
-}
-
-async function getLessonProgress(data, userId) {
-  const { courseId, lessonId } = data
-  const openid = userId || getOpenId()
-
-  const progress = await db.collection('learning_progress')
-    .where({ _openid: openid, courseId, lessonId })
-    .limit(1)
-    .get()
-
-  return { success: true, data: progress.data?.[0] || null }
-}
-
 // ========== 学习路径 (from api-course) ==========
 
 async function getLearningPaths(data) {
@@ -1017,7 +960,8 @@ async function getLearningPathDetail(data) {
 
 async function getPathProgress(data, userId) {
   const { pathId } = data
-  const openid = userId || getOpenId()
+  // 统一身份为手机号；兼容 userId / _openid（HTTP 环境下 _openid 恒空，必须以 phone 为主键）
+  const phone = data.phone || userId || getOpenId() || ''
 
   const path = await db.collection('learning_paths').doc(pathId).get()
 
@@ -1027,13 +971,23 @@ async function getPathProgress(data, userId) {
 
   const courseIds = (path.data[0].courses || []).map(c => c.id)
 
-  const progressList = await db.collection('learning_progress')
-    .where({
-      _openid: openid,
-      courseId: _.in(courseIds),
-      overallProgress: _.gte(100),
-    })
-    .get()
+  // 统一读 user_progress（与课程/课时进度同一集合，按手机号标识），不再使用 learning_progress
+  const or = []
+  if (phone) or.push({ phone })
+  if (userId) or.push({ userId })
+  const openid = getOpenId()
+  if (openid) or.push({ _openid: openid })
+
+  let progressList = { data: [] }
+  if (or.length > 0) {
+    progressList = await db.collection('user_progress')
+      .where(_.and([
+        _.or(or),
+        { courseId: _.in(courseIds) },
+        _.or([{ completed: true }, { status: 'completed' }, { progress: _.gte(100) }])
+      ]))
+      .get()
+  }
 
   const completedCourseIds = progressList.data.map(p => p.courseId)
   const completedCount = completedCourseIds.length
@@ -1156,111 +1110,6 @@ async function generateCertificateByCourse(data, userId) {
 
 // ========== 进度管理 - 管理端 (from api-course) ==========
 
-async function getProgressList(data) {
-  const { page = 1, pageSize = 20, userId, courseId, status, keyword } = data
-
-  let query = db.collection('learning_progress')
-  const conditions = []
-
-  if (userId) conditions.push({ userId })
-  if (courseId) conditions.push({ courseId })
-  if (status) conditions.push({ status })
-  if (keyword) {
-    conditions.push({ userName: db.RegExp({ regexp: keyword, options: 'i' }) })
-  }
-
-  if (conditions.length > 0) {
-    query = query.where(_.and(conditions))
-  }
-
-  const skip = (page - 1) * pageSize
-
-  const result = await query.orderBy('updatedAt', 'desc').skip(skip).limit(pageSize).get()
-  const countResult = await query.count()
-
-  return {
-    success: true,
-    data: { list: result.data, total: countResult.total, page, pageSize }
-  }
-}
-
-async function getUserProgress(data) {
-  const { userId } = data
-
-  const result = await db.collection('learning_progress')
-    .where({ userId })
-    .orderBy('updatedAt', 'desc')
-    .get()
-
-  return { success: true, data: result.data }
-}
-
-async function getProgress(data) {
-  const { progressId } = data
-
-  const result = await db.collection('learning_progress').doc(progressId).get()
-
-  if (!result.data) {
-    return { success: false, error: '进度记录不存在' }
-  }
-
-  return { success: true, data: result.data }
-}
-
-async function completeLesson(data) {
-  const { progressId } = data
-
-  const progress = await db.collection('learning_progress').doc(progressId).get()
-
-  if (!progress.data) {
-    return { success: false, error: '进度记录不存在' }
-  }
-
-  await db.collection('learning_progress').doc(progressId).update({
-    status: 'completed',
-    progress: 100,
-    completed: true,
-    completedAt: Date.now(),
-    updatedAt: Date.now(),
-  })
-
-  return { success: true, data: { updated: true } }
-}
-
-async function resetProgress(data) {
-  const { userId, courseId } = data
-
-  const result = await db.collection('learning_progress')
-    .where({ userId, courseId })
-    .remove()
-
-  return { success: true, data: { reset: true, deleted: result.deleted } }
-}
-
-async function batchUpdateProgress(data) {
-  const { progressIds, status, progress } = data
-
-  if (!progressIds || !Array.isArray(progressIds) || progressIds.length === 0) {
-    return { success: false, error: '请选择要更新的进度记录' }
-  }
-
-  const updateData = { updatedAt: Date.now() }
-  if (status) updateData.status = status
-  if (typeof progress === 'number') {
-    updateData.progress = progress
-    if (progress >= 100) {
-      updateData.completed = true
-      updateData.completedAt = Date.now()
-    }
-  }
-
-  for (const id of progressIds) {
-    await db.collection('learning_progress').doc(id).update(updateData)
-  }
-
-  return { success: true, data: { updated: progressIds.length } }
-}
-
 async function getProgressStats() {
   // 统一读 user_progress（与小程序 saveProgress/markCompleted 写入端一致）
   const totalResult = await db.collection('user_progress').count()
@@ -1285,43 +1134,6 @@ async function getProgressStats() {
       completed,
       thisWeek: thisWeekResult.total || 0,
       avgProgress,
-    }
-  }
-}
-
-async function getUserLearningStats(data) {
-  const { userId } = data
-
-  const progressList = await db.collection('learning_progress')
-    .where({ userId })
-    .get()
-
-  const uniqueCourses = new Set(progressList.data.map(p => p.courseId))
-  const completedCourses = progressList.data.filter(p => p.progress >= 100)
-  const uniqueCompletedCourses = new Set(completedCourses.map(p => p.courseId))
-
-  const totalLessons = progressList.data.length
-  const completedLessons = progressList.data.filter(p => p.completed || p.status === 'completed').length
-
-  let totalProgress = 0
-  if (progressList.data.length > 0) {
-    const sum = progressList.data.reduce((acc, p) => acc + (p.progress || 0), 0)
-    totalProgress = Math.round(sum / progressList.data.length)
-  }
-
-  const lastProgress = progressList.data
-    .filter(p => p.lastStudyTime || p.updatedAt)
-    .sort((a, b) => (b.lastStudyTime || b.updatedAt) - (a.lastStudyTime || a.updatedAt))[0]
-
-  return {
-    success: true,
-    data: {
-      totalCourses: uniqueCourses.size,
-      completedCourses: uniqueCompletedCourses.size,
-      totalLessons,
-      completedLessons,
-      totalProgress,
-      lastStudyTime: lastProgress?.lastStudyTime || lastProgress?.updatedAt,
     }
   }
 }
@@ -1372,16 +1184,28 @@ async function deletePath(data) {
 
 async function startPath(data, userId) {
   const { pathId } = data
-  const openid = userId || getOpenId()
-  if (!pathId || !openid) return { success: false, error: '参数不足' }
+  // 统一身份为手机号；HTTP 环境下 _openid 恒空，必须以 phone 为主键
+  const phone = data.phone || userId || getOpenId() || ''
+  if (!pathId || !phone) return { success: false, error: '参数不足' }
 
-  // 记录路径开始学习时间
-  await db.collection('learning_progress').add({
-    _openid: openid,
-    pathId,
-    status: 'in_progress',
-    startedAt: Date.now(),
-    updatedAt: Date.now(),
+  const openid = getOpenId()
+  const now = Date.now()
+  // 统一写 user_progress（type:'path' 区分路径进度，按手机号标识），不再使用 learning_progress
+  await db.collection('user_progress').add({
+    data: {
+      phone,
+      userId: userId || '',
+      _openid: openid || '',
+      pathId,
+      type: 'path',
+      status: 'in_progress',
+      progress: 0,
+      completed: false,
+      startedAt: now,
+      lastStudyTime: now,
+      createdAt: now,
+      updatedAt: now,
+    }
   })
 
   return { success: true, data: { started: true } }
@@ -1389,19 +1213,28 @@ async function startPath(data, userId) {
 
 async function completePath(data, userId) {
   const { pathId } = data
-  const openid = userId || getOpenId()
-  if (!pathId || !openid) return { success: false, error: '参数不足' }
+  // 统一身份为手机号；HTTP 环境下 _openid 恒空，必须以 phone 为主键
+  const phone = data.phone || userId || getOpenId() || ''
+  if (!pathId || !phone) return { success: false, error: '参数不足' }
 
-  // 将路径下所有进度标记完成
-  await db.collection('learning_progress')
-    .where({ _openid: openid, pathId })
-    .update({
-      status: 'completed',
-      progress: 100,
-      completed: true,
-      completedAt: Date.now(),
-      updatedAt: Date.now(),
-    })
+  const openid = getOpenId()
+  const or = []
+  if (phone) or.push({ phone, pathId })
+  if (userId) or.push({ userId, pathId })
+  if (openid) or.push({ _openid: openid, pathId })
+
+  if (or.length > 0) {
+    // 将路径下所有进度标记完成（统一写 user_progress）
+    await db.collection('user_progress')
+      .where(_.or(or))
+      .update({
+        status: 'completed',
+        progress: 100,
+        completed: true,
+        completedAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+  }
 
   return { success: true, data: { completed: true } }
 }
@@ -1573,14 +1406,6 @@ exports.main = async (event, context) => {
         result = await issueCertificate(data)
         break
 
-      // ===== 学习统计 (from api-course) =====
-      case 'getLearningStats':
-        result = await getLearningStats(data, userId)
-        break
-      case 'getLessonProgress':
-        result = await getLessonProgress(data, userId)
-        break
-
       // ===== 学习路径 (from api-course) =====
       case 'getLearningPaths':
         result = await getLearningPaths(data)
@@ -1607,29 +1432,8 @@ exports.main = async (event, context) => {
         break
 
       // ===== 进度管理 - 管理端 (from api-course) =====
-      case 'getProgressList':
-        result = await getProgressList(data)
-        break
-      case 'getUserProgress':
-        result = await getUserProgress(data)
-        break
-      case 'getProgress':
-        result = await getProgress(data)
-        break
-      case 'completeLesson':
-        result = await completeLesson(data)
-        break
-      case 'resetProgress':
-        result = await resetProgress(data)
-        break
-      case 'batchUpdateProgress':
-        result = await batchUpdateProgress(data)
-        break
       case 'getProgressStats':
         result = await getProgressStats()
-        break
-      case 'getUserLearningStats':
-        result = await getUserLearningStats(data)
         break
 
       // ===== 学习路径管理 (新增) =====

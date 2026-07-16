@@ -142,19 +142,6 @@ export const INDEX_RECOMMENDATIONS: IndexRecommendation[] = [
     ]
   },
 
-  // ========== 学习进度 ==========
-  {
-    collection: 'learning_progress',
-    indexes: [
-      {
-        fields: ['userId', 'courseId'],
-        type: 'compound',
-        reason: '获取用户在某课程的学习进度',
-        priority: 'high'
-      }
-    ]
-  },
-
   // ========== 教师相关 ==========
   {
     collection: 'teacher_profiles',
@@ -429,24 +416,6 @@ export const INDEX_RECOMMENDATIONS: IndexRecommendation[] = [
     ]
   },
 
-  // ========== 学习进度 ==========
-  {
-    collection: 'learning_progress',
-    indexes: [
-      {
-        fields: ['userId', 'pathId'],
-        type: 'compound',
-        reason: '获取用户特定路径的学习进度',
-        priority: 'high'
-      },
-      {
-        fields: ['userId', 'progress'],
-        type: 'compound',
-        reason: '获取用户的所有学习进度',
-        priority: 'medium'
-      }
-    ]
-  }
 ]
 
 /**

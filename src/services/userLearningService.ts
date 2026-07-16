@@ -38,7 +38,7 @@ export const userLearningService = {
     } catch (e) {
       // 尝试另一个集合名
       try {
-        const data = await dbService.where('learning_progress', { userId })
+        const data = await dbService.where('user_progress', { userId })
         return data || []
       } catch (e2) {
         return []

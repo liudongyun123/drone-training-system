@@ -80,11 +80,28 @@ Page({
     const phone = wx.getStorageSync('phone') || ''
     if (!phone) return false
     
+    const PAID_STATUSES = ['paid', 'completed', 'paid_offline']
     try {
-      const result = await dbGetList('course_permissions', {
-        where: { phone, courseId }
+      // 1) course_permissions：兼容 courseId / data.courseId / targetId / data.targetId 多种字段
+      //    且与 course-detail 保持一致：撤销/过期/视频权限关闭的记录视为"未购买"
+      const result = await dbGetList('course_permissions', { where: { phone } })
+      const perms = (result.data || []) as any[]
+      const permMatch = perms.some((p: any) => {
+        const cid = p.courseId || p.data?.courseId || p.targetId || p.data?.targetId
+        if (cid !== courseId) return false
+        if (p.status === 'revoked') return false
+        if (p.videoAccess && p.videoAccess.enabled === false) return false
+        if (p.videoAccess && p.videoAccess.validUntil) {
+          const until = new Date(p.videoAccess.validUntil).getTime()
+          if (!isNaN(until) && until < Date.now()) return false
+        }
+        return true
       })
-      return (result.data || []).length > 0
+      if (permMatch) return true
+
+      // 2) 兜底：已支付订单（与 createOrder 的"已购买"判定一致）
+      const orderRes = await dbGetList('orders', { where: { phone, courseId } })
+      return (orderRes.data || []).some((o: any) => PAID_STATUSES.includes(o.status))
     } catch (err) {
       logger.error('Checkout', '检查课程权限失败:', err)
       return false

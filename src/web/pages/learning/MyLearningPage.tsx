@@ -139,7 +139,7 @@ export default function MyLearningPage() {
         progressData = Array.isArray(pr.data) ? pr.data : (pr.data?.list || []);
       } catch (e) {
         try {
-          const pr2 = await adminService.list('learning_progress', { phone: userPhone }, { limit: 500 });
+          const pr2 = await adminService.list('user_progress', { phone: userPhone }, { limit: 500 });
           progressData = Array.isArray(pr2.data) ? pr2.data : (pr2.data?.list || []);
         } catch (e2) { /* skip */ }
       }

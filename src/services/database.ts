@@ -406,9 +406,25 @@ export const orderService = {
           }
         }
         if (Array.isArray(classDoc?.includedCourses)) {
+          const nameItems: string[] = []
           for (const item of classDoc.includedCourses) {
-            if (typeof item === 'string' && /^[a-f0-9]{24}$/i.test(item) && !courseIds.includes(item)) {
-              courseIds.push(item);
+            if (typeof item === 'string') {
+              if (/^[a-f0-9]{24}$/i.test(item)) {
+                if (!courseIds.includes(item)) courseIds.push(item)
+              } else if (item.trim()) {
+                nameItems.push(item.trim())
+              }
+            }
+          }
+          // 名称数组：按课程标题解析为课程ID（best-effort），避免名称格式 includedCourses 被静默丢弃
+          if (nameItems.length > 0) {
+            try {
+              const courseRes = await adminService.listWithOps('courses', { title: { $in: nameItems } }, { limit: 100 })
+              for (const c of (courseRes?.data?.list || []) as any[]) {
+                if (c._id && !courseIds.includes(c._id)) courseIds.push(c._id)
+              }
+            } catch (e) {
+              console.error('[grantPermission] includedCourses 名称解析失败:', e)
             }
           }
         }

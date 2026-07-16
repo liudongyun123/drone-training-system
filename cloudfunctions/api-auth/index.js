@@ -538,6 +538,26 @@ async function wxMiniappLogin(event, context) {
     } catch (e) {}
   }
 
+  // 匿名游客登录：不依赖微信 code，直接返回游客身份
+  if (data.type === 'anonymous') {
+    const guestId = 'guest_' + generateToken().slice(0, 16)
+    const token = generateToken()
+    const expireAt = Date.now() + TOKEN_EXPIRE
+    try {
+      await db.collection('sessions').add({ token, userId: guestId, expireAt, platform: 'anonymous', createdAt: new Date().toISOString() })
+    } catch (e) { console.warn('[wxMiniappLogin] 游客会话写入失败:', e.message) }
+    return {
+      success: true,
+      data: {
+        token,
+        expireAt,
+        userId: guestId,
+        openid: '',
+        user: { _id: guestId, username: '游客', phone: '', role: 'anonymous' }
+      }
+    }
+  }
+
   const { code } = data
   if (!code) {
     return { success: false, error: '缺少 wx.login 获取的 code 参数' }

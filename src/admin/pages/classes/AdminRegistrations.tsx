@@ -123,7 +123,7 @@ export default function AdminRegistrations() {
   };
 
   // 收集班级关联的全部课程ID（主课程 + includedCourseIds + includedCourses）
-  const collectCourseIds = (classDoc: any): string[] => {
+  const collectCourseIds = async (classDoc: any): Promise<string[]> => {
     const courseIds: string[] = [];
     if (classDoc?.courseId) courseIds.push(classDoc.courseId);
     if (Array.isArray(classDoc?.includedCourseIds)) {
@@ -132,9 +132,26 @@ export default function AdminRegistrations() {
       }
     }
     if (Array.isArray(classDoc?.includedCourses)) {
+      const nameItems: string[] = [];
       for (const item of classDoc.includedCourses) {
-        if (typeof item === 'string' && /^[a-f0-9]{24}$/i.test(item) && !courseIds.includes(item)) {
-          courseIds.push(item);
+        if (typeof item === 'string') {
+          if (/^[a-f0-9]{24}$/i.test(item)) {
+            if (!courseIds.includes(item)) courseIds.push(item);
+          } else if (item.trim()) {
+            nameItems.push(item.trim());
+          }
+        }
+      }
+      // 名称数组：按课程标题解析为课程ID（best-effort）
+      if (nameItems.length > 0) {
+        try {
+          const courseRes = await adminService.listWithOps('courses', { title: { $in: nameItems } }, { limit: 100 });
+          const list = (courseRes?.code === 0 && (courseRes.data as any)?.list) ? (courseRes.data as any).list : [];
+          for (const c of list) {
+            if (c._id && !courseIds.includes(c._id)) courseIds.push(c._id);
+          }
+        } catch (e) {
+          console.error('[报名审核] includedCourses 名称解析失败:', e);
         }
       }
     }
@@ -173,7 +190,7 @@ export default function AdminRegistrations() {
     try {
       const classRes = await adminService.get('classes', classId);
       const classDoc = (classRes as any)?.data || null;
-      const courseIds = collectCourseIds(classDoc);
+      const courseIds = await collectCourseIds(classDoc);
       for (const courseId of courseIds) {
         const exists = await adminService.list('course_permissions', { phone, courseId }, { limit: 1 });
         const exList = (exists?.code === 0 && (exists.data as any)?.list) ? (exists.data as any).list : [];

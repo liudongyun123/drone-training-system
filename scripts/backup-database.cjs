@@ -41,7 +41,6 @@ const COLLECTIONS = [
   'exam_attempts',
   'schedules',
   'course_permissions',
-  'learning_progress',
   'featured_courses',
   'notices',
   'dictionaries',

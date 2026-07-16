@@ -38,7 +38,6 @@ const CORE_COLLECTIONS = [
   'examAttempts',      // 考试尝试 (16)
   'class_members',     // 班级成员 (14)
   'user_progress',     // 用户进度 (13)
-  'learning_progress', // 学习进度 (13)
   'user_roles',        // 用户角色 (10)
   'products',          // 商品 (9)
   'learning_paths',    // 学习路径 (9)
@@ -361,10 +360,6 @@ exports.main = async (event, context) => {
           { name: 'idx_user', fields: ['_openid', 'createdAt'] },
           { name: 'idx_status', fields: ['status', 'createdAt'] },
           { name: 'idx_course', fields: ['courseId', 'status'] },
-        ],
-        learning_progress: [
-          { name: 'idx_user_course', fields: ['_openid', 'courseId'] },
-          { name: 'idx_lastStudy', fields: ['lastStudyAt'] },
         ],
         lessons: [
           { name: 'idx_course', fields: ['courseId', 'sort'] },

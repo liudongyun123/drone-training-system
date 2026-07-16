@@ -114,8 +114,8 @@ export default function LessonPlayerPage() {
       setCourse(courseDetail as any);
 
       // 加载学习进度
-      if (user?.uid) {
-        const progressList = await progressService.getCourseProgress(user.uid, courseId!);
+      if (user?.uid || user?.phone) {
+        const progressList = await progressService.getCourseProgress(courseId!);
         const progressMap = new Map<string, StudyProgress>();
         progressList.forEach((p: StudyProgress) => {
           progressMap.set(p.lessonId, p);
@@ -183,14 +183,15 @@ export default function LessonPlayerPage() {
 
   // 保存学习进度
   const saveProgress = useCallback(async (currentTime: number, duration: number) => {
-    if (!user?.uid || !currentLesson || !courseId) return;
+    if ((!user?.uid && !user?.phone) || !currentLesson || !courseId) return;
 
     const progress = Math.min(Math.round((currentTime / duration) * 100), 100);
     const completed = progress >= 90;
 
     try {
       const progressData = await progressService.saveProgress({
-        userId: user.uid,
+        userId: user.uid || '',
+        phone: user.phone,
         courseId,
         lessonId: currentLesson._id,
         watchedDuration: currentTime,
@@ -221,9 +222,10 @@ export default function LessonPlayerPage() {
 
   // 处理视频播放完成
   const handleVideoEnded = async () => {
-    if (!user?.uid || !currentLesson || !courseId) return;
+    if ((!user?.uid && !user?.phone) || !currentLesson || !courseId) return;
     
     await saveProgress(currentLesson.duration, currentLesson.duration);
+    await progressService.markAsCompleted(currentLesson._id);
     
     // 自动播放下一个课时
     const allLessons = course?.chapters?.flatMap(c => c.lessons) || [];
@@ -271,7 +273,7 @@ export default function LessonPlayerPage() {
 
   // 切换课时完成状态
   const toggleLessonComplete = async () => {
-    if (!user?.uid || !currentLesson) return;
+    if ((!user?.uid && !user?.phone) || !currentLesson) return;
     
     const isCompleted = lessonProgress?.completed;
     
@@ -279,7 +281,7 @@ export default function LessonPlayerPage() {
       // 取消完成状态（这里简化处理，实际可能需要重新设计）
       await saveProgress(0, currentLesson.duration);
     } else {
-      await progressService.markAsCompleted(user.uid, currentLesson._id);
+      await progressService.markAsCompleted(currentLesson._id);
       await saveProgress(currentLesson.duration, currentLesson.duration);
     }
   };

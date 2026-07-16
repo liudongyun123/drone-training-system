@@ -16,7 +16,7 @@ const API_TIMEOUT = parseInt(env.VITE_API_TIMEOUT || "30000", 10);
 const DEBUG_MODE = env.VITE_DEBUG_MODE === "true";
 
 // 构建版本号
-const BUILD_VERSION = 'v20260716-1538-notice-progress-fix';
+const BUILD_VERSION = 'v20260716-1805-class-courses-name-resolve';
 
 // Sentry 配置
 const SENTRY_DSN = process.env.SENTRY_DSN || '';

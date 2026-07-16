@@ -46,7 +46,7 @@ export const LEGACY_COLLECTIONS = {
   USER_PROFILES: 'user_profiles',
   ADMINS: 'admins',
   COURSE_CATEGORIES: 'course_categories',
-  LEARNING_PROGRESS: 'learning_progress',
+  LEARNING_PROGRESS: 'user_progress',
   COURSE_PERMISSIONS: 'course_permissions',
   COURSE_SCHEDULES: 'course_schedules',
   EXAM_ATTEMPTS_OLD: 'examAttempts',
@@ -69,7 +69,7 @@ export const COLLECTION_MAP: Record<string, string> = {
 
   // 课程
   [LEGACY_COLLECTIONS.COURSE_CATEGORIES]: COLLECTIONS.CATEGORIES,
-  [LEGACY_COLLECTIONS.LEARNING_PROGRESS]: COLLECTIONS.PROGRESS,
+  [LEGACY_COLLECTIONS.LEARNING_PROGRESS]: 'user_progress',
   [LEGACY_COLLECTIONS.COURSE_PERMISSIONS]: COLLECTIONS.PROGRESS,
 
   // 培训

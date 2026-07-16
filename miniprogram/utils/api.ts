@@ -896,7 +896,7 @@ export const learningPathApi = {
    * 获取路径学习进度
    */
   async getProgress(pathId: string) {
-    const res = await callApiCourse('getPathProgress', { pathId })
+    const res = await callApiCourse('getPathProgress', { pathId, phone: wx.getStorageSync('phone') || '' })
     return res.data
   },
 
@@ -904,7 +904,7 @@ export const learningPathApi = {
    * 开始学习路径
    */
   async start(pathId: string) {
-    const res = await callApiCourse('startPath', { pathId })
+    const res = await callApiCourse('startPath', { pathId, phone: wx.getStorageSync('phone') || '' })
     return res.data
   },
 
@@ -912,7 +912,7 @@ export const learningPathApi = {
    * 更新学习进度
    */
   async updateProgress(pathId: string, courseId: string, lessonId: string) {
-    const res = await callApiCourse('updateProgress', { pathId, courseId, lessonId })
+    const res = await callApiCourse('updateProgress', { pathId, courseId, lessonId, phone: wx.getStorageSync('phone') || '' })
     return res.data
   },
 
@@ -920,7 +920,7 @@ export const learningPathApi = {
    * 完成学习路径
    */
   async complete(pathId: string) {
-    const res = await callApiCourse('completePath', { pathId })
+    const res = await callApiCourse('completePath', { pathId, phone: wx.getStorageSync('phone') || '' })
     return res.data
   }
 }

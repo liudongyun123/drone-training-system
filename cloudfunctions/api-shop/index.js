@@ -481,7 +481,7 @@ exports.main = async (event, context) => {
         result = await getCart(userId);
         break;
       case "addToCart":
-        result = await addToCart(data.productId, data.quantity, userId);
+        result = await addToCart({ ...data, userId });
         break;
       case "removeFromCart":
         result = await removeFromCart(data.itemId, userId);

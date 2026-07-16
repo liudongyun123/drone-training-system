@@ -1156,9 +1156,28 @@ async function enrollClass(data) {
       }
       // includedCourses 数组（旧格式兼容，可能是ID数组或名称数组）
       if (cls.includedCourses && Array.isArray(cls.includedCourses)) {
+        const nameItems = []
         for (const item of cls.includedCourses) {
-          if (typeof item === 'string' && /^[a-f0-9]{24}$/i.test(item)) {
-            if (!courseIds.includes(item)) courseIds.push(item)
+          if (typeof item === 'string') {
+            if (/^[a-f0-9]{24}$/i.test(item)) {
+              if (!courseIds.includes(item)) courseIds.push(item)
+            } else if (item.trim()) {
+              nameItems.push(item.trim())
+            }
+          }
+        }
+        // 名称数组：按课程标题解析为课程ID（best-effort），避免名称格式 includedCourses 被静默丢弃
+        if (nameItems.length > 0) {
+          try {
+            const courseRes = await db.collection('courses')
+              .where({ title: _.in(nameItems) })
+              .limit(100)
+              .get()
+            for (const c of (courseRes.data || [])) {
+              if (c._id && !courseIds.includes(c._id)) courseIds.push(c._id)
+            }
+          } catch (e) {
+            console.warn('[api-order] includedCourses 名称解析失败:', e.message)
           }
         }
       }

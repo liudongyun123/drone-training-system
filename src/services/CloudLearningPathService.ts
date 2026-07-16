@@ -44,7 +44,7 @@ export interface PathProgress {
 // 前台学习路径服务
 export const CloudLearningPathService = {
   collection: 'learning_paths',
-  progressCollection: 'learning_progress',
+  progressCollection: 'user_progress',
 
   // 获取所有学习路径
   async getAllPaths(params?: {

@@ -28,7 +28,7 @@ const COLLECTIONS = [
   'enrollments', 'examAttempts', 'exam_records', 'exam_results', 'exams',
   'faq', 'favoriteQuestions', 'favorites', 'featuredClasses',
   'featuredCourses', 'featuredLearningPaths', 'feedback', 'groupBuys',
-  'learning_path_categories', 'learning_paths', 'learning_progress',
+  'learning_path_categories', 'learning_paths',
   'lesson_progress', 'lessons', 'levels', 'liveStreams', 'members',
   'messages', 'notices', 'notifications', 'orders', 'pageConfig',
   'page_configs', 'practiceRecords', 'product_categories', 'products',

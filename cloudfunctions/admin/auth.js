@@ -26,7 +26,7 @@ const PUBLIC_ACTIONS = [
 const USER_DATA_COLLECTIONS = [
   // 用户私有数据集合 - 用户只能操作自己的数据
   'orders', 'registrations', 'course_permissions', 
-  'user_progress', 'learning_progress', 'transfer_requests'
+  'user_progress', 'transfer_requests'
 ]
 
 /**
