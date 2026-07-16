@@ -589,18 +589,21 @@ async function getOrderStats(data) {
   if (status) where.status = status
   const all = await db.collection('orders').where(where).get()
   const list = all.data || []
+  // 已收款状态集合：须包含 paid_offline（线下报名），否则统计漏算（与前端财务 PAID_STATUSES 一致）
+  const PAID_STATUSES = ['paid', 'completed', 'paid_offline']
   const amountOf = (o) => o.finalAmount || o.totalAmount || o.totalPrice || o.amount || 0
   const total = list.length
   const pending = list.filter(o => o.status === 'pending').length
   const paid = list.filter(o => o.status === 'paid').length
+  const paidOffline = list.filter(o => o.status === 'paid_offline').length
   const completed = list.filter(o => o.status === 'completed').length
   const cancelled = list.filter(o => ['cancelled', 'refunded'].includes(o.status)).length
   const totalAmount = list.reduce((s, o) => s + amountOf(o), 0)
-  const paidAmount = list.filter(o => o.status === 'paid' || o.status === 'completed').reduce((s, o) => s + amountOf(o), 0)
+  const paidAmount = list.filter(o => PAID_STATUSES.includes(o.status)).reduce((s, o) => s + amountOf(o), 0)
   return createResponse({
     code: 0,
     success: true,
-    data: { total, pending, paid, completed, cancelled, totalAmount, paidAmount }
+    data: { total, pending, paid, paidOffline, completed, cancelled, totalAmount, paidAmount }
   })
 }
 
