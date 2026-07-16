@@ -27,9 +27,15 @@ export const CloudProgressService = {
         return null
       }
 
-      // 查询该课程的学习进度
-      const data = await dbService.getAll('user_progress')
-      const progress = data.find((p: any) => p.courseId === courseId)
+      // ★ 按当前用户维度过滤，避免读到/覆盖其他用户的进度
+      const userId = (user as any).uid || (user as any).id || (user as any).phone || ''
+      if (!userId) {
+        console.warn('用户标识缺失,无法获取学习进度')
+        return null
+      }
+
+      const data = await dbService.where('user_progress', { userId, courseId })
+      const progress = data.find((p: any) => p.courseId === courseId && p.userId === userId)
 
       if (!progress) {
         return null
@@ -61,7 +67,13 @@ export const CloudProgressService = {
         return []
       }
 
-      const data = await dbService.getAll('user_progress')
+      // ★ 按当前用户维度过滤，只返回本人进度
+      const userId = (user as any).uid || (user as any).id || (user as any).phone || ''
+      if (!userId) {
+        return []
+      }
+
+      const data = await dbService.where('user_progress', { userId })
 
       return data.map((d: any) => ({
         id: d._id,

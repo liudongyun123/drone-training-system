@@ -125,15 +125,22 @@ export const CloudNoticeService = {
     }
   },
 
-  // 获取未读公告数量
-  async getUnreadCount(): Promise<number> {
+  // 获取当前生效中的公告数量（已发布且未过期）
+  // 说明：公告系统没有逐用户"已读"追踪，因此这里返回的是"当前对用户可见的有效公告总数"，
+  // 而非个人未读数。原 getUnreadCount 误把已发布公告数当作未读数，且被 limit:20 截断导致计数不准。
+  async getActiveNoticeCount(): Promise<number> {
     try {
-      const notices = await this.getPublishedNotices({ limit: 20 })
+      const notices = await this.getPublishedNotices({ limit: 1000 })
       return notices.length
     } catch (error) {
-      console.error('获取未读公告数量失败:', error)
+      console.error('获取有效公告数量失败:', error)
       return 0
     }
+  },
+
+  // 已废弃别名：原实现语义错误（返回已发布公告数，且被 limit:20 截断）。请改用 getActiveNoticeCount。
+  async getUnreadCount(): Promise<number> {
+    return this.getActiveNoticeCount()
   },
 
   // 获取弹窗公告
