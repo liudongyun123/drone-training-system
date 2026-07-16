@@ -392,6 +392,10 @@
   background: linear-gradient(135deg, #fef3c7, #fde68a);
 }
 
+.order-icon-wrap.purple {
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+}
+
 .order-badge {
   position: absolute;
   top: -6rpx;

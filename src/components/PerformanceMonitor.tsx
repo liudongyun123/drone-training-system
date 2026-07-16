@@ -6,7 +6,6 @@
 import { useEffect, useState } from 'react';
 import { X, RefreshCw, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { 
-  getPerformanceMetrics, 
   getMetricRating, 
   formatMetricValue,
   performanceMonitor,

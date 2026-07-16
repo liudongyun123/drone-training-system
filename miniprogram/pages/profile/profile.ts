@@ -147,7 +147,14 @@ Page({
     try {
       const result = await newUserApi.getStats()
       if (result.success && result.data) {
-        this.setData({ stats: result.data })
+        const s = result.data
+        // 顶部"在学课程" = 在学课程 + 在学培训班 总和
+        this.setData({
+          stats: {
+            ...s,
+            totalCourseCount: (s.courseCount || 0) + (s.classCount || 0)
+          }
+        })
       }
     } catch (err) {
       logger.error('个人中心', '加载用户统计失败', err)

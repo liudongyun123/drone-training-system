@@ -658,10 +658,10 @@ export const classMemberService = {
   //  - 付费(已付)且培训未结束  → 不可移除（须调班或等结业），可迁移（调班）
   //  - 付费且已过期            → 可移除（结业清理，不退费），不可调班
   //  - 已退款 / 免费班 / 待付款 → 可移除；免费班未过期可迁移
-  async _getMemberClassState(enr) {
+  async _getMemberClassState(enr, clsOverride) {
     const { phone } = this._memberBase(enr)
     const classId = enr.classId
-    const cls = classId ? await CloudDBService.get('classes', classId) : null
+    const cls = clsOverride !== undefined ? clsOverride : (classId ? await CloudDBService.get('classes', classId) : null)
     if (!cls) {
       return { paid: false, refunded: false, pending: false, freeClass: true, expired: false, canRemove: true, canTransfer: true, reason: '' }
     }
@@ -718,14 +718,25 @@ export const classMemberService = {
   // 必须由服务端聚合 orders 后给出权威的 canRemove / canTransfer。
   async getMemberClassStates(enrollmentIds) {
     const data: Record<string, any> = {}
+    const enrollments = await Promise.all(
+      (enrollmentIds || []).map((id) => CloudDBService.get('enrollments', id))
+    )
+    // 预取去重后的班级文档，避免逐个报名重复拉取同一班级（大名单性能优化）
+    const classIds = [...new Set(enrollments.filter(Boolean).map((e) => e.classId).filter(Boolean))]
+    const classMap: Record<string, any> = {}
     await Promise.all(
-      (enrollmentIds || []).map(async (id) => {
-        const enr = await CloudDBService.get('enrollments', id)
+      classIds.map(async (cid) => {
+        classMap[cid] = await CloudDBService.get('classes', cid)
+      })
+    )
+    await Promise.all(
+      enrollments.map(async (enr, i) => {
+        const id = enrollmentIds[i]
         if (!enr) {
           data[id] = { paid: false, refunded: false, pending: false, freeClass: true, expired: false, canRemove: true, canTransfer: true, reason: '报名记录不存在' }
           return
         }
-        data[id] = await this._getMemberClassState(enr)
+        data[id] = await this._getMemberClassState(enr, enr.classId ? classMap[enr.classId] : null)
       })
     )
     return { code: 0, data }

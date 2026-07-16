@@ -5,11 +5,9 @@ import {
   Users,
   Copy,
   Check,
-  ChevronRight,
   Clock,
   Gift,
   TrendingDown,
-  AlertCircle,
   Search,
   ShoppingCart,
 } from 'lucide-react';

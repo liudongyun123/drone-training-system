@@ -3,7 +3,7 @@
 // 支持拖拽上传、点击上传、实时预览、无需云存储
 // ============================================================================
 import React, { useState, useRef, useCallback } from 'react';
-import { Upload, X, Image as ImageIcon, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 
 interface ImageUploaderProps {
   /** 当前图片URL/Base64 */

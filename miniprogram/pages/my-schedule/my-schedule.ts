@@ -27,7 +27,9 @@ Page({
     weekdayStr: '',
     loading: true,
     refreshing: false,
-    classId: ''
+    classId: '',
+    detailVisible: false,
+    currentDetail: null as any
   },
 
   onLoad(options: any) {
@@ -208,11 +210,21 @@ Page({
     wx.navigateTo({ url: '/pages/login/login' })
   },
 
-  // 跳转到日程详情
+  // 打开日程详情（本地数据弹窗，避免跳转未注册页面导致无反应）
   goToDetail(e: any) {
     const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: `/pages/schedule-detail/schedule-detail?id=${id}` })
+    const item = this.data.daySchedules.find((s: any) => s._id === id)
+    if (!item) return
+    this.setData({ detailVisible: true, currentDetail: item })
   },
+
+  // 关闭日程详情
+  closeDetail() {
+    this.setData({ detailVisible: false })
+  },
+
+  // 阻止弹窗内容点击冒泡到遮罩层
+  preventBubble() {},
 
   // 设置提醒
   setRemind(e: any) {

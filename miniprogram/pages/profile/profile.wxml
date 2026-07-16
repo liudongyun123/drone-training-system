@@ -46,8 +46,8 @@
       <!-- 学习统计 -->
       <view class="stats-bar" wx:if="{{stats}}">
         <view class="stat-item">
-          <text class="stat-num">{{stats.courseCount || 0}}</text>
-          <text class="stat-label">在学课程</text>
+          <text class="stat-num">{{stats.totalCourseCount || 0}}</text>
+          <text class="stat-label">在学课程/班</text>
         </view>
         <view class="stat-divider"></view>
         <view class="stat-item">
@@ -90,7 +90,6 @@
             <text>📚</text>
           </view>
           <text class="grid-label">我的学习</text>
-          <text class="grid-badge" wx:if="{{stats && stats.courseCount > 0}}">{{stats.courseCount}}</text>
         </view>
         
         <view class="grid-item" bindtap="goToMyClasses">
@@ -120,10 +119,16 @@
     <view class="section">
       <view class="section-header">
         <text class="section-title">订单服务</text>
-        <text class="section-more" bindtap="goToMyOrders">全部订单 ›</text>
       </view>
 
       <view class="order-cards">
+        <view class="order-card" bindtap="goToMyOrders">
+          <view class="order-icon-wrap purple">
+            <text class="order-icon">📋</text>
+          </view>
+          <text class="order-label">全部订单</text>
+        </view>
+
         <view class="order-card" bindtap="goToCart">
           <view class="order-icon-wrap orange">
             <text class="order-icon">🛒</text>
@@ -144,13 +149,6 @@
             <text class="order-icon">🚚</text>
           </view>
           <text class="order-label">待收货</text>
-        </view>
-
-        <view class="order-card" bindtap="goToMyCertificates">
-          <view class="order-icon-wrap gold">
-            <text class="order-icon">🏆</text>
-          </view>
-          <text class="order-label">我的证书</text>
         </view>
       </view>
     </view>

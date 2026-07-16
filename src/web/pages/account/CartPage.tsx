@@ -7,7 +7,6 @@ import { Trash2, ArrowRight, Gift, AlertCircle } from 'lucide-react';
 import { cartService } from '@/services/cart';
 import { couponService } from '@/services/coupon';
 import { useAuthStore } from '@/store/authStore';
-import type { CartItem as CartItemType } from '@/types/service';
 import { Loading, EmptyState, Button, toast } from '@/components';
 
 export default function CartPage() {

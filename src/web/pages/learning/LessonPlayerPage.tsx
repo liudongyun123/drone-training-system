@@ -2,7 +2,7 @@
 // 课时播放页面
 // ============================================================================
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { 
   ChevronLeft, CheckCircle, Circle, Lock, 
   FileText, Download, MessageCircle, Clock,
@@ -48,7 +48,6 @@ interface Course {
 export default function LessonPlayerPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
   
   const [course, setCourse] = useState<Course | null>(null);

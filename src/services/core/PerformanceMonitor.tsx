@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { serviceCache, perfMonitor, CacheItem } from './BaseService'
+import { serviceCache, perfMonitor } from './BaseService'
 import { apiRateLimiter } from './ApiClient'
 
 // ============================================================================

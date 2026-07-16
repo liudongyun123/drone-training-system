@@ -20,14 +20,13 @@ import {
   ArrowLeftRight,
   CheckCircle,
   AlertCircle,
-  ChevronRight,
   BookOpen,
   Users
 } from 'lucide-react';
 import { registrationService } from '@/services/registrationService';
 import { classService } from '@/services';
 import { useAuthStore } from '@/store/authStore';
-import { Loading, ErrorState, toast } from '@/components';
+import { Loading, ErrorState } from '@/components';
 import type { Registration } from '@/types/registration';
 import type { ClassV2, ClassScheduleV2 } from '@/types';
 

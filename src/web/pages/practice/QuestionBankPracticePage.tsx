@@ -124,14 +124,6 @@ export default function QuestionBankPractice() {
     }).length;
   };
 
-  const isAnswerCorrect = (question: BankQuestion, userAnswer: string | string[] | undefined) => {
-    if (!userAnswer) return false;
-    if (Array.isArray(question.answer)) {
-      return JSON.stringify((userAnswer as string[]).sort()) === JSON.stringify(question.answer.sort());
-    }
-    return userAnswer === question.answer;
-  };
-
   if (loading) {
     return <Loading text="加载题目..." />;
   }
@@ -221,7 +213,6 @@ export default function QuestionBankPractice() {
   const currentQuestion = questions[currentIndex];
   const currentAnswer = answers[currentQuestion._id] || (currentQuestion.type === 'multiple' ? [] : '');
   const isShowAnswer = showAnswer[currentQuestion._id];
-  const isCorrect = isFinished ? isAnswerCorrect(currentQuestion, currentAnswer) : null;
 
   return (
     <div className="min-h-screen bg-gray-50">

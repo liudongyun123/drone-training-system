@@ -175,19 +175,44 @@ Page({
     try {
       const userId = wx.getStorageSync('userId') || ''
       const result = await getPracticeRecords(userId, 5)
-      
-      const recentPractices = (result.data || []).map((record: any) => ({
-        _id: record._id,
-        type: record.type,
-        targetId: record.targetId || record.bankId || record.examId,
-        targetName: record.targetName || '练习',
-        score: record.score || 0,
-        correctCount: record.correctCount || 0,
-        totalCount: record.totalCount || 0,
-        duration: record.duration || 0,
-        createdAt: this.formatTime(record.createdAt)
-      }))
-      
+      const records = result.data || []
+
+      // 用当前题库/考试的真实名称修正展示名，避免历史记录里存储的乱码/旧名称
+      const [bankRes, examRes] = await Promise.all([
+        getQuestionBanks(),
+        getMockExams()
+      ])
+      const bankMap: Record<string, string> = {}
+      for (const b of (bankRes.data || [])) {
+        bankMap[b._id] = b.name || b.title || '未命名题库'
+      }
+      const examMap: Record<string, string> = {}
+      for (const e of (examRes.data || [])) {
+        examMap[e._id] = e.title || e.name || '未命名考试'
+      }
+
+      const recentPractices = records.map((record: any) => {
+        const targetId = record.targetId || record.bankId || record.examId || ''
+        // 优先用当前真实名称，找不到才回退到记录里存储的名字
+        let name = record.targetName || '练习'
+        if (record.type === 'exam') {
+          if (examMap[targetId]) name = examMap[targetId]
+        } else {
+          if (bankMap[targetId]) name = bankMap[targetId]
+        }
+        return {
+          _id: record._id,
+          type: record.type,
+          targetId,
+          targetName: name,
+          score: record.score || 0,
+          correctCount: record.correctCount || 0,
+          totalCount: record.totalCount || 0,
+          duration: record.duration || 0,
+          createdAt: this.formatTime(record.createdAt)
+        }
+      })
+
       this.setData({ recentPractices })
     } catch (err) {
       logger.error('练习', '加载最近练习失败', err)

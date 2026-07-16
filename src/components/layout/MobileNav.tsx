@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, BookOpen, FileText, User, GraduationCap } from 'lucide-react';
+import { Home, BookOpen, FileText, User } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { LoginModal } from '../auth';
 

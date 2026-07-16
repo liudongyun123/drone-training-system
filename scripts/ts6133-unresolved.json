@@ -1,0 +1,506 @@
+[
+  {
+    "file": "src/admin/pages/orders/AdminCourseOrders.tsx",
+    "line": 19,
+    "name": "BellOff",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/admin/pages/system/AdminLevels.tsx",
+    "line": 92,
+    "name": "getSourceId",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/CommentManagement.tsx",
+    "line": 50,
+    "name": "setDialogOpen",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/ContractManagement.tsx",
+    "line": 111,
+    "name": "templateSaved",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/ExamManagement.tsx",
+    "line": 54,
+    "name": "courses",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/LearningPathManagement.tsx",
+    "line": 85,
+    "name": "courses",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/LearningPathManagement.tsx",
+    "line": 355,
+    "name": "getDifficultyColor",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/LearningPathManagement.tsx",
+    "line": 368,
+    "name": "getDifficultyText",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/MemberManagement.tsx",
+    "line": 71,
+    "name": "TabPanel",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/MemberManagement.tsx",
+    "line": 254,
+    "name": "getMemberRelationCount",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/MemberManagement.tsx",
+    "line": 254,
+    "name": "phone",
+    "reason": "出现 19 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/admin/NoticeManagement.tsx",
+    "line": 7,
+    "name": "SelectChangeEvent",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/NoticeManagement.tsx",
+    "line": 7,
+    "name": "FormHelperText",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/NoticeManagement.tsx",
+    "line": 11,
+    "name": "PushPin",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/NoticeManagement.tsx",
+    "line": 11,
+    "name": "VisibilityOff",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/NoticeManagement.tsx",
+    "line": 13,
+    "name": "ToggleOn",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/NoticeManagement.tsx",
+    "line": 13,
+    "name": "ToggleOff",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/PageConfigManagement.tsx",
+    "line": 157,
+    "name": "setDebugInfo",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/PageConfigManagement.tsx",
+    "line": 296,
+    "name": "loadDataWithSourceId",
+    "reason": "出现 4 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/admin/PageConfigManagement.tsx",
+    "line": 911,
+    "name": "loadCourses",
+    "reason": "出现 3 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/admin/PageConfigManagement.tsx",
+    "line": 937,
+    "name": "loadClasses",
+    "reason": "出现 3 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/admin/PageConfigManagement.tsx",
+    "line": 955,
+    "name": "loadLearningPaths",
+    "reason": "出现 3 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/admin/PageConfigManagement.tsx",
+    "line": 1075,
+    "name": "saveCourseConfigsDirect",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/PageConfigManagement.tsx",
+    "line": 1183,
+    "name": "saveClassConfigsDirect",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/PageConfigManagement.tsx",
+    "line": 1602,
+    "name": "renderGlobalBadge",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/PermissionManagement.tsx",
+    "line": 14,
+    "name": "Clock",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/PermissionManagement.tsx",
+    "line": 14,
+    "name": "Upload",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/PermissionManagement.tsx",
+    "line": 15,
+    "name": "Minus",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/QuestionBankManagement.tsx",
+    "line": 50,
+    "name": "importDialogOpen",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/QuestionBankManagement.tsx",
+    "line": 50,
+    "name": "setImportDialogOpen",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/QuestionBankManagement.tsx",
+    "line": 51,
+    "name": "importFile",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/QuestionBankManagement.tsx",
+    "line": 51,
+    "name": "setImportFile",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/QuestionBankManagement.tsx",
+    "line": 52,
+    "name": "importPreview",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/QuestionBankManagement.tsx",
+    "line": 52,
+    "name": "setImportPreview",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/QuestionManagement.tsx",
+    "line": 12,
+    "name": "bankId",
+    "reason": "出现 2 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/admin/QuestionManagement.tsx",
+    "line": 12,
+    "name": "onUpdateQuestion",
+    "reason": "出现 2 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/admin/SystemSettings.tsx",
+    "line": 54,
+    "name": "loading",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/admin/SystemSettings.tsx",
+    "line": 168,
+    "name": "e",
+    "reason": "出现 41 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/admin/VideoUpload.tsx",
+    "line": 127,
+    "name": "formatSize",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/CouponSelector.tsx",
+    "line": 34,
+    "name": "selectedCouponCode",
+    "reason": "出现 2 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/Layout.tsx",
+    "line": 13,
+    "name": "Gauge",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/layout/MobileNav.tsx",
+    "line": 31,
+    "name": "user",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/layout/ResponsiveLayout.tsx",
+    "line": 92,
+    "name": "logout",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/NoticePopup.tsx",
+    "line": 34,
+    "name": "bannerOpen",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/NoticePopup.tsx",
+    "line": 34,
+    "name": "setBannerOpen",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/ThemeToggle.tsx",
+    "line": 26,
+    "name": "showLabel",
+    "reason": "出现 2 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/ui/BatchOperationPanel.tsx",
+    "line": 50,
+    "name": "handleSelectItem",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/ui/BatchOperationPanel.tsx",
+    "line": 170,
+    "name": "item",
+    "reason": "出现 8 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/ui/BatchOperationPanel.tsx",
+    "line": 201,
+    "name": "item",
+    "reason": "出现 8 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/components/ui/ExportButton.tsx",
+    "line": 36,
+    "name": "selectedFormat",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/ui/ExportButton.tsx",
+    "line": 36,
+    "name": "setSelectedFormat",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/components/ui/LazyImage.tsx",
+    "line": 30,
+    "name": "isInView",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/account/CouponCenterPage.tsx",
+    "line": 7,
+    "name": "Ticket",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/account/CouponCenterPage.tsx",
+    "line": 8,
+    "name": "Copy",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/account/CouponCenterPage.tsx",
+    "line": 8,
+    "name": "Percent",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/account/LoginPage.tsx",
+    "line": 122,
+    "name": "handleWechatLogin",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/account/MyCouponsPage.tsx",
+    "line": 8,
+    "name": "Copy",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/account/MyOrdersPage.tsx",
+    "line": 10,
+    "name": "ChevronRight",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/account/TransferRequestPage.tsx",
+    "line": 59,
+    "name": "total",
+    "reason": "出现 2 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/web/pages/learning/CourseListPage.tsx",
+    "line": 38,
+    "name": "categoriesLoading",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/learning/CourseListPage.tsx",
+    "line": 76,
+    "name": "loadCategories",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/learning/CoursesPage.tsx",
+    "line": 32,
+    "name": "setCart",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/learning/CoursesPage.tsx",
+    "line": 35,
+    "name": "refresh",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/learning/LessonPlayerPage.tsx",
+    "line": 7,
+    "name": "Lock",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/learning/LessonPlayerPage.tsx",
+    "line": 9,
+    "name": "ChevronRight",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/learning/MyLearningPage.tsx",
+    "line": 41,
+    "name": "user",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/learning/MyLearningPage.tsx",
+    "line": 95,
+    "name": "li",
+    "reason": "出现 3 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/web/pages/practice/CertificateCenterPage.tsx",
+    "line": 4,
+    "name": "AlertCircle",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/practice/CertificateCenterPage.tsx",
+    "line": 4,
+    "name": "QrCode",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/practice/ExamCenterPage.tsx",
+    "line": 23,
+    "name": "passCount",
+    "reason": "出现 3 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/web/pages/practice/ExamCenterPage.tsx",
+    "line": 174,
+    "name": "setIsDemoMode",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/practice/ExamResultPage.tsx",
+    "line": 4,
+    "name": "Clock",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/practice/MarketingCenterPage.tsx",
+    "line": 220,
+    "name": "navigate",
+    "reason": "出现 2 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/web/pages/practice/MarketingCenterPage.tsx",
+    "line": 364,
+    "name": "navigate",
+    "reason": "出现 2 次（非独占，跳过以保证安全）"
+  },
+  {
+    "file": "src/web/pages/practice/QuestionBankListPage.tsx",
+    "line": 9,
+    "name": "ChevronRight",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/practice/QuestionBankListPage.tsx",
+    "line": 10,
+    "name": "BarChart3",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/practice/QuestionBankPracticePage.tsx",
+    "line": 4,
+    "name": "Flag",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/practice/QuestionBankPracticePage.tsx",
+    "line": 4,
+    "name": "XCircle",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/practice/QuestionBankPracticePage.tsx",
+    "line": 6,
+    "name": "Bookmark",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/training/ClassEnrollmentPage.tsx",
+    "line": 77,
+    "name": "loginWithPhone",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/training/ClassEnrollmentPage.tsx",
+    "line": 99,
+    "name": "smsSent",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/training/ClassEnrollmentPage.tsx",
+    "line": 315,
+    "name": "handleViewClass",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/training/MySchedulePage.tsx",
+    "line": 9,
+    "name": "Filter",
+    "reason": "解构/复杂声明（交人工）"
+  },
+  {
+    "file": "src/web/pages/training/MySchedulePage.tsx",
+    "line": 247,
+    "name": "idx",
+    "reason": "解构/复杂声明（交人工）"
+  }
+]

@@ -74,7 +74,7 @@ Page({
     })
   },
 
-  // 加载学习统计
+  // 加载学习统计（仅补充时长与证书；课程数/已完成数由 loadMyData 的列表数据派生，保证与列表一致）
   async loadLearningStats() {
     try {
       const result = await newUserApi.getLearningStats()
@@ -82,9 +82,8 @@ Page({
         const stats = result.data
         this.setData({
           totalStats: {
-            totalCourses: (stats.courseCount || 0) + (stats.learningCount || 0),
+            ...this.data.totalStats,
             totalHours: stats.learningHours || 0,
-            completedCourses: stats.completedCount || 0,
             certificates: stats.certificateCount || 0
           }
         })
@@ -107,6 +106,11 @@ Page({
           learningCount: 0,
           completedCount: 0,
           notStartedCount: 0,
+          totalStats: {
+            ...this.data.totalStats,
+            totalCourses: 0,
+            completedCourses: 0
+          },
           loading: false
         })
         return
@@ -221,6 +225,12 @@ Page({
         learningCount: learningCourses.length,
         completedCount: completedCourses.length,
         notStartedCount: notStartedCourses.length,
+        // 统计卡的课程数/已完成数直接由列表派生，保证与页面课程列表完全一致
+        totalStats: {
+          ...this.data.totalStats,
+          totalCourses: learningCourses.length + completedCourses.length + notStartedCourses.length,
+          completedCourses: completedCourses.length
+        },
         loading: false
       })
     } catch (err) {

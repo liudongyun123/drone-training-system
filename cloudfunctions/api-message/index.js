@@ -105,7 +105,7 @@ async function sendMessage(params) {
     content: content.trim(),
     priority,
     status: 'unread',
-    isSystem: true,
+    isSystem: false,
     link: link || undefined,
     linkText: linkText || undefined,
     relatedId: relatedId || undefined,
@@ -146,6 +146,7 @@ async function sendBatchMessage(params) {
     title,
     content,
     priority = 'medium',
+    isSystem = false,
     link = '',
     linkText = ''
   } = params
@@ -165,7 +166,7 @@ async function sendBatchMessage(params) {
     content: content.trim(),
     priority,
     status: 'unread',
-    isSystem: true,
+    isSystem,
     link: link || undefined,
     linkText: linkText || undefined,
     createdAt: now,
@@ -179,7 +180,7 @@ async function sendBatchMessage(params) {
       msg: `成功发送 ${messages.length} 条消息`,
       data: {
         count: messages.length,
-        ids: result._id ? [result._id] : []
+        ids: result._id ? (Array.isArray(result._id) ? result._id : [result._id]) : []
       }
     }
   } catch (err) {
@@ -387,16 +388,17 @@ async function sendNotice(params) {
   }
 
   if (phones && phones.length > 0) {
-    // 发送给指定用户
+    // 发送给指定用户（定向，不应标记为系统广播）
     return sendBatchMessage({
       phones,
       type: 'notice',
       title,
       content,
-      priority
+      priority,
+      isSystem: false
     })
   } else {
-    // 发送给全体用户 - 查询所有用户
+    // 发送给全体用户 - 查询所有用户（真正的广播，标记为系统消息）
     try {
       const usersResult = await db.collection('members').field({ phone: true }).limit(1000).get()
       const allPhones = usersResult.data.map(u => u.phone).filter(p => p)
@@ -410,7 +412,8 @@ async function sendNotice(params) {
         type: 'notice',
         title,
         content,
-        priority
+        priority,
+        isSystem: true
       })
     } catch (err) {
       console.error('sendNotice error:', err)

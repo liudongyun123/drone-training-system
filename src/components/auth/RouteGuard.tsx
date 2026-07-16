@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield, Loader2, Lock } from 'lucide-react';
+import {  Loader2, Lock } from 'lucide-react';
 import { useAuthStore, Permission, UserRole } from '../../store/authStore';
 
 interface RouteGuardProps {

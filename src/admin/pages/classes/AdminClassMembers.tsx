@@ -159,6 +159,7 @@ export default function AdminClassMembers() {
     const res = await classMemberService.confirmEnrollment(enrollmentId, REVIEWER);
     if (res.code === 0) {
       toast.success('已确认入班');
+      loadClasses(); // 刷新班级名额计数
       loadRoster(selectedClassId);
     } else {
       toast.error(res.message || '操作失败');
@@ -181,6 +182,7 @@ export default function AdminClassMembers() {
       if (res.code === 0) {
         toast.success('已调整班级');
         setMoveOpen(false);
+        loadClasses(); // 刷新源/目标班级名额计数
         loadRoster(selectedClassId);
       } else {
         toast.error(res.message || '调班失败');
@@ -193,7 +195,7 @@ export default function AdminClassMembers() {
   const handleRemove = async (enrollment: any) => {
     if (!window.confirm(`确认将 ${enrollment.studentName || enrollment.userName || '该学员'} 移出班级？`)) return;
     const res = await classMemberService.removeMember(enrollment._id || enrollment.id);
-    if (res.code === 0) { toast.success('已移除'); loadRoster(selectedClassId, rosterFilter); }
+    if (res.code === 0) { toast.success('已移除'); loadClasses(); loadRoster(selectedClassId, rosterFilter); }
     else toast.error(res.message || '操作失败');
   };
 
@@ -204,6 +206,7 @@ export default function AdminClassMembers() {
       toast.success('已重新加入');
       // B3 修复：重新加入后切回"在读"页签，使该学员立即可见（否则仍停留在"已移出"空列表）
       const next: 'active' | 'removed' = 'active';
+      loadClasses(); // 刷新班级名额计数
       setRosterFilter(next);
       loadRoster(selectedClassId, next);
     }

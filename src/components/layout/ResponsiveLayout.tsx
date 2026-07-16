@@ -17,9 +17,6 @@ import {
   ListItemText,
   BottomNavigation,
   BottomNavigationAction,
-  Fab,
-  useTheme,
-  useMediaQuery,
   styled,
 } from '@mui/material'
 import {
@@ -85,8 +82,6 @@ export default function ResponsiveLayout({
   onBack,
   hideBottomNav = false,
 }: ResponsiveLayoutProps) {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const navigate = useNavigate()
   const location = useLocation()
   const { user, isAuthenticated, logout } = useAuthStore()

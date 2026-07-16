@@ -44,7 +44,7 @@ import {
   CloudUpload as UploadIcon,
   VerifiedUser as CompletedIcon,
 } from '@mui/icons-material'
-import { Contract, ContractStatus, CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS, normalizeStatus } from '../../types/contract'
+import { Contract, CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS, normalizeStatus } from '../../types/contract'
 import AdminTablePagination from './AdminTablePagination'
 import { formatDateStr } from '@/utils/dateUtils'
 

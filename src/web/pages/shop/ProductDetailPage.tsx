@@ -14,7 +14,6 @@ import {
   TextField,
   Paper,
   Divider,
-  Rating,
   Tabs,
   Tab
 } from '@mui/material'

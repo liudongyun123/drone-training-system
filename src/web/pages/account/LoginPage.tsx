@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { User, Mail, Smartphone, Lock, ArrowRight, Eye, EyeOff, ShieldCheck, MessageCircle, AlertCircle } from 'lucide-react'
+import { User, Mail, Smartphone, Lock, ArrowRight, Eye, EyeOff, ShieldCheck, MessageCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const navigate = useNavigate()

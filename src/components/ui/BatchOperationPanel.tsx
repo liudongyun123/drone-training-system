@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Trash2, MoreVertical } from 'lucide-react';
+import { Check, MoreVertical } from 'lucide-react';
 
 export interface BatchOperationItem {
   id: string;

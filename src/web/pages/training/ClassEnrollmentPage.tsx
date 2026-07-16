@@ -21,7 +21,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
-  Clock,
   Users,
   MapPin,
   CreditCard,

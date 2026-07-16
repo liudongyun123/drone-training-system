@@ -27,6 +27,24 @@ const formatDate = (dateStr: string | undefined | null) => {
   }
 }
 
+// 辅助函数：时间字符串(HH:mm)转分钟数
+const toMinutes = (t?: string): number | null => {
+  if (!t) return null
+  const parts = String(t).split(':').map(Number)
+  if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null
+  return parts[0] * 60 + parts[1]
+}
+
+// 辅助函数：两个时间段是否重叠
+const isTimeOverlap = (
+  aStart?: string, aEnd?: string, bStart?: string, bEnd?: string
+): boolean => {
+  const aS = toMinutes(aStart); const aE = toMinutes(aEnd)
+  const bS = toMinutes(bStart); const bE = toMinutes(bEnd)
+  if (aS == null || aE == null || bS == null || bE == null) return false
+  return aS < bE && bS < aE
+}
+
 // 调课类型配置
 const TRANSFER_TYPES = {
   time: { label: '时间调整', color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -89,9 +107,10 @@ export default function TransferRequestPage() {
 
       if (result.code === 0) {
         const data = result.data as any
+        const total = result.total || data?.total || data?.length || 0
         setRequests(data?.list || data || [])
-        setTotal(data?.total || 0)
-        setTotalPages(data?.totalPages || 1)
+        setTotal(total)
+        setTotalPages(Math.max(1, Math.ceil(total / pageSize)))
       }
     } catch (error) {
       console.error('加载调课记录失败:', error)
@@ -103,9 +122,10 @@ export default function TransferRequestPage() {
   // 加载统计
   const loadStats = async () => {
     try {
-      const result = await transferService.getStats()
-      if (result.code === 0 && result.data) {
-        setStats(result.data as TransferStats)
+      // getStats 直接返回 TransferStats 对象（非 {code,data} 包裹）
+      const stats = await transferService.getStats()
+      if (stats && typeof stats === 'object' && 'total' in stats) {
+        setStats(stats as TransferStats)
       }
     } catch (error) {
       console.error('加载统计失败:', error)
@@ -772,9 +792,10 @@ function TransferRequestForm({ onSuccess, onCancel, user }: TransferRequestFormP
       
       // 5. 补充班级名称
       const schedules = (schedulesResult?.data?.list || []).map((s: any) => {
-        const classInfo = classes.find((c: any) => c._id === s.classId)
+        const classInfo: any = classes.find((c: any) => c._id === s.classId)
         return {
           ...s,
+          courseId: classInfo?.courseId || '',
           courseName: classInfo?.name || classInfo?.courseName || s.title || '未知班级',
           className: classInfo?.name || ''
         }
@@ -797,11 +818,13 @@ function TransferRequestForm({ onSuccess, onCancel, user }: TransferRequestFormP
     loadAvailableTargets(schedule)
   }
 
-  // 加载可选目标排课
+  // 加载可选目标排课（同课程的其他班级）
   const loadAvailableTargets = async (schedule: any) => {
     setLoadingTargets(true)
     try {
       const result = await transferService.getAvailableSchedules({
+        originalClassId: schedule.classId,
+        courseId: schedule.courseId,
         excludeScheduleId: schedule._id || schedule.id
       })
       if (result.code === 0) {
@@ -1055,39 +1078,75 @@ function TransferRequestForm({ onSuccess, onCancel, user }: TransferRequestFormP
               </button>
 
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {targetSchedules.map((schedule) => (
-                  <button
-                    key={schedule._id || schedule.id}
-                    onClick={() => setSelectedTarget(schedule)}
-                    className={`w-full p-4 rounded-xl text-left transition-all ${
-                      selectedTarget?._id === schedule._id || selectedTarget?.id === schedule.id
-                        ? 'bg-blue-50 border-2 border-blue-300'
-                        : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
-                    }`}
-                  >
-                    <div className="font-medium text-gray-800">
-                      {schedule.courseName || schedule.courseTitle}
-                    </div>
-                    <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={12} />
-                        {schedule.date}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} />
-                        {schedule.startTime}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <User size={12} />
-                        {schedule.teacherName || '待分配'}
-                      </span>
-                      <span className="text-green-600">
-                        剩余 {schedule.maxStudents - (schedule.enrolled || 0)} 名额
-                      </span>
-                    </div>
-                  </button>
-                ))}
+                {targetSchedules.map((schedule) => {
+                  const remaining = schedule.remaining ?? 0
+                  const isFull = remaining <= 0
+                  const conflict = mySchedules.some((s: any) =>
+                    (s._id || s.id) !== (selectedSchedule?._id || selectedSchedule?.id) &&
+                    s.date === schedule.date &&
+                    isTimeOverlap(s.startTime, s.endTime, schedule.startTime, schedule.endTime)
+                  )
+                  const isSelected = selectedTarget?._id === schedule._id || selectedTarget?.id === schedule.id
+                  return (
+                    <button
+                      key={schedule._id || schedule.id}
+                      onClick={() => !isFull && setSelectedTarget(schedule)}
+                      disabled={isFull}
+                      className={`w-full p-4 rounded-xl text-left transition-all ${
+                        isSelected
+                          ? 'bg-blue-50 border-2 border-blue-300'
+                          : isFull
+                            ? 'bg-gray-50 border border-gray-200 opacity-60 cursor-not-allowed'
+                            : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-gray-800">
+                          {schedule.className || schedule.courseName || schedule.courseTitle}
+                        </div>
+                        {isFull && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-600">已满</span>
+                        )}
+                        {conflict && !isFull && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700">时间冲突</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Calendar size={12} />
+                          {schedule.date}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} />
+                          {schedule.startTime} - {schedule.endTime}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User size={12} />
+                          {schedule.teacherName || '待分配'}
+                        </span>
+                        <span className={isFull ? 'text-red-500' : 'text-green-600'}>
+                          剩余 {remaining} 名额
+                        </span>
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
+
+              {selectedTarget && (selectedTarget.remaining ?? 0) <= 0 && (
+                <p className="mt-2 text-xs text-red-500">
+                  ⚠️ 该班级已满，无法调入，请选择其他目标。
+                </p>
+              )}
+              {selectedTarget && (selectedTarget.remaining ?? 0) > 0 && mySchedules.some((s: any) =>
+                (s._id || s.id) !== (selectedSchedule?._id || selectedSchedule?.id) &&
+                s.date === selectedTarget.date &&
+                isTimeOverlap(s.startTime, s.endTime, selectedTarget.startTime, selectedTarget.endTime)
+              ) && (
+                <p className="mt-2 text-xs text-yellow-600">
+                  ⚠️ 该时间与您其他已排课程冲突，提交后管理员将重点审核。
+                </p>
+              )}
             </>
           )}
 

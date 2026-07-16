@@ -37,13 +37,23 @@ Page({
       type,
       bankId: bankId || '',
       examId: examId || '',
-      targetName: (type === 'exam' ? examTitle : bankTitle) || bankId || examId || '练习'
+      targetName: this.resolveTargetName(type, bankTitle, examTitle, bankId, examId)
     })
 
     if (singleMode === 'true') {
       this.loadSingleQuestion()
     } else {
       this.loadQuestions()
+    }
+  },
+
+  // 解析练习/考试标题：导航 URL 中的标题可能经过 encodeURIComponent，统一解码避免存储为乱码
+  resolveTargetName(type: string, bankTitle?: string, examTitle?: string, bankId?: string, examId?: string): string {
+    const raw = (type === 'exam' ? examTitle : bankTitle) || bankId || examId || '练习'
+    try {
+      return decodeURIComponent(raw)
+    } catch (e) {
+      return raw
     }
   },
 

@@ -257,7 +257,17 @@ Page({
         const permResult = await dbGetList('course_permissions', {
           where: { phone, courseId }
         })
-        hasPermission = (permResult.data || []).length > 0
+        const perms = (permResult.data || []) as any[]
+        // 记录须存在且未被撤销/关闭、未过期才算有权限（旧记录无 videoAccess 字段则向后兼容视为有效）
+        hasPermission = perms.some((p: any) => {
+          if (p.status === 'revoked') return false
+          if (p.videoAccess && p.videoAccess.enabled === false) return false
+          if (p.videoAccess && p.videoAccess.validUntil) {
+            const until = new Date(p.videoAccess.validUntil).getTime()
+            if (!isNaN(until) && until < Date.now()) return false
+          }
+          return true
+        })
       }
 
       // 免费课程（价格为0）或课时本身为试看课时，可直接学习

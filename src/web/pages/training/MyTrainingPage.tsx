@@ -17,22 +17,17 @@ import {
   MapPin, 
   GraduationCap, 
   Clock, 
-  Play, 
   ArrowLeftRight,
-  CheckCircle,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
-  Users,
   Video,
-  AlertCircle,
   BookOpen,
-  Plus
 } from 'lucide-react';
 import { registrationService } from '@/services/registrationService';
 import { classService } from '@/services';
 import { useAuthStore } from '@/store/authStore';
-import { Loading, ErrorState, toast } from '@/components';
+import { Loading, ErrorState } from '@/components';
 import type { Class, ClassSchedule } from '@/types/class';
 
 interface MyClassInfo {
@@ -48,7 +43,6 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
 };
 
-const formatTime = (timeStr: string) => timeStr;
 
 const isToday = (dateStr: string) => {
   const today = new Date().toISOString().split('T')[0];
@@ -222,26 +216,6 @@ export default function MyTrainingPage() {
     });
   };
 
-  // 获取今日课程
-  const getTodaySchedules = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const schedules: any[] = [];
-    
-    myClasses.forEach(item => {
-      item.schedules.forEach(schedule => {
-        if (schedule.date === today) {
-          schedules.push({
-            ...schedule,
-            className: item.classInfo?.name || '班级',
-            location: schedule.location || item.classInfo?.location
-          });
-        }
-      });
-    });
-
-    return schedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
-  };
-
   // 申请调课
   const handleTransferRequest = (item: MyClassInfo) => {
     navigate('/transfer-requests', {
@@ -270,7 +244,6 @@ export default function MyTrainingPage() {
 
   const { weekDates, scheduleMap, today } = getSchedulesForWeek();
   const allSchedules = getAllSchedules();
-  const todaySchedules = getTodaySchedules();
 
   if (loading) return <Loading fullScreen />;
   if (error) return <ErrorState message={error} onRetry={loadMyClasses} />;

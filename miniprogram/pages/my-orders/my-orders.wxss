@@ -138,8 +138,8 @@
 
 /* 订单滚动区 */
 .order-scroll {
-  flex: 1;
-  padding: 24rpx;
+  flex: 20;
+  box-sizing: border-box‌
 }
 
 /* 订单列表 */

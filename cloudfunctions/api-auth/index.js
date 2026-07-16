@@ -286,8 +286,8 @@ async function adminLogin(username, password) {
     return { success: false, error: '用户名或密码错误' }
   }
   
-  // 验证密码
-  if (user.password !== password) {
+  // 验证密码（使用 verifyPassword 兼容明文/哈希两种存储，避免改密后的管理员无法登录）
+  if (!verifyPassword(password, user.password)) {
     console.log('[adminLogin] 密码错误')
     return { success: false, error: '用户名或密码错误' }
   }

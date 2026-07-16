@@ -5,18 +5,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ClipboardList, 
-  ChevronRight, 
   Clock, 
   CheckCircle,
   XCircle,
   ArrowLeft,
   Trophy,
   Target,
-  TrendingUp,
   Calendar,
   Star
 } from 'lucide-react';
-import { Button, Card, Loading } from '@/components';
+import { Button, Loading } from '@/components';
 import { CloudPracticeService } from '@/services/CloudPracticeService';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { formatDateStr } from '@/utils/dateUtils';

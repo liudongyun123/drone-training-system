@@ -614,8 +614,8 @@ async function getCoupons(data) {
   if (userId) where.userId = userId
   if (phone) where.phone = phone
   if (status) where.status = status
-  const countRes = await db.collection('user_coupons').where(where).count()
-  const res = await db.collection('user_coupons').where(where)
+  const countRes = await db.collection('userCoupons').where(where).count()
+  const res = await db.collection('userCoupons').where(where)
     .orderBy('obtainedAt', 'desc').skip((page - 1) * pageSize).limit(pageSize).get()
   return createResponse({
     code: 0,
@@ -640,24 +640,33 @@ async function validateCoupon(data) {
 async function claimCoupon(data) {
   const { userId, phone, couponTemplateId } = data || {}
   if (!couponTemplateId) return createResponse({ code: 400, success: false, error: '缺少优惠券模板ID' })
-  const tpl = await db.collection('coupon_templates').doc(couponTemplateId).get()
-  const t = tpl.data
+  // 优惠券模板实际存放在 coupons 集合（couponService.COUPON_COLLECTION='coupons'），coupon_templates 为空集合
+  // 使用 where({_id}) 读取（与 validateCoupon 一致），避免 doc(id).get() 返回结构差异导致字段丢失
+  const tplRes = await db.collection('coupons').where({ _id: couponTemplateId }).limit(1).get()
+  const t = tplRes.data && tplRes.data[0]
   if (!t) return createResponse({ code: 404, success: false, error: '优惠券模板不存在' })
   const now = new Date().toISOString()
-  // 写入用户持有券集合 user_coupons（与 couponService 一致），状态置 unused 使其可被选用
+  // 写入用户持有券集合 userCoupons（与 couponService.USER_COUPON_COLLECTION 一致），状态置 unused 使其可被选用
   const doc = {
     userId: userId || '',
     phone: phone || '',
     couponId: couponTemplateId,
-    couponCode: 'C' + Date.now(),
-    coupon: { discount: t.discount || 0, name: t.name || '', title: t.title || '' },
+    couponCode: t.code || ('C' + Date.now()),
+    coupon: {
+      code: t.code || '',
+      name: t.name || t.title || '',
+      type: t.type || '',
+      value: t.value || 0,
+      maxDiscount: t.maxDiscount || 0,
+      minAmount: t.minAmount || 0
+    },
     status: 'unused',
     obtainedAt: now,
-    expiresAt: t.expireAt || '',
+    expiresAt: t.validTo || t.expireAt || t.endDate || '',
     createdAt: now,
     updatedAt: now
   }
-  const r = await db.collection('user_coupons').add(doc)
+  const r = await db.collection('userCoupons').add(doc)
   return createResponse({ code: 0, success: true, data: { id: r.id, ...doc } })
 }
 
@@ -739,7 +748,7 @@ async function useCoupon(data) {
     return createResponse({ code: 400, success: false, error: '缺少优惠券ID' })
   }
   try {
-    const res = await db.collection('user_coupons').doc(couponId).get()
+    const res = await db.collection('userCoupons').doc(couponId).get()
     if (!res.data) {
       return createResponse({ code: 404, success: false, error: '优惠券不存在' })
     }
@@ -750,7 +759,7 @@ async function useCoupon(data) {
       updatedAt: new Date().toISOString()
     }
     if (phone) updateData.phone = phone
-    await db.collection('user_coupons').doc(couponId).update(updateData)
+    await db.collection('userCoupons').doc(couponId).update(updateData)
     return createResponse({
       code: 0,
       success: true,

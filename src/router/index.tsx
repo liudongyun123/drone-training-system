@@ -30,7 +30,6 @@ import {
   ExamPage,
   ExamCenterPage,
   ExamResultPage,
-  QuestionBankListPage,
   QuestionBankPracticePage,
   CertificateCenterPage,
   MarketingCenterPage,
@@ -65,7 +64,6 @@ import {
   AdminLogs,
   AdminPracticeRecords,
   AdminUserRoles,
-  AdminNoticeManagement,
   AdminMessageManagement,
   AdminDataFix,
   AdminDiagnostics,
@@ -78,7 +76,7 @@ import {
   AdminClasses,
   AdminClassSchedules,
   AdminRegistrations,
-  PermissionManagement,
+  AdminClassMembers,
   AdminCourseOrders,
   AdminClassOrders,
   AdminOfflineEnrollment,
@@ -226,8 +224,9 @@ const adminRoutes = [
   { path: '/admin/classes', element: adminRoute(AdminClasses) }, // 班级管理
   { path: '/admin/class-schedules', element: adminRoute(AdminClassSchedules) }, // 班级排课
   { path: '/admin/registrations', element: adminRoute(AdminRegistrations) }, // 报名审核
+  { path: '/admin/class-members', element: adminRoute(AdminClassMembers) }, // 学员人员管理（收口）
   { path: '/admin/offline-enrollment', element: adminRoute(AdminOfflineEnrollment) }, // 线下报名（管理员帮用户报名）
-  { path: '/admin/permissions', element: adminRoute(PermissionManagement) }, // 权限管理
+  { path: '/admin/permissions', element: <Navigate to="/admin/class-members" replace /> }, // 权限管理已收口至学员管理
 
   // 订单管理（新业务流 v20260413）
   { path: '/admin/course-orders', element: adminRoute(AdminCourseOrders) }, // 课程订单（视频课程购买）

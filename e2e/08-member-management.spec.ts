@@ -49,15 +49,15 @@ test.describe('用户管理（成员管理）功能测试', () => {
     await expect(page.getByRole('heading', { name: '学员管理' })).toBeVisible();
     // 来源统计卡片
     await expect(page.getByText('总人数')).toBeVisible();
-    // 角色统计卡片
-    await expect(page.getByText('普通用户')).toBeVisible();
-    await expect(page.getByText('正式学员')).toBeVisible();
-    await expect(page.getByText('毕业学员')).toBeVisible();
-    // 表格列头
-    await expect(page.getByText('姓名', { exact: true })).toBeVisible();
-    await expect(page.getByText('手机号')).toBeVisible();
-    await expect(page.getByText('来源')).toBeVisible();
-    await expect(page.getByText('操作')).toBeVisible();
+    // 角色统计卡片（文字在卡片与表格 Chip 中重复出现，取首个即可）
+    await expect(page.getByText('普通用户').first()).toBeVisible();
+    await expect(page.getByText('正式学员').first()).toBeVisible();
+    await expect(page.getByText('毕业学员').first()).toBeVisible();
+    // 表格列头（用 columnheader 角色精确定位，避免与卡片/筛选器文字冲突）
+    await expect(page.getByRole('columnheader', { name: '姓名' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: '手机号' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: '来源' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: '操作' })).toBeVisible();
   });
 
   test('Tab 筛选 - 用户（普通用户）', async ({ page }) => {
@@ -113,7 +113,9 @@ test.describe('用户管理（成员管理）功能测试', () => {
   });
 
   test('来源筛选 - 线上购买', async ({ page }) => {
-    const sourceSelect = page.getByRole('combobox', { name: /来源/ }).first();
+    // 来源筛选是 MUI Select，其 combobox 可及名为当前显示值（初始"全部来源"），
+    // 且是页面首个 combobox（第二个为分页“每页显示”）。用 first() 稳定定位。
+    const sourceSelect = page.getByRole('combobox').first();
     await sourceSelect.click();
     await page.waitForTimeout(400);
     await page.getByRole('option', { name: '线上购买' }).click();
@@ -129,7 +131,7 @@ test.describe('用户管理（成员管理）功能测试', () => {
       await expect(page.getByText('暂无数据')).toBeVisible();
     }
     // 重置为全部来源
-    await page.getByRole('combobox', { name: /来源/ }).first().click();
+    await page.getByRole('combobox').first().click();
     await page.waitForTimeout(400);
     await page.getByRole('option', { name: '全部来源' }).click();
     await page.waitForTimeout(300);
@@ -140,10 +142,13 @@ test.describe('用户管理（成员管理）功能测试', () => {
     const firstRow = page.locator('tbody tr').first();
     await firstRow.locator('button').nth(1).click(); // 第二个按钮 = 权限(ViewIcon)
     await page.waitForTimeout(800);
-    await expect(page.getByText(/权限详情/)).toBeVisible();
-    await expect(page.getByText('课程视频权限')).toBeVisible();
-    await expect(page.getByText('班级报名记录')).toBeVisible();
-    await page.getByRole('button', { name: '关闭' }).click();
+    // 断言限定在弹窗内，避免与侧边栏菜单描述文字冲突
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText(/权限详情/)).toBeVisible();
+    // 用 heading 角色 + 正则匹配区块标题，避免命中空态提示文案（"暂无课程视频权限"等）
+    await expect(dialog.getByRole('heading', { name: /课程视频权限/ })).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: /班级报名记录/ })).toBeVisible();
+    await dialog.getByRole('button', { name: '关闭' }).click();
     await page.waitForTimeout(300);
   });
 
@@ -192,6 +197,7 @@ test.describe('用户管理（成员管理）功能测试', () => {
         break;
       }
     }
-    test.skip(foundUser, '当前页无普通用户行，跳过');
+    // 若当前页无普通用户行则跳过（判断应为 !foundUser）
+    test.skip(!foundUser, '当前页无普通用户行，跳过');
   });
 });

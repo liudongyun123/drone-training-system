@@ -20,7 +20,7 @@ export * from './cart'
 // coupon 和 groupBuy 在 database.ts 中已有导出，这里使用显式导出避免重复
 export { couponService as couponServiceFromCoupon } from './coupon'
 // enrollmentService 中的 attendanceService 与 database.ts 冲突，使用显式导出
-export { enrollmentService, scheduleChangeService, attendanceService as attendanceServiceFromEnrollment } from './enrollmentService'
+export { enrollmentService, attendanceService as attendanceServiceFromEnrollment } from './enrollmentService'
 export * from './flashSale'
 export { groupBuyService as groupBuyServiceFromGroupBuy } from './groupBuy'
 // marketing 模块中的 couponService/groupBuyService 与 database.ts 冲突，只导出不冲突的内容

@@ -50,7 +50,8 @@ exports.main = async (event, context) => {
 
       // 生成云存储路径
       const timestamp = Date.now();
-      const safeName = (params.fileName || 'file').replace(/[^a-zA-Z0-9\u4e00-\u9fa5.-]/g, '_');
+      // 保留 fileName 中的目录分隔符 '/'，避免通用上传(uploadFile)传入 contracts/seals/xxx.png 时被压成 contracts_seals_xxx_png
+      const safeName = (params.fileName || 'file').replace(/[^a-zA-Z0-9\u4e00-\u9fa5./-]/g, '_');
       let path;
       
       if (cloudPath) {

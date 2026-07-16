@@ -2,7 +2,7 @@
 // 公告列表页 - 前台
 // ============================================================================
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import {  useNavigate } from 'react-router-dom';
 import { 
   Bell, 
   ChevronRight, 
@@ -12,7 +12,6 @@ import {
   ArrowLeft,
   Pin,
   AlertCircle,
-  CheckCircle
 } from 'lucide-react';
 import { Button, Loading } from '@/components';
 import { CloudNoticeService } from '@/services/CloudNoticeService';

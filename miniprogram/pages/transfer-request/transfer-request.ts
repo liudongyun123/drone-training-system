@@ -2,7 +2,7 @@
 // 调课申请页面
 
 import { dbGetList, dbAdd, dbUpdate, dbQuery } from '../../utils/http'
-import { formatDate, checkLogin, getPhone, getUserInfo } from '../../utils/util'
+import { formatDate, checkLogin, getPhone } from '../../utils/util'
 import logger from '../../utils/logger'
 
 // 调课类型配置
@@ -25,15 +25,20 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 interface Schedule {
   _id: string
   id?: string
+  courseId?: string
   courseName: string
   courseTitle: string
   className: string
+  classId?: string
   date: string
   startTime: string
   endTime: string
   teacherName: string
   teacherId: string
   location: string
+  maxStudents?: number
+  enrolledCount?: number
+  remaining?: number
 }
 
 interface TransferRequest {
@@ -94,6 +99,7 @@ Page({
     remark: '',
     targetSchedules: [] as Schedule[],
     selectedTarget: null as Schedule | null,
+    targetConflict: false,
     loadingSchedules: false,
     loadingTargets: false,
     submitting: false,
@@ -143,7 +149,7 @@ Page({
   async loadStats() {
     try {
       const phone = getPhone() || ''
-      const userInfo = getUserInfo()
+      const userInfo = wx.getStorageSync('userInfo')
       const studentId = userInfo?.id || userInfo?._openid || phone
 
       const [totalRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
@@ -173,7 +179,7 @@ Page({
     
     try {
       const phone = getPhone() || ''
-      const userInfo = getUserInfo()
+      const userInfo = wx.getStorageSync('userInfo')
       const studentId = userInfo?.id || userInfo?._openid || ''
 
       // 优先 studentId，备用 phone 查询
@@ -252,10 +258,16 @@ Page({
       
       const schedules = (schedulesResult.data || []).map((s: any) => {
         const classInfo = classes.find((c: any) => c._id === s.classId)
+        const max = classInfo?.maxStudents || 0
+        const enrolled = classInfo?.enrolledCount || 0
         return {
           ...s,
+          courseId: classInfo?.courseId || '',
           courseName: classInfo?.name || classInfo?.courseName || s.title || '未知班级',
-          className: classInfo?.name || ''
+          className: classInfo?.name || '',
+          maxStudents: max,
+          enrolledCount: enrolled,
+          remaining: Math.max(0, max - enrolled)
         }
       })
       
@@ -279,22 +291,65 @@ Page({
     this.loadAvailableTargets(schedule)
   },
 
-  // 加载可选目标排课
+  // 加载可选目标排课（同课程的其他班级，未开始，含容量）
   async loadAvailableTargets(schedule: Schedule) {
     this.setData({ loadingTargets: true })
-    
+
     try {
       const today = new Date().toISOString().split('T')[0]
-      const result = await dbGetList('class_schedules', {
+      const originalClassId = schedule.classId
+      const courseId = schedule.courseId
+
+      // 1. 查询同课程的其他班级（排除原班级，仅招生中/进行中）
+      let otherClasses: any[] = []
+      if (courseId) {
+        const classRes = await dbGetList('classes', {
+          where: {
+            courseId,
+            _id: { $ne: originalClassId },
+            status: { $in: ['enrolling', 'in_progress'] }
+          },
+          limit: 100
+        })
+        otherClasses = (classRes as any).data || []
+      }
+      if (otherClasses.length === 0) {
+        this.setData({ targetSchedules: [], loadingTargets: false })
+        return
+      }
+
+      const classIds = otherClasses.map((c: any) => c._id)
+      const classMap: Record<string, any> = {}
+      otherClasses.forEach((c: any) => { classMap[c._id] = c })
+
+      // 2. 查询这些班级的未开始排课
+      const schedRes = await dbGetList('class_schedules', {
         where: {
+          classId: { $in: classIds },
           date: { $gte: today },
           _id: { $ne: schedule._id || schedule.id }
         },
         orderBy: 'date asc',
-        limit: 30
+        limit: 50
       })
-      
-      this.setData({ targetSchedules: (result as any).data || [], loadingTargets: false })
+
+      // 3. 附带班级名称与容量
+      const schedules = (schedRes.data || []).map((s: any) => {
+        const c = classMap[s.classId] || {}
+        const max = c.maxStudents || 0
+        const enrolled = c.enrolledCount || 0
+        return {
+          ...s,
+          courseId,
+          courseName: c.courseName || c.name || '',
+          className: c.name || '',
+          maxStudents: max,
+          enrolledCount: enrolled,
+          remaining: Math.max(0, max - enrolled)
+        }
+      })
+
+      this.setData({ targetSchedules: schedules, loadingTargets: false })
     } catch (err) {
       logger.error('调课', '加载可选排课失败', err)
       this.setData({ targetSchedules: [], loadingTargets: false })
@@ -339,60 +394,93 @@ Page({
   // 选择目标排课
   selectTarget(e: any) {
     const index = e.currentTarget.dataset.index
-    if (index === -1) {
-      this.setData({ selectedTarget: null })
-    } else {
-      this.setData({ selectedTarget: this.data.targetSchedules[index] })
+    let target: any = null
+    if (index !== -1) {
+      target = this.data.targetSchedules[index]
     }
+
+    // 检测与学员其他已排课程的时间冲突
+    let conflict = false
+    if (target) {
+      const originalId = this.data.selectedSchedule?._id || this.data.selectedSchedule?.id
+      conflict = this.data.mySchedules.some((s: any) => {
+        if ((s._id || s.id) === originalId) return false
+        if (s.date !== target.date) return false
+        return this.isTimeOverlap(s.startTime, s.endTime, target.startTime, target.endTime)
+      })
+    }
+
+    this.setData({ selectedTarget: target, targetConflict: conflict })
+  },
+
+  // 时间是否重叠（HH:mm）
+  isTimeOverlap(aStart?: string, aEnd?: string, bStart?: string, bEnd?: string): boolean {
+    const toMin = (t?: string): number | null => {
+      if (!t) return null
+      const p = String(t).split(':').map(Number)
+      if (p.length < 2 || isNaN(p[0]) || isNaN(p[1])) return null
+      return p[0] * 60 + p[1]
+    }
+    const aS = toMin(aStart); const aE = toMin(aEnd)
+    const bS = toMin(bStart); const bE = toMin(bEnd)
+    if (aS == null || aE == null || bS == null || bE == null) return false
+    return aS < bE && bS < aE
   },
 
   // 提交申请
   async submitRequest() {
     const { selectedSchedule, selectedTarget, transferType, reason, remark } = this.data
-    
+
+    if (!selectedSchedule) {
+      wx.showToast({ title: '请先选择原排课', icon: 'none' })
+      return
+    }
     if (!reason || reason.trim().length < 5) {
       wx.showToast({ title: '请填写调课原因（至少5个字）', icon: 'none' })
       return
     }
-    
+
     this.setData({ submitting: true })
-    
+
     try {
       const phone = getPhone() || ''
-      const userInfo = getUserInfo()
+      const userInfo = wx.getStorageSync('userInfo')
       const now = new Date().toISOString()
-      
+
+      // 防御性取值：避免字段缺失导致构造 payload 时抛异常（原代码用 ! 非null断言，selectedSchedule 为空会崩溃）
       const result = await dbAdd('transfer_requests', {
         studentId: userInfo?.id || userInfo?._openid || phone,
         studentName: userInfo?.name || userInfo?.nickName || '',
         studentPhone: phone,
-        originalScheduleId: selectedSchedule!._id || selectedSchedule!.id,
-        originalCourseId: selectedSchedule!.courseId,
-        originalCourseName: selectedSchedule!.courseName || selectedSchedule!.courseTitle,
-        originalDate: selectedSchedule!.date,
-        originalTime: selectedSchedule!.startTime,
-        originalTeacher: selectedSchedule!.teacherName,
-        originalTeacherId: selectedSchedule!.teacherId,
-        originalLocation: selectedSchedule!.location,
-        targetScheduleId: selectedTarget?._id || selectedTarget?.id,
-        targetCourseId: selectedTarget?.courseId,
-        targetCourseName: selectedTarget?.courseName || selectedTarget?.courseTitle,
-        targetDate: selectedTarget?.date,
-        targetTime: selectedTarget?.startTime,
-        targetTeacher: selectedTarget?.teacherName,
-        targetTeacherId: selectedTarget?.teacherId,
-        targetLocation: selectedTarget?.location,
+        originalScheduleId: selectedSchedule._id || selectedSchedule.id || '',
+        originalCourseId: selectedSchedule.courseId || '',
+        originalCourseName: selectedSchedule.courseName || selectedSchedule.courseTitle || '',
+        originalDate: selectedSchedule.date || '',
+        originalTime: selectedSchedule.startTime || '',
+        originalTeacher: selectedSchedule.teacherName || '',
+        originalTeacherId: selectedSchedule.teacherId || '',
+        originalLocation: selectedSchedule.location || '',
+        targetScheduleId: selectedTarget?._id || selectedTarget?.id || '',
+        targetCourseId: selectedTarget?.courseId || '',
+        targetCourseName: selectedTarget?.courseName || selectedTarget?.courseTitle || '',
+        targetDate: selectedTarget?.date || '',
+        targetTime: selectedTarget?.startTime || '',
+        targetTeacher: selectedTarget?.teacherName || '',
+        targetTeacherId: selectedTarget?.teacherId || '',
+        targetLocation: selectedTarget?.location || '',
         transferType,
         reason: reason.trim(),
-        remark: remark.trim(),
+        remark: (remark || '').trim(),
         status: 'pending',
         createdAt: now,
         updatedAt: now
       })
-      
-      if (result && (result as any).id) {
+
+      // db-init 返回结构为 { code, data: { id }, message }
+      const resp = result as any
+      if (resp && resp.code === 0) {
         wx.showToast({ title: '调课申请提交成功', icon: 'success' })
-        
+
         // 重置表单
         this.setData({
           activeTab: 'list',
@@ -403,12 +491,13 @@ Page({
           remark: '',
           selectedTarget: null
         })
-        
+
         // 刷新列表
         this.loadStats()
         this.loadRequests()
       } else {
-        wx.showToast({ title: '提交失败', icon: 'none' })
+        // 透出服务端真实错误（如 code:-1），不再笼统显示“提交失败”
+        wx.showToast({ title: resp?.message || '提交失败', icon: 'none' })
       }
     } catch (err: any) {
       wx.showToast({ title: err.message || '提交失败', icon: 'none' })

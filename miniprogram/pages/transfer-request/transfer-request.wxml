@@ -319,20 +319,33 @@
           <view 
             wx:for="{{targetSchedules}}"
             wx:key="_id"
-            class="schedule-card {{selectedTarget && (selectedTarget._id === item._id || selectedTarget.id === item.id) ? 'selected' : ''}}"
+            class="schedule-card {{selectedTarget && (selectedTarget._id === item._id || selectedTarget.id === item.id) ? 'selected' : ''}} {{item.remaining <= 0 ? 'disabled' : ''}}"
             bindtap="selectTarget"
             data-index="{{index}}"
           >
             <view class="schedule-main">
-              <text class="schedule-name">{{item.courseName}}</text>
+              <view class="schedule-name-row">
+                <text class="schedule-name">{{item.className || item.courseName}}</text>
+                <text wx:if="{{item.remaining <= 0}}" class="badge-full">已满</text>
+              </view>
               <view class="schedule-detail">
                 <text class="detail-item">📅 {{item.date}}</text>
-                <text class="detail-item">⏰ {{item.startTime}}</text>
+                <text class="detail-item">⏰ {{item.startTime}} - {{item.endTime}}</text>
                 <text class="detail-item">👨‍🏫 {{item.teacherName || '待分配'}}</text>
+                <text class="detail-item {{item.remaining <= 0 ? 'text-full' : 'text-free'}}">剩余 {{item.remaining}} 名额</text>
               </view>
             </view>
             <view class="schedule-check" wx:if="{{selectedTarget && (selectedTarget._id === item._id || selectedTarget.id === item.id)}}">✓</view>
           </view>
+        </view>
+
+        <view wx:if="{{targetSchedules.length === 0 && !loadingTargets}}" class="empty-card">
+          <text class="empty-card-desc">同课程的其他班级暂无可调入的排课</text>
+        </view>
+
+        <!-- 冲突提示 -->
+        <view wx:if="{{targetConflict}}" class="conflict-tip">
+          <text>⚠️ 该时间与您其他已排课程冲突，提交后管理员将重点审核。</text>
         </view>
 
         <!-- 操作按钮 -->

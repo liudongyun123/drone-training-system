@@ -73,10 +73,9 @@ const CORE_COLLECTIONS = [
 /**
  * 需要清理的冗余集合（使用频率 < 3）
  */
+// 注意：featuredCourses / featuredClasses 仍被 api-home 的 getFeaturedConfig 读取（首页精选配置的真实来源），
+// exam_results 是否与 examAttempts 完成迁移未经确认，三者均不可随意删除，已从废弃清单移除。
 const DEPRECATED_COLLECTIONS = [
-  'featuredCourses',   // 精选课程 - 可用 banners 代替
-  'featuredClasses',   // 精选班级 - 可用 banners 代替
-  'exam_results',      // 考试结果 - 与 examAttempts 重复
 ]
 
 /**

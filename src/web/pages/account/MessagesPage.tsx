@@ -5,23 +5,20 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { 
   Bell, 
-  ChevronRight, 
   Clock, 
   Eye,
   ArrowLeft,
   Check,
   CheckCheck,
   Trash2,
-  Filter,
   MessageSquare,
   BellRing,
   Package,
   GraduationCap,
   Award,
   Megaphone,
-  Settings
 } from 'lucide-react'
-import { Button, Loading, Empty } from '@/components'
+import { Button, Loading } from '@/components'
 import { CloudMessageService, Message, MessageType } from '@/services/CloudMessageService'
 import { useAuthStore } from '@/store/authStore'
 import { getUserPhone } from '@/utils/userQuery'

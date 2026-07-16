@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, BookOpen, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { courseService } from '@/services/database';
 import { categoryService } from '@/services/categoryService';
 import { getPlaceholderImage } from '@/services/siteConfigService';

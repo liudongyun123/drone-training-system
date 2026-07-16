@@ -137,15 +137,15 @@ exports.main = async (event, context) => {
 
     // 统计相关
     } else if (action === 'getStats') {
-      result = await handleGetStats(openid || data.openid)
+      result = await handleGetStats(openid || data.openid, data.phone)
     } else if (action === 'getLearningStats') {
-      result = await handleGetLearningStats(openid || data.openid)
+      result = await handleGetLearningStats(openid || data.openid, data.phone)
     } else if (action === 'getDailyStats') {
       result = await handleGetDailyStats(openid || data.openid, data.date)
     } else if (action === 'updateDailyStats') {
       result = await handleUpdateDailyStats(openid || data.openid, data)
     } else if (action === 'incrementStat') {
-      result = await handleIncrementStat(openid || data.openid, data.field)
+      result = await handleIncrementStat(openid || data.openid, data.phone, data.field, data.value)
     } else {
       result = fail(`Unknown action: ${action}`)
     }
@@ -654,69 +654,109 @@ async function handleUpdatePreferences(openid, data) {
 
 /**
  * 获取用户统计
+ * 注意：用户主表为 members（微信/手机号登录都写入 members），
+ * 课程权限(course_permissions)按 phone 存储，证书(certificates)按 _openid 存储。
+ * 因此优先用 phone 统计，openid 仅作兜底。
  */
-async function handleGetStats(openid) {
-  if (!openid) {
-    return fail('缺少 openid')
+async function handleGetStats(openid, phone) {
+  if (!openid && !phone) {
+    return fail('缺少用户标识')
   }
 
+  // 解析手机号：优先传入的 phone，否则用 openid 在 members 反查
+  let targetPhone = phone || ''
+  if (!targetPhone && openid) {
+    try {
+      const mRes = await db.collection(COLLECTIONS.MEMBERS).where({ openid }).limit(1).get()
+      if (mRes.data && mRes.data.length > 0) {
+        targetPhone = mRes.data[0].phone || ''
+      }
+    } catch (e) {
+      console.warn('[api-user] 反查手机号失败:', e.message)
+    }
+  }
+
+  // 课程权限按 phone 存储；证书按 _openid 存储（兼容 openid / phone）
+  const permWhere = targetPhone ? { phone: targetPhone } : (openid ? { openid } : {})
+  const certWhere = targetPhone
+    ? { $or: [{ phone: targetPhone }, { _openid: openid }, { openid }] }
+    : (openid ? { $or: [{ _openid: openid }, { openid }] } : {})
+
   try {
-    // 1. 获取用户基本信息
-    const userRes = await db.collection(COLLECTIONS.USERS)
-      .where({ openid })
-      .field({
-        level: true,
-        points: true,
-        totalLearningTime: true,
-        totalExams: true,
-        memberLevel: true
-      })
-      .limit(1)
-      .get()
+    // 1. 获取用户基本信息（members 优先 phone）
+    let member = null
+    if (targetPhone) {
+      const mRes = await db.collection(COLLECTIONS.MEMBERS).where({ phone: targetPhone }).limit(1).get()
+      member = mRes.data && mRes.data.length > 0 ? mRes.data[0] : null
+    }
+    if (!member && openid) {
+      const mRes = await db.collection(COLLECTIONS.MEMBERS).where({ openid }).limit(1).get()
+      member = mRes.data && mRes.data.length > 0 ? mRes.data[0] : null
+    }
 
-    const user = userRes.data && userRes.data.length > 0 ? userRes.data[0] : {}
-    const totalLearningTime = user.totalLearningTime || 0
-
-    // 2. 统计在学课程数（从 course_permissions 表获取有效权限）
+    // 2. 在学课程数（course_permissions 按 phone）
     let courseCount = 0
     try {
-      const courseRes = await db.collection('course_permissions')
-        .where({
-          $or: [
-            { openid },
-            { phone: user.phone || '' }
-          ],
-          status: 'active'
-        })
-        .count()
+      const courseRes = await db.collection('course_permissions').where(permWhere).count()
       courseCount = courseRes.total || 0
     } catch (e) {
       console.warn('[api-user] 统计课程数失败:', e.message)
     }
 
-    // 3. 统计证书数量
+    // 3. 在学培训班数（class_members + enrollments + orders(培训班) 合并去重 classId）
+    const classIds = new Set()
+    try {
+      const [cmRes, enrRes, ordRes] = await Promise.all([
+        db.collection('class_members').where({ phone: targetPhone }).get(),
+        db.collection('enrollments').where({ phone: targetPhone }).get(),
+        db.collection('orders').where({
+          phone: targetPhone,
+          orderType: 'class',
+          status: _.in(['pending', 'paid', 'completed'])
+        }).get()
+      ])
+      for (const d of (cmRes.data || [])) if (d.classId) classIds.add(d.classId)
+      for (const d of (enrRes.data || [])) if (d.classId) classIds.add(d.classId)
+      for (const d of (ordRes.data || [])) if (d.classId) classIds.add(d.classId)
+    } catch (e) {
+      console.warn('[api-user] 统计培训班数失败:', e.message)
+    }
+    const classCount = classIds.size
+
+    // 4. 学习时长 = 已完成课时的视频时长之和（秒），不随重复/快进观看变化
+    let learningSeconds = 0
+    try {
+      const progRes = await db.collection('user_progress').where({ phone: targetPhone, completed: true }).get()
+      const lessonIds = [...new Set((progRes.data || []).map((p) => p.lessonId).filter(Boolean))]
+      if (lessonIds.length > 0) {
+        const lessonRes = await db.collection('lessons').where({ _id: { $in: lessonIds } }).get()
+        learningSeconds = (lessonRes.data || []).reduce((sum, l) => sum + (Number(l.duration) || 0), 0)
+      }
+    } catch (e) {
+      console.warn('[api-user] 统计学习时长失败:', e.message)
+    }
+    const totalLearningTime = Math.round(learningSeconds / 60)
+    const learningHours = Math.round((learningSeconds / 3600) * 10) / 10
+
+    // 5. 统计证书数量（certificates 按 _openid）
     let certificateCount = 0
     try {
-      const certRes = await db.collection(COLLECTIONS.CERTIFICATES)
-        .where({ openid })
-        .count()
+      const certRes = await db.collection(COLLECTIONS.CERTIFICATES).where(certWhere).count()
       certificateCount = certRes.total || 0
     } catch (e) {
       console.warn('[api-user] 统计证书数失败:', e.message)
     }
 
-    // 4. 学习时长（小时），totalLearningTime 单位为分钟
-    const learningHours = Math.round((totalLearningTime / 60) * 10) / 10
-
     return success({
       courseCount,
+      classCount,
       learningHours,
       certificateCount,
       totalLearningTime,
-      totalExams: user.totalExams || 0,
-      level: user.level || 1,
-      points: user.points || 0,
-      memberLevel: user.memberLevel || 'free'
+      totalExams: member?.stats?.examAttempts || member?.totalExams || 0,
+      level: member?.level || 1,
+      points: member?.points || 0,
+      memberLevel: member?.memberLevel || 'free'
     })
   } catch (error) {
     console.error('[api-user] getStats 失败:', error)
@@ -726,55 +766,63 @@ async function handleGetStats(openid) {
 
 /**
  * 获取学习统计
+ * 同样基于 members + phone 统计（与 handleGetStats 一致）
  */
-async function handleGetLearningStats(openid) {
-  if (!openid) {
-    return fail('缺少 openid')
+async function handleGetLearningStats(openid, phone) {
+  if (!openid && !phone) {
+    return fail('缺少用户标识')
   }
 
-  // 获取用户信息
-  const userRes = await db.collection(COLLECTIONS.USERS)
-    .where({ openid })
-    .field({ totalLearningTime: true, totalCourses: true })
-    .limit(1)
-    .get()
+  let targetPhone = phone || ''
+  if (!targetPhone && openid) {
+    try {
+      const mRes = await db.collection(COLLECTIONS.MEMBERS).where({ openid }).limit(1).get()
+      if (mRes.data && mRes.data.length > 0) {
+        targetPhone = mRes.data[0].phone || ''
+      }
+    } catch (e) {
+      console.warn('[api-user] 反查手机号失败:', e.message)
+    }
+  }
 
-  const totalLearningTime = userRes.data[0]?.totalLearningTime || 0
-  const totalCourses = userRes.data[0]?.totalCourses || 0
+  const permWhere = targetPhone ? { phone: targetPhone } : (openid ? { openid } : {})
+  const certWhere = targetPhone
+    ? { $or: [{ phone: targetPhone }, { _openid: openid }, { openid }] }
+    : (openid ? { $or: [{ _openid: openid }, { openid }] } : {})
 
-  // 获取学习路径进度
-  const pathRes = await db.collection(COLLECTIONS.LEARNING_PATHS)
-    .where({ openid })
-    .field({ progress: true, status: true })
-    .get()
+  try {
+    let member = null
+    if (targetPhone) {
+      const mRes = await db.collection(COLLECTIONS.MEMBERS).where({ phone: targetPhone }).limit(1).get()
+      member = mRes.data && mRes.data.length > 0 ? mRes.data[0] : null
+    }
+    if (!member && openid) {
+      const mRes = await db.collection(COLLECTIONS.MEMBERS).where({ openid }).limit(1).get()
+      member = mRes.data && mRes.data.length > 0 ? mRes.data[0] : null
+    }
 
-  // 获取证书数量
-  const certRes = await db.collection(COLLECTIONS.CERTIFICATES)
-    .where({ openid })
-    .count()
+    const totalHours = member?.stats?.totalHours || 0
+    const totalMinutes = member?.totalLearningTime || Math.round(totalHours * 60)
 
-  // 计算本周学习时间
-  const weekAgo = new Date()
-  weekAgo.setDate(weekAgo.getDate() - 7)
+    const courseRes = await db.collection('course_permissions').where(permWhere).count()
+    const certRes = await db.collection(COLLECTIONS.CERTIFICATES).where(certWhere).count()
+    const pathRes = await db.collection(COLLECTIONS.LEARNING_PATHS)
+      .where(targetPhone ? { phone: targetPhone } : { openid })
+      .get()
 
-  const weekStats = await db.collection(COLLECTIONS.DAILY_STATS)
-    .where({
-      openid,
-      date: _.gte(weekAgo.toISOString().split('T')[0])
+    return success({
+      courseCount: courseRes.total || 0,
+      learningHours: Math.round((totalMinutes / 60) * 10) / 10,
+      certificateCount: certRes.total || 0,
+      learningPaths: pathRes.data.length,
+      totalLearningTime: totalMinutes,
+      weekLearningTime: 0,
+      avgDailyTime: 0
     })
-    .field({ learningTime: true })
-    .get()
-
-  const weekLearningTime = weekStats.data.reduce((sum, d) => sum + (d.learningTime || 0), 0)
-
-  return success({
-    totalLearningTime,
-    totalCourses,
-    learningPaths: pathRes.data.length,
-    certificates: certRes.total,
-    weekLearningTime,
-    avgDailyTime: weekLearningTime / 7
-  })
+  } catch (error) {
+    console.error('[api-user] getLearningStats 失败:', error)
+    return fail('获取学习统计失败: ' + error.message)
+  }
 }
 
 /**
@@ -849,23 +897,54 @@ async function handleUpdateDailyStats(openid, data) {
 
 /**
  * 增量更新统计字段
+ * 基于 members 集合，phone 优先；支持传入增量 value（如学习时长分钟数）
  */
-async function handleIncrementStat(openid, field) {
-  if (!openid) {
-    return fail('缺少 openid')
+async function handleIncrementStat(openid, phone, field, value) {
+  if (!openid && !phone) {
+    return fail('缺少用户标识')
+  }
+  const numValue = Number(value) || 0
+  if (numValue === 0) {
+    return success({ message: '无变化' })
   }
 
-  const allowedFields = ['totalLearningTime', 'totalCourses', 'totalExams', 'points']
+  const allowedFields = [
+    'totalLearningTime',        // 学习总时长（分钟）
+    'stats.totalHours',         // 学习总时长（小时）
+    'stats.completedCourses',
+    'stats.examAttempts',
+    'totalExams',
+    'totalCourses',
+    'points'
+  ]
   if (!allowedFields.includes(field)) {
-    return fail('无效的统计字段')
+    return fail('无效的统计字段: ' + field)
   }
 
-  await db.collection(COLLECTIONS.USERS)
-    .where({ openid })
-    .update({
-        [field]: _.inc(1),
+  // phone 优先定位 members，openid 兜底
+  let targetPhone = phone || ''
+  if (!targetPhone && openid) {
+    try {
+      const mRes = await db.collection(COLLECTIONS.MEMBERS).where({ openid }).limit(1).get()
+      if (mRes.data && mRes.data.length > 0) {
+        targetPhone = mRes.data[0].phone || ''
+      }
+    } catch (e) {
+      console.warn('[api-user] 反查手机号失败:', e.message)
+    }
+  }
+
+  try {
+    const where = targetPhone ? { phone: targetPhone } : { openid }
+    await db.collection(COLLECTIONS.MEMBERS)
+      .where(where)
+      .update({
+        [field]: _.inc(numValue),
         updatedAt: new Date()
       })
-
-  return success({ message: '统计更新成功' })
+    return success({ message: '统计更新成功' })
+  } catch (error) {
+    console.error('[api-user] incrementStat 失败:', error)
+    return fail('更新统计失败: ' + error.message)
+  }
 }

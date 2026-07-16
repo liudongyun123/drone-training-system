@@ -31,7 +31,6 @@ export const ClassEnrollmentPage = lazy(() => import('@/web/pages/training/Class
 export const MyClassesPage = lazy(() => import('@/web/pages/training/MyClassesPage'));
 export const MySchedulePage = lazy(() => import('@/web/pages/training/MySchedulePage'));
 export const MyTrainingPage = lazy(() => import('@/web/pages/training/MyTrainingPage'));
-export const StudentScheduleChangePage = lazy(() => import('@/web/pages/training/StudentScheduleChangePage'));
 
 // 练习/考试
 export const ExamPage = lazy(() => import('@/web/pages/practice/ExamPage'));
@@ -78,6 +77,7 @@ export const AdminClasses = lazy(() => import('@/admin/pages/classes/AdminClasse
 export const AdminClassSchedules = lazy(() => import('@/admin/pages/classes/AdminClassSchedules'));
 export const AdminClassOrders = lazy(() => import('@/admin/pages/classes/AdminClassOrders'));
 export const AdminRegistrations = lazy(() => import('@/admin/pages/classes/AdminRegistrations'));
+export const AdminClassMembers = lazy(() => import('@/admin/pages/classes/AdminClassMembers')); // 学员人员管理（收口）
 
 // 用户管理
 export const AdminUserRoles = lazy(() => import('@/admin/pages/users/AdminUserRoles'));
@@ -112,4 +112,3 @@ export const AdminShopOrders = lazy(() => import('@/admin/pages/shop/AdminShopOr
 export const AdminNoticeManagement = lazy(() => import('@/components/admin/NoticeManagement'));
 export const AdminMessageManagement = lazy(() => import('@/components/admin/MessageManagement'));
 export const AdminAuthConfig = lazy(() => import('@/components/admin/AuthConfig'));
-export const PermissionManagement = lazy(() => import('@/components/admin/PermissionManagement'));

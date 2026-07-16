@@ -101,7 +101,7 @@ export const adminService = {
   /**
    * 查询列表
    */
-  async list<T = unknown>(collection: string, query: DbQuery = {}, options: QueryOptions = {}): Promise<{ code: number; data: ListResponse<T> }> {
+  async list<T = any>(collection: string, query: DbQuery = {}, options: QueryOptions = {}): Promise<{ code: number; data: ListResponse<T> }> {
     const { skip, limit, orderBy, order, page, pageSize } = options
     
     const result = await httpRequest<CloudFunctionResponse<T[]> & { total: number; skip: number; limit: number }>('query', {
@@ -201,7 +201,7 @@ export const adminService = {
   /**
    * 查询列表（支持 MongoDB 风格操作符 $gt/$lt/$in/$or/$regex 等）
    */
-  async listWithOps<T = unknown>(collection: string, query: DbQuery = {}, options: QueryOptions = {}): Promise<{ code: number; data: ListResponse<T> }> {
+  async listWithOps<T = any>(collection: string, query: DbQuery = {}, options: QueryOptions = {}): Promise<{ code: number; data: ListResponse<T> }> {
     const { skip, limit, orderBy, order, page, pageSize } = options
     
     const result = await httpRequest<CloudFunctionResponse<unknown[]> & { total: number; skip: number; limit: number }>('query', {

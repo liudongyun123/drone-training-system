@@ -114,5 +114,54 @@
         </view>
       </view>
     </scroll-view>
+
+    <!-- 日程详情弹窗 -->
+    <view wx:if="{{detailVisible}}" class="detail-mask" bindtap="closeDetail">
+      <view class="detail-panel" catchtap="preventBubble">
+        <view class="detail-header">
+          <text class="detail-title">{{currentDetail.title}}</text>
+          <view class="detail-close" bindtap="closeDetail">✕</view>
+        </view>
+        <view class="detail-body">
+          <view class="detail-row">
+            <text class="detail-label">日期</text>
+            <text class="detail-value">{{currentDetail.date}}</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">时间</text>
+            <text class="detail-value">{{currentDetail.startTimeStr}} - {{currentDetail.endTimeStr}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{currentDetail.teacher}}">
+            <text class="detail-label">讲师</text>
+            <text class="detail-value">{{currentDetail.teacher}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{currentDetail.location}}">
+            <text class="detail-label">地点</text>
+            <text class="detail-value">{{currentDetail.location}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{currentDetail.courseName}}">
+            <text class="detail-label">课程</text>
+            <text class="detail-value">{{currentDetail.courseName}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{currentDetail.className}}">
+            <text class="detail-label">班级</text>
+            <text class="detail-value">{{currentDetail.className}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{currentDetail.notes || currentDetail.remark}}">
+            <text class="detail-label">备注</text>
+            <text class="detail-value">{{currentDetail.notes || currentDetail.remark}}</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">状态</text>
+            <text class="detail-value">{{currentDetail.statusText}}</text>
+          </view>
+        </view>
+        <view class="detail-footer">
+          <view class="detail-btn" bindtap="closeDetail">
+            <text>知道了</text>
+          </view>
+        </view>
+      </view>
+    </view>
   </block>
 </view>

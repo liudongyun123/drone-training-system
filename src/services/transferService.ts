@@ -215,43 +215,100 @@ export const transferService = {
   },
 
   /**
-   * 获取可选的排课列表（查询 schedules 集合）
+   * 获取可选的调课目标排课列表
+   * 规则：与原排课「同一课程」的「其他班级」中、尚未开始的排课，并附带班级容量。
+   * 课程由所属班级(classes)的 courseId 决定，class_schedules 本身不含 courseId。
    */
   async getAvailableSchedules(params: {
     courseId?: string
+    originalClassId?: string
+    originalScheduleId?: string
     excludeScheduleId?: string
     startDate?: string
     endDate?: string
     page?: number
     pageSize?: number
   }) {
-    const where: Record<string, any> = {}
+    const today = new Date().toISOString().split('T')[0]
 
-    if (params.courseId) {
-      where.courseId = params.courseId
+    // 1. 解析课程ID
+    let courseId = params.courseId
+    if (!courseId && params.originalClassId) {
+      const cls = await CloudDBService.get<any>('classes', params.originalClassId)
+      courseId = cls?.courseId
     }
-    if (params.startDate) {
-      where.date = { $gte: params.startDate }
+    if (!courseId) {
+      return { code: 0, data: [], total: 0 }
+    }
+
+    // 2. 解析原班级ID（用于排除原班级，只显示其他班）
+    let originalClassId = params.originalClassId
+    const excludeId = params.excludeScheduleId || params.originalScheduleId
+    if (!originalClassId && excludeId) {
+      const sch = await CloudDBService.get<any>('class_schedules', excludeId)
+      originalClassId = sch?.classId
+    }
+
+    // 3. 查询同课程的其他班级
+    const whereClasses: Record<string, any> = {
+      courseId,
+      _id: { $ne: originalClassId },
+      status: { $in: ['enrolling', 'in_progress'] },
+    }
+    const classesRes = await CloudDBService.query<any>('classes', {
+      where: whereClasses,
+      limit: 200,
+    })
+    const otherClasses = classesRes.data || []
+    if (otherClasses.length === 0) {
+      return { code: 0, data: [], total: 0 }
+    }
+    const classMap: Record<string, any> = {}
+    otherClasses.forEach((c: any) => { classMap[c._id] = c })
+    const classIds = otherClasses.map((c: any) => c._id)
+
+    // 4. 查询这些班级尚未开始的排课
+    const whereSched: Record<string, any> = {
+      classId: { $in: classIds },
+      date: { $gte: params.startDate || today },
+    }
+    if (excludeId) {
+      whereSched._id = { $ne: excludeId }
     }
     if (params.endDate) {
-      where.date = { ...where.date, $lte: params.endDate }
+      whereSched.date = { ...whereSched.date, $lte: params.endDate }
     }
 
+    const pageSize = params.pageSize || 30
     const page = params.page || 1
-    const pageSize = params.pageSize || 20
-
-    const result = await CloudDBService.query('schedules', {
-      where,
+    const schedRes = await CloudDBService.query<any>('class_schedules', {
+      where: whereSched,
       orderBy: 'date',
       order: 'asc',
       skip: (page - 1) * pageSize,
       limit: pageSize,
     })
 
+    // 5. 附带班级名称与容量
+    const schedules = (schedRes.data || []).map((s: any) => {
+      const c = classMap[s.classId] || {}
+      const max = c.maxStudents || 0
+      const enrolled = c.enrolledCount || 0
+      return {
+        ...s,
+        courseId,
+        courseName: c.courseName || c.name || '',
+        className: c.name || '',
+        maxStudents: max,
+        enrolled,
+        remaining: Math.max(0, max - enrolled),
+      }
+    })
+
     return {
       code: 0,
-      data: result.data,
-      total: result.total,
+      data: schedules,
+      total: schedules.length,
     }
   },
 
@@ -348,6 +405,14 @@ export const transferService = {
     adminId?: string
     adminName?: string
     adminReply?: string
+    targetScheduleId?: string
+    targetCourseId?: string
+    targetCourseName?: string
+    targetDate?: string
+    targetTime?: string
+    targetTeacher?: string
+    targetTeacherId?: string
+    targetLocation?: string
   } = {}) {
     if (!requestId) {
       throw new Error('申请ID不能为空')
@@ -364,31 +429,51 @@ export const transferService = {
       throw new Error('只能审核待审核的申请')
     }
 
+    // 管理员指定/覆盖的目标排课优先，否则保留学员原填写
+    const finalTargetScheduleId = adminInfo.targetScheduleId || request.targetScheduleId || ''
+    const finalTargetCourseId = adminInfo.targetCourseId || request.targetCourseId || ''
+    const finalTargetCourseName = adminInfo.targetCourseName || request.targetCourseName || ''
+    const finalTargetDate = adminInfo.targetDate || request.targetDate || ''
+    const finalTargetTime = adminInfo.targetTime || request.targetTime || ''
+    const finalTargetTeacher = adminInfo.targetTeacher || request.targetTeacher || ''
+    const finalTargetTeacherId = adminInfo.targetTeacherId || request.targetTeacherId || ''
+    const finalTargetLocation = adminInfo.targetLocation || request.targetLocation || ''
+
     // 更新调课申请状态
     await CloudDBService.update(COLLECTION, requestId, {
       status: 'approved',
       adminId: adminInfo.adminId,
       adminName: adminInfo.adminName || '管理员',
       adminReply: adminInfo.adminReply,
+      targetScheduleId: finalTargetScheduleId,
+      targetCourseId: finalTargetCourseId,
+      targetCourseName: finalTargetCourseName,
+      targetDate: finalTargetDate,
+      targetTime: finalTargetTime,
+      targetTeacher: finalTargetTeacher,
+      targetTeacherId: finalTargetTeacherId,
+      targetLocation: finalTargetLocation,
       reviewedAt: now,
       updatedAt: now,
     })
 
     // 如果有目标排课，执行排课变更
-    if (request.targetScheduleId) {
+    if (finalTargetScheduleId) {
       // 1. 更新出勤记录：将原排课的出勤迁移到目标排课
       await CloudDBService.updateWhere('attendance', {
         studentId: request.studentId,
         scheduleId: request.originalScheduleId,
       }, {
-        scheduleId: request.targetScheduleId,
+        scheduleId: finalTargetScheduleId,
         updatedAt: now,
       })
 
       // 2. 创建排课变更记录（schedule_changes）
       await CloudDBService.add('schedule_changes', {
         scheduleId: request.originalScheduleId,
-        targetScheduleId: request.targetScheduleId,
+        targetScheduleId: finalTargetScheduleId,
+        targetDate: finalTargetDate,
+        targetTime: finalTargetTime,
         studentId: request.studentId,
         studentName: request.studentName,
         classId: request.originalScheduleId,
@@ -438,12 +523,16 @@ export const transferService = {
     adminId?: string
     adminName?: string
     adminReply?: string
+    targetDate?: string
+    targetTime?: string
   } = {}) {
     if (!requestIds || requestIds.length === 0) {
       throw new Error('请选择要通过的申请')
     }
 
     const now = new Date().toISOString()
+    const batchTargetDate = adminInfo.targetDate || ''
+    const batchTargetTime = adminInfo.targetTime || ''
     let approvedCount = 0
 
     for (const requestId of requestIds) {
@@ -452,12 +541,18 @@ export const transferService = {
         const request = await CloudDBService.get<TransferRequest>(COLLECTION, requestId)
         if (!request || request.status !== 'pending') continue
 
+        // 管理员批量指定的目标日期/时间优先，否则保留学员原填写
+        const finalTargetDate = batchTargetDate || request.targetDate || ''
+        const finalTargetTime = batchTargetTime || request.targetTime || ''
+
         // 更新调课申请状态
         await CloudDBService.update(COLLECTION, requestId, {
           status: 'approved',
           adminId: adminInfo.adminId,
           adminName: adminInfo.adminName || '管理员',
           adminReply: adminInfo.adminReply,
+          targetDate: finalTargetDate,
+          targetTime: finalTargetTime,
           reviewedAt: now,
           updatedAt: now,
         })
@@ -476,6 +571,8 @@ export const transferService = {
           await CloudDBService.add('schedule_changes', {
             scheduleId: request.originalScheduleId,
             targetScheduleId: request.targetScheduleId,
+            targetDate: finalTargetDate,
+            targetTime: finalTargetTime,
             studentId: request.studentId,
             studentName: request.studentName,
             classId: request.originalScheduleId,

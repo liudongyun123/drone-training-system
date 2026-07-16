@@ -854,3 +854,43 @@
   font-size: 30rpx;
   font-weight: 500;
 }
+
+/* 目标排课项：班级名 + 容量/状态 */
+.schedule-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.badge-full {
+  font-size: 22rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.text-full {
+  color: #ef4444;
+}
+
+.text-free {
+  color: #10b981;
+}
+
+.schedule-card.disabled {
+  opacity: 0.6;
+}
+
+/* 时间冲突提示 */
+.conflict-tip {
+  margin-top: 20rpx;
+  padding: 20rpx 24rpx;
+  background: #fffbeb;
+  border: 2rpx solid #fde68a;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  color: #b45309;
+  line-height: 1.6;
+}

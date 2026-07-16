@@ -2,7 +2,7 @@
  * C 端课程列表页
  */
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery } from '@/hooks/useQuery'
 import { useAdd, useDelete } from '@/hooks/useMutation'
 import { Course } from '@/types/database'
@@ -14,7 +14,6 @@ import {
   Card,
   CardMedia,
   CardContent,
-  CardActions,
   Button,
   Chip,
   CircularProgress,

@@ -11,8 +11,8 @@ import { cartService } from '@/services/cart';
 import { couponService } from '@/services/coupon';
 import { useAuthStore } from '@/store/authStore';
 import type { CartItem } from '@/types';
-import { Loading, Button, toast } from '@/components';
-import { createWechatPay, pollPaymentResult, getPayType, isMobile } from '@/services/wechatPayService';
+import {  Button, toast } from '@/components';
+import { createWechatPay, pollPaymentResult, getPayType } from '@/services/wechatPayService';
 import WechatQRCode from '@/components/payment/WechatQRCode';
 
 export default function CheckoutPage() {

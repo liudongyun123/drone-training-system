@@ -72,8 +72,13 @@ export default function AdminTransfers() {
     type: 'approve' | 'reject'
     request: TransferRequest | null
     reply: string
+    targetDate: string
+    targetTime: string
+    targetScheduleId: string
+    selectedTargetSchedule: any
+    targetScheduleOptions: any[]
     loading: boolean
-  }>({ show: false, type: 'approve', request: null, reply: '', loading: false })
+  }>({ show: false, type: 'approve', request: null, reply: '', targetDate: '', targetTime: '', targetScheduleId: '', selectedTargetSchedule: null, targetScheduleOptions: [], loading: false })
 
   // 批量审核弹窗
   const [batchModal, setBatchModal] = useState<{
@@ -246,14 +251,46 @@ export default function AdminTransfers() {
   }
 
   // 打开审核弹窗
-  const handleOpenAudit = (type: 'approve' | 'reject', request: TransferRequest) => {
-    setAuditModal({
+  const handleOpenAudit = async (type: 'approve' | 'reject', request: TransferRequest) => {
+    const base = {
       show: true,
       type,
       request,
       reply: type === 'approve' ? '您的调课申请已通过。' : '',
+      targetDate: request.targetDate || '',
+      targetTime: request.targetTime || '',
+      targetScheduleId: request.targetScheduleId || '',
+      selectedTargetSchedule: null,
+      targetScheduleOptions: [] as any[],
       loading: false
-    })
+    }
+
+    if (type === 'approve' && request.originalCourseId) {
+      // 加载同课程的其他班排课，供管理员“指定一堂课”
+      try {
+        const res = await transferService.getAvailableSchedules({
+          courseId: request.originalCourseId,
+          originalScheduleId: request.originalScheduleId,
+          excludeScheduleId: request.originalScheduleId
+        })
+        base.targetScheduleOptions = (res as any).data || []
+        // 若学员已指定目标，预选中对应项
+        if (request.targetScheduleId) {
+          const matched = (base.targetScheduleOptions).find(
+            (s: any) => s._id === request.targetScheduleId || s.id === request.targetScheduleId
+          )
+          if (matched) {
+            base.selectedTargetSchedule = matched
+            base.targetDate = matched.date || base.targetDate
+            base.targetTime = matched.startTime || base.targetTime
+          }
+        }
+      } catch (e) {
+        console.error('[调课审核] 加载同课程排课失败:', e)
+      }
+    }
+
+    setAuditModal(base)
   }
 
   // 执行审核
@@ -271,9 +308,18 @@ export default function AdminTransfers() {
     try {
       let result
       if (auditModal.type === 'approve') {
+        const sel = auditModal.selectedTargetSchedule
         result = await transferService.approveRequest(requestId, {
           adminName: '管理员',
-          adminReply: auditModal.reply
+          adminReply: auditModal.reply,
+          targetScheduleId: auditModal.targetScheduleId || sel?._id || sel?.id || undefined,
+          targetCourseId: sel?.courseId,
+          targetCourseName: sel?.courseName || sel?.className || auditModal.request.originalCourseName,
+          targetDate: auditModal.targetDate,
+          targetTime: auditModal.targetTime,
+          targetTeacher: sel?.teacherName,
+          targetTeacherId: sel?.teacherId,
+          targetLocation: sel?.location
         })
       } else {
         result = await transferService.rejectRequest(requestId, {
@@ -302,7 +348,7 @@ export default function AdminTransfers() {
 
       if (result.code === 0) {
         await confirm({ title: '提示', message: auditModal.type === 'approve' ? '已通过申请' : '已拒绝申请', variant: 'info' })
-        setAuditModal({ show: false, type: 'approve', request: null, reply: '', loading: false })
+        setAuditModal({ show: false, type: 'approve', request: null, reply: '', targetDate: '', targetTime: '', targetScheduleId: '', selectedTargetSchedule: null, targetScheduleOptions: [], loading: false })
         loadRequests()
         loadStats()
       } else {
@@ -778,8 +824,21 @@ export default function AdminTransfers() {
           request={auditModal.request}
           reply={auditModal.reply}
           setReply={(reply) => setAuditModal({ ...auditModal, reply })}
+          targetDate={auditModal.targetDate}
+          setTargetDate={(targetDate) => setAuditModal({ ...auditModal, targetDate })}
+          targetTime={auditModal.targetTime}
+          setTargetTime={(targetTime) => setAuditModal({ ...auditModal, targetTime })}
+          targetScheduleId={auditModal.targetScheduleId}
+          targetScheduleOptions={auditModal.targetScheduleOptions}
+          onPickTargetSchedule={(s) => setAuditModal((prev) => ({
+            ...prev,
+            selectedTargetSchedule: s,
+            targetScheduleId: s?._id || s?.id || '',
+            targetDate: s?.date || prev.targetDate,
+            targetTime: s?.startTime || prev.targetTime
+          }))}
           loading={auditModal.loading}
-          onClose={() => setAuditModal({ show: false, type: 'approve', request: null, reply: '', loading: false })}
+          onClose={() => setAuditModal({ show: false, type: 'approve', request: null, reply: '', targetDate: '', targetTime: '', targetScheduleId: '', selectedTargetSchedule: null, targetScheduleOptions: [], loading: false })}
           onSubmit={handleAudit}
         />
       )}
@@ -1060,13 +1119,24 @@ interface AuditModalProps {
   request: TransferRequest
   reply: string
   setReply: (reply: string) => void
+  targetDate: string
+  setTargetDate: (date: string) => void
+  targetTime: string
+  setTargetTime: (time: string) => void
+  targetScheduleId: string
+  targetScheduleOptions: any[]
+  onPickTargetSchedule: (schedule: any | null) => void
   loading: boolean
   onClose: () => void
   onSubmit: () => void
 }
 
-function AuditModal({ type, request, reply, setReply, loading, onClose, onSubmit }: AuditModalProps) {
+function AuditModal({ type, request, reply, setReply, targetDate, setTargetDate, targetTime, setTargetTime, targetScheduleId, targetScheduleOptions, onPickTargetSchedule, loading, onClose, onSubmit }: AuditModalProps) {
   const isApprove = type === 'approve'
+  const pickedSchedule = targetScheduleOptions.find(
+    (o) => (o._id || o.id) === targetScheduleId
+  )
+  const pickedRemaining = pickedSchedule?.remaining ?? null
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -1098,6 +1168,72 @@ function AuditModal({ type, request, reply, setReply, loading, onClose, onSubmit
               rows={3}
             />
           </div>
+
+          {isApprove && (
+            <div className="mb-4 p-4 bg-blue-50 rounded-xl">
+              <div className="flex items-center gap-2 mb-3 text-sm font-medium text-blue-700">
+                <Calendar size={16} />
+                指定目标课次（同课程其他班，出勤将真正迁移）
+              </div>
+
+              {targetScheduleOptions.length > 0 ? (
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    从同课程班级中选择目标课次
+                  </label>
+                  <select
+                    value={targetScheduleId}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      const s = val ? targetScheduleOptions.find((o) => (o._id || o.id) === val) : null
+                      onPickTargetSchedule(s || null)
+                    }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  >
+                    <option value="">不指定具体课次（仅记录下方时间）</option>
+                    {targetScheduleOptions.map((o) => (
+                      <option key={o._id || o.id} value={o._id || o.id}>
+                        {o.className}｜{o.date} {o.startTime}-{o.endTime}｜剩余{o.remaining}名额
+                      </option>
+                    ))}
+                  </select>
+                  {pickedRemaining !== null && pickedRemaining <= 0 && (
+                    <p className="mt-1 text-xs text-red-500">⚠️ 该班级名额已满，调入后可能超员，请谨慎。</p>
+                  )}
+                </div>
+              ) : (
+                <p className="mb-3 text-xs text-gray-500">
+                  未找到同课程的其他班级排课，可手动指定时间，或由学员重新申请。
+                </p>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">目标日期</label>
+                  <input
+                    type="date"
+                    value={targetDate}
+                    onChange={(e) => setTargetDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">目标时间</label>
+                  <input
+                    type="time"
+                    value={targetTime}
+                    onChange={(e) => setTargetTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+              </div>
+              {request.targetScheduleId && (
+                <p className="mt-2 text-xs text-gray-500">
+                  学员已指定目标排课：{request.targetCourseName || '-'}（{request.targetDate || '-'} {request.targetTime || '-'}），可在此覆盖。
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 底部 */}

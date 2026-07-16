@@ -3,8 +3,8 @@
  * 支持预加载、占位符、自定义加载逻辑
  */
 
-import React, { Suspense, useState, useEffect, useCallback, lazy, ComponentType } from 'react';
-import { SkeletonCard, LazyPlaceholder } from './Skeleton';
+import React, { Suspense, useState, useEffect, useCallback, ComponentType } from 'react';
+import { SkeletonCard } from './Skeleton';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@mui/material';
 
