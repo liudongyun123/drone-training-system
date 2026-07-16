@@ -27,6 +27,7 @@
 读写两端字段名对不上（读 `noticeType`，写 `type`）。
 
 - **案例**：公告需同时写 `noticeType` 与 `type`；订单金额字段 `finalAmount`/`totalAmount`/`amount`/`totalPrice` 需 `getOrderAmount` 统一兼容。
+- **自检**：`node scripts/check-field-consistency.mjs`（advisory，见第二节）——基于已知别名字典列出每个别名在各文件的分布，供人工核对"写端是否双写、读端是否兜底"。
 
 ### 4. 逻辑/业务规则矛盾（静态扫不出）
 代码能跑、编译通过，但业务规则自相矛盾。
@@ -48,6 +49,10 @@
 | 云函数契约自检 | `scripts/check-contract.mjs` | 契约缺口（模式 2） | FAIL（确属 bug） |
 | 状态枚举一致性 | `scripts/check-status-enum.mjs` | 枚举分裂（模式 1） | WARN（需复核） |
 | 类型回归门禁 | `scripts/type-check-gate.mjs` | 新增类型错误（模式 3） | FAIL（防回归） |
+| 字段别名一致性 | `scripts/check-field-consistency.mjs` | 字段名不一致（模式 3） | advisory（人工核对） |
+
+便捷脚本：`npm run health` / `npm run check:contract` / `npm run check:status` / `npm run check:field`。
+pre-commit 钩子硬拦截「类型门禁 + 契约自检」，提示「ESLint + 状态枚举」；字段别名一致性为长报告，仅在 `npm run health` / `npm run check:field` 手动查看。
 
 另：`api-datacheck` 云函数 + 每周一 03:00 定时 + 后台 `/admin/data-fix` 覆盖模式 5。
 

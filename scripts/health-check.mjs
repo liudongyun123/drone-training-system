@@ -57,6 +57,13 @@ const CHECKS = [
     desc: '是否有新增 TypeScript 错误（字段名不一致等防回归）',
     cmd: ['node', join(__dirname, 'type-check-gate.mjs')],
   },
+  {
+    key: 'field-consistency',
+    name: '字段别名一致性',
+    severity: 'WARN', // advisory，不判对错，供人工核对
+    desc: '已知别名组(orderType/type、金额字段、班级容量等)读写端是否双写/兜底',
+    cmd: ['node', join(__dirname, 'check-field-consistency.mjs'), ...(MP ? ['--mp'] : [])],
+  },
 ]
 
 // ---------- 运行单个关卡 ----------
