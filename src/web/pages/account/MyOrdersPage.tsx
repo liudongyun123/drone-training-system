@@ -87,7 +87,7 @@ export default function MyOrdersPage() {
         _id: o.id || o._id,
         orderNo: o.id || o._id,
         items: o.items,
-        total: o.total || oa.totalAmount || oa.amount,
+        total: o.total || oa.finalAmount || oa.totalAmount || oa.totalPrice || oa.amount,
         courseId: oa.courseId,
         courseName: oa.courseName,
         courseCover: oa.courseCover,
@@ -323,7 +323,7 @@ export default function MyOrdersPage() {
               }
               
               // 计算订单总金额
-              const totalAmount = orderItems.reduce((sum, item) => sum + (item.price || 0), 0) || order.total || order.price || 0;
+              const totalAmount = orderItems.reduce((sum, item) => sum + (item.price || 0), 0) || (order as any).finalAmount || order.total || (order as any).totalPrice || order.price || 0;
               
               return (
                 <div key={order._id} className={`rounded-xl shadow-sm p-6 ${

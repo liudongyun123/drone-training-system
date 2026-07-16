@@ -8,6 +8,7 @@
  */
 
 import { adminService } from './adminService'
+import { useAuthStore } from '../store/authStore'
 
 // API 响应格式
 interface FeatureApiResponse<T> {
@@ -259,8 +260,7 @@ export const adminOrderApi = {
   async grantCoupon(userId: string, couponTemplateId: string): Promise<FeatureApiResponse<void>> {
     return callFunction('api-order', {
       action: 'claimCoupon',
-      data: { couponTemplateId },
-      openid: userId
+      data: { userId, phone: userId, couponTemplateId },
     })
   },
 
@@ -469,7 +469,7 @@ export const adminLearningApi = {
   async getCourseProgress(courseId: string): Promise<FeatureApiResponse<any[]>> {
     return callFunction('api-course', {
       action: 'getCourseProgress',
-      data: { courseId }
+      data: { courseId, phone: useAuthStore.getState().user?.phone || '' }
     })
   },
 

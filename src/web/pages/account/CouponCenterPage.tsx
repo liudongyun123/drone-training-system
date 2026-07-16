@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import Loading from '@/components/Loading';
 import { useAuthStore } from '@/store/authStore';
-import { couponService } from '@/services/couponService';
+import { couponService } from '@/services/coupon';
+import { featureApi } from '@/services/featureApi';
 
 interface Coupon {
   _id: string;
@@ -28,7 +29,7 @@ interface Coupon {
 
 export default function CouponCenterPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -45,7 +46,7 @@ export default function CouponCenterPage() {
   const loadCoupons = async () => {
     setLoading(true);
     try {
-      const result: any = await couponService.getAvailableCoupons();
+      const result: any = await couponService.getUserAvailableCoupons(user?.phone || '');
       if (result && result.length > 0) {
         setCoupons(result);
       } else {
@@ -62,7 +63,7 @@ export default function CouponCenterPage() {
   const handleClaimCoupon = async (couponId: string) => {
     setClaimingId(couponId);
     try {
-      const success = await (couponService as any).claimCoupon(couponId);
+      const success = await featureApi.order.grantCoupon(user?.phone || '', couponId);
       if (success) {
         setClaimedIds(prev => new Set(prev).add(couponId));
       }

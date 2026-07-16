@@ -88,13 +88,13 @@ export default function AdminCourseOrders() {
         setTotal(result.data?.total || list.length);
 
         // 计算统计数据
-        const paidList = list.filter((o: any) => o.status === 'paid' || o.status === 'completed');
+        const paidList = list.filter((o: any) => o.status === 'paid' || o.status === 'completed' || o.status === 'paid_offline');
         setStats({
           total: result.data?.total || list.length,
           paid: paidList.length,
           pending: list.filter((o: any) => o.status === 'pending').length,
-          totalAmount: list.reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || o.total || 0), 0),
-          paidAmount: paidList.reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || o.total || 0), 0),
+          totalAmount: list.reduce((sum: number, o: any) => sum + (o.finalAmount ?? o.totalAmount ?? o.totalPrice ?? o.amount ?? o.total ?? 0), 0),
+          paidAmount: paidList.reduce((sum: number, o: any) => sum + (o.finalAmount ?? o.totalAmount ?? o.totalPrice ?? o.amount ?? o.total ?? 0), 0),
         });
       }
     } catch (error) {
@@ -223,7 +223,7 @@ export default function AdminCourseOrders() {
       </td>
       <td className="px-6 py-4">
         <div className="text-sm">
-          <div className="font-medium text-gray-900">¥{order.totalAmount || order.amount || 0}</div>
+          <div className="font-medium text-gray-900">¥{order.finalAmount ?? order.totalAmount ?? order.totalPrice ?? order.amount ?? 0}</div>
         </div>
       </td>
       <td className="px-6 py-4">
@@ -501,7 +501,7 @@ export default function AdminCourseOrders() {
                 </div>
                 <div>
                   <label className="text-sm text-gray-500">订单金额</label>
-                  <p className="font-medium text-lg">¥{selectedOrder.totalAmount || selectedOrder.amount || 0}</p>
+                  <p className="font-medium text-lg">¥{selectedOrder.finalAmount ?? selectedOrder.totalAmount ?? selectedOrder.totalPrice ?? selectedOrder.amount ?? 0}</p>
                 </div>
                 <div>
                   <label className="text-sm text-gray-500">创建时间</label>

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Loading from '@/components/Loading';
 import { useAuthStore } from '@/store/authStore';
-import { couponService } from '@/services/couponService';
+import { couponService } from '@/services/coupon';
 
 interface Coupon {
   _id: string;
@@ -27,7 +27,7 @@ interface Coupon {
 
 export default function MyCouponsPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'available' | 'used' | 'expired'>('available');
@@ -44,7 +44,7 @@ export default function MyCouponsPage() {
   const loadCoupons = async () => {
     setLoading(true);
     try {
-      const result: any = await couponService.getUserCoupons();
+      const result: any = await couponService.getUserCoupons(user?.phone || '');
       if (result && result.length > 0) {
         setCoupons(result);
       } else {

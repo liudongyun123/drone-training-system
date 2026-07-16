@@ -75,10 +75,9 @@ export default function AdminCertificates() {
         const now = new Date().toISOString();
         const certificateNo = (createForm.certificateNo || '').trim() ||
           `CERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-        // 结业证书写入 training_certificates，统一以手机号（userId）为标识，
-        // 与小程序「结业证明」Tab 现有读取逻辑（按手机号查 training_certificates）一致。
-        // 不再依赖 members 的微信 _openid，避免绑定缺失导致小程序端不可见。
-        const res = await adminService.add('training_certificates', {
+        // 结业证书写入 certificates 集合（全系统统一规范，api-course 颁发、小程序「结业证明」Tab 均读此集合）。
+        // 统一以手机号（userId）为标识，不依赖 members 的微信 _openid，避免绑定缺失导致小程序端不可见。
+        const res = await adminService.add('certificates', {
           userId: phone,
           userName,
           name: `${courseTitle} ${TYPE_LABELS[createForm.type] || '证书'}`,
@@ -123,7 +122,7 @@ export default function AdminCertificates() {
     try {
       setLoading(true);
       
-      const result = await adminService.list('training_certificates', {}, { limit: 100 }) as unknown as { data: { list: Certificate[] } };
+      const result = await adminService.list('certificates', {}, { limit: 100 }) as unknown as { data: { list: Certificate[] } };
       const certList: Certificate[] = result.data?.list || [];
       
       setCertificates(certList);
@@ -158,7 +157,7 @@ export default function AdminCertificates() {
     if (!selectedCert || !certificateNo.trim()) return;
     
     try {
-      const res = await adminService.update('training_certificates', selectedCert._id, {
+      const res = await adminService.update('certificates', selectedCert._id, {
         status: 'issued',
         certificateNo: certificateNo.trim(),
         issueDate: new Date().toISOString()
@@ -176,7 +175,7 @@ export default function AdminCertificates() {
 
   const handleRevoke = async (id: string) => {
     try {
-      const res = await adminService.update('training_certificates', id, {
+      const res = await adminService.update('certificates', id, {
         status: 'revoked',
         revokedAt: new Date().toISOString()
       });
@@ -190,7 +189,7 @@ export default function AdminCertificates() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await adminService.delete('training_certificates', id);
+      const res = await adminService.delete('certificates', id);
       if (res.code === 0) {
         setShowDeleteConfirm(null);
         loadData();

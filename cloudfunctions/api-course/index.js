@@ -359,11 +359,11 @@ async function getFeaturedCourses(limit = 5) {
 /**
  * 获取用户课程学习进度
  */
-async function getCourseProgress(courseId, userId) {
-  const openid = userId || getOpenId()
+async function getCourseProgress(courseId, phone) {
+  const key = phone || getOpenId()
 
-  const progress = await db.collection('learning_progress')
-    .where({ _openid: openid, courseId })
+  const progress = await db.collection('user_progress')
+    .where({ phone: key, courseId })
     .limit(1)
     .get()
 
@@ -391,8 +391,8 @@ async function getCourseProgress(courseId, userId) {
  * 更新学习进度
  */
 async function updateProgress(data) {
-  const { courseId, lessonId, progress, position, userId } = data
-  const openid = userId || getOpenId()
+  const { courseId, lessonId, progress, position, userId, phone } = data
+  const key = phone || userId || getOpenId()
 
   const now = new Date().toISOString()
 
@@ -400,9 +400,9 @@ async function updateProgress(data) {
   const lesson = await db.collection('lessons').doc(lessonId).get()
   const lessonData = lesson.data || {}
 
-  // 查找现有进度记录
-  const existing = await db.collection('learning_progress')
-    .where({ _openid: openid, courseId })
+  // 查找现有进度记录（统一读写 user_progress，按手机号标识）
+  const existing = await db.collection('user_progress')
+    .where({ phone: key, courseId })
     .limit(1)
     .get()
 
@@ -425,7 +425,7 @@ async function updateProgress(data) {
 
   // 更新或创建进度记录
   if (existing.data && existing.data.length > 0) {
-    await db.collection('learning_progress')
+    await db.collection('user_progress')
       .doc(existing.data[0]._id)
       .update({
         progress: overallProgress,
@@ -438,9 +438,9 @@ async function updateProgress(data) {
         updatedAt: now
       })
   } else {
-    await db.collection('learning_progress').add({
+    await db.collection('user_progress').add({
       data: {
-        _openid: openid,
+        phone: key,
         courseId,
         lessonId,
         progress: overallProgress,
@@ -1529,7 +1529,7 @@ exports.main = async (event, context) => {
       // 学习进度
       case 'progress':
       case 'getCourseProgress':
-        result = await getCourseProgress(data.courseId, userId)
+        result = await getCourseProgress(data.courseId, data.phone || userId)
         break
       case 'updateProgress':
         result = await updateProgress({ ...data, userId })

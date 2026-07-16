@@ -213,8 +213,8 @@ export default function AdminClassOrders() {
         pending: pendingList.length,
         onlinePaid: paidList.filter((o) => !o._fromOffline).length,
         offlinePaid: paidList.filter((o) => o._fromOffline).length,
-        totalAmount: enrichedList.reduce((sum: number, o) => sum + (o.amount || 0), 0),
-        paidAmount: paidList.reduce((sum: number, o) => sum + (o.amount || 0), 0),
+        totalAmount: enrichedList.reduce((sum: number, o: any) => sum + (o.finalAmount ?? o.totalAmount ?? o.totalPrice ?? o.amount ?? 0), 0),
+        paidAmount: paidList.reduce((sum: number, o: any) => sum + (o.finalAmount ?? o.totalAmount ?? o.totalPrice ?? o.amount ?? 0), 0),
       });
     } catch (error) {
       console.error('加载订单失败:', error);

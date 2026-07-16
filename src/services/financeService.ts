@@ -104,10 +104,11 @@ export const financeService = {
       const allOrders = result.data || []
       const classOrders = allOrders.filter(o => (o.orderType || o.type) === 'class')
       const courseOrders = allOrders.filter(o => (o.orderType || o.type) === 'course')
+      const shopOrders = allOrders.filter(o => (o.orderType || o.type) === 'shop')
 
       return {
         code: 0,
-        data: { classOrders, courseOrders, allOrders }
+        data: { classOrders, courseOrders, shopOrders, allOrders }
       }
     } catch (error: any) {
       console.error('获取用户订单失败:', error)

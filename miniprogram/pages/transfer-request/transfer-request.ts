@@ -179,24 +179,15 @@ Page({
     
     try {
       const phone = getPhone() || ''
-      const userInfo = wx.getStorageSync('userInfo')
-      const studentId = userInfo?.id || userInfo?._openid || ''
 
-      // 优先 studentId，备用 phone 查询
-      let result: any
-      if (studentId) {
-        result = await dbGetList('transfer_requests', {
-          where: { studentId },
-          orderBy: 'createdAt desc',
-          limit: 50
-        })
-      } else {
-        result = await dbGetList('transfer_requests', {
-          where: { studentPhone: phone },
-          orderBy: 'createdAt desc',
-          limit: 50
-        })
-      }
+      // 统一按手机号查询本人调课申请（写入端 studentId 与 studentPhone 均存手机号）
+      const result: any = await dbGetList('transfer_requests', {
+        where: { $or: [{ studentId: phone }, { studentPhone: phone }] },
+        useOperators: true,
+        orderBy: 'createdAt',
+        order: 'desc',
+        limit: 50
+      })
       
       const requests = (result as any).data || []
       
@@ -239,8 +230,9 @@ Page({
       const classIds = members.map((m: any) => m.classId)
       
       // 查询 classes 获取班级信息
-      const classesResult = await dbQuery('classes', {
-        _id: (query: any) => query.in(classIds)
+      const classesResult = await dbGetList('classes', {
+        where: { _id: { $in: classIds } },
+        useOperators: true
       })
       
       const classes = classesResult.data || []
@@ -249,10 +241,12 @@ Page({
       const today = new Date().toISOString().split('T')[0]
       const schedulesResult = await dbGetList('class_schedules', {
         where: {
-          classId: (query: any) => query.in(classIds),
-          date: (query: any) => query.gte(today)
+          classId: { $in: classIds },
+          date: { $gte: today }
         },
-        orderBy: 'date asc, startTime asc',
+        useOperators: true,
+        orderBy: 'date',
+        order: 'asc',
         limit: 50
       })
       

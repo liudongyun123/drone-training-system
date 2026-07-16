@@ -55,7 +55,7 @@ Page({
             confirmText: '去学习',
             success: (res) => {
               if (res.confirm) {
-                wx.redirectTo({ url: `/pages/learning/learning` })
+                wx.redirectTo({ url: '/pages/my-learning/my-learning' })
               }
             }
           })
