@@ -87,12 +87,13 @@ export const permissionService = {
    * 获取课程权限统计
    */
   async getPermissionStats() {
-    const [total, active, expired] = await Promise.all([
+    // course_permissions 实际状态只有 active（已授权）/ revoked（已撤销），从不写 expired
+    const [total, active, revoked] = await Promise.all([
       CloudDBService.count('course_permissions'),
       CloudDBService.count('course_permissions', { status: 'active' }),
-      CloudDBService.count('course_permissions', { status: 'expired' })
+      CloudDBService.count('course_permissions', { status: 'revoked' })
     ])
-    return { code: 0, data: { totalPermissions: total, activePermissions: active, expiredPermissions: expired } }
+    return { code: 0, data: { totalPermissions: total, activePermissions: active, revokedPermissions: revoked } }
   },
 
   // 班级成员服务

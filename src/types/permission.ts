@@ -155,7 +155,7 @@ export interface BatchAddClassMembersRequest {
 export interface PermissionStats {
   totalPermissions: number;
   activePermissions: number;
-  expiredPermissions: number;
+  revokedPermissions: number;
   bySource: Record<PermissionSource, number>;
 }
 
