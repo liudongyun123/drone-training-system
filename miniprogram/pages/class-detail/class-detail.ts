@@ -202,9 +202,10 @@ Page({
 
       if (enrollmentsResult.data && enrollmentsResult.data.length > 0) return true
 
+      const PAID_STATUSES = ['paid', 'completed', 'paid_offline']
       const orders = await orderApi.getByUserId('', 'class')
       return orders.some((o: any) =>
-        o.classId === classId && ['pending', 'paid', 'completed'].includes(o.status)
+        o.classId === classId && PAID_STATUSES.includes(o.status)
       )
     } catch (err) {
       logger.error('培训班详情', '检查报名状态失败:', err)

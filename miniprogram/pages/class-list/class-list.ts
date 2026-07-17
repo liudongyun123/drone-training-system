@@ -178,13 +178,14 @@ Page({
   async loadMore() {
     if (this.data.loading || !this.data.hasMore) return
 
-    const nextPage = this.data.page + 1
+      const nextPage = this.data.page + 1
 
-    try {
-      const sourceId = this.data.currentSourceId
-      if (!sourceId) return
+      try {
+        const sourceId = this.data.currentSourceId
+        const sourceCode = this.data.currentSource
+        if (!sourceId && !sourceCode) return
       
-      const filters: any = { page: nextPage, pageSize: 10, sourceId }
+        const filters: any = { page: nextPage, pageSize: 10, sourceCode, sourceId }
       
       if (this.data.currentStatus) {
         filters.status = this.data.currentStatus

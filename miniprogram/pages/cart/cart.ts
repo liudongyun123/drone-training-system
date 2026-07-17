@@ -65,7 +65,7 @@ Page({
   onIncrease(e: any) {
     const index = e.currentTarget.dataset.index
     const cartList = [...this.data.cartList]
-    const stock = cartList[index].sku?.stock || cartList[index].product?.stock || DEFAULT_STOCK
+    const stock = cartList[index].stock || cartList[index].sku?.stock || cartList[index].product?.stock || DEFAULT_STOCK
     if (cartList[index].quantity < stock) {
       cartList[index].quantity++
       this.setData({ cartList })

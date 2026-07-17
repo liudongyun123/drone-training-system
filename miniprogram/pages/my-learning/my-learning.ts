@@ -164,7 +164,9 @@ Page({
 
       // 获取课程列表
       const allCourses = await courseApi.getList({ pageSize: 100 })
-      const publishedCourses = allCourses.filter((c: any) => c.status === 'published')
+      // 注意：不按 published 过滤。已购买但被下架（status!=='published'）的课程仍应展示，
+      // 否则已付费用户看不到自己买过的课程。是否"已购"由下方 purchasedCourseIds 判定。
+      const publishedCourses = allCourses
 
       const learningCourses: any[] = []
       const completedCourses: any[] = []
