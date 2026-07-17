@@ -96,7 +96,7 @@
         <view class="section" wx:if="{{course.instructor}}">
           <text class="section-title">👨‍🏫 授课讲师</text>
           <view class="teacher-card">
-            <image class="teacher-avatar" src="{{course.instructorAvatar || course.teacher?.avatar || defaultCover}}" mode="aspectFill" binderror="onTeacherAvatarError" />
+            <image class="teacher-avatar" src="{{course.instructorAvatar || (course.teacher && course.teacher.avatar) || defaultCover}}" mode="aspectFill" binderror="onTeacherAvatarError" />
             <view class="teacher-info">
               <text class="teacher-name">{{course.instructor}}</text>
               <text class="teacher-title">{{course.instructorTitle || '资深教官'}}</text>
