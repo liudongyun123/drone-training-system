@@ -712,7 +712,7 @@ async function handleGetStats(openid, phone) {
         db.collection('orders').where({
           phone: targetPhone,
           orderType: 'class',
-          status: _.in(['pending', 'paid', 'completed'])
+          status: _.in(['paid', 'completed', 'paid_offline'])
         }).get()
       ])
       for (const d of (cmRes.data || [])) if (d.classId) classIds.add(d.classId)

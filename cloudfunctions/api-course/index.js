@@ -1115,9 +1115,10 @@ async function getProgressStats() {
   const totalResult = await db.collection('user_progress').count()
   const completedResult = await db.collection('user_progress').where({ completed: true }).count()
 
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  // createdAt 以 ISO 字符串写入，需用同格式字符串比较（数字无法按时间语义匹配）
+  const weekAgoStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const thisWeekResult = await db.collection('user_progress')
-    .where({ createdAt: _.gte(weekAgo) })
+    .where({ createdAt: _.gte(weekAgoStr) })
     .count()
 
   const total = totalResult.total || 0

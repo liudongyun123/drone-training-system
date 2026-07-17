@@ -234,13 +234,7 @@ async function submitEnrollment(data, userId) {
     return { success: false, error: '班级不存在' }
   }
 
-  // 检查是否满员
-  const maxStudents = cls.data.maxStudents || cls.data.capacity?.max || 30
-  const enrolledCount = cls.data.enrolledCount || cls.data.capacity?.enrolled || 0
-
-  if (enrolledCount >= maxStudents) {
-    return { success: false, error: '班级已满员' }
-  }
+  // 容量校验改为下方"原子占座"（先查重，再 compare-and-set 占座，防并发超员）
 
   // 检查重复报名
   const existEnrollment = await db.collection('enrollments')
@@ -254,6 +248,21 @@ async function submitEnrollment(data, userId) {
 
   if (existEnrollment.data && existEnrollment.data.length > 0) {
     return { success: false, error: '您已报名此班级' }
+  }
+
+  // 原子占座：仅当 enrolledCount < maxStudents 时 +1，杜绝并发超员（与 api-order.enrollClass 同方案）
+  const maxStudents = cls.data.maxStudents || cls.data.capacity?.max || 30
+  if (typeof cls.data.enrolledCount !== 'number') {
+    try {
+      const mcRes = await db.collection('class_members').where({ classId, status: _.in(['enrolled', 'learning']) }).count()
+      await db.collection('classes').doc(classId).update({ enrolledCount: mcRes.total || 0 })
+    } catch (e) {}
+  }
+  const seatClaim = await db.collection('classes')
+    .where({ _id: classId, enrolledCount: _.lt(maxStudents) })
+    .update({ enrolledCount: _.inc(1) })
+  if (!seatClaim || seatClaim.updated === 0) {
+    return { success: false, error: '班级已满员' }
   }
 
   // 创建报名记录
@@ -284,11 +293,7 @@ async function submitEnrollment(data, userId) {
     data: enrollmentData
   })
 
-  // 更新班级报名人数
-  await db.collection('classes').doc(classId).update({
-    enrolledCount: _.inc(1),
-    updatedAt: db.serverDate()
-  })
+  // 班级报名人数已在上方原子占座时 +1（seatClaim），此处无需再次自增
 
   return {
     success: true,
