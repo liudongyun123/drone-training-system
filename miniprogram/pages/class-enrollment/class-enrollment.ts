@@ -108,8 +108,10 @@ Page({
 
       // 检查是否已报名（通过订单查询）
       const existingOrders = await orderApi.getByUserId('', 'class')
+      // 口径与 api-order.create 一致：仅已支付/已完成/线下已付视为已报名；
+      // 残留 pending 由服务端 cancelStalePendingOrders 清理，前端不再误拦重新报名
       const alreadyEnrolled = existingOrders.some((o: any) => 
-        o.classId === this.classId && ['pending', 'paid', 'completed'].includes(o.status)
+        o.classId === this.classId && ['paid', 'completed', 'paid_offline'].includes(o.status)
       )
       
       if (alreadyEnrolled) {

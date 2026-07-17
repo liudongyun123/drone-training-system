@@ -525,6 +525,10 @@ export default function AdminFinance() {
   const handleExport = async () => {
     try {
       const result = await financeService.exportFinanceReport();
+      if (!result || result.code !== 0 || !result.data) {
+        await confirm({ title: '提示', message: '导出失败，数据为空', variant: 'info' });
+        return;
+      }
       // 创建并下载CSV文件
       const data = result.data;
       let csvContent = 'data:text/csv;charset=utf-8,\uFEFF'; // BOM for Excel
