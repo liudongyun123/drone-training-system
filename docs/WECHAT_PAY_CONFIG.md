@@ -56,7 +56,8 @@ CloudBase 控制台 → 云函数 → wechat-pay → 配置 → 环境变量
 |--------|-----|------|
 | `WX_APPID` | `wx25aaf895ab86181a` | 小程序 AppID |
 | `WX_MCH_ID` | `1726655499` | 商户号 |
-| `WX_API_KEY` | `（你的API密钥）` | 32位 API 密钥 |
+| `WX_API_KEY` | `（你的APIv2密钥）` | 32位 APIv2 密钥（商户平台「设置API密钥」） |
+| `WX_API_V3_KEY` | `（你的APIv3密钥）` | **32位 APIv3 密钥**（商户平台「APIv3密钥」，**与 APIv2 密钥是不同的两把**）。配置后 `api-order` 才启用真实回调 `AEAD_AES_256_GCM` 解密，否则回退明文兼容模式（仅测试环境安全，生产必须配置） |
 | `WX_NOTIFY_URL` | `https://xxx.apigw.tencentcs.com/release/wechat-pay-callback` | 回调地址 |
 | `WX_CERT_SERIAL_NO` | `（证书序列号）` | 可选，退款需要 |
 
@@ -155,19 +156,18 @@ tcb framework deploy
 1. **API 密钥绝对不能泄露**，不要提交到 Git
 2. **回调地址必须是 HTTPS**
 3. **H5 支付需要备案域名**，否则只能用扫码支付
-4. **生产环境必须实现签名验证**，当前代码为简化版
+4. **支付回调已支持真实解密**：`api-order` 在配置了 `WX_API_V3_KEY` 时会对回调 `resource` 做 `AEAD_AES_256_GCM` 解密；**未配置则回退明文兼容模式并输出告警**，仅测试环境安全，**生产务必配置**
 5. **退款需要上传 API 证书**到云函数
 
 ---
 
 ## 🔐 安全加固（生产环境必须）
 
-当前云函数代码是简化版，生产环境需要：
+`api-order` 的支付回调已内置解密逻辑（`decryptWechatResource`），**配置 `WX_API_V3_KEY` 即自动启用**，无需改代码。其余建议：
 
-1. **实现 RSA 签名验证**（API v3）
-2. **实现回调签名验证**
-3. **配置 IP 白名单**
-4. **启用数据库安全规则**
+1. **补充平台证书签名验证**：当前仅做密文解密，未校验 `Wechatpay-Signature` 请求头（平台证书公钥验签）。生产环境建议在 `handlePayCallback` 入口增加 `verifySignature`（读取微信平台证书序列号对应的公钥验签），彻底杜绝伪造回调
+2. **配置 IP 白名单**（微信支付回调出网 IP）
+3. **启用数据库安全规则**
 
 ---
 
