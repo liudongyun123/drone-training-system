@@ -30,7 +30,7 @@
     <!-- 选项 -->
     <view class="options">
       <view 
-        class="option-item {{userAnswers[currentQuestion._id] && userAnswers[currentQuestion._id].includes(item) ? 'selected' : ''}}"
+        class="option-item {{userAnswers[currentQuestion._id] && userAnswers[currentQuestion._id].includes(String.fromCharCode(65 + index)) ? 'selected' : ''}}"
         wx:for="{{currentQuestion.options}}"
         wx:key="*this"
         bindtap="selectAnswer"
@@ -38,7 +38,7 @@
         data-option-index="{{index}}"
       >
         <view class="option-radio">
-          <text wx:if="{{userAnswers[currentQuestion._id] && userAnswers[currentQuestion._id].includes(item)}}">✓</text>
+          <text wx:if="{{userAnswers[currentQuestion._id] && userAnswers[currentQuestion._id].includes(String.fromCharCode(65 + index))}}">✓</text>
         </view>
         <text class="option-label">{{String.fromCharCode(65 + index)}}</text>
         <text class="option-text">{{item}}</text>

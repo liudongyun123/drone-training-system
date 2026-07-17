@@ -124,7 +124,7 @@
             wx:key="optIndex"
           >
             <text class="option-key">{{String.fromCharCode(65 + optIndex)}}</text>
-            <text class="option-value">{{item}}</text>
+            <text class="option-value">{{item.text}}</text>
           </view>
         </view>
 

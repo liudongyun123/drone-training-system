@@ -225,6 +225,20 @@ Page({
     this.setData({ showQuestionSheet: false })
   },
 
+  // 判分（与云函数 api-exam checkAnswer 对齐：判断题 answer 存布尔 true/false，单选/多选存字母 A-D）
+  judgeAnswer(q: any, selected: string[]): boolean {
+    const answer = q.answer
+    const sel = (selected || []).slice().sort().join(',').toLowerCase()
+    if (q.type === 'judge') {
+      const correctVal = String(answer).toLowerCase()
+      return (correctVal === 'true' && sel === 'a') || (correctVal === 'false' && sel === 'b')
+    }
+    const correctVal = Array.isArray(answer)
+      ? answer.slice().sort().join(',').toLowerCase()
+      : String(answer).toLowerCase()
+    return sel === correctVal
+  }
+
   // 提交考试
   async submitExam() {
     if (this.timer) {
@@ -235,14 +249,26 @@ Page({
 
     let correctCount = 0
     const questionResults = questions.map((q: any) => {
-      const userAnswer = (userAnswers[q._id] || []).sort().join(',')
-      const correctAnswer = Array.isArray(q.answer) ? q.answer.sort().join(',') : q.answer
-      const isCorrect = userAnswer === correctAnswer
+      const selected = userAnswers[q._id] || []
+      const isCorrect = this.judgeAnswer(q, selected)
       if (isCorrect) correctCount++
+      // 为结果页标注每个选项：是否被用户选中、是否为正确答案
+      const selectedIdx = new Set(selected.map((L: string) => L.charCodeAt(0) - 65))
+      const correctIdx = new Set(
+        (Array.isArray(q.answer) ? q.answer : [q.answer])
+          .map((a: any) => String(a))
+          .filter((a: string) => /^[A-D]$/i.test(a))
+          .map((a: string) => a.toUpperCase().charCodeAt(0) - 65)
+      )
+      const options = (q.options || []).map((opt: any, idx: number) => ({
+        text: typeof opt === 'string' ? opt : (opt && (opt.content || opt.text)) || '',
+        isUserAnswer: selectedIdx.has(idx),
+        isCorrectAnswer: correctIdx.has(idx)
+      }))
       return {
-        question: q,
-        userAnswer: userAnswers[q._id] || [],
-        correctAnswer: correctAnswer,
+        question: { ...q, options },
+        userAnswer: selected,
+        correctAnswer: q.answer,
         isCorrect
       }
     })
