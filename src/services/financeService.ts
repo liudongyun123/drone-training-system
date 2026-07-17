@@ -28,7 +28,7 @@ interface TeacherPerformanceStat {
 }
 
 // 已收款订单状态集合（视为已收款、计入营收）：包含线上已支付、线下已收款、已完成
-const PAID_STATUSES = ['paid', 'completed', 'paid_offline']
+export const PAID_STATUSES = ['paid', 'completed', 'paid_offline']
 
 // 订单金额兼容取值：不同来源订单可能使用 finalAmount / totalAmount / amount / totalPrice
 const getOrderAmount = (o: any): number => {

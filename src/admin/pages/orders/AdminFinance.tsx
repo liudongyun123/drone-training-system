@@ -10,7 +10,7 @@ import {
   CreditCard, Package, Award, BarChart3, FileText,
   Settings, AlertCircle, CheckCircle, XCircle, RefreshCw, ExternalLink
 } from 'lucide-react';
-import { financeService } from '@/services/financeService';
+import { financeService, PAID_STATUSES } from '@/services/financeService';
 import type { Order } from '@/types';
 import { formatDateStr } from '@/utils/dateUtils';
 import RefundReviewModal from '@/components/admin/RefundReviewModal';
@@ -301,16 +301,20 @@ export default function AdminFinance() {
       const result = await financeService.getOrdersByPhone(phone);
       if (result.code === 0 && result.data) {
         const { classOrders, courseOrders } = result.data;
-        
-        // 计算各类订单金额
-        const classAmount = classOrders.reduce((sum, o) => sum + getOrderAmount(o), 0);
-        const courseAmount = courseOrders.reduce((sum, o) => sum + getOrderAmount(o), 0);
-        
+
+        // 汇总口径与全模块一致：仅统计已收款订单（paid/completed/paid_offline），
+        // 排除 pending/cancelled/refunded，避免金额与笔数虚高；详情列表仍展示全部订单供管理员查阅
+        const paidClassOrders = classOrders.filter((o: any) => PAID_STATUSES.includes(o.status));
+        const paidCourseOrders = courseOrders.filter((o: any) => PAID_STATUSES.includes(o.status));
+
+        const classAmount = paidClassOrders.reduce((sum, o) => sum + getOrderAmount(o), 0);
+        const courseAmount = paidCourseOrders.reduce((sum, o) => sum + getOrderAmount(o), 0);
+
         setUserOrderStats({
           phone,
-          classOrdersCount: classOrders.length,
+          classOrdersCount: paidClassOrders.length,
           classOrdersAmount: classAmount,
-          courseOrdersCount: courseOrders.length,
+          courseOrdersCount: paidCourseOrders.length,
           courseOrdersAmount: courseAmount,
           classOrders,
           courseOrders
