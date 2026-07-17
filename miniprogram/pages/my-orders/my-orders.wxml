@@ -86,7 +86,7 @@
             <text class="total-count">共 {{item.items.length}} 件</text>
             <view class="total-amount">
               <text class="amount-label">实付款</text>
-              <text class="amount-price">¥{{item.totalPrice}}</text>
+              <text class="amount-price">¥{{item.displayAmount}}</text>
             </view>
           </view>
         </view>
@@ -103,7 +103,7 @@
             </view>
           </block>
           <!-- 课程已支付/已完成：显示"课程详情" -->
-          <block wx:elif="{{item.orderType === 'course' && (item.status === 'paid' || item.status === 'completed')}}">
+          <block wx:elif="{{item.orderType === 'course' && (item.status === 'paid' || item.status === 'completed' || item.status === 'paid_offline')}}">
             <view class="action-btn btn-text" bindtap="deleteOrder" data-id="{{item._id}}">
               <text>删除订单</text>
             </view>
@@ -112,7 +112,7 @@
             </view>
           </block>
           <!-- 培训班已支付/已完成：显示"培训班详情" -->
-          <block wx:elif="{{item.orderType === 'class' && (item.status === 'paid' || item.status === 'completed')}}">
+          <block wx:elif="{{item.orderType === 'class' && (item.status === 'paid' || item.status === 'completed' || item.status === 'paid_offline')}}">
             <view class="action-btn btn-text" bindtap="deleteOrder" data-id="{{item._id}}">
               <text>删除订单</text>
             </view>

@@ -30,11 +30,17 @@ Page({
     refreshing: false
   },
 
-  onLoad() {
+  onLoad(options: any) {
     wx.setNavigationBarTitle({ title: '我的订单' })
     if (!checkLogin()) {
       wx.navigateTo({ url: '/pages/login/login' })
       return
+    }
+    // 支持从个人中心订单快捷入口跳转指定 Tab（pending/shipped 等）
+    const targetTab = options && options.status
+    const validTabs = ['all', 'pending', 'paid', 'shipped', 'completed']
+    if (targetTab && validTabs.includes(targetTab)) {
+      this.setData({ currentTab: targetTab })
     }
     this.loadOrders()
   },
@@ -72,8 +78,22 @@ Page({
         const canRefund =
           ['paid', 'completed', 'paid_offline'].includes(order.status) &&
           (!refundStatus || refundStatus === 'none')
+        // 商城订单持久化为 shopItems 且无 totalPrice，归一化为 items 形状供列表渲染
+        let items = order.items
+        if ((!items || items.length === 0) && order.shopItems) {
+          items = order.shopItems.map((it: any) => ({
+            title: it.name || it.title || '',
+            price: it.price || 0,
+            quantity: it.quantity || 1,
+            image: it.coverImage || it.cover || it.image || ''
+          }))
+        }
+        // 金额兼容：totalPrice / finalAmount / totalAmount（商城订单仅 finalAmount/totalAmount）
+        const displayAmount = order.totalPrice || order.finalAmount || order.totalAmount || 0
         return {
           ...order,
+          items,
+          displayAmount,
           statusText: statusMap[order.status] || order.status,
           createdAt: this.formatTime(order.createdAt),
           refundStatusText,
@@ -85,8 +105,8 @@ Page({
       const currentTab = this.data.currentTab
       if (currentTab !== 'all') {
         processedOrders = processedOrders.filter((o: any) => {
-          // 课程/培训班订单：paid 状态显示在"已完成"中
-          if ((o.orderType === 'course' || o.orderType === 'class') && o.status === 'paid') {
+          // 课程/培训班订单：paid / paid_offline / completed 状态显示在"已完成"中
+          if ((o.orderType === 'course' || o.orderType === 'class') && ['paid', 'completed', 'paid_offline'].includes(o.status)) {
             return currentTab === 'completed'
           }
           
@@ -127,8 +147,8 @@ Page({
     allOrders.forEach((order: any) => {
       if (!order.status) return
       
-      // 课程/培训班订单：paid 状态计入"已完成"
-      if ((order.orderType === 'course' || order.orderType === 'class') && order.status === 'paid') {
+      // 课程/培训班订单：paid / paid_offline / completed 状态计入"已完成"
+      if ((order.orderType === 'course' || order.orderType === 'class') && ['paid', 'completed', 'paid_offline'].includes(order.status)) {
         counts['completed'] = (counts['completed'] || 0) + 1
         return
       }
