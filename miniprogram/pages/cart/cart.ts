@@ -101,7 +101,7 @@ Page({
     let total = 0
     let count = 0
     selectedItems.forEach((item: any) => {
-      const price = item.sku?.price || item.product?.price || 0
+      const price = item.price != null ? item.price : (item.sku?.price || item.product?.price || 0)
       total += price * item.quantity
       count += item.quantity
     })

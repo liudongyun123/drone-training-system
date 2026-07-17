@@ -628,7 +628,7 @@ Page({
           }
         })
         
-        logger.debug('Checkout', '创建课程权限 (尝试 ${attempt}):', permResult)
+        logger.debug('Checkout', `创建课程权限 (尝试 ${attempt}):`, permResult)
         
         if (permResult.code === 0) {
           if (permResult.data?.alreadyExists) {
@@ -641,7 +641,7 @@ Page({
           logger.error('Checkout', '创建权限失败 (尝试 ${attempt}):', permResult.error)
         }
       } catch (permErr) {
-        logger.error('Checkout', '创建权限异常 (尝试 ${attempt}):', permErr)
+        logger.error('Checkout', `创建权限异常 (尝试 ${attempt}):`, permErr)
       }
       
       // 失败后短暂等待再重试

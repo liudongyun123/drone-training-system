@@ -37,6 +37,7 @@ Page({
     coursewareList: [] as CoursewareItem[], // 关联课程的全部课件
     loading: true,
     isEnrolled: false,
+    defaultCover: DEFAULT_COVER,
     // Tab
     activeTab: 'intro' as 'intro' | 'schedule' | 'courses',
     pdfLoading: false

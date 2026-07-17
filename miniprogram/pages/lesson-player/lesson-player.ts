@@ -371,7 +371,7 @@ Page({
   },
 
   // 保存学习进度（试看模式不保存）
-  async saveProgress() {
+  async saveProgress(forceCompleted = false) {
     if (this.data.isPreviewMode) return
 
     const { courseId, lessonId, currentTime, duration, watchedDuration, _completed } = this.data
@@ -395,7 +395,7 @@ Page({
         lessonId,
         watchedDuration: newWatchedDuration,
         duration,
-        completed: _completed,
+        completed: forceCompleted || _completed,
         updatedAt: now
       }
       
@@ -421,7 +421,7 @@ Page({
 
   onVideoEnded() {
     this.setData({ isPlaying: false, _completed: true })
-    this.saveProgress()
+    this.saveProgress(true)
     this.markLessonCompleted()
   },
 

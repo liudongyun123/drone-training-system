@@ -11,7 +11,7 @@
       <view class="class-summary">
         <image class="class-cover" src="{{classInfo.coverImage || classInfo.cover}}" mode="aspectFill" />
         <view class="class-detail">
-          <text class="class-title">{{classInfo.title}}</text>
+          <text class="class-title">{{classInfo.name}}</text>
           <text class="class-time">时间: {{classInfo.startDate}} - {{classInfo.endDate}}</text>
           <text class="class-location">地点: {{classInfo.location}}</text>
           <view class="price-row">
