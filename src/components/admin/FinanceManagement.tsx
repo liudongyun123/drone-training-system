@@ -38,6 +38,7 @@ import {
 import AdminChart from './AdminChart'
 import { CloudOrderAdminService } from '../../services/CloudAdminService'
 import { parseDate } from '@/utils/dateUtils'
+import { PAID_STATUSES, getOrderAmount } from '@/services/financeService'
 
 interface Order {
   id: string
@@ -97,8 +98,8 @@ export default function FinanceManagement() {
         const allOrders = result.data
 
         // 计算财务数据
-        const paidOrders = allOrders.filter((o: Order) => o.status === 'paid')
-        const totalRevenue = paidOrders.reduce((sum: number, o: Order) => sum + o.amount, 0)
+        const paidOrders = allOrders.filter((o: Order) => PAID_STATUSES.includes(o.status))
+        const totalRevenue = paidOrders.reduce((sum: number, o: Order) => sum + getOrderAmount(o), 0)
 
         // 按时间过滤
         const now = new Date()
@@ -109,10 +110,10 @@ export default function FinanceManagement() {
           const orderDate = parseDate(order.createdAt)
           if (orderDate) {
             if (orderDate.toDateString() === now.toDateString()) {
-              todayRevenue += order.amount
+              todayRevenue += getOrderAmount(order)
             }
             if (orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear()) {
-              monthRevenue += order.amount
+              monthRevenue += getOrderAmount(order)
             }
           }
         })
@@ -124,7 +125,7 @@ export default function FinanceManagement() {
         // 生成状态分布数据
         const statusTrend = allOrders.reduce((acc: any, order: Order) => {
           const statusText = getStatusText(order.status)
-          const amount = order.status === 'refunded' ? 0 : order.amount
+          const amount = order.status === 'refunded' ? 0 : getOrderAmount(order)
           if (acc[statusText]) {
             acc[statusText] += amount
           } else {
@@ -219,9 +220,9 @@ export default function FinanceManagement() {
       const dayRevenue = _orders
         .filter((o: any) => {
           const d = new Date(o.createdAt || o.created_at)
-          return d >= startDate && d < endDate && (o.status === 'paid' || o.status === 'completed')
+          return d >= startDate && d < endDate && PAID_STATUSES.includes(o.status)
         })
-        .reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || 0), 0)
+        .reduce((sum: number, o: any) => sum + getOrderAmount(o), 0)
 
       data.push({
         name: labels[i] || `${i + 1}`,

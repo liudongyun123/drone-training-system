@@ -16,7 +16,7 @@ const API_TIMEOUT = parseInt(env.VITE_API_TIMEOUT || "30000", 10);
 const DEBUG_MODE = env.VITE_DEBUG_MODE === "true";
 
 // 构建版本号
-const BUILD_VERSION = 'v20260717-1721-dashboard-revenue-caliber';
+const BUILD_VERSION = 'v20260717-1742-finance-caliber-audit';
 
 // Sentry 配置
 const SENTRY_DSN = process.env.SENTRY_DSN || '';
