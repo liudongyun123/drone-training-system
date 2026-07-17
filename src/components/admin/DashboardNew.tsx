@@ -20,6 +20,7 @@ import { CloudUserAdminService, CloudOrderAdminService } from '../../services/Cl
 import AdminChart from './AdminChart'
 
 import { parseDate } from '@/utils/dateUtils'
+import { PAID_STATUSES, getOrderAmount } from '@/services/financeService'
 
 interface DashboardStats {
   totalUsers: number
@@ -134,11 +135,11 @@ export default function Dashboard() {
       const totalUsers = users.length
       const activeUsers = users.filter((u: any) => u.status === 'active').length
       const totalOrders = orders.length
-      const paidOrders = orders.filter((o: any) => o.status === 'paid').length
+      const paidOrders = orders.filter((o: any) => PAID_STATUSES.includes(o.status)).length
       const pendingOrders = orders.filter((o: any) => o.status === 'pending').length
       const totalRevenue = orders
-        .filter((o: any) => o.status === 'paid')
-        .reduce((sum: number, o: any) => sum + o.amount, 0)
+        .filter((o: any) => PAID_STATUSES.includes(o.status))
+        .reduce((sum: number, o: any) => sum + getOrderAmount(o), 0)
 
       // 计算今日数据
       const today = new Date()
@@ -148,8 +149,8 @@ export default function Dashboard() {
         return createdAt && createdAt >= today
       })
       const todayRevenue = todayOrders
-        .filter((o: any) => o.status === 'paid')
-        .reduce((sum: number, o: any) => sum + o.amount, 0)
+        .filter((o: any) => PAID_STATUSES.includes(o.status))
+        .reduce((sum: number, o: any) => sum + getOrderAmount(o), 0)
 
       setStats({
         totalUsers,
@@ -175,9 +176,9 @@ export default function Dashboard() {
         const dayRevenue = orders
           .filter((o: any) => {
             const d = new Date(o.createdAt || o.created_at)
-            return d >= date && d < nextDay && (o.status === 'paid' || o.status === 'completed')
+            return d >= date && d < nextDay && PAID_STATUSES.includes(o.status)
           })
-          .reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || 0), 0)
+          .reduce((sum: number, o: any) => sum + getOrderAmount(o), 0)
         return {
           name: date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }),
           value: Math.round(dayRevenue * 100) / 100,

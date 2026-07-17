@@ -31,7 +31,8 @@ interface TeacherPerformanceStat {
 export const PAID_STATUSES = ['paid', 'completed', 'paid_offline']
 
 // 订单金额兼容取值：不同来源订单可能使用 finalAmount / totalAmount / amount / totalPrice
-const getOrderAmount = (o: any): number => {
+// 导出供仪表板等读端复用，统一金额口径
+export const getOrderAmount = (o: any): number => {
   const v = Number(o?.finalAmount ?? o?.totalAmount ?? o?.amount ?? o?.totalPrice ?? 0)
   return Number.isFinite(v) ? v : 0
 }

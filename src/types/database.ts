@@ -154,19 +154,23 @@ export function getOrderCourseNames(order: Order): string[] {
 
 /**
  * 获取订单金额
- * 优先使用 amount，其次 totalAmount
+ * 统一口径：实付金额 finalAmount 优先，其次 totalAmount / amount
+ * （与 services/financeService 的 getOrderAmount 保持一致，避免金额取错）
  */
 export function getOrderAmount(order: Order): number {
-  return order.amount || order.totalAmount || 0
+  const v = Number(order.finalAmount ?? order.totalAmount ?? order.amount ?? 0)
+  return Number.isFinite(v) ? v : 0
 }
 
 /**
- * 判断订单是否已支付
- * 同时检查 status 和 paymentStatus
+ * 判断订单是否已收款（已支付）
+ * 与系统约定 PAID_STATUSES=['paid','completed','paid_offline'] 对齐：
+ * 线上已支付 / 已完成 / 线下已收款 均视为已支付；退款单(refunded)不计。
  */
 export function isOrderPaid(order: Order): boolean {
   return order.status === 'paid' || 
          order.status === 'completed' || 
+         order.status === 'paid_offline' ||
          order.paymentStatus === 'paid'
 }
 

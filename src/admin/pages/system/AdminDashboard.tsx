@@ -10,6 +10,7 @@ import {
 import { Link } from 'react-router-dom';
 import { Button, Loading } from '@/components';
 import { adminService } from '@/services/adminService';
+import { PAID_STATUSES, getOrderAmount } from '@/services/financeService';
 import { parseDate } from '@/utils/dateUtils';
 
 interface DashboardStats {
@@ -134,10 +135,13 @@ export default function AdminDashboard() {
         }
       });
 
-      // 计算总收入（从订单）
-      const totalRevenue = ordersList.reduce((sum: number, order: any) => {
-        return sum + (order.totalAmount || order.amount || 0);
-      }, 0) || 0;
+      // 计算总收入（从订单）：仅统计已收款订单（PAID_STATUSES），排除 pending/cancelled/refunded
+      // 金额统一用 getOrderAmount 兼容 finalAmount/totalAmount/amount/totalPrice
+      const totalRevenue = ordersList
+        .filter((o: any) => PAID_STATUSES.includes(o.status))
+        .reduce((sum: number, order: any) => {
+          return sum + getOrderAmount(order);
+        }, 0) || 0;
 
       // 5. 计算今日数据
       const today = new Date();
@@ -163,9 +167,11 @@ export default function AdminDashboard() {
         return orderDate !== null && orderDate >= weekAgo;
       });
 
-      const weekRevenue = weekOrders.reduce((sum: number, order: any) => {
-        return sum + (order.totalAmount || order.amount || 0);
-      }, 0);
+      const weekRevenue = weekOrders
+        .filter((o: any) => PAID_STATUSES.includes(o.status))
+        .reduce((sum: number, order: any) => {
+          return sum + getOrderAmount(order);
+        }, 0);
 
       // ★ 7. 计算真实历史对比数据
       // 昨日数据（昨天0点到今天0点之间）
@@ -192,9 +198,11 @@ export default function AdminDashboard() {
         const orderDate = parseDate(o.createdAt);
         return orderDate !== null && orderDate >= lastWeekStart && orderDate < lastWeekEnd;
       });
-      const lastWeekRevenue = lastWeekOrders.reduce((sum: number, order: any) => {
-        return sum + (order.totalAmount || order.amount || 0);
-      }, 0);
+      const lastWeekRevenue = lastWeekOrders
+        .filter((o: any) => PAID_STATUSES.includes(o.status))
+        .reduce((sum: number, order: any) => {
+          return sum + getOrderAmount(order);
+        }, 0);
 
       // 7. 计算完成率（从 enrollments 的 status 字段）
       const completedEnrollments = enrollmentsList.filter((e: any) => {
@@ -231,7 +239,7 @@ export default function AdminDashboard() {
             id: `order-${order._id}`,
             type: 'order' as const,
             title: '新订单',
-            description: `订单 ¥${order.totalAmount || order.amount} 已支付`,
+            description: `订单 ¥${getOrderAmount(order)}`,
             time,
           };
         });
