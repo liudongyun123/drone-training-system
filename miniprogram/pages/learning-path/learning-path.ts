@@ -215,12 +215,21 @@ Page<PageData>({
       })
       const progressRecords = progressResult.data || []
 
-      // 查询所有课程的课时数
-      const lessonsResult = await dbGetList('lessons', {
-        where: { courseId: { $in: courseIds } },
-        limit: 500
-      })
-      const allLessons = lessonsResult.data || []
+      // 查询所有课程的课时数（lessons 为空时章节式课程落到 chapters 集合，需一并统计）
+      const [lessonsResult, chaptersResult] = await Promise.all([
+        dbGetList('lessons', {
+          where: { courseId: { $in: courseIds } },
+          limit: 500
+        }),
+        dbGetList('chapters', {
+          where: { courseId: { $in: courseIds } },
+          limit: 500
+        })
+      ])
+      const allLessons = [
+        ...(lessonsResult.data || []),
+        ...(chaptersResult.data || [])
+      ]
 
       // 计算每个课程的进度
       const progressMap: Record<string, any> = {}
