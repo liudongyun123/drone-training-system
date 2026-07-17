@@ -247,6 +247,26 @@ exports.main = async (event, context) => {
 }
 
 // 创建订单
+// C1 防资损：按商品库解析商城商品的权威单价（products 优先，courses 兜底）
+async function resolveShopPrice(productId, skuId) {
+  if (!productId) return null
+  let doc = null
+  const pRes = await db.collection('products').where({ _id: productId }).limit(1).get()
+  if (pRes.data && pRes.data.length > 0) {
+    doc = pRes.data[0]
+  } else {
+    const cRes = await db.collection('courses').where({ _id: productId }).limit(1).get()
+    if (cRes.data && cRes.data.length > 0) doc = cRes.data[0]
+  }
+  if (!doc) return null
+  let price = typeof doc.price === 'number' ? doc.price : 0
+  if (skuId && Array.isArray(doc.skus)) {
+    const sku = doc.skus.find((s) => s && (s._id === skuId || s.id === skuId))
+    if (sku && typeof sku.price === 'number') price = sku.price
+  }
+  return { price, status: doc.status }
+}
+
 async function createOrder(data) {
   const { 
     orderNo, 
@@ -319,6 +339,56 @@ async function createOrder(data) {
       await cancelStalePendingOrders({ phone, classId })
     }
     
+    // C1(主路径) 防资损：商城订单服务端重算商品总额，拦截前端篡改 finalAmount
+    let serverGoodsTotal = null
+    if (orderType === 'shop' && items && items.length > 0) {
+      let sum = 0
+      for (const it of items) {
+        const r = await resolveShopPrice(it.productId, it.skuId)
+        if (!r) {
+          return createResponse({ code: 400, success: false, error: '商品已下架或不存在' })
+        }
+        if (r.status && r.status !== 'published' && r.status !== 'active' && r.status !== 'on_sale') {
+          return createResponse({ code: 400, success: false, error: '商品已下架，请重新下单' })
+        }
+        const qty = Number(it.quantity) > 0 ? Number(it.quantity) : 1
+        sum += r.price * qty
+      }
+      serverGoodsTotal = Math.round(sum * 100) / 100
+      // 前端付款金额低于商品总额（含容差）即视为篡改，直接拒绝
+      if (typeof finalAmount === 'number' && finalAmount < serverGoodsTotal - 0.01) {
+        console.warn('[api-order createOrder] 商城金额篡改拦截: 前端', finalAmount, '服务端商品总额', serverGoodsTotal)
+        return createResponse({ code: 400, success: false, error: '订单金额异常，请重新下单' })
+      }
+    }
+
+    // C1 扩展：课程/培训班订单服务端重算权威单价（下单流程无优惠券参与，前端金额应等于权威单价）
+    if (serverGoodsTotal == null && (orderType === 'course' || orderType === 'class')) {
+      let unitPrice = null
+      if (orderType === 'course' && courseId) {
+        const r = await db.collection('courses').doc(courseId).get()
+        const c = getDocData(r)
+        if (!c) return createResponse({ code: 404, success: false, error: '课程不存在' })
+        unitPrice = typeof c.price === 'number' ? c.price : 0
+      } else if (orderType === 'class') {
+        const cid = classId || (items && items[0] && (items[0].classId || items[0].productId))
+        if (cid) {
+          const r = await db.collection('classes').doc(cid).get()
+          const c = getDocData(r)
+          if (!c) return createResponse({ code: 404, success: false, error: '班级不存在' })
+          unitPrice = typeof c.price === 'number' ? c.price
+            : (c.enrollmentConfig && typeof c.enrollmentConfig.price === 'number' ? c.enrollmentConfig.price : 0)
+        }
+      }
+      if (unitPrice != null) {
+        serverGoodsTotal = Math.round(unitPrice * 100) / 100
+        if (typeof finalAmount === 'number' && finalAmount < serverGoodsTotal - 0.01) {
+          console.warn('[api-order createOrder] 课程/班级金额篡改拦截: 前端', finalAmount, '服务端', serverGoodsTotal)
+          return createResponse({ code: 400, success: false, error: '订单金额异常，请重新下单' })
+        }
+      }
+    }
+
     const orderData = {
       orderNo: orderNo || generateOrderNo(),
       phone,
@@ -328,10 +398,11 @@ async function createOrder(data) {
       orderType,
       type: orderType,  // ★ 双写 type，兼容后台按 type 查询（AdminCourseOrders/AdminClassOrders/financeService）
       status,
-      totalPrice: totalPrice || 0,
-      finalAmount: finalAmount || totalPrice || 0,
-      totalAmount: finalAmount || totalPrice || 0,
-      amount: finalAmount || totalPrice || 0,
+      // C1: 商城订单以服务端重算的商品总额为准；其余类型保持前端传值（已做兼容）
+      totalAmount: serverGoodsTotal != null ? serverGoodsTotal : (finalAmount || totalPrice || 0),
+      totalPrice: finalAmount != null ? finalAmount : (totalPrice || serverGoodsTotal || 0),
+      finalAmount: finalAmount != null ? finalAmount : (totalPrice || serverGoodsTotal || 0),
+      amount: finalAmount != null ? finalAmount : (totalPrice || serverGoodsTotal || 0),
       remark,
       address,
       items,
@@ -632,8 +703,22 @@ async function validateCoupon(data) {
     return createResponse({ code: 404, success: false, error: '优惠券无效或已失效' })
   }
   const c = res.data[0]
-  const discount = c.discount || 0
-  const finalAmount = Math.max(0, (amount || 0) - discount)
+  const amt = Number(amount) || 0
+  // 使用门槛校验：低于门槛不可用（与前端计算一致），避免无效优惠
+  if (c.minAmount && amt < Number(c.minAmount)) {
+    return createResponse({ code: 400, success: false, error: '订单金额不满足优惠券使用门槛' })
+  }
+  // 折扣计算对齐 coupon.ts calculateDiscount（修复按金额直减导致折扣券失效/超额优惠）
+  let discount = 0
+  if (c.type === 'fixed') {
+    discount = Math.min(Number(c.value || c.discount || 0), amt)
+  } else {
+    const rate = Number(c.value || c.discount || 0)
+    discount = amt * (rate / 100)
+    if (c.maxDiscount) discount = Math.min(discount, Number(c.maxDiscount))
+  }
+  discount = Math.max(0, Math.round(discount * 100) / 100)
+  const finalAmount = Math.max(0, Math.round((amt - discount) * 100) / 100)
   return createResponse({ code: 0, success: true, data: { coupon: c, discount, finalAmount } })
 }
 
@@ -645,6 +730,19 @@ async function claimCoupon(data) {
   const tplRes = await db.collection('coupons').where({ _id: couponTemplateId }).limit(1).get()
   const t = tplRes.data && tplRes.data[0]
   if (!t) return createResponse({ code: 404, success: false, error: '优惠券模板不存在' })
+  // 配额校验：已领取数量达到总库存则不可再领（防止超发）
+  const totalCount = Number(t.totalCount || 0)
+  const usedCount = Number(t.usedCount || 0)
+  if (totalCount > 0 && usedCount >= totalCount) {
+    return createResponse({ code: 400, success: false, error: '优惠券已领取完' })
+  }
+  // 去重：同一手机号不可重复领取同一模板（防止刷券）
+  if (phone) {
+    const dupRes = await db.collection('userCoupons').where({ phone, couponId: couponTemplateId }).limit(1).get()
+    if (dupRes.data && dupRes.data.length > 0) {
+      return createResponse({ code: 400, success: false, error: '您已领取过该优惠券' })
+    }
+  }
   const now = new Date().toISOString()
   // 写入用户持有券集合 userCoupons（与 couponService.USER_COUPON_COLLECTION 一致），状态置 unused 使其可被选用
   const doc = {
@@ -667,6 +765,12 @@ async function claimCoupon(data) {
     updatedAt: now
   }
   const r = await db.collection('userCoupons').add(doc)
+  // 领取成功后递增模板已领数量（与配额校验配合，避免超发）
+  try {
+    await db.collection('coupons').doc(couponTemplateId).update({ usedCount: _.inc(1) })
+  } catch (e) {
+    console.error('[api-order] 更新优惠券 usedCount 失败:', e && e.message)
+  }
   return createResponse({ code: 0, success: true, data: { id: r.id, ...doc } })
 }
 
@@ -1039,7 +1143,28 @@ async function enrollClass(data) {
       .count()
 
     const maxStudents = cls.maxStudents || 30
+
+    // C5: 原子占座，防止并发超员。
+    // 历史数据可能未维护 classes.enrolledCount，先将其对齐到真实名单人数
+    if (typeof cls.enrolledCount !== 'number') {
+      try {
+        await db.collection('classes').doc(classId).update({ enrolledCount: memberCount.total })
+      } catch (e) { /* 不影响主流程 */ }
+    }
+    // 用 compare-and-set 原子地占用一个名额：仅当 enrolledCount < maxStudents 时 +1
+    const seatClaim = await db.collection('classes')
+      .where({ _id: classId, enrolledCount: _.lt(maxStudents) })
+      .update({ enrolledCount: _.inc(1) })
+    if (!seatClaim || seatClaim.updated === 0) {
+      return createResponse({
+        code: 400,
+        success: false,
+        error: '班级已满员'
+      })
+    }
+    // 快照复核：防止 enrolledCount 与真实名单因历史数据不一致导致超员（回滚占座）
     if (memberCount.total >= maxStudents) {
+      try { await db.collection('classes').doc(classId).update({ enrolledCount: _.inc(-1) }) } catch (e) {}
       return createResponse({
         code: 400,
         success: false,
@@ -1340,6 +1465,24 @@ async function createJsapiPayOrder(data) {
 }
 
 // ========== 微信支付回调处理 ==========
+// API v3 回调密文解密（AEAD_AES_256_GCM）
+function decryptWechatResource(resource, apiV3Key) {
+  try {
+    const key = Buffer.from(apiV3Key)
+    const buf = Buffer.from(resource.ciphertext, 'base64')
+    const authTag = buf.slice(buf.length - 16)
+    const data = buf.slice(0, buf.length - 16)
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, resource.nonce)
+    decipher.setAuthTag(authTag)
+    if (resource.associated_data) decipher.setAAD(Buffer.from(resource.associated_data))
+    const decrypted = Buffer.concat([decipher.update(data), decipher.final()])
+    return JSON.parse(decrypted.toString('utf8'))
+  } catch (e) {
+    console.error('[api-order] 回调解密异常:', e && e.message)
+    return null
+  }
+}
+
 async function handlePayCallback(event) {
   try {
     // 从 event 中提取回调数据
@@ -1349,10 +1492,21 @@ async function handlePayCallback(event) {
     let notification = callbackBody
 
     // 如果有加密的 resource 字段，需要解密
-    if (callbackBody.resource) {
-      // 简化处理：直接使用 resource 中的明文数据（测试环境）
-      // 生产环境需要用 AES-256-GCM 解密
-      notification = callbackBody.resource
+    if (callbackBody.resource && callbackBody.resource.ciphertext) {
+      // 配置了 WX_API_V3_KEY 时做真实 AES-256-GCM 解密，防止伪造回调
+      const apiV3Key = process.env.WX_API_V3_KEY || ''
+      if (apiV3Key) {
+        const decrypted = decryptWechatResource(callbackBody.resource, apiV3Key)
+        if (!decrypted) {
+          console.error('[api-order] 支付回调解密失败')
+          return createResponse({ code: 400, success: false, error: '回调解密失败' })
+        }
+        notification = decrypted
+      } else {
+        // 未配置密钥：仅测试环境兼容，明文处理并记录告警（生产务必配置 WX_API_V3_KEY）
+        console.warn('[api-order] 未配置 WX_API_V3_KEY，支付回调按明文处理（存在伪造风险）')
+        notification = callbackBody.resource
+      }
     }
 
     // 提取关键信息
@@ -1379,10 +1533,22 @@ async function handlePayCallback(event) {
 
     const order = orderRes.data[0]
 
+    // C4: 已退款订单不重复处理，防止伪造/重复回调重新授予课程权限导致资损
+    if (order.status === 'refunded') {
+      console.warn('[api-order] 订单已退款，回调跳过:', outTradeNo)
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/xml', ...corsHeaders },
+        body: '<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>'
+      }
+    }
+
     // 检查支付状态
     if (tradeState === 'SUCCESS' || tradeState === 'COMPLETED') {
-      // 支付成功
-      if (order.status !== 'paid') {
+      // 幂等：交易号一致且已是已支付 → 跳过（避免重复回调重复授权）
+      if (order.status === 'paid' && order.wxTransactionId === transactionId) {
+        console.log('[api-order] 订单已支付且交易号一致，跳过:', outTradeNo)
+      } else if (order.status !== 'paid') {
         // 更新订单状态
         await db.collection('orders').doc(order._id).update({
           status: 'paid',
@@ -1653,10 +1819,18 @@ async function approveRefundAction(data) {
     const reqRes = await db.collection('refundRequests').doc(rid).get()
     const req = getDocData(reqRes)
     if (!req) return createResponse({ code: 404, success: false, error: '退款申请不存在' })
+    // 幂等：已审批的直接返回成功（避免网络重试时重复退款）
+    if (req.status === 'approved') {
+      return createResponse({ code: 0, success: true, data: { refundId: rid }, message: '退款已处理（重复请求）' })
+    }
     if (req.status !== 'pending') return createResponse({ code: 400, success: false, error: '该申请已处理' })
     const orderRes = await db.collection('orders').doc(req.orderId).get()
     const order = getDocData(orderRes)
     if (!order) return createResponse({ code: 404, success: false, error: '订单不存在' })
+    // 订单已退款则直接返回成功，避免对已退款订单重复处理
+    if (order.status === 'refunded') {
+      return createResponse({ code: 0, success: true, data: { refundId: rid }, message: '该订单已退款' })
+    }
 
     const total = req.totalAmount || orderAmount(order)
     let actual = (typeof actualAmount === 'number') ? actualAmount : req.actualAmount
@@ -1672,7 +1846,8 @@ async function approveRefundAction(data) {
       (order.status === 'paid' || order.status === 'completed')
 
     if (canWechat) {
-      const outRefundNo = `REF${Date.now()}`
+      // 稳定单号：基于退款申请ID，重试复用同一 out_refund_no → 微信侧幂等，杜绝重复退款
+      const outRefundNo = `REF${rid}`
       const result = await httpRequest(
         `${WX_PAY_BASE}/v3/refund/domestic/refunds`, 'POST',
         {
@@ -1707,8 +1882,8 @@ async function approveRefundAction(data) {
       return createResponse({ code: 500, success: false, error: '微信退款失败: ' + JSON.stringify(result) })
     }
 
-    // 线下支付 / 未对接微信证书：本地标记退款完成（人工退款）
-    const manualNo = `MANUAL${Date.now()}`
+    // 线下支付 / 未对接微信证书：本地标记退款完成（人工退款），单号同样基于退款ID保持幂等
+    const manualNo = `MANUAL${rid}`
     await db.collection('refundRequests').doc(rid).update({
       status: 'approved', actualAmount: actual, fee: feeVal, reviewNote,
       refundNo: manualNo, refundedAt: now, refundMethod: isOffline ? 'offline' : 'manual', updatedAt: now

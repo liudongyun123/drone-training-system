@@ -388,6 +388,29 @@ async function getCoupons(userId) {
     }))
   };
 }
+// C1 修复：服务端按商品库重算金额，杜绝前端篡改 finalAmount 导致资损。
+// 商城商品小程序的 productId 来自 products 集合（productApi.getDetail 读 products），
+// api-shop 历史代码读 courses 属集合不一致，故 products 优先、courses 兜底。
+async function resolveShopPrice(productId, skuId) {
+  if (!productId) return null;
+  let doc = null;
+  const pRes = await db.collection("products").where({ _id: productId }).limit(1).get();
+  if (pRes.data && pRes.data.length > 0) {
+    doc = pRes.data[0];
+  } else {
+    const cRes = await db.collection("courses").where({ _id: productId }).limit(1).get();
+    if (cRes.data && cRes.data.length > 0) doc = cRes.data[0];
+  }
+  if (!doc) return null;
+  let price = typeof doc.price === "number" ? doc.price : 0;
+  // SKU 单独定价时以 sku.price 为准
+  if (skuId && Array.isArray(doc.skus)) {
+    const sku = doc.skus.find((s) => s && (s._id === skuId || s.id === skuId));
+    if (sku && typeof sku.price === "number") price = sku.price;
+  }
+  return { price, status: doc.status };
+}
+
 async function createShopOrder(data, userId) {
   const order = data.order || data;
   const phone = order.phone || data.phone || "";
@@ -398,12 +421,38 @@ async function createShopOrder(data, userId) {
   if (!order.shopItems || order.shopItems.length === 0) {
     return { success: false, error: "\u8BA2\u5355\u5546\u54C1\u4E0D\u80FD\u4E3A\u7A7A" };
   }
+
+  // —— 服务端重算总额：逐商品查库取权威单价 × 数量 ——
+  let totalAmount = 0;
+  for (const item of order.shopItems) {
+    const resolved = await resolveShopPrice(item.productId, item.skuId);
+    if (!resolved) {
+      return { success: false, error: "\u5546\u54C1\u4E0A\u4E63\u6216\u5DF2\u4E0B\u67B6" };
+    }
+    if (resolved.status && resolved.status !== "published" && resolved.status !== "active" && resolved.status !== "on_sale") {
+      return { success: false, error: "\u5546\u54C1\u5DF2\u4E0B\u67B6\uFF0C\u8BF7\u91CD\u65B0\u4E0B\u5355" };
+    }
+    const qty = Number(item.quantity) > 0 ? Number(item.quantity) : 1;
+    totalAmount += resolved.price * qty;
+  }
+  totalAmount = Math.round(totalAmount * 100) / 100;
+
+  // 折扣 / 运费沿用前端但做合法性钳制（折扣不得超过总额，运费不得为负）
+  const discountAmount = Math.max(0, Math.min(order.discountAmount || 0, totalAmount));
+  const freight = Math.max(0, order.freight || 0);
+  const serverFinal = Math.max(0, Math.round((totalAmount - discountAmount + freight) * 100) / 100);
+
+  // 防篡改：前端若试图低于服务端计算值付款（超过 1 分容差），直接拒绝
+  const frontendFinal = typeof order.finalAmount === "number" ? order.finalAmount : null;
+  if (frontendFinal != null && frontendFinal < serverFinal - 0.01) {
+    console.warn("[createShopOrder] 金额篡改拦截: 前端", frontendFinal, "服务端", serverFinal);
+    return { success: false, error: "\u8BA2\u5355\u91D1\u989D\u5F02\u5E38\uFF0C\u8BF7\u91CD\u65B0\u4E0B\u5355" };
+  }
+  // 实际落库金额以服务端计算为准（前端多传也按服务端值，避免超额支付）
+  const finalAmount = serverFinal;
+
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const orderNo = order.orderNo || generateOrderNo();
-  const totalAmount = order.totalAmount || 0;
-  const discountAmount = order.discountAmount || 0;
-  const freight = order.freight || 0;
-  const finalAmount = order.finalAmount != null ? order.finalAmount : totalAmount - discountAmount + freight;
   const newOrder = {
     orderNo,
     phone,
