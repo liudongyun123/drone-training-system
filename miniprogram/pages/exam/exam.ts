@@ -4,6 +4,45 @@
 import { getQuestions, dbGetList, savePracticeRecord, addWrongQuestion } from '../../utils/http'
 import logger from '../../utils/logger'
 
+// 题库答案两种存储格式兼容：字母 A-D（单选/多选）或选项文字（如 "三分法"）；
+// 判断题存布尔 true/false 或文字 true/false 或字母 A(对)/B(错)。
+// 统一解析为「正确选项的索引集合」，供判分与结果页高亮使用。
+function getOptionTexts(q: any): string[] {
+  return (q.options || []).map((opt: any) =>
+    typeof opt === 'string' ? opt : (opt && (opt.content || opt.text)) || ''
+  )
+}
+
+function getCorrectIndices(q: any): Set<number> {
+  const optionTexts = getOptionTexts(q)
+  const ans: any[] = Array.isArray(q.answer) ? q.answer : [q.answer]
+  const idxSet = new Set<number>()
+  for (const a of ans) {
+    if (a == null) continue
+    const s = String(a).trim()
+    if (!s) continue
+    const m = s.match(/^[A-D]$/i)
+    if (m) {
+      idxSet.add(m[0].toUpperCase().charCodeAt(0) - 65)
+    } else {
+      const i = optionTexts.findIndex((t: string) => t === s)
+      if (i >= 0) idxSet.add(i)
+    }
+  }
+  return idxSet
+}
+
+// 判断题正确答案 → 字母 A(对)/B(错)
+function getJudgeCorrectLetter(q: any): string {
+  const raw = Array.isArray(q.answer) ? q.answer[0] : q.answer
+  if (typeof raw === 'boolean') return raw ? 'A' : 'B'
+  const s = String(raw == null ? '' : raw).toLowerCase().trim()
+  if (s === 'true') return 'A'
+  if (s === 'false') return 'B'
+  if (/^[A-D]$/i.test(s)) return s.toUpperCase()
+  return ''
+}
+
 interface Question {
   _id: string
   type: 'single' | 'multiple' | 'judge'
@@ -225,18 +264,23 @@ Page({
     this.setData({ showQuestionSheet: false })
   },
 
-  // 判分（与云函数 api-exam checkAnswer 对齐：判断题 answer 存布尔 true/false，单选/多选存字母 A-D）
+  // 判分（兼容答案两种存储格式：字母 A-D 或选项文字；判断题布尔/文字/字母）
   judgeAnswer(q: any, selected: string[]): boolean {
-    const answer = q.answer
-    const sel = (selected || []).slice().sort().join(',').toLowerCase()
+    const selSet = new Set((selected || []).map((L: string) => String(L).toUpperCase()))
+    const selectedIdx = new Set([...selSet].map((L: string) => L.charCodeAt(0) - 65))
+
     if (q.type === 'judge') {
-      const correctVal = String(answer).toLowerCase()
-      return (correctVal === 'true' && sel === 'a') || (correctVal === 'false' && sel === 'b')
+      const correctLetter = getJudgeCorrectLetter(q)
+      return correctLetter !== '' && selSet.has(correctLetter) && selSet.size === 1
     }
-    const correctVal = Array.isArray(answer)
-      ? answer.slice().sort().join(',').toLowerCase()
-      : String(answer).toLowerCase()
-    return sel === correctVal
+
+    const correctIdx = getCorrectIndices(q)
+    if (correctIdx.size === 0) return false
+    if (selectedIdx.size !== correctIdx.size) return false
+    for (const i of selectedIdx) {
+      if (!correctIdx.has(i)) return false
+    }
+    return true
   }
 
   // 提交考试
@@ -254,12 +298,7 @@ Page({
       if (isCorrect) correctCount++
       // 为结果页标注每个选项：是否被用户选中、是否为正确答案
       const selectedIdx = new Set(selected.map((L: string) => L.charCodeAt(0) - 65))
-      const correctIdx = new Set(
-        (Array.isArray(q.answer) ? q.answer : [q.answer])
-          .map((a: any) => String(a))
-          .filter((a: string) => /^[A-D]$/i.test(a))
-          .map((a: string) => a.toUpperCase().charCodeAt(0) - 65)
-      )
+      const correctIdx = getCorrectIndices(q)
       const options = (q.options || []).map((opt: any, idx: number) => ({
         text: typeof opt === 'string' ? opt : (opt && (opt.content || opt.text)) || '',
         isUserAnswer: selectedIdx.has(idx),
